@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-export default auth((req) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default auth((req: any) => {
     const { pathname } = req.nextUrl;
 
     // Protect admin routes (except login)

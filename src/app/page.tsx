@@ -35,7 +35,9 @@ export default function HomePage() {
   const sessionUsername = session?.user?.name || "";
 
   useEffect(() => {
-    setMounted(true);
+    // Delay one tick so theme is hydrated before rendering toggle
+    const id = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(id);
   }, []);
 
   const handleJoinOrCreate = useCallback(

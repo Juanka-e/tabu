@@ -1,5 +1,7 @@
 
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
+
+interface LobiData { odaKodu: string; }
 
 const SERVER_URL = "http://localhost:3000";
 
@@ -23,7 +25,7 @@ async function runTest() {
     const admin = createClient("ADMIN");
 
     const roomCodePromise = new Promise<string>((resolve) => {
-        admin.on("lobiGuncelle", (data: any) => {
+        admin.on("lobiGuncelle", (data: LobiData) => {
             if (data.odaKodu) resolve(data.odaKodu);
         });
     });

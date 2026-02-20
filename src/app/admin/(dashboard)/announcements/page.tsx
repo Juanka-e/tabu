@@ -11,11 +11,8 @@ import {
     X,
     Loader2,
     Bell,
-    Rocket,
     Star,
-    Clock,
     Tag,
-    ChevronDown,
     Pin,
     PinOff,
 } from "lucide-react";
@@ -270,9 +267,8 @@ export default function AdminAnnouncementsPage() {
                             return (
                                 <div
                                     key={a.id}
-                                    className={`flex items-start gap-4 px-5 py-4 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors ${
-                                        !a.isVisible ? "opacity-50" : ""
-                                    } ${a.isPinned ? "bg-amber-50/30 dark:bg-amber-900/10" : ""}`}
+                                    className={`flex items-start gap-4 px-5 py-4 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors ${!a.isVisible ? "opacity-50" : ""
+                                        } ${a.isPinned ? "bg-amber-50/30 dark:bg-amber-900/10" : ""}`}
                                 >
                                     {/* Pin Badge */}
                                     {a.isPinned && (
@@ -354,11 +350,10 @@ export default function AdminAnnouncementsPage() {
                                         {/* Pin Toggle */}
                                         <button
                                             onClick={() => togglePin(a)}
-                                            className={`p-1.5 rounded-lg transition-colors ${
-                                                a.isPinned
-                                                    ? "text-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                                                    : "text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                            }`}
+                                            className={`p-1.5 rounded-lg transition-colors ${a.isPinned
+                                                ? "text-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                                                : "text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                }`}
                                             title={a.isPinned ? "Pini kaldır" : "Sabitle"}
                                             disabled={togglingPin === a.id}
                                         >
@@ -476,22 +471,20 @@ export default function AdminAnnouncementsPage() {
                                         onClick={() =>
                                             setFormType("guncelleme")
                                         }
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                                            formType === "guncelleme"
-                                                ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                                                : "border-gray-200 dark:border-slate-600 text-gray-400"
-                                        }`}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${formType === "guncelleme"
+                                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                                            : "border-gray-200 dark:border-slate-600 text-gray-400"
+                                            }`}
                                     >
                                         <Bell size={16} />
                                         Güncelleme
                                     </button>
                                     <button
                                         onClick={() => setFormType("duyuru")}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                                            formType === "duyuru"
-                                                ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-                                                : "border-gray-200 dark:border-slate-600 text-gray-400"
-                                        }`}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${formType === "duyuru"
+                                            ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                                            : "border-gray-200 dark:border-slate-600 text-gray-400"
+                                            }`}
                                     >
                                         <Megaphone size={16} />
                                         Duyuru
@@ -547,11 +540,10 @@ export default function AdminAnnouncementsPage() {
                                             if (!formMediaType)
                                                 setFormMediaUrl("");
                                         }}
-                                        className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${
-                                            formMediaType === "image"
-                                                ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                                                : "border-gray-200 dark:border-slate-600 text-gray-400"
-                                        }`}
+                                        className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${formMediaType === "image"
+                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                            : "border-gray-200 dark:border-slate-600 text-gray-400"
+                                            }`}
                                     >
                                         🖼️ Görsel
                                     </button>
@@ -565,11 +557,10 @@ export default function AdminAnnouncementsPage() {
                                             if (!formMediaType)
                                                 setFormMediaUrl("");
                                         }}
-                                        className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${
-                                            formMediaType === "youtube"
-                                                ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                                : "border-gray-200 dark:border-slate-600 text-gray-400"
-                                        }`}
+                                        className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${formMediaType === "youtube"
+                                            ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                            : "border-gray-200 dark:border-slate-600 text-gray-400"
+                                            }`}
                                     >
                                         ▶️ YouTube
                                     </button>

@@ -1,9 +1,13 @@
+// NOTE: next-auth@5.0.0-beta has unstable types. Use type cast to avoid
+// '@ts-nocheck' which is banned by ESLint. Remove once next-auth v5 stable.
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+const createNextAuth = NextAuth as unknown as Function;
+export const { handlers, signIn, signOut, auth } = createNextAuth({
     providers: [
         Credentials({
             name: "Admin Login",
@@ -12,20 +16,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Şifre", type: "password" },
             },
             async authorize(credentials) {
-                if (!credentials?.username || !credentials?.password) {
+                const username = credentials?.username as string | undefined;
+                const password = credentials?.password as string | undefined;
+
+                if (!username || !password) {
                     return null;
                 }
 
                 const user = await prisma.user.findUnique({
-                    where: { username: credentials.username as string },
+                    where: { username },
                 });
 
                 if (!user) return null;
 
-                const isValid = await bcryptjs.compare(
-                    credentials.password as string,
-                    user.password
-                );
+                const isValid = await bcryptjs.compare(password, user.password);
 
                 if (!isValid) return null;
 
@@ -44,13 +48,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signIn: "/admin/login",
     },
     callbacks: {
-        async jwt({ token, user }) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async jwt({ token, user }: { token: any; user?: any }) {
             if (user) {
                 token.role = "admin";
             }
             return token;
         },
-        async session({ session, token }) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async session({ session, token }: { session: any; token: any }) {
             if (session.user) {
                 session.user.role = token.role as string;
             }

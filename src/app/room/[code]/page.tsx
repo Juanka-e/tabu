@@ -38,7 +38,6 @@ export default function RoomPage() {
     // Socket
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [socketId, setSocketId] = useState("");
     const [myPlayerId, setMyPlayerId] = useState(() => {
         if (typeof window !== "undefined") {
             return localStorage.getItem("tabu_playerId") || "";
@@ -49,7 +48,6 @@ export default function RoomPage() {
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
     const [players, setPlayers] = useState<Player[]>([]);
-    const [creatorId, setCreatorId] = useState("");
     const [creatorPlayerId, setCreatorPlayerId] = useState("");
 
     // Settings
@@ -86,11 +84,16 @@ export default function RoomPage() {
     const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const id = setTimeout(() => setMounted(true), 0);
         const hasUsername = localStorage.getItem("tabu_username");
+        let promptId: ReturnType<typeof setTimeout> | undefined;
         if (!hasUsername) {
-            setShowUsernamePrompt(true);
+            promptId = setTimeout(() => setShowUsernamePrompt(true), 0);
         }
+        return () => {
+            clearTimeout(id);
+            clearTimeout(promptId);
+        };
     }, []);
 
     // Responsive check
@@ -129,7 +132,6 @@ export default function RoomPage() {
 
         socket.on("connect", () => {
             setIsConnected(true);
-            if (socket.id) setSocketId(socket.id);
             socket.emit("odaİsteği", {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
@@ -146,7 +148,6 @@ export default function RoomPage() {
 
         socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
             setPlayers(data.oyuncular);
-            setCreatorId(data.creatorId);
             setCreatorPlayerId(data.creatorPlayerId || "");
             setSettings(data.ayarlar);
             if (data.seciliKategoriler) setSelectedCategories(data.seciliKategoriler);
@@ -190,7 +191,6 @@ export default function RoomPage() {
 
         socket.on("oyunDurumuGuncelle", (data: GameState) => {
             setGameState(data);
-            if (data.creatorId) setCreatorId(data.creatorId);
         });
 
         socket.on("kartGuncelle", (newCard: CardData | null) => {
@@ -298,8 +298,6 @@ export default function RoomPage() {
                 selectedCategories={selectedCategories}
                 selectedDifficulties={selectedDifficulties}
                 categories={categories}
-                creatorId={creatorId}
-                currentSocketId={socketId}
                 isHost={isHost as boolean}
                 onUpdateSettings={setSettings}
                 onInitialSet={(cats, diffs) => {
@@ -326,12 +324,6 @@ export default function RoomPage() {
                 }}
                 onShuffleTeams={() => emit("takimlariKaristir")}
                 onStartGame={handleStartGame}
-                onKickPlayer={(playerId) =>
-                    emit("oyuncuyuAt", { targetPlayerId: playerId })
-                }
-                onTransferHost={(playerId) =>
-                    emit("yoneticiligiDevret", { targetPlayerId: playerId })
-                }
             />
         );
     };
@@ -371,9 +363,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="A"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarAOpen}
                     onToggle={() => setSidebarAOpen((prev) => !prev)}
@@ -439,9 +429,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="B"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarBOpen}
                     onToggle={() => setSidebarBOpen((prev) => !prev)}

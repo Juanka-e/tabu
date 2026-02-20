@@ -35,7 +35,7 @@ export default function LoginPage() {
                 router.push("/");
                 router.refresh();
             }
-        } catch (err) {
+        } catch {
             setError("Bir hata oluştu.");
         } finally {
             setLoading(false);

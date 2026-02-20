@@ -569,7 +569,7 @@ function SidebarMenuAction({
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
       )}
       {...props}
@@ -606,10 +606,12 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  // Stable widths to avoid calling Math.random() (impure) during render.
+  // A module-level counter produces a deterministic value per mount.
+  const WIDTHS = ["50%", "55%", "60%", "65%", "70%", "75%", "80%", "85%", "90%"] as const;
+  let _skeletonCounter = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const width = React.useMemo(() => WIDTHS[(_skeletonCounter++ % WIDTHS.length)], []);
 
   return (
     <div

@@ -45,7 +45,6 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       NEXTAUTH_URL: "http://localhost:3000"
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
-      NODE_ENV: "production"
       WORD_POOL_SIZE: "120"
       ADMIN_TIMEOUT_MS: "180000"
       RATE_LIMIT_ENABLED: "true"

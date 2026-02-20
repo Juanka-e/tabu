@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
 // PUT - Update announcement
-const updateAnnouncementSchema = z.object({
-    title: z.string().min(1).max(255).optional(),
-    content: z.string().min(1).optional(),
-    type: z.enum(["guncelleme", "duyuru"]).optional(),
-    isVisible: z.boolean().optional(),
-    isPinned: z.boolean().optional(),
-    version: z.string().nullable().optional(),
-    tags: z.string().nullable().optional(),
-    mediaUrl: z.string().nullable().optional(),
-    mediaType: z.enum(["image", "youtube"]).nullable().optional(),
-});
 
 export async function PUT(
     request: NextRequest,

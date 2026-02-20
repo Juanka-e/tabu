@@ -92,9 +92,8 @@ function SortableCategory({
     return (
         <div ref={setNodeRef} style={style} className="relative">
             <div
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors ${
-                    !category.isVisible ? "opacity-50" : ""
-                } ${isChild ? "pl-12" : ""}`}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors ${!category.isVisible ? "opacity-50" : ""
+                    } ${isChild ? "pl-12" : ""}`}
             >
                 {/* Drag Handle - Sadece ana kategoriler için */}
                 {!isChild && (
@@ -116,11 +115,10 @@ function SortableCategory({
                 {/* Name */}
                 <div className="flex-1 min-w-0">
                     <span
-                        className={`text-sm ${
-                            isChild
-                                ? "text-gray-600 dark:text-gray-300"
-                                : "font-bold text-slate-800 dark:text-white"
-                        }`}
+                        className={`text-sm ${isChild
+                            ? "text-gray-600 dark:text-gray-300"
+                            : "font-bold text-slate-800 dark:text-white"
+                            }`}
                     >
                         {category.name}
                     </span>
@@ -264,8 +262,6 @@ export default function AdminCategoriesPage() {
     // Expanded groups
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-    // Deleting
-    const [deleting, setDeleting] = useState<number | null>(null);
 
     // DnD sensors
     const sensors = useSensors(
@@ -403,7 +399,6 @@ export default function AdminCategoriesPage() {
 
     const handleDelete = async (id: number) => {
         if (!confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) return;
-        setDeleting(id);
         try {
             await fetch(`/api/admin/categories/${id}`, {
                 method: "DELETE",
@@ -411,8 +406,6 @@ export default function AdminCategoriesPage() {
             fetchCategories();
         } catch {
             /* ignore */
-        } finally {
-            setDeleting(null);
         }
     };
 
