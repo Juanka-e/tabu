@@ -1,0 +1,41 @@
+# Backend Socket Architecture
+
+## Overview
+The real-time game logic is handled by a custom Socket.IO server integrated with Next.js. The core logic resides in `src/lib/socket/game-socket.ts`.
+
+## Key Components
+
+### 1. GameSocket (`src/lib/socket/game-socket.ts`)
+This file exports `setupGameSocket(io: Server)`, which initializes the socket event listeners.
+
+*   **State Management:**
+    *   `rooms`: A `Map<string, RoomData>` storing the state of all active game rooms.
+    *   `socketToRoom`: A `Map<socketId, roomCode>` reverse index enabling **O(1)** room lookup by socket ID (avoids iterating all rooms on every event).
+    *   `wordActionTimestamps`: Tracks player actions to prevent spam.
+    *   `roomJoinAttempts`: Rate limiting for room creation/joining.
+
+*   **Room Structure (`RoomData`):**
+    *   `odaKodu`: Unique 4-character room code.
+    *   `creatorId`: The **socket ID** of the current room host. Used for permission checks.
+    *   `creatorPlayerId`: The **persistent Player ID** (UUID) of the room creator. Used to restore `creatorId` upon reconnection.
+    *   `oyuncular`: List of players in the room.
+    *   `oyunDurumu`: Current game state (scores, turn, timer, etc.).
+    *   `banList`: Set of banned player IDs and IPs.
+
+### 2. Connection Handling
+*   **Connection:** When a client connects, they are assigned a socket ID.
+*   **Identification (`odaİsteği`):**
+    *   Clients send `kullaniciAdi`, `odaKodu` (optional), and `playerId` (optional, for reconnection).
+    *   **New Player:** Generated a UUID (`playerId`) and sent back via `kimlikAta` event.
+    *   **Returning Player:** Identified by `playerId`. If found in the room, their `socket.id` is updated.
+    *   **Admin Persistence:** If the returning player matches `creatorPlayerId`, the room's `creatorId` is updated to the new `socket.id`, preserving admin privileges.
+
+### 3. Game Loop
+*   **Timer:** A `setInterval` runs on the server for each room to handle turn limits and state transitions.
+*   **State Updates:** Game state changes are broadcast to all room members via `oyunDurumuGuncelle` and `lobiGuncelle`.
+
+## Persistence Strategy
+Since `socket.id` changes on every connection (page refresh), we use `playerId` (a UUID stored in `localStorage` on the client) to persistently identify users.
+
+*   **Client Side:** Stores `playerId` received from `kimlikAta`. Sends it in `odaİsteği`.
+*   **Server Side:** Matches `playerId` to existing players. Updates `creatorId` if the admin reconnects.

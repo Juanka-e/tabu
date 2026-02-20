@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Admin Panel ───────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  role      String   @default("user") @db.VarChar(20) // "user", "admin"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+// ─── Tabu Game: Words ──────────────────────────────────────────
+
+model Word {
+  id         Int @id @default(autoincrement())
+  wordText   String @unique @map("word_text") @db.VarChar(255)
+  difficulty Int    @db.TinyInt // 1: Kolay, 2: Orta, 3: Zor
+
+  tabooWords     TabooWord[]
+  wordCategories WordCategory[]
+
+  @@map("words")
+}
+
+model TabooWord {
+  id            Int    @id @default(autoincrement())
+  wordId        Int    @map("word_id")
+  tabooWordText String @map("taboo_word_text") @db.VarChar(255)
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("taboo_words")
+}
+
+// ─── Categories (Hierarchical) ─────────────────────────────────
+
+model Category {
+  id        Int     @id @default(autoincrement())
+  name      String  @db.VarChar(255)
+  parentId  Int?    @map("parent_id")
+  color     String? @db.VarChar(7)
+  sortOrder Int     @default(0) @map("sort_order")
+  isVisible Boolean @default(true) @map("is_visible")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  wordCategories WordCategory[]
+
+  @@map("categories")
+}
+
+model WordCategory {
+  wordId     Int @map("word_id")
+  categoryId Int @map("category_id")
+
+  word     Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([wordId, categoryId])
+  @@map("word_categories")
+}
+
+// ─── Announcements ─────────────────────────────────────────────
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  content   String   @db.Text
+  type      String   @default("guncelleme") @db.VarChar(20)
+  isVisible Boolean  @default(true) @map("is_visible")
+  isPinned  Boolean  @default(false) @map("is_pinned")
+  version   String?  @db.VarChar(50)
+  tags      String?  @db.Text
+  mediaUrl  String?  @map("media_url") @db.Text
+  mediaType String?  @map("media_type") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("announcements")
+}

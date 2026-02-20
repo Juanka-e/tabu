@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabu Card Design Prototypes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 3D Flip Utilities */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* Flip Interaction */
+        .group:hover .group-hover\:rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* Custom Animations */
+        @keyframes shine {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-shine {
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes border-rotate {
+            0% { --angle: 0deg; }
+            100% { --angle: 360deg; }
+        }
+        
+        /* Holographic Effect */
+        .holo-bg {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.1) 100%),
+                        linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 60%);
+            background-size: 100% 100%, 200% 200%;
+            transition: background-position 0.3s;
+        }
+        .holo-bg:hover {
+            background-position: 0 0, 100% 100%;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        taboo: {
+                            pink: '#FF4785',
+                            blue: '#1EA7FD',
+                            purple: '#6F2DBD',
+                            dark: '#0F172A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-100 min-h-screen p-8 pb-20 font-sans text-slate-800">
+
+    <header class="max-w-7xl mx-auto mb-12 text-center">
+        <h1 class="text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">TABU KART TASARIMLARI</h1>
+        <p class="text-slate-500 max-w-2xl mx-auto">
+            Geliştirilebilir, temalanabilir ve özelleştirilebilir kart prototipleri. 
+            Kartların üzerine gelerek arka yüzlerini görebilirsiniz.
+        </p>
+    </header>
+
+    <!-- SECTION 1: DESIGN VARIANTS -->
+    <section class="max-w-7xl mx-auto mb-20">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-2">
+            <span class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+            Ana Tasarım Varyasyonları
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <!-- VARIANT 1: MINIMAL CLEAN -->
+            <div class="flex flex-col gap-4">
+                <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V1: Minimal Clean</div>
+                <!-- Card Container -->
+                <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-xl rounded-2xl">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col">
+                            <!-- Header -->
+                            <div class="bg-blue-600 h-24 flex items-center justify-center relative overflow-hidden">
+                                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                <h3 class="text-white text-3xl font-display font-bold tracking-wide relative z-10">FUTBOL</h3>
+                                <div class="absolute top-2 right-2">
+                                    <span class="bg-blue-800/50 text-white text-[10px] px-2 py-0.5 rounded-full">Spor</span>
+                                </div>
+                            </div>
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3">
+                                <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> KALECİ
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> GOL
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> OFSAYT
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> PENALTI
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> TOP
+                                </div>
+                            </div>
+                            <!-- Footer -->
+                            <div class="h-2 w-full bg-slate-100">
+                                <div class="h-full bg-blue-600 w-1/3"></div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-blue-600 rounded-2xl flex flex-col items-center justify-center p-8 relative overflow-hidden text-white">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                            <div class="w-24 h-24 rounded-2xl border-4 border-white/20 flex items-center justify-center mb-6 rotate-3 bg-white/10 backdrop-blur-sm">
+                                <span class="text-4xl font-black">T</span>
+                            </div>
+                            <h2 class="text-2xl font-display font-bold tracking-widest mb-2">TABU</h2>
+                            <p class="text-blue-100 text-sm opacity-80 uppercase tracking-widest">Minimal</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VARIANT 2: GLASS & GRADIENT -->
+            <div class="flex flex-col gap-4">
+                <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V2: Modern Glass</div>
+                <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-2xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)]">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-white rounded-2xl overflow-hidden flex flex-col border-2 border-transparent bg-clip-padding" style="background-image: linear-gradient(white, white), linear-gradient(135deg, #6366f1, #a855f7, #ec4899); background-origin: border-box; background-clip: content-box, border-box;">
+                            
+                            <!-- Header -->
+                            <div class="pt-8 pb-4 px-6 text-center relative">
+                                <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-purple-50 to-transparent -z-10"></div>
+                                <span class="text-[10px] font-bold tracking-widest text-purple-500 uppercase mb-1 block">Sanat</span>
+                                <h3 class="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 drop-shadow-sm">PICASSO</h3>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-1 px-6 pb-6 flex flex-col justify-center gap-2.5">
+                                <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+                                    <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
+                                        RESSAM
+                                    </div>
+                                </div>
+                                <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+                                    <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
+                                        İSPANYA
+                                    </div>
+                                </div>
+                                <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+                                    <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
+                                        KÜBİZM
+                                    </div>
+                                </div>
+                                <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+                                    <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
+                                        TABLO
+                                    </div>
+                                </div>
+                                <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+                                    <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
+                                        FIRÇA
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl overflow-hidden flex flex-col items-center justify-center relative">
+                            <!-- Animated Gradient Background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 animate-shine"></div>
+                            
+                            <!-- Glass Panel -->
+                            <div class="relative z-10 w-full h-full flex flex-col items-center justify-center bg-white/10 backdrop-blur-md p-8 border border-white/20">
+                                <div class="w-20 h-20 rounded-full border-2 border-white/50 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                                <h2 class="text-3xl font-display font-black text-white tracking-widest mb-1 drop-shadow-md">TABU</h2>
+                                <span class="text-white/80 text-xs font-semibold tracking-[0.2em] uppercase">Premium</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VARIANT 3: DARK / GAMING -->
+            <div class="flex flex-col gap-4">
+                <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V3: Dark Neon</div>
+                <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-2xl shadow-2xl bg-slate-900">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 flex flex-col">
+                            <!-- Neon Header -->
+                            <div class="h-24 bg-slate-800 flex items-center justify-center relative border-b border-cyan-500/30">
+                                <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent shadow-[0_0_10px_#06b6d4]"></div>
+                                <h3 class="text-cyan-400 text-3xl font-display font-black tracking-widest drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">İNTERNET</h3>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center gap-3">
+                                <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
+                                    [ AĞ ]
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
+                                    [ BİLGİSAYAR ]
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
+                                    [ BAĞLANTI ]
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
+                                    [ WEB ]
+                                </div>
+                                <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
+                                    [ ONLINE ]
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden border border-slate-700">
+                            <!-- Cyber Grid -->
+                            <div class="absolute inset-0" style="background-image: linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px); background-size: 20px 20px;"></div>
+                            
+                            <div class="relative z-10 p-8 border-2 border-cyan-500/50 rounded-lg bg-slate-900/80 backdrop-blur">
+                                <h2 class="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] tracking-tighter">TABU</h2>
+                                <div class="h-1 w-full bg-cyan-500 mt-2 shadow-[0_0_10px_#06b6d4]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VARIANT 4: BOLD / ORGANIC -->
+            <div class="flex flex-col gap-4">
+                <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V4: Bold Organic</div>
+                <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-[32px] shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] bg-[#FFD23F]">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-[#FEF9E6] rounded-[32px] overflow-hidden border-4 border-black flex flex-col">
+                            <!-- Header -->
+                            <div class="bg-[#FFD23F] h-28 flex items-center justify-center border-b-4 border-black relative">
+                                <div class="absolute -right-4 -top-4 bg-white border-4 border-black w-16 h-16 rounded-full"></div>
+                                <h3 class="text-black text-3xl font-black tracking-tight transform -rotate-2 relative z-10">PİZZA</h3>
+                            </div>
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3">
+                                <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center relative group-hover/list:text-[#FF4785]">
+                                    İTALYA
+                                </div>
+                                <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
+                                    HAMUR
+                                </div>
+                                <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
+                                    PEYNİR
+                                </div>
+                                <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
+                                    SUCUK
+                                </div>
+                                <div class="w-full py-2 font-bold text-lg text-black text-center">
+                                    DİLİM
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#FF4785] rounded-[32px] border-4 border-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                            <!-- Dots Pattern -->
+                            <div class="absolute inset-0" style="background-image: radial-gradient(black 2px, transparent 2px); background-size: 20px 20px; opacity: 0.1;"></div>
+                            
+                            <div class="bg-white border-4 border-black px-8 py-4 transform rotate-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <h2 class="text-4xl font-black text-black tracking-tighter">TABU</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- SECTION 2: STORE / SKINS DEMO -->
+    <section class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-2">
+            <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+            Mağaza & Özelleştirme Örnekleri (Skin System)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- SKIN: GOLDEN FRAME -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">Altın Çerçeve Efekti</h3>
+                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">500 Coin</span>
+                </div>
+                
+                <div class="relative h-64 w-48 mx-auto bg-white rounded-lg shadow-lg flex flex-col items-center justify-center overflow-hidden">
+                    <!-- The Effect Layer -->
+                    <div class="absolute inset-0 border-[6px] border-yellow-400 rounded-lg z-20 pointer-events-none" style="box-shadow: inset 0 0 20px rgba(250, 204, 21, 0.5), 0 0 15px rgba(250, 204, 21, 0.4);"></div>
+                    <div class="absolute inset-0 bg-gradient-to-tr from-yellow-100/0 via-yellow-200/30 to-yellow-100/0 animate-pulse z-10"></div>
+                    
+                    <!-- Base Card Content -->
+                    <div class="text-center">
+                        <div class="bg-slate-800 text-white px-4 py-2 mb-4 w-full text-sm font-bold">ALTIN</div>
+                        <div class="text-xs text-slate-400 space-y-2">
+                            <div>DEĞERLİ</div>
+                            <div>MADEN</div>
+                            <div>SARI</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SKIN: HOLOGRAPHIC BACK -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">Holografik Arka Yüz</h3>
+                    <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-bold">1000 Coin</span>
+                </div>
+                
+                <div class="relative h-64 w-48 mx-auto rounded-lg shadow-lg flex flex-col items-center justify-center overflow-hidden bg-slate-900 group cursor-pointer">
+                    <!-- Holo Effect -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent w-[200%] h-full translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 transform skew-x-12"></div>
+                    
+                    <h2 class="relative z-10 text-white font-black text-2xl tracking-widest drop-shadow-md">TABU</h2>
+                    <div class="absolute bottom-4 text-[10px] text-white/70 tracking-[0.3em] z-10">HOLO EDITION</div>
+                </div>
+            </div>
+
+            <!-- SKIN: FIRE BORDER -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">Alev Efekti</h3>
+                    <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">750 Coin</span>
+                </div>
+                
+                <div class="relative h-64 w-48 mx-auto bg-slate-900 rounded-lg shadow-lg flex flex-col items-center justify-center">
+                    <!-- Fire Border -->
+                    <div class="absolute -inset-1 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 rounded-lg blur opacity-75 animate-pulse"></div>
+                    <div class="relative h-full w-full bg-slate-900 rounded-lg flex flex-col items-center justify-center p-4">
+                         <div class="text-orange-500 font-bold text-xl mb-2">ATEŞ</div>
+                         <div class="text-slate-500 text-xs">YANMAK</div>
+                         <div class="text-slate-500 text-xs mt-1">SICAK</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="max-w-7xl mx-auto mt-20 text-center text-slate-400 text-sm">
+        <p>Gemini CLI Generated Prototype • 2026</p>
+    </footer>
+
+</body>
+</html>

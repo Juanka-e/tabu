@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extended Tabu Card Prototypes - V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Outfit:wght@400;700;900&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700&family=Permanent+Marker&display=swap" rel="stylesheet">
+    <style>
+        /* Base Flip & 3D Settings */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .group:hover .group-hover\:rotate-y-180 { transform: rotateY(180deg); }
+
+        /* Custom Patterns & Effects */
+        .pattern-grid {
+            background-image: linear-gradient(#cbd5e1 1px, transparent 1px),
+                            linear-gradient(90deg, #cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .pattern-dots {
+            background-image: radial-gradient(#94a3b8 1px, transparent 1px);
+            background-size: 10px 10px;
+        }
+
+        .hazard-stripes {
+            background: repeating-linear-gradient(
+                45deg,
+                #FACC15,
+                #FACC15 10px,
+                #000 10px,
+                #000 20px
+            );
+        }
+
+        .carbon-fiber {
+            background: radial-gradient(black 15%, transparent 16%) 0 0,
+                        radial-gradient(black 15%, transparent 16%) 8px 8px,
+                        radial-gradient(rgba(255,255,255,.1) 15%, transparent 20%) 0 1px,
+                        radial-gradient(rgba(255,255,255,.1) 15%, transparent 20%) 8px 9px;
+            background-color: #282828;
+            background-size: 16px 16px;
+        }
+
+        @keyframes border-flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .animate-border-flow {
+            background-size: 200% 200%;
+            animation: border-flow 2s linear infinite;
+        }
+
+        .neon-text-shadow {
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00de, 0 0 30px #ff00de, 0 0 40px #ff00de;
+        }
+
+        .glitch-clip {
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 90% 100%, 0 100%);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                        serif: ['Playfair Display', 'serif'],
+                        marker: ['Permanent Marker', 'cursive'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 min-h-screen p-8 pb-32 font-sans text-slate-800">
+
+    <header class="max-w-7xl mx-auto mb-12 text-center">
+        <h1 class="text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">TABU KART KOLEKSİYONU - V2</h1>
+        <p class="text-slate-500 max-w-3xl mx-auto">
+            Genişletilmiş çerçeve, doku ve özel efekt tasarımları. 
+            Bu tasarımlar mağazada satılabilir veya kategoriye özel (Spor, Bilim, Sanat vb.) varsayılan temalar olarak kullanılabilir.
+        </p>
+    </header>
+
+    <!-- THEME 1: FRAME & BORDER STYLES -->
+    <section class="max-w-7xl mx-auto mb-20">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 border-b border-slate-200 pb-4">
+            <span class="text-indigo-600">★</span> Çerçeve & Sınır Tasarımları (Frame Styles)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <!-- DESIGN 5: BLUEPRINT (Technical) -->
+            <div class="flex flex-col gap-3">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Design #5: Blueprint</div>
+                <div class="group h-[400px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-xl rounded-sm">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-[#1e40af] rounded-sm border-2 border-white/30 flex flex-col overflow-hidden">
+                            <div class="absolute inset-0 pattern-grid opacity-20"></div>
+                            
+                            <!-- Technical Header -->
+                            <div class="h-24 border-b-2 border-white/30 flex items-center justify-between px-6 relative z-10">
+                                <div>
+                                    <div class="text-[10px] font-mono text-white/70">FIG. 01</div>
+                                    <h3 class="text-white text-3xl font-mono font-bold">UÇAK</h3>
+                                </div>
+                                <div class="border border-white/30 p-1 rounded-sm">
+                                    <div class="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center text-white text-xs">A</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center gap-3 relative z-10">
+                                <!-- Lines connecting words -->
+                                <div class="absolute left-4 top-6 bottom-6 w-px bg-white/20 border-l border-dashed border-white/40"></div>
+                                
+                                <div class="relative pl-6">
+                                    <div class="absolute left-[-5px] top-1/2 w-2 h-2 bg-white rounded-full -translate-y-1/2"></div>
+                                    <div class="font-mono text-white text-lg tracking-wider">KANAT</div>
+                                </div>
+                                <div class="relative pl-6">
+                                    <div class="absolute left-[-5px] top-1/2 w-2 h-2 bg-white border border-[#1e40af] rounded-full -translate-y-1/2"></div>
+                                    <div class="font-mono text-white text-lg tracking-wider">PİLOT</div>
+                                </div>
+                                <div class="relative pl-6">
+                                    <div class="absolute left-[-5px] top-1/2 w-2 h-2 bg-white border border-[#1e40af] rounded-full -translate-y-1/2"></div>
+                                    <div class="font-mono text-white text-lg tracking-wider">HAVAALANI</div>
+                                </div>
+                                <div class="relative pl-6">
+                                    <div class="absolute left-[-5px] top-1/2 w-2 h-2 bg-white border border-[#1e40af] rounded-full -translate-y-1/2"></div>
+                                    <div class="font-mono text-white text-lg tracking-wider">YOLCU</div>
+                                </div>
+                                <div class="relative pl-6">
+                                    <div class="absolute left-[-5px] top-1/2 w-2 h-2 bg-white border border-[#1e40af] rounded-full -translate-y-1/2"></div>
+                                    <div class="font-mono text-white text-lg tracking-wider">BİLET</div>
+                                </div>
+                            </div>
+                            
+                            <div class="h-8 border-t border-white/20 flex items-center justify-between px-4 bg-[#172554]">
+                                <span class="text-[10px] font-mono text-white/50">SCALE 1:1</span>
+                                <span class="text-[10px] font-mono text-white/50">REF-8492</span>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#1e40af] rounded-sm border-4 border-white flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                            <div class="absolute inset-0 pattern-grid opacity-30"></div>
+                            <div class="border-4 border-white p-6 relative z-10 rotate-45">
+                                <div class="rotate-[-45deg] text-center">
+                                    <h2 class="text-3xl font-mono font-bold text-white tracking-widest">TABU</h2>
+                                    <div class="text-[10px] text-white/60 mt-1">BLUEPRINT SPEC</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 6: RETRO GAMER (Pixel) -->
+            <div class="flex flex-col gap-3">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Design #6: Retro Gamer</div>
+                <div class="group h-[400px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-none shadow-lg">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-zinc-100 flex flex-col" style="box-shadow: inset 0 0 0 4px #000;">
+                            <!-- Header -->
+                            <div class="h-24 bg-green-500 border-b-4 border-black flex items-center justify-center relative">
+                                <!-- Pixel Corners -->
+                                <div class="absolute top-1 left-1 w-2 h-2 bg-white"></div>
+                                <div class="absolute top-1 right-1 w-2 h-2 bg-white"></div>
+                                <h3 class="text-black text-3xl font-black tracking-tighter" style="font-family: 'Courier New', monospace;">MARIO</h3>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center gap-4 bg-zinc-100">
+                                <div class="bg-white border-2 border-black p-2 text-center font-bold font-mono text-sm shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all">
+                                    OYUN
+                                </div>
+                                <div class="bg-white border-2 border-black p-2 text-center font-bold font-mono text-sm shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                    PRENSES
+                                </div>
+                                <div class="bg-white border-2 border-black p-2 text-center font-bold font-mono text-sm shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                    MANTAR
+                                </div>
+                                <div class="bg-white border-2 border-black p-2 text-center font-bold font-mono text-sm shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                    BORU
+                                </div>
+                                <div class="bg-white border-2 border-black p-2 text-center font-bold font-mono text-sm shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                    BIYIK
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-black flex flex-col items-center justify-center relative border-4 border-white outline outline-4 outline-black">
+                             <div class="absolute inset-2 border-2 border-dashed border-zinc-700"></div>
+                             <h2 class="text-4xl text-green-500 font-black tracking-widest animate-pulse" style="font-family: 'Courier New', monospace; text-shadow: 2px 2px 0 #fff;">TABU</h2>
+                             <div class="mt-4 text-white text-xs font-mono">INSERT COIN</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 7: ROYAL (Ornamental) -->
+            <div class="flex flex-col gap-3">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Design #7: Royal</div>
+                <div class="group h-[400px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-2xl rounded-xl">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-slate-900 rounded-xl border-[6px] border-[#C5A059] flex flex-col overflow-hidden">
+                            <!-- Inner Border -->
+                            <div class="absolute inset-1 border border-[#C5A059]/50 rounded-lg pointer-events-none z-20"></div>
+                            
+                            <!-- Header -->
+                            <div class="h-28 bg-gradient-to-b from-[#C5A059] to-[#987538] flex flex-col items-center justify-center relative shadow-lg z-10">
+                                <div class="text-[#4a3510] text-3xl font-serif font-bold tracking-wider">ALTIN</div>
+                                <div class="w-16 h-0.5 bg-[#4a3510]/30 mt-1"></div>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3 bg-slate-900 relative">
+                                <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/damask.png')]"></div>
+                                
+                                <div class="relative z-10 w-full text-center py-2 text-[#e2d1aa] font-serif border-b border-[#C5A059]/20">DEĞERLİ</div>
+                                <div class="relative z-10 w-full text-center py-2 text-[#e2d1aa] font-serif border-b border-[#C5A059]/20">ZENGİN</div>
+                                <div class="relative z-10 w-full text-center py-2 text-[#e2d1aa] font-serif border-b border-[#C5A059]/20">PARA</div>
+                                <div class="relative z-10 w-full text-center py-2 text-[#e2d1aa] font-serif border-b border-[#C5A059]/20">KOLYE</div>
+                                <div class="relative z-10 w-full text-center py-2 text-[#e2d1aa] font-serif">YÜZÜK</div>
+                            </div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 rounded-xl border-[6px] border-[#C5A059] flex flex-col items-center justify-center relative">
+                            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/damask.png')]"></div>
+                            <div class="w-32 h-32 border-2 border-[#C5A059] rotate-45 flex items-center justify-center bg-slate-800 shadow-xl">
+                                <div class="w-28 h-28 border border-[#C5A059]/50 flex items-center justify-center bg-slate-900">
+                                    <h2 class="text-3xl font-serif font-bold text-[#C5A059] transform -rotate-45">TABU</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 8: WARNING (Industrial) -->
+            <div class="flex flex-col gap-3">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Design #8: Hazard</div>
+                <div class="group h-[400px] w-full perspective-1000 cursor-pointer">
+                    <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-2xl rounded-lg bg-zinc-800">
+                        
+                        <!-- FRONT -->
+                        <div class="absolute inset-0 backface-hidden bg-zinc-100 rounded-lg overflow-hidden flex flex-col">
+                            <!-- Stripes Border Top/Bottom -->
+                            <div class="h-4 hazard-stripes"></div>
+                            
+                            <!-- Header -->
+                            <div class="h-20 bg-zinc-900 flex items-center justify-center relative">
+                                <h3 class="text-yellow-400 text-3xl font-black uppercase tracking-widest">DİKKAT</h3>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 p-6 flex flex-col justify-center gap-2 bg-zinc-200">
+                                <div class="bg-zinc-100 border-l-8 border-yellow-400 p-3 font-bold text-zinc-800 shadow-sm flex justify-between items-center">
+                                    <span>TEHLİKE</span>
+                                    <span class="text-yellow-500">⚠</span>
+                                </div>
+                                <div class="bg-zinc-100 border-l-8 border-transparent hover:border-black p-3 font-bold text-zinc-600 shadow-sm transition-all">
+                                    UYARI
+                                </div>
+                                <div class="bg-zinc-100 border-l-8 border-transparent hover:border-black p-3 font-bold text-zinc-600 shadow-sm transition-all">
+                                    YASAK
+                                </div>
+                                <div class="bg-zinc-100 border-l-8 border-transparent hover:border-black p-3 font-bold text-zinc-600 shadow-sm transition-all">
+                                    KIRMIZI
+                                </div>
+                                <div class="bg-zinc-100 border-l-8 border-transparent hover:border-black p-3 font-bold text-zinc-600 shadow-sm transition-all">
+                                    LEVHA
+                                </div>
+                            </div>
+                            
+                            <div class="h-4 hazard-stripes"></div>
+                        </div>
+
+                        <!-- BACK -->
+                        <div class="absolute inset-0 backface-hidden rotate-y-180 bg-zinc-900 rounded-lg flex flex-col items-center justify-center relative border-8 border-yellow-400">
+                            <div class="absolute inset-0 hazard-stripes opacity-10"></div>
+                            <div class="bg-yellow-400 text-black font-black text-4xl px-8 py-2 transform -rotate-12 border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                                TABU
+                            </div>
+                            <div class="mt-8 text-yellow-400/50 font-mono text-xs text-center">
+                                CAUTION: HIGH VOLTAGE<br>GAMEPLAY
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- THEME 2: MATERIAL & TEXTURE SKINS -->
+    <section class="max-w-7xl mx-auto mb-20">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 border-b border-slate-200 pb-4">
+            <span class="text-pink-600">★</span> Özel Doku ve Materyaller (Special Materials)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <!-- DESIGN 9: PAPER (Sketch) -->
+            <div class="group h-[380px] w-full perspective-1000 cursor-pointer relative">
+                <!-- Stack effect -->
+                <div class="absolute inset-0 bg-white border border-gray-300 rounded shadow rotate-3 z-0"></div>
+                <div class="absolute inset-0 bg-white border border-gray-300 rounded shadow -rotate-2 z-0"></div>
+                
+                <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded bg-[#fdfbf7] z-10 border border-gray-200">
+                    <!-- FRONT -->
+                    <div class="absolute inset-0 backface-hidden flex flex-col p-6 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]">
+                        <h3 class="font-marker text-4xl text-slate-800 mb-6 text-center rotate-1">Okul</h3>
+                        <div class="flex-1 space-y-4">
+                            <div class="font-marker text-xl text-slate-600 border-b border-blue-200 pb-1 rotate-[-1deg]">Öğrenci</div>
+                            <div class="font-marker text-xl text-slate-600 border-b border-blue-200 pb-1 rotate-[0.5deg]">Öğretmen</div>
+                            <div class="font-marker text-xl text-slate-600 border-b border-blue-200 pb-1 rotate-[-0.5deg]">Sınıf</div>
+                            <div class="font-marker text-xl text-slate-600 border-b border-blue-200 pb-1 rotate-[1deg]">Ders</div>
+                            <div class="font-marker text-xl text-slate-600 border-b border-blue-200 pb-1">Teneffüs</div>
+                        </div>
+                        <div class="absolute top-4 right-4 w-12 h-12 rounded-full border-2 border-red-500 flex items-center justify-center text-red-500 font-marker text-lg transform rotate-12 opacity-70">
+                            A+
+                        </div>
+                    </div>
+                    <!-- BACK -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-yellow-100 flex items-center justify-center p-8 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]">
+                         <h2 class="font-marker text-5xl text-slate-800 -rotate-6">Tabu</h2>
+                         <div class="absolute bottom-4 right-4 text-xs font-marker text-slate-400">Sketch Edition</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 10: CYBERPUNK (Glitch) -->
+            <div class="group h-[380px] w-full perspective-1000 cursor-pointer">
+                <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 glitch-clip bg-black">
+                    <!-- FRONT -->
+                    <div class="absolute inset-0 backface-hidden bg-black border-2 border-[#0ff] flex flex-col p-1">
+                        <div class="h-full w-full border border-[#f0f] p-4 flex flex-col relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 animate-pulse"></div>
+                            
+                            <h3 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#0ff] to-[#f0f] text-center mb-8 uppercase tracking-tighter" style="font-family: 'Arial', sans-serif;">Hacker</h3>
+                            
+                            <div class="space-y-3 flex-1">
+                                <div class="bg-zinc-900/80 text-[#0ff] p-2 font-mono text-sm border-l-2 border-[#0ff] hover:bg-[#0ff]/20 cursor-crosshair">CODE</div>
+                                <div class="bg-zinc-900/80 text-[#f0f] p-2 font-mono text-sm border-l-2 border-[#f0f] hover:bg-[#f0f]/20 cursor-crosshair">MATRIX</div>
+                                <div class="bg-zinc-900/80 text-[#0ff] p-2 font-mono text-sm border-l-2 border-[#0ff] hover:bg-[#0ff]/20 cursor-crosshair">SYSTEM</div>
+                                <div class="bg-zinc-900/80 text-[#f0f] p-2 font-mono text-sm border-l-2 border-[#f0f] hover:bg-[#f0f]/20 cursor-crosshair">VIRUS</div>
+                                <div class="bg-zinc-900/80 text-[#0ff] p-2 font-mono text-sm border-l-2 border-[#0ff] hover:bg-[#0ff]/20 cursor-crosshair">DATA</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- BACK -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-black flex items-center justify-center border-2 border-[#f0f]">
+                        <h2 class="text-5xl font-black text-white italic tracking-tighter neon-text-shadow">TABU</h2>
+                        <div class="absolute bottom-4 left-0 w-full text-center text-[#0ff] text-xs font-mono animate-pulse">SYSTEM_OVERRIDE</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 11: ECO (Nature) -->
+            <div class="group h-[380px] w-full perspective-1000 cursor-pointer">
+                <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-t-[100px] rounded-b-xl shadow-xl">
+                    <!-- FRONT -->
+                    <div class="absolute inset-0 backface-hidden bg-[#ecfccb] flex flex-col rounded-t-[100px] rounded-b-xl overflow-hidden border-4 border-[#365314]">
+                        <div class="h-32 bg-[#365314] flex items-center justify-center pt-8">
+                            <h3 class="text-[#ecfccb] text-3xl font-display font-bold">ORMAN</h3>
+                        </div>
+                        <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3">
+                            <div class="w-full py-2 text-[#365314] font-bold text-center border-b border-[#365314]/20 hover:bg-[#365314]/10 rounded transition-colors">AĞAÇ</div>
+                            <div class="w-full py-2 text-[#365314] font-bold text-center border-b border-[#365314]/20 hover:bg-[#365314]/10 rounded transition-colors">YEŞİL</div>
+                            <div class="w-full py-2 text-[#365314] font-bold text-center border-b border-[#365314]/20 hover:bg-[#365314]/10 rounded transition-colors">DOĞA</div>
+                            <div class="w-full py-2 text-[#365314] font-bold text-center border-b border-[#365314]/20 hover:bg-[#365314]/10 rounded transition-colors">YAPRAK</div>
+                            <div class="w-full py-2 text-[#365314] font-bold text-center hover:bg-[#365314]/10 rounded transition-colors">HAYVAN</div>
+                        </div>
+                    </div>
+                    <!-- BACK -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#365314] rounded-t-[100px] rounded-b-xl flex items-center justify-center border-4 border-[#ecfccb]">
+                        <div class="w-24 h-24 rounded-full border-2 border-[#ecfccb] flex items-center justify-center">
+                            <span class="text-3xl text-[#ecfccb]">🌲</span>
+                        </div>
+                        <h2 class="absolute bottom-12 text-2xl font-bold text-[#ecfccb] tracking-widest">TABU</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESIGN 12: CARBON (Carbon Fiber) -->
+            <div class="group h-[380px] w-full perspective-1000 cursor-pointer">
+                <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-xl shadow-2xl bg-zinc-900">
+                    <!-- FRONT -->
+                    <div class="absolute inset-0 backface-hidden carbon-fiber rounded-xl overflow-hidden flex flex-col border border-zinc-700">
+                        <div class="h-24 bg-gradient-to-b from-zinc-800 to-transparent flex items-center justify-center">
+                            <h3 class="text-zinc-100 text-3xl font-display font-black tracking-tight uppercase">Motor</h3>
+                        </div>
+                        <div class="flex-1 p-6 flex flex-col justify-center gap-3">
+                            <div class="bg-zinc-800/50 border-l-4 border-red-600 p-3 text-zinc-300 font-bold text-sm backdrop-blur-sm">ARABA</div>
+                            <div class="bg-zinc-800/50 border-l-4 border-zinc-600 p-3 text-zinc-300 font-bold text-sm backdrop-blur-sm">HIZ</div>
+                            <div class="bg-zinc-800/50 border-l-4 border-zinc-600 p-3 text-zinc-300 font-bold text-sm backdrop-blur-sm">YARIŞ</div>
+                            <div class="bg-zinc-800/50 border-l-4 border-zinc-600 p-3 text-zinc-300 font-bold text-sm backdrop-blur-sm">GÜÇ</div>
+                            <div class="bg-zinc-800/50 border-l-4 border-zinc-600 p-3 text-zinc-300 font-bold text-sm backdrop-blur-sm">BENZİN</div>
+                        </div>
+                    </div>
+                    <!-- BACK -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 carbon-fiber rounded-xl flex items-center justify-center border-2 border-zinc-700">
+                         <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
+                         <h2 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 italic pr-2">TABU</h2>
+                         <span class="absolute bottom-6 text-[10px] text-zinc-500 tracking-widest uppercase">Carbon Edition</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- THEME 3: SPECIAL EFFECTS (STORE ITEMS) -->
+    <section class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 border-b border-slate-200 pb-4">
+            <span class="text-purple-600">★</span> Mağaza Efektleri (Store Effects)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            
+            <!-- EFFECT 1: RAINBOW BORDER -->
+            <div class="flex flex-col items-center">
+                <div class="mb-4 text-center">
+                    <h4 class="font-bold text-lg">RGB Border</h4>
+                    <span class="text-xs text-slate-500">2000 Coins</span>
+                </div>
+                <div class="relative w-48 h-64 bg-slate-900 rounded-xl flex items-center justify-center">
+                    <!-- The Effect -->
+                    <div class="absolute -inset-[3px] rounded-xl bg-gradient-to-r from-red-500 via-green-500 to-blue-500 animate-border-flow"></div>
+                    
+                    <div class="relative w-full h-full bg-slate-900 rounded-[10px] flex flex-col items-center justify-center z-10">
+                        <span class="text-white font-bold">RGB</span>
+                        <span class="text-white/50 text-xs">GAMING</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EFFECT 2: FLOATING CROWN -->
+            <div class="flex flex-col items-center">
+                <div class="mb-4 text-center">
+                    <h4 class="font-bold text-lg">King's Crown</h4>
+                    <span class="text-xs text-slate-500">5000 Coins</span>
+                </div>
+                <div class="relative w-48 h-64 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center shadow-lg group">
+                    <!-- The Effect -->
+                    <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-4xl animate-bounce drop-shadow-md">👑</div>
+                    
+                    <div class="text-center">
+                        <span class="block font-serif text-2xl text-slate-800">Krallık</span>
+                        <span class="text-xs text-slate-400">Özel Simge</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EFFECT 3: GHOST MODE -->
+            <div class="flex flex-col items-center">
+                <div class="mb-4 text-center">
+                    <h4 class="font-bold text-lg">Ghost Aura</h4>
+                    <span class="text-xs text-slate-500">Limited Event</span>
+                </div>
+                <div class="relative w-48 h-64 bg-slate-800 rounded-xl flex items-center justify-center">
+                    <!-- The Effect -->
+                    <div class="absolute inset-0 rounded-xl bg-purple-500/50 blur-xl animate-pulse"></div>
+                    
+                    <div class="relative w-full h-full bg-slate-900/90 backdrop-blur rounded-xl border border-purple-500/30 flex flex-col items-center justify-center z-10">
+                        <span class="text-purple-300 font-bold tracking-widest uppercase">Ghost</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="max-w-7xl mx-auto mt-24 pb-8 text-center text-slate-400 text-sm">
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent mb-8"></div>
+        <p>Gemini CLI Generated Prototype - Extended Collection V2 • 2026</p>
+    </footer>
+
+</body>
+</html>

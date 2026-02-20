@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ─── Dependencies ─────────────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +8,58 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# ─── Testing ──────────────────────────────────────────────────────
 /coverage
 
-# next.js
+# ─── Next.js ──────────────────────────────────────────────────────
 /.next/
 /out/
 
-# production
+# ─── Production build ─────────────────────────────────────────────
 /build
 
-# misc
-.DS_Store
-*.pem
+# ─── Environment files ────────────────────────────────────────────
+# Keep .env.example (template for new devs), ignore real secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
 
-# debug
+# ─── Prisma ───────────────────────────────────────────────────────
+# Generated client — regenerated from schema on each machine
+/src/generated/prisma
+/prisma/*.db
+/prisma/*.db-journal
+
+# ─── Logs ─────────────────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
+# ─── TypeScript ───────────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ─── OS / Editor ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.pem
+
+# JetBrains IDEs (WebStorm, IntelliJ)
+.idea/
+
+# VS Code (keep .vscode/settings.json if shared, ignore personal)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ─── Vercel / Deployment ──────────────────────────────────────────
+.vercel
+
+# ─── Misc ─────────────────────────────────────────────────────────
+*.pem
+.turbo

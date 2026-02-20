@@ -1,65 +1,273 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Gamepad2,
+  Users,
+  Plus,
+  LogIn,
+  Sparkles,
+  Moon,
+  Sun,
+  Megaphone,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import { useSession, signOut } from "next-auth/react";
+import { AnnouncementsModal } from "@/components/game/announcements-modal";
+
+export default function HomePage() {
+  const [username, setUsername] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [error, setError] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
+  const sessionUsername = session?.user?.name || "";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleJoinOrCreate = useCallback(
+    (isCreate: boolean) => {
+      if (!username.trim()) {
+        setError("Lütfen bir kullanıcı adı girin.");
+        return;
+      }
+
+      if (!isCreate && !roomCode.trim()) {
+        setError("Lütfen bir oda kodu girin.");
+        return;
+      }
+
+      setIsConnecting(true);
+      setError("");
+
+      // Get stored playerId for reconnection
+      const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
+
+      const socket: Socket = io({
+        path: "/api/socketio",
+        transports: ["websocket", "polling"],
+      });
+
+      socket.on("connect", () => {
+        socket.emit("odaİsteği", {
+          kullaniciAdi: username.trim(),
+          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
+          playerId: storedPlayerId,
+        });
+      });
+
+      socket.on("kimlikAta", (newPlayerId: string) => {
+        localStorage.setItem("tabu_playerId", newPlayerId);
+      });
+
+      socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
+        // Store socket info and redirect to room
+        localStorage.setItem("tabu_username", username.trim());
+        localStorage.setItem("tabu_roomCode", data.odaKodu);
+        socket.disconnect();
+        router.push(`/room/${data.odaKodu}`);
+      });
+
+      socket.on("hata", (msg: string) => {
+        setError(msg);
+        setIsConnecting(false);
+        socket.disconnect();
+      });
+
+      socket.on("connect_error", () => {
+        setError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
+        setIsConnecting(false);
+      });
+    },
+    [username, roomCode, router]
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Top bar */}
+      <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
+        {!isLoggedIn && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
+              Giriş Yap
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => router.push("/register")}>
+              Kayıt Ol
+            </Button>
+          </>
+        )}
+        {isLoggedIn && (
+          <Button variant="ghost" size="sm" onClick={() => signOut()}>
+            {sessionUsername} (Çıkış)
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowAnnouncements(true)}
+          className="rounded-full"
+        >
+          <Megaphone className="h-5 w-5" />
+        </Button>
+        {mounted && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-full"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+        )}
+      </div>
+
+      {/* Main card */}
+      <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <Gamepad2 className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+              TABU
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Online Sözcük Tahmin Oyunu
+            </p>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6 pt-4">
+          {/* Username */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              Kullanıcı Adı
+            </div>
+            <Input
+              placeholder="Adınızı girin..."
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && username.trim()) {
+                  handleJoinOrCreate(true);
+                }
+              }}
+              maxLength={50}
+              className="h-12 text-base bg-background/50"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          {/* Create Room */}
+          <Button
+            onClick={() => handleJoinOrCreate(true)}
+            disabled={isConnecting || !username.trim()}
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {isConnecting ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Bağlanılıyor...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Yeni Oda Oluştur
+              </div>
+            )}
+          </Button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              veya
+            </span>
+            <Separator className="flex-1" />
+          </div>
+
+          {/* Join Room */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Oda Kodu
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Örn: ABC123"
+                value={roomCode}
+                onChange={(e) => {
+                  setRoomCode(e.target.value.toUpperCase());
+                  setError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && username.trim() && roomCode.trim()) {
+                    handleJoinOrCreate(false);
+                  }
+                }}
+                maxLength={6}
+                className="h-12 text-base font-mono tracking-widest text-center bg-background/50"
+              />
+              <Button
+                onClick={() => handleJoinOrCreate(false)}
+                disabled={
+                  isConnecting || !username.trim() || !roomCode.trim()
+                }
+                variant="secondary"
+                className="h-12 px-6 font-semibold"
+              >
+                <LogIn className="h-5 w-5 mr-1" />
+                Katıl
+              </Button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center animate-in fade-in slide-in-from-top-1">
+              {error}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Footer */}
+      <p className="mt-6 text-xs text-muted-foreground relative z-10">
+        Tabu Online — Arkadaşlarınla eğlenceli vakit geçir!
+      </p>
+
+      {/* Announcements Modal */}
+      <AnnouncementsModal
+        isOpen={showAnnouncements}
+        onClose={() => setShowAnnouncements(false)}
+      />
     </div>
   );
 }
