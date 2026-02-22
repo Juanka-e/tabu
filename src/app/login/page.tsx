@@ -1,21 +1,23 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,7 +34,11 @@ export default function LoginPage() {
             if (res?.error) {
                 setError("Giriş başarısız. Kullanıcı adı veya şifre hatalı.");
             } else {
-                router.push("/");
+                if (callbackUrl) {
+                    router.push(callbackUrl);
+                } else {
+                    router.push("/");
+                }
                 router.refresh();
             }
         } catch {
@@ -43,53 +49,71 @@ export default function LoginPage() {
     };
 
     return (
+        <Card className="w-full max-w-sm shadow-xl">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                    <LogIn className="w-6 h-6 text-primary" />
+                    Giriş Yap
+                </CardTitle>
+                <CardDescription>
+                    Tabu hesabınıza giriş yapın
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                        <Input
+                            type="text"
+                            placeholder="Kullanıcı Adı"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Input
+                            type="password"
+                            placeholder="Şifre"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    {error && (
+                        <div className="text-sm text-red-500 font-medium">
+                            {error}
+                        </div>
+                    )}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+                    </Button>
+                </form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+                <p className="text-sm text-muted-foreground">
+                    Hesabın yok mu? <Link href="/register" className="text-primary hover:underline">Kayıt Ol</Link>
+                </p>
+            </CardFooter>
+        </Card>
+    );
+}
+
+export default function LoginPage() {
+    return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
-            <Card className="w-full max-w-sm shadow-xl">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                        <LogIn className="w-6 h-6 text-primary" />
-                        Giriş Yap
-                    </CardTitle>
-                    <CardDescription>
-                        Tabu hesabınıza giriş yapın
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <Input
-                                type="text"
-                                placeholder="Kullanıcı Adı"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Input
-                                type="password"
-                                placeholder="Şifre"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        {error && (
-                            <div className="text-sm text-red-500 font-medium">
-                                {error}
-                            </div>
-                        )}
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
-                        </Button>
-                    </form>
-                </CardContent>
-                <CardFooter className="flex justify-center">
-                    <p className="text-sm text-muted-foreground">
-                        Hesabın yok mu? <Link href="/register" className="text-primary hover:underline">Kayıt Ol</Link>
-                    </p>
-                </CardFooter>
-            </Card>
+            <Suspense fallback={
+                <Card className="w-full max-w-sm shadow-xl">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                            <LogIn className="w-6 h-6 text-primary" />
+                            Giriş Yap
+                        </CardTitle>
+                        <CardDescription>Yükleniyor...</CardDescription>
+                    </CardHeader>
+                </Card>
+            }>
+                <LoginForm />
+            </Suspense>
         </div>
     );
 }

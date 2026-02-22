@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
 // POST - Bulk upload words from CSV
 export async function POST(request: NextRequest) {
+    const { error } = await requireAdmin();
+    if (error) return error;
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;

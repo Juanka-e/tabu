@@ -58,8 +58,8 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
                             key={href}
                             href={href}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                 }`}
                         >
                             <Icon className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
                 <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 text-sm text-destructive hover:text-destructive"
-                    onClick={() => signOut({ callbackUrl: "/admin/login" })}
+                    onClick={() => signOut({ callbackUrl: "/login" })}
                 >
                     <LogOut className="h-4 w-4" />
                     Çıkış Yap

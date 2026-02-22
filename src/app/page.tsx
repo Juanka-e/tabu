@@ -16,6 +16,7 @@ import {
   Moon,
   Sun,
   Megaphone,
+  Shield,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
@@ -33,6 +34,7 @@ export default function HomePage() {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
   const sessionUsername = session?.user?.name || "";
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
 
   useEffect(() => {
     // Delay one tick so theme is hydrated before rendering toggle
@@ -117,6 +119,17 @@ export default function HomePage() {
               Kayıt Ol
             </Button>
           </>
+        )}
+        {isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/admin")}
+            className="border-purple-500/50 text-purple-500 hover:bg-purple-500/10"
+          >
+            <Shield className="h-4 w-4 mr-1" />
+            Admin Paneli
+          </Button>
         )}
         {isLoggedIn && (
           <Button variant="ghost" size="sm" onClick={() => signOut()}>

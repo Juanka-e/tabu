@@ -8,7 +8,8 @@ export default async function AdminDashboardLayout({
     children: React.ReactNode;
 }) {
     const session = await auth();
-    if (!session) redirect("/admin/login");
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || role !== "admin") redirect("/login");
 
     return (
         <div className="min-h-screen bg-background flex">

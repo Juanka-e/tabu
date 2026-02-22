@@ -1,13 +1,15 @@
-// NOTE: next-auth@5.0.0-beta has unstable types. Use type cast to avoid
-// '@ts-nocheck' which is banned by ESLint. Remove once next-auth v5 stable.
-import NextAuth from "next-auth";
+// NOTE: next-auth@5.0.0-beta.30 default export loses its call signature under
+// moduleResolution:"bundler". @ts-expect-error is preferred over 'any' or @ts-nocheck.
+// Remove once next-auth v5 reaches stable.
+import NextAuthImport from "next-auth";
+import type { JWT } from "@auth/core/jwt";
+import type { Session, User } from "@auth/core/types";
 import Credentials from "next-auth/providers/credentials";
 import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-const createNextAuth = NextAuth as unknown as Function;
-export const { handlers, signIn, signOut, auth } = createNextAuth({
+// @ts-expect-error – beta type limitation, see note above
+export const { handlers, signIn, signOut, auth } = NextAuthImport({
     providers: [
         Credentials({
             name: "Admin Login",
@@ -33,32 +35,28 @@ export const { handlers, signIn, signOut, auth } = createNextAuth({
 
                 if (!isValid) return null;
 
-                // Check if user has admin role
-                if (user.role !== "admin") return null;
-
                 return {
                     id: String(user.id),
                     name: user.username,
-                    role: user.role,
+                    role: user.role, // "user" | "admin" — admin panel access controlled by middleware
                 };
             },
         }),
     ],
     pages: {
-        signIn: "/admin/login",
+        signIn: "/login",
     },
     callbacks: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async jwt({ token, user }: { token: any; user?: any }) {
+        async jwt({ token, user }: { token: JWT; user?: User }) {
             if (user) {
-                token.role = "admin";
+                token.role = (user as { role?: string }).role ?? "user";
             }
             return token;
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async session({ session, token }: { session: any; token: any }) {
+        async session({ session, token }: { session: Session; token: JWT }) {
             if (session.user) {
-                session.user.role = token.role as string;
+                (session.user as Session["user"] & { role?: string }).role =
+                    token.role as string;
             }
             return session;
         },

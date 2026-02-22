@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { invalidateCategoryCache } from "@/lib/socket/category-service";
+import { requireAdmin } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,8 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const { error } = await requireAdmin();
+    if (error) return error;
     try {
         const { id } = await params;
         const body = await request.json();
@@ -50,6 +53,8 @@ export async function DELETE(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const { error } = await requireAdmin();
+    if (error) return error;
     try {
         const { id } = await params;
         await prisma.category.delete({ where: { id: parseInt(id) } });
