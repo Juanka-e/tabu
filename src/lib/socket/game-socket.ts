@@ -87,7 +87,7 @@ const ROOM_JOIN_MAX_ATTEMPTS = parseInt(process.env.ROOM_JOIN_MAX_ATTEMPTS || "1
 // Disconnect Timeouts Tracking
 const roomAdminTimeouts = new Map<string, NodeJS.Timeout>();
 const ADMIN_TIMEOUT_MS = parseInt(process.env.ADMIN_TIMEOUT_MS || "180000", 10); // Default 3 mins
-const PLAYER_TIMEOUT_MS = 15000; // 15 seconds grace period for normal players
+const PLAYER_TIMEOUT_MS = parseInt(process.env.PLAYER_TIMEOUT_MS || "15000", 10); // Default 15 secs
 
 
 // ─── Helpers ───────────────────────────────────────────────────
