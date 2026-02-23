@@ -698,7 +698,6 @@ export function setupGameSocket(io: Server): void {
                     // Discard the client-provided (localStorage) playerId entirely.
                     // Instead, use the 100% secure, tamper-proof ID verified by NextAuth in server.ts middleware.
                     const effectivePlayerId = socket.data.userId;
-                    console.log(`[AUTH DEBUG] odaİsteği from socket ${socket.id}. token.sub: ${effectivePlayerId}`);
 
                     if (!effectivePlayerId) {
                         socket.emit("hata", "Oturumunuz doğrulanamadı. Lütfen giriş yapın.");
@@ -755,8 +754,6 @@ export function setupGameSocket(io: Server): void {
                         (player) => player.playerId === effectivePlayerId
                     );
 
-                    console.log(`[AUTH DEBUG] existingPlayer found? ${!!existingPlayer}, room.creatorPlayerId: ${room.creatorPlayerId}`);
-
                     if (existingPlayer) {
                         existingPlayer.id = socket.id;
                         existingPlayer.ad = sanitizedName;
@@ -795,11 +792,8 @@ export function setupGameSocket(io: Server): void {
                         };
                         room.oyuncular.push(yeniOyuncu);
 
-                        console.log(`[AUTH DEBUG] Player added as new. Checking admin: ${yeniOyuncu.playerId} === ${room.creatorPlayerId}`);
-
                         // If the room creator re-joins after being completely removed from the array (e.g. F5 in Lobby)
                         if (yeniOyuncu.playerId === room.creatorPlayerId) {
-                            console.log(`[AUTH DEBUG] Admin restored for ${yeniOyuncu.playerId}`);
                             room.creatorId = socket.id;
 
                             // Clear any pending admin timeout
@@ -1168,13 +1162,29 @@ export function setupGameSocket(io: Server): void {
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player) return;
 
+            player.online = false;
+
             if (!room.oyunDurumu.oyunAktifMi) {
-                // Hata Çözümü (F5 Çoğalma Bug'ı):
-                // Oyun henüz başlamadıysa (Lobi ekranı), kopan oyuncuyu tamamen diziden sil.
-                // Böylece F5 atıldığında "eski oturumlar" birikmeyecek.
-                room.oyuncular = room.oyuncular.filter(p => p.id !== socket.id);
-            } else {
-                player.online = false;
+                // Hata Çözümü (F5 Çoğalma Bug'ı) - Revize:
+                // Lobide kopan oyuncuları 5 saniye bekleyip siliyoruz. Böylece F5 atıldığında 
+                // kopyalanmadıkları gibi rollerini de (örn: takım) kaybetmiyorlar.
+                // Yönetici ise ADMIN_TIMEOUT_MS devredeceği için ona dokunmuyoruz.
+                const isCreator = room.creatorPlayerId === player.playerId;
+                if (!isCreator) {
+                    const roomCode = room.odaKodu;
+                    const playerId = player.playerId;
+                    setTimeout(() => {
+                        const currentRoom = getRoom(roomCode);
+                        if (!currentRoom || currentRoom.oyunDurumu.oyunAktifMi) return;
+
+                        const stillOffline = currentRoom.oyuncular.find(p => p.playerId === playerId && !p.online);
+                        if (stillOffline) {
+                            currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== playerId);
+                            persistRoom(currentRoom);
+                            broadcastLobby(currentRoom);
+                        }
+                    }, 5000);
+                }
             }
 
             const onlinePlayers = room.oyuncular.filter((p) => p.online);
@@ -1224,8 +1234,15 @@ export function setupGameSocket(io: Server): void {
                     if (!adminPlayer || !adminPlayer.online) {
                         const nextAdmin = currentRoom.oyuncular.find(p => p.online);
                         if (nextAdmin) {
+                            const oldAdminPlayerId = currentRoom.creatorPlayerId;
                             currentRoom.creatorId = nextAdmin.id;
                             currentRoom.creatorPlayerId = nextAdmin.playerId;
+
+                            // Odanın lobisinde eski yönetici hayalet olarak kalmasın diye temizle
+                            if (!currentRoom.oyunDurumu.oyunAktifMi) {
+                                currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== oldAdminPlayerId);
+                            }
+
                             persistRoom(currentRoom);
                             broadcastLobby(currentRoom);
                             io.to(roomCode).emit("hata", `Yönetici ayrıldı. Yeni yönetici: ${nextAdmin.ad}`);
