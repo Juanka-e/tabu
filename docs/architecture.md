@@ -34,6 +34,14 @@ This file exports `setupGameSocket(io: Server)`, which initializes the socket ev
 *   **Timer:** A `setInterval` runs on the server for each room to handle turn limits and state transitions.
 *   **State Updates:** Game state changes are broadcast to all room members via `oyunDurumuGuncelle` and `lobiGuncelle`.
 
+### 4. Security & Protections
+*   **WebSocket Authentication:** The `server.ts` utilizes a Socket.IO middleware that checks for a valid `next-auth/jwt` session token. Unauthorized (not logged in) connections are immediately rejected.
+*   **Rate Limiting & DDOS Protection:**
+    *   **Room Joins:** Rate limited (`ROOM_JOIN_MAX_ATTEMPTS` per `ROOM_JOIN_WINDOW_MS`) to prevent connection flooding.
+    *   **Word Actions:** A cooldown (`WORD_ACTION_COOLDOWN_MS = 500`) prevents users from spamming card actions and exhausting the word pool or database connections.
+    *   **Word Pool Priming:** A concurrency mutex (`primingLocks`) in `word-service.ts` prevents "cache stampede" scenarios where multiple simultaneous requests could trigger duplicate heavy database queries when the room's word pool runs out.
+*   **IP Spoofing Protection:** The `getClientIp` function only trusts the `x-forwarded-for` header if explicitly allowed via the `TRUST_PROXY=true` environment variable.
+
 ## Persistence Strategy
 Since `socket.id` changes on every connection (page refresh), we use `playerId` (a UUID stored in `localStorage` on the client) to persistently identify users.
 
