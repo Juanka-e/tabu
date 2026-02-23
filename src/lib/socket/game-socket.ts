@@ -698,6 +698,7 @@ export function setupGameSocket(io: Server): void {
                     // Discard the client-provided (localStorage) playerId entirely.
                     // Instead, use the 100% secure, tamper-proof ID verified by NextAuth in server.ts middleware.
                     const effectivePlayerId = socket.data.userId;
+                    console.log(`[AUTH DEBUG] odaİsteği from socket ${socket.id}. token.sub: ${effectivePlayerId}`);
 
                     if (!effectivePlayerId) {
                         socket.emit("hata", "Oturumunuz doğrulanamadı. Lütfen giriş yapın.");
@@ -754,6 +755,8 @@ export function setupGameSocket(io: Server): void {
                         (player) => player.playerId === effectivePlayerId
                     );
 
+                    console.log(`[AUTH DEBUG] existingPlayer found? ${!!existingPlayer}, room.creatorPlayerId: ${room.creatorPlayerId}`);
+
                     if (existingPlayer) {
                         existingPlayer.id = socket.id;
                         existingPlayer.ad = sanitizedName;
@@ -792,8 +795,11 @@ export function setupGameSocket(io: Server): void {
                         };
                         room.oyuncular.push(yeniOyuncu);
 
+                        console.log(`[AUTH DEBUG] Player added as new. Checking admin: ${yeniOyuncu.playerId} === ${room.creatorPlayerId}`);
+
                         // If the room creator re-joins after being completely removed from the array (e.g. F5 in Lobby)
                         if (yeniOyuncu.playerId === room.creatorPlayerId) {
+                            console.log(`[AUTH DEBUG] Admin restored for ${yeniOyuncu.playerId}`);
                             room.creatorId = socket.id;
 
                             // Clear any pending admin timeout
@@ -803,6 +809,17 @@ export function setupGameSocket(io: Server): void {
                                 roomAdminTimeouts.delete(room.odaKodu);
                             }
                         }
+                    }
+
+                    // SECURITY FAIL-SAFE (Phantom Admin Recovery)
+                    // If the room creator's socket no longer exists in the array (due to lobby disconnect array purging),
+                    // the room has been orphaned. We MUST assign a new admin instantly so the lobby doesn't break.
+                    const adminExists = room.oyuncular.find(p => p.id === room.creatorId);
+                    if (!adminExists && room.oyuncular.length > 0) {
+                        const nextAdmin = room.oyuncular.find(p => p.online) || room.oyuncular[0];
+                        room.creatorId = nextAdmin.id;
+                        room.creatorPlayerId = nextAdmin.playerId;
+                        console.log(`[AUTH DEBUG] Orphaned room recovered. New admin: ${nextAdmin.ad}`);
                     }
 
                     persistRoom(room);
@@ -1202,16 +1219,16 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    // Check if admin still offline
+                    // Check if admin still offline or completely deleted (purged in lobby)
                     const adminPlayer = currentRoom.oyuncular.find(p => p.playerId === currentRoom.creatorPlayerId);
-                    if (adminPlayer && !adminPlayer.online) {
+                    if (!adminPlayer || !adminPlayer.online) {
                         const nextAdmin = currentRoom.oyuncular.find(p => p.online);
                         if (nextAdmin) {
                             currentRoom.creatorId = nextAdmin.id;
                             currentRoom.creatorPlayerId = nextAdmin.playerId;
                             persistRoom(currentRoom);
                             broadcastLobby(currentRoom);
-                            io.to(roomCode).emit("hata", `Yönetici süresi doldu. Yeni yönetici: ${nextAdmin.ad}`);
+                            io.to(roomCode).emit("hata", `Yönetici ayrıldı. Yeni yönetici: ${nextAdmin.ad}`);
                         }
                     }
                     roomAdminTimeouts.delete(roomCode);

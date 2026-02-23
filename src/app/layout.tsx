@@ -41,7 +41,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <head />
+      <head>
+        {/* Suppress hydration warnings from browser extensions (Dark Reader, etc.) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const originalError = console.error;
+                console.error = function(...args) {
+                  const msg = args[0];
+                  if (typeof msg === 'string') {
+                    // Ignore hydration warnings caused by browser extensions
+                    if (msg.includes('data-darkreader') ||
+                        msg.includes('--darkreader-inline') ||
+                        msg.includes('darkreader-inline-stroke') ||
+                        msg.includes('darkreader-inline-fill') ||
+                        msg.includes('Hydration') && msg.includes('darkreader')) {
+                      return;
+                    }
+                  }
+                  originalError.apply(console, args);
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
