@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
         Credentials({
-            name: "Admin Login",
+            id: "credentials",
+            name: "Giriş Yap",
             credentials: {
                 username: { label: "Kullanıcı Adı", type: "text" },
                 password: { label: "Şifre", type: "password" },
@@ -29,24 +30,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (!isValid) return null;
 
-                // Check if user has admin role
-                if (user.role !== "admin") return null;
-
                 return {
                     id: String(user.id),
                     name: user.username,
-                    role: user.role,
+                    role: user.role, // Pass actual DB role
                 };
             },
         }),
+        Credentials({
+            id: "guest-login",
+            name: "Misafir Girişi",
+            credentials: {
+                guestName: { label: "Misafir Adı", type: "text" }
+            },
+            async authorize(credentials) {
+                // Generate a random temporary guest profile
+                const randomNum = Math.floor(1000 + Math.random() * 9000);
+                const guestId = `guest_${Date.now()}_${randomNum}`;
+                const requestedName = credentials?.guestName as string || `Misafir_${randomNum}`;
+
+                return {
+                    id: guestId,
+                    name: requestedName,
+                    role: "guest"
+                };
+            }
+        })
     ],
     pages: {
-        signIn: "/admin/login",
+        signIn: "/login",
     },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.role = "admin";
+                token.role = user.role || "guest";
             }
             return token;
         },

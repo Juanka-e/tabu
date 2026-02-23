@@ -18,7 +18,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 
 export default function HomePage() {
@@ -39,7 +39,7 @@ export default function HomePage() {
   }, []);
 
   const handleJoinOrCreate = useCallback(
-    (isCreate: boolean) => {
+    async (isCreate: boolean) => {
       if (!username.trim()) {
         setError("Lütfen bir kullanıcı adı girin.");
         return;
@@ -52,6 +52,27 @@ export default function HomePage() {
 
       setIsConnecting(true);
       setError("");
+
+      try {
+        // Automatically sign in as guest if no session exists yet
+        if (!isLoggedIn) {
+          const res = await signIn("guest-login", {
+            guestName: username.trim(),
+            redirect: false,
+          });
+
+          if (res?.error) {
+            setError("Sunucuya bağlanılamadı (Oturum açılamadı). Lütfen tekrar deneyin.");
+            setIsConnecting(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Auto-login failed:", err);
+        setError("Oturum açılırken bir hata oluştu.");
+        setIsConnecting(false);
+        return;
+      }
 
       // Get stored playerId for reconnection
       const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
@@ -92,7 +113,7 @@ export default function HomePage() {
         setIsConnecting(false);
       });
     },
-    [username, roomCode, router]
+    [username, roomCode, router, isLoggedIn]
   );
 
   return (

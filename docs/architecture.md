@@ -42,8 +42,11 @@ This file exports `setupGameSocket(io: Server)`, which initializes the socket ev
     *   **Word Pool Priming:** A concurrency mutex (`primingLocks`) in `word-service.ts` prevents "cache stampede" scenarios where multiple simultaneous requests could trigger duplicate heavy database queries when the room's word pool runs out.
 *   **IP Spoofing Protection:** The `getClientIp` function only trusts the `x-forwarded-for` header if explicitly allowed via the `TRUST_PROXY=true` environment variable.
 
-## Persistence Strategy
-Since `socket.id` changes on every connection (page refresh), we use `playerId` (a UUID stored in `localStorage` on the client) to persistently identify users.
+## 5. Persistence Strategy & Authentication
+The real-time and application-wide persistence is managed through a combination of NextAuth sessions and Socket.IO identifiers.
 
-*   **Client Side:** Stores `playerId` received from `kimlikAta`. Sends it in `odaİsteği`.
-*   **Server Side:** Matches `playerId` to existing players. Updates `creatorId` if the admin reconnects.
+*   **NextAuth Session (JWT):** NextAuth handles user login via Credentials. We support two login flows:
+    *   **Registered Users:** Validated against the Prisma `User` table, passing their DB role (`admin` or `user`) to the Session token.
+    *   **Guest Users:** Validated via a custom `guest-login` provider generating a temporary, non-persisted `guest_${timestamp}` ID and a `"guest"` role.
+*   **Socket.IO Verification:** The `server.ts` uses NextAuth's `getToken` middleware to reject any socket connection request lacking a valid NextAuth session.
+*   **Game State Persistence:** Since `socket.id` changes on every connection (page refresh), we use `playerId` (a UUID stored in `localStorage` on the client) to persistently identify users within a specific room and restore their states (including admin rights for `creatorId`).
