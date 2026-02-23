@@ -85,9 +85,6 @@ export default function HomePage() {
         return;
       }
 
-      // Get stored playerId for reconnection
-      const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
-
       const socket: Socket = io({
         path: "/api/socketio",
         transports: ["websocket", "polling"],
@@ -96,19 +93,13 @@ export default function HomePage() {
       socket.on("connect", () => {
         socket.emit("odaİsteği", {
           kullaniciAdi: username.trim(),
-          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
-          playerId: storedPlayerId,
+          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase()
         });
-      });
-
-      socket.on("kimlikAta", (newPlayerId: string) => {
-        localStorage.setItem("tabu_playerId", newPlayerId);
       });
 
       socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
         // Store socket info and redirect to room
         localStorage.setItem("tabu_username", username.trim());
-        localStorage.setItem("tabu_roomCode", data.odaKodu);
         socket.disconnect();
         router.push(`/room/${data.odaKodu}`);
       });

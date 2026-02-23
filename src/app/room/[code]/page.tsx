@@ -9,6 +9,7 @@ import { RulesModal } from "@/components/game/rules-modal";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { Moon, Sun, Megaphone, Book, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -35,16 +36,13 @@ export default function RoomPage() {
     const [, startTransition] = useTransition();
     const roomCode = params.code as string;
 
-    // Socket
+    // Socket and Auth Identity
+    const { data: session } = useSession();
+    const myPlayerId = session?.user?.id || "";
+
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [socketId, setSocketId] = useState("");
-    const [myPlayerId, setMyPlayerId] = useState(() => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("tabu_playerId") || "";
-        }
-        return "";
-    });
 
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
@@ -118,7 +116,6 @@ export default function RoomPage() {
         if (showUsernamePrompt) return;
 
         const username = localStorage.getItem("tabu_username") || "Oyuncu";
-        const playerId = localStorage.getItem("tabu_playerId") || undefined;
 
         const socket = io({
             path: "/api/socketio",
@@ -133,16 +130,14 @@ export default function RoomPage() {
             socket.emit("odaİsteği", {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
-                playerId,
             });
         });
 
         socket.on("disconnect", () => setIsConnected(false));
 
-        socket.on("kimlikAta", (newPlayerId: string) => {
-            localStorage.setItem("tabu_playerId", newPlayerId);
-            setMyPlayerId(newPlayerId);
-        });
+        // Note: The server no longer emits 'kimlikAta' because identity
+        // is now securely managed via the HttpOnly NextAuth session token.
+        // myPlayerId will be determined through server communication when needed or via session payload.
 
         socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
             setPlayers(data.oyuncular);

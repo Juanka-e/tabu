@@ -44,10 +44,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 guestName: { label: "Misafir Adı", type: "text" }
             },
             async authorize(credentials) {
-                // Generate a random temporary guest profile
-                const randomNum = Math.floor(1000 + Math.random() * 9000);
-                const guestId = `guest_${Date.now()}_${randomNum}`;
-                const requestedName = credentials?.guestName as string || `Misafir_${randomNum}`;
+                // Generate a random temporary guest profile securely
+                const guestId = `guest_${crypto.randomUUID()}`;
+                const requestedName = credentials?.guestName as string || `Misafir_${Math.floor(1000 + Math.random() * 9000)}`;
 
                 return {
                     id: guestId,

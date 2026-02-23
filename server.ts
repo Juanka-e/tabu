@@ -33,9 +33,13 @@ app.prepare().then(() => {
                 secureCookie: process.env.NODE_ENV === "production"
             });
 
-            if (!token) {
+            if (!token || !token.sub) {
                 return next(new Error("Unauthorized: Lütfen giriş yapın."));
             }
+
+            // Securely attach the NextAuth unique ID to the socket
+            // This replaces the vulnerable localStorage setup
+            socket.data.userId = token.sub;
 
             // Proceed if valid token exists
             next();

@@ -666,7 +666,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, playerId } = parsed.data;
+                const { kullaniciAdi, odaKodu } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -694,14 +694,17 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    // Determine effective player ID once
-                    // If client sent an ID, use it. Otherwise generate new one.
-                    let effectivePlayerId = playerId;
-                    let isNewId = false;
+                    // SECURITY ARCHITECTURE FIX: (Ban Bypass & Identity Hijack Prevention)
+                    // Discard the client-provided (localStorage) playerId entirely.
+                    // Instead, use the 100% secure, tamper-proof ID verified by NextAuth in server.ts middleware.
+                    const effectivePlayerId = socket.data.userId;
+
                     if (!effectivePlayerId) {
-                        effectivePlayerId = uuidv4();
-                        isNewId = true;
+                        socket.emit("hata", "Oturumunuz doğrulanamadı. Lütfen giriş yapın.");
+                        return;
                     }
+
+                    // No longer emitting "kimlikAta" since we do not rely on local storage anymore.
 
                     const requestedCode = odaKodu
                         ? String(odaKodu).toUpperCase()
@@ -788,11 +791,6 @@ export function setupGameSocket(io: Server): void {
                             ip,
                         };
                         room.oyuncular.push(yeniOyuncu);
-
-                        // Only emit if we generated a new ID
-                        if (isNewId) {
-                            socket.emit("kimlikAta", effectivePlayerId);
-                        }
                     }
 
                     persistRoom(room);
