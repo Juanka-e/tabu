@@ -15,6 +15,7 @@ interface CardResult {
 
 const wordPools = new Map<string, number[]>();
 const POOL_SIZE = parseInt(process.env.WORD_POOL_SIZE || "120", 10);
+const primingLocks = new Map<string, Promise<void>>();
 
 // ─── Service Functions ─────────────────────────────────────────
 
@@ -27,33 +28,48 @@ export async function primeWordPool(
     categoryIds: number[],
     difficulties: number[]
 ): Promise<void> {
-    const where: Record<string, unknown> = {};
-
-    if (categoryIds.length > 0) {
-        where.wordCategories = {
-            some: { categoryId: { in: categoryIds } },
-        };
+    // If already priming, wait for it to finish
+    if (primingLocks.has(roomCode)) {
+        await primingLocks.get(roomCode);
+        return;
     }
 
-    if (difficulties.length > 0) {
-        where.difficulty = { in: difficulties };
-    }
+    const primePromise = (async () => {
+        try {
+            const where: Record<string, unknown> = {};
 
-    const words = await prisma.word.findMany({
-        where,
-        select: { id: true },
-        take: Math.max(POOL_SIZE * 2, 500),
-    });
+            if (categoryIds.length > 0) {
+                where.wordCategories = {
+                    some: { categoryId: { in: categoryIds } },
+                };
+            }
 
-    // Shuffle (Fisher-Yates)
-    const ids = words.map((w) => w.id);
-    for (let i = ids.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [ids[i], ids[j]] = [ids[j], ids[i]];
-    }
+            if (difficulties.length > 0) {
+                where.difficulty = { in: difficulties };
+            }
 
-    // Store up to POOL_SIZE
-    wordPools.set(roomCode, ids.slice(0, POOL_SIZE));
+            const words = await prisma.word.findMany({
+                where,
+                select: { id: true },
+                take: Math.max(POOL_SIZE * 2, 500),
+            });
+
+            // Shuffle (Fisher-Yates)
+            const ids = words.map((w) => w.id);
+            for (let i = ids.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [ids[i], ids[j]] = [ids[j], ids[i]];
+            }
+
+            // Store up to POOL_SIZE
+            wordPools.set(roomCode, ids.slice(0, POOL_SIZE));
+        } finally {
+            primingLocks.delete(roomCode);
+        }
+    })();
+
+    primingLocks.set(roomCode, primePromise);
+    await primePromise;
 }
 
 /**
@@ -66,6 +82,7 @@ export async function getNextWord(
     categoryIds: number[],
     difficulties: number[]
 ): Promise<CardResult | null> {
+    // Rate limiter logic is better placed in the caller (socket), but we can protect cache stampede here
     let pool = wordPools.get(roomCode);
 
     if (!pool || pool.length === 0) {

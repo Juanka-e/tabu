@@ -65,7 +65,7 @@ interface RoomData {
 
 const rooms = new Map<string, RoomData>();
 const wordActionTimestamps = new Map<string, number>();
-const WORD_ACTION_COOLDOWN_MS = 200;
+const WORD_ACTION_COOLDOWN_MS = 500;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
 const socketToRoom = new Map<string, string>();
@@ -125,10 +125,12 @@ function normalizeIp(rawIp: string | undefined): string {
 }
 
 function getClientIp(socket: Socket): string {
-    const headerIp = socket.handshake.headers?.["x-forwarded-for"];
-    if (headerIp) {
-        const ip = Array.isArray(headerIp) ? headerIp[0] : headerIp;
-        return normalizeIp(ip.split(",")[0].trim());
+    if (process.env.TRUST_PROXY === "true") {
+        const headerIp = socket.handshake.headers?.["x-forwarded-for"];
+        if (headerIp) {
+            const ip = Array.isArray(headerIp) ? headerIp[0] : headerIp;
+            return normalizeIp(ip.split(",")[0].trim());
+        }
     }
     return normalizeIp(
         socket.handshake.address || "unknown"
