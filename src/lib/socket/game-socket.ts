@@ -791,6 +791,18 @@ export function setupGameSocket(io: Server): void {
                             ip,
                         };
                         room.oyuncular.push(yeniOyuncu);
+
+                        // If the room creator re-joins after being completely removed from the array (e.g. F5 in Lobby)
+                        if (yeniOyuncu.playerId === room.creatorPlayerId) {
+                            room.creatorId = socket.id;
+
+                            // Clear any pending admin timeout
+                            const timeout = roomAdminTimeouts.get(room.odaKodu);
+                            if (timeout) {
+                                clearTimeout(timeout);
+                                roomAdminTimeouts.delete(room.odaKodu);
+                            }
+                        }
                     }
 
                     persistRoom(room);
@@ -1139,7 +1151,15 @@ export function setupGameSocket(io: Server): void {
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player) return;
 
-            player.online = false;
+            if (!room.oyunDurumu.oyunAktifMi) {
+                // Hata Çözümü (F5 Çoğalma Bug'ı):
+                // Oyun henüz başlamadıysa (Lobi ekranı), kopan oyuncuyu tamamen diziden sil.
+                // Böylece F5 atıldığında "eski oturumlar" birikmeyecek.
+                room.oyuncular = room.oyuncular.filter(p => p.id !== socket.id);
+            } else {
+                player.online = false;
+            }
+
             const onlinePlayers = room.oyuncular.filter((p) => p.online);
 
             if (onlinePlayers.length === 0) {
