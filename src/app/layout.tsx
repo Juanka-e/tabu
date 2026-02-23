@@ -32,9 +32,6 @@ export const metadata: Metadata = {
     description:
       "Arkadaşlarınla online Tabu oyna! Yasaklı kelimelere dikkat ederek anlatmaya çalış.",
   },
-  other: {
-    "darkreader-lock": "meta",
-  },
 };
 
 export default function RootLayout({
@@ -44,7 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <head />
+      <head>
+        <meta name="darkreader-lock" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>

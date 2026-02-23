@@ -84,10 +84,6 @@ const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
 const ROOM_JOIN_WINDOW_MS = parseInt(process.env.ROOM_JOIN_WINDOW_SECONDS || "60", 10) * 1000;
 const ROOM_JOIN_MAX_ATTEMPTS = parseInt(process.env.ROOM_JOIN_MAX_ATTEMPTS || "100", 10);
 
-// Admin Transfer Timeout
-const roomAdminTimeouts = new Map<string, NodeJS.Timeout>();
-const ADMIN_TIMEOUT_MS = parseInt(process.env.ADMIN_TIMEOUT_MS || "180000", 10); // Default 3 mins
-
 // ─── Helpers ───────────────────────────────────────────────────
 
 function consumeRateLimit(
@@ -764,13 +760,6 @@ export function setupGameSocket(io: Server): void {
                         // This fixes the issue where refreshing lost admin rights
                         if (existingPlayer.playerId === room.creatorPlayerId) {
                             room.creatorId = socket.id;
-
-                            // Clear any pending admin timeout
-                            const timeout = roomAdminTimeouts.get(room.odaKodu);
-                            if (timeout) {
-                                clearTimeout(timeout);
-                                roomAdminTimeouts.delete(room.odaKodu);
-                            }
                         }
 
                         if (
@@ -791,29 +780,6 @@ export function setupGameSocket(io: Server): void {
                             ip,
                         };
                         room.oyuncular.push(yeniOyuncu);
-
-                        // If the room creator re-joins after being completely removed from the array (e.g. F5 in Lobby)
-                        if (yeniOyuncu.playerId === room.creatorPlayerId) {
-                            room.creatorId = socket.id;
-
-                            // Clear any pending admin timeout
-                            const timeout = roomAdminTimeouts.get(room.odaKodu);
-                            if (timeout) {
-                                clearTimeout(timeout);
-                                roomAdminTimeouts.delete(room.odaKodu);
-                            }
-                        }
-                    }
-
-                    // SECURITY FAIL-SAFE (Phantom Admin Recovery)
-                    // If the room creator's socket no longer exists in the array (due to lobby disconnect array purging),
-                    // the room has been orphaned. We MUST assign a new admin instantly so the lobby doesn't break.
-                    const adminExists = room.oyuncular.find(p => p.id === room.creatorId);
-                    if (!adminExists && room.oyuncular.length > 0) {
-                        const nextAdmin = room.oyuncular.find(p => p.online) || room.oyuncular[0];
-                        room.creatorId = nextAdmin.id;
-                        room.creatorPlayerId = nextAdmin.playerId;
-                        console.log(`[AUTH DEBUG] Orphaned room recovered. New admin: ${nextAdmin.ad}`);
                     }
 
                     persistRoom(room);
@@ -1154,9 +1120,9 @@ export function setupGameSocket(io: Server): void {
 
         // ── Disconnect ──
         socket.on("disconnect", () => {
+            const room = getRoomBySocketId(socket.id);
             wordActionTimestamps.delete(socket.id);
             socketToRoom.delete(socket.id);
-            const room = getRoomBySocketId(socket.id);
             if (!room) return;
 
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1164,33 +1130,10 @@ export function setupGameSocket(io: Server): void {
 
             player.online = false;
 
-            if (!room.oyunDurumu.oyunAktifMi) {
-                // Hata Çözümü (F5 Çoğalma Bug'ı) - Revize:
-                // Lobide kopan oyuncuları 5 saniye bekleyip siliyoruz. Böylece F5 atıldığında 
-                // kopyalanmadıkları gibi rollerini de (örn: takım) kaybetmiyorlar.
-                // Yönetici ise ADMIN_TIMEOUT_MS devredeceği için ona dokunmuyoruz.
-                const isCreator = room.creatorPlayerId === player.playerId;
-                if (!isCreator) {
-                    const roomCode = room.odaKodu;
-                    const playerId = player.playerId;
-                    setTimeout(() => {
-                        const currentRoom = getRoom(roomCode);
-                        if (!currentRoom || currentRoom.oyunDurumu.oyunAktifMi) return;
-
-                        const stillOffline = currentRoom.oyuncular.find(p => p.playerId === playerId && !p.online);
-                        if (stillOffline) {
-                            currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== playerId);
-                            persistRoom(currentRoom);
-                            broadcastLobby(currentRoom);
-                        }
-                    }, 5000);
-                }
-            }
-
             const onlinePlayers = room.oyuncular.filter((p) => p.online);
 
             if (onlinePlayers.length === 0) {
-                // Grace period: wait 15 seconds before destroying room
+                // Wait 15 seconds before destroying room
                 // This prevents race condition when homepage disconnects
                 // its socket before the /room/[code] page reconnects
                 const roomCode = room.odaKodu;
@@ -1203,56 +1146,10 @@ export function setupGameSocket(io: Server): void {
                     if (stillOnline.length === 0) {
                         if (currentRoom.zamanlayici)
                             clearInterval(currentRoom.zamanlayici);
-
-                        // Clear admin timeout
-                        const timeout = roomAdminTimeouts.get(roomCode);
-                        if (timeout) {
-                            clearTimeout(timeout);
-                            roomAdminTimeouts.delete(roomCode);
-                        }
-
                         destroyRoom(roomCode);
                     }
                 }, 15_000);
                 return;
-            }
-
-            if (room.creatorId === socket.id) {
-                // Admin Disconnect Logic
-                // Start Timeout to transfer admin
-                const roomCode = room.odaKodu; // Capture room code for timeout closure
-
-                const timeout = setTimeout(() => {
-                    const currentRoom = getRoom(roomCode); // Use room code instead of socket.id
-                    if (!currentRoom) {
-                        roomAdminTimeouts.delete(roomCode);
-                        return;
-                    }
-
-                    // Check if admin still offline or completely deleted (purged in lobby)
-                    const adminPlayer = currentRoom.oyuncular.find(p => p.playerId === currentRoom.creatorPlayerId);
-                    if (!adminPlayer || !adminPlayer.online) {
-                        const nextAdmin = currentRoom.oyuncular.find(p => p.online);
-                        if (nextAdmin) {
-                            const oldAdminPlayerId = currentRoom.creatorPlayerId;
-                            currentRoom.creatorId = nextAdmin.id;
-                            currentRoom.creatorPlayerId = nextAdmin.playerId;
-
-                            // Odanın lobisinde eski yönetici hayalet olarak kalmasın diye temizle
-                            if (!currentRoom.oyunDurumu.oyunAktifMi) {
-                                currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== oldAdminPlayerId);
-                            }
-
-                            persistRoom(currentRoom);
-                            broadcastLobby(currentRoom);
-                            io.to(roomCode).emit("hata", `Yönetici ayrıldı. Yeni yönetici: ${nextAdmin.ad}`);
-                        }
-                    }
-                    roomAdminTimeouts.delete(roomCode);
-
-                }, ADMIN_TIMEOUT_MS);
-
-                roomAdminTimeouts.set(room.odaKodu, timeout);
             }
 
             persistRoom(room);
