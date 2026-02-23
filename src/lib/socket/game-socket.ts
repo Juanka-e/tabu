@@ -65,6 +65,7 @@ interface RoomData {
 
 const rooms = new Map<string, RoomData>();
 const wordActionTimestamps = new Map<string, number>();
+const roomWordActionTimestamps = new Map<string, number>();
 const WORD_ACTION_COOLDOWN_MS = 500;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
@@ -487,9 +488,15 @@ export function setupGameSocket(io: Server): void {
         socket: Socket
     ): Promise<void> {
         const now = Date.now();
+
+        // 1. Socket-level spam prevention (prevents a single user from macro-clicking)
         const lastActionAt = wordActionTimestamps.get(socket.id) || 0;
         if (now - lastActionAt < WORD_ACTION_COOLDOWN_MS) return;
         wordActionTimestamps.set(socket.id, now);
+
+        // 2. Room-level spam prevention (prevents 50 opponents clicking "tabu" at the exact same time)
+        const roomLastActionAt = roomWordActionTimestamps.get(room.odaKodu) || 0;
+        if (now - roomLastActionAt < WORD_ACTION_COOLDOWN_MS) return;
 
         const narrator = room.oyunDurumu.anlatici;
         if (
@@ -563,6 +570,9 @@ export function setupGameSocket(io: Server): void {
 
             room.oyunDurumu.aktifKart = card;
             persistRoom(room);
+
+            // Mark the room action time only ONCE the action is fully verified and DB is hit
+            roomWordActionTimestamps.set(room.odaKodu, now);
 
             // Send card to narrator
             const narratorSocket = io.sockets.sockets.get(narrator.id);

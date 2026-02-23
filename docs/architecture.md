@@ -38,7 +38,7 @@ This file exports `setupGameSocket(io: Server)`, which initializes the socket ev
 *   **WebSocket Authentication:** The `server.ts` utilizes a Socket.IO middleware that checks for a valid `next-auth/jwt` session token. Unauthorized (not logged in) connections are immediately rejected.
 *   **Rate Limiting & DDOS Protection:**
     *   **Room Joins:** Rate limited (`ROOM_JOIN_MAX_ATTEMPTS` per `ROOM_JOIN_WINDOW_MS`) to prevent connection flooding.
-    *   **Word Actions:** A cooldown (`WORD_ACTION_COOLDOWN_MS = 500`) prevents users from spamming card actions and exhausting the word pool or database connections.
+    *   **Word Actions:** A dual-layer cooldown (`WORD_ACTION_COOLDOWN_MS = 500`) prevents users from spamming card actions. It checks both the **socket's last action time** (macro prevention) and the **room's last action time** (prevents 50 opponents from individually clicking "tabu" at the exact same millisecond).
     *   **Word Pool Priming:** A concurrency mutex (`primingLocks`) in `word-service.ts` prevents "cache stampede" scenarios where multiple simultaneous requests could trigger duplicate heavy database queries when the room's word pool runs out.
 *   **IP Spoofing Protection:** The `getClientIp` function only trusts the `x-forwarded-for` header if explicitly allowed via the `TRUST_PROXY=true` environment variable.
 
