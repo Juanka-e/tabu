@@ -12,10 +12,8 @@ import Link from "next/link";
 function LoginForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [guestName, setGuestName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const [guestLoading, setGuestLoading] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl");
@@ -46,34 +44,6 @@ function LoginForm() {
             setError("Bir hata oluştu.");
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleGuestLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setGuestLoading(true);
-        setError("");
-
-        try {
-            const res = await signIn("guest-login", {
-                guestName,
-                redirect: false,
-            });
-
-            if (res?.error) {
-                setError("Misafir girişi yapılamadı.");
-            } else {
-                if (callbackUrl) {
-                    router.push(callbackUrl);
-                } else {
-                    router.push("/");
-                }
-                router.refresh();
-            }
-        } catch {
-            setError("Bir hata oluştu.");
-        } finally {
-            setGuestLoading(false);
         }
     };
 
@@ -113,40 +83,10 @@ function LoginForm() {
                             {error}
                         </div>
                     )}
-                    <Button type="submit" className="w-full" disabled={loading || guestLoading}>
+                    <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
                     </Button>
                 </form>
-
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Veya</span>
-                    </div>
-                </div>
-
-                <form onSubmit={handleGuestLogin} className="space-y-4">
-                    <div className="space-y-2">
-                        <Input
-                            type="text"
-                            placeholder="Misafir Adı (İsteğe Bağlı)"
-                            value={guestName}
-                            onChange={(e) => setGuestName(e.target.value)}
-                        />
-                    </div>
-                    <Button
-                        variant="outline"
-                        type="submit"
-                        className="w-full flex items-center gap-2"
-                        disabled={loading || guestLoading}
-                    >
-                        <User className="w-4 h-4" />
-                        {guestLoading ? "Misafir oturumu açılıyor..." : "Misafir Olarak Devam Et"}
-                    </Button>
-                </form>
-
             </CardContent>
             <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">

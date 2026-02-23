@@ -22,7 +22,6 @@ import { useSession, signOut, signIn } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 
 export default function HomePage() {
-  const [username, setUsername] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -31,8 +30,20 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
-  const isLoggedIn = !!session?.user;
   const sessionUsername = session?.user?.name || "";
+  const isGuest = session?.user?.role === "guest";
+  const isRegisteredUser = !!session?.user && !isGuest;
+  const hasAnySession = !!session?.user;
+
+  // Set initial username from session if available
+  const [username, setUsername] = useState(sessionUsername || "");
+
+  // Sync username if session loads late
+  useEffect(() => {
+    if (sessionUsername && !username) {
+      setUsername(sessionUsername);
+    }
+  }, [sessionUsername]);
 
   useEffect(() => {
     setMounted(true);
@@ -54,8 +65,8 @@ export default function HomePage() {
       setError("");
 
       try {
-        // Automatically sign in as guest if no session exists yet
-        if (!isLoggedIn) {
+        // Automatically sign in as guest if absolutely no session exists
+        if (!hasAnySession) {
           const res = await signIn("guest-login", {
             guestName: username.trim(),
             redirect: false,
@@ -113,7 +124,7 @@ export default function HomePage() {
         setIsConnecting(false);
       });
     },
-    [username, roomCode, router, isLoggedIn]
+    [username, roomCode, router, hasAnySession]
   );
 
   return (
@@ -127,7 +138,7 @@ export default function HomePage() {
 
       {/* Top bar */}
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
-        {!isLoggedIn && (
+        {!isRegisteredUser && (
           <>
             <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
               Giriş Yap
@@ -137,7 +148,7 @@ export default function HomePage() {
             </Button>
           </>
         )}
-        {isLoggedIn && (
+        {isRegisteredUser && (
           <Button variant="ghost" size="sm" onClick={() => signOut()}>
             {sessionUsername} (Çıkış)
           </Button>
