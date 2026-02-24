@@ -18,11 +18,10 @@ import {
   Megaphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 
 export default function HomePage() {
-  const [username, setUsername] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -31,15 +30,33 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
-  const isLoggedIn = !!session?.user;
   const sessionUsername = session?.user?.name || "";
+  const isGuest = session?.user?.role === "guest";
+  const isRegisteredUser = !!session?.user && !isGuest;
+  const hasAnySession = !!session?.user;
+
+  // Set initial username from session if available
+  const [username, setUsername] = useState(sessionUsername || "");
+
+  // Sync username if session loads late
+  useEffect(() => {
+    if (sessionUsername && !username) {
+      const timer = setTimeout(() => {
+        setUsername(sessionUsername);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionUsername, username]);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleJoinOrCreate = useCallback(
-    (isCreate: boolean) => {
+    async (isCreate: boolean) => {
       if (!username.trim()) {
         setError("Lütfen bir kullanıcı adı girin.");
         return;
@@ -53,8 +70,26 @@ export default function HomePage() {
       setIsConnecting(true);
       setError("");
 
-      // Get stored playerId for reconnection
-      const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
+      try {
+        // Automatically sign in as guest if absolutely no session exists
+        if (!hasAnySession) {
+          const res = await signIn("guest-login", {
+            guestName: username.trim(),
+            redirect: false,
+          });
+
+          if (res?.error) {
+            setError("Sunucuya bağlanılamadı (Oturum açılamadı). Lütfen tekrar deneyin.");
+            setIsConnecting(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Auto-login failed:", err);
+        setError("Oturum açılırken bir hata oluştu.");
+        setIsConnecting(false);
+        return;
+      }
 
       const socket: Socket = io({
         path: "/api/socketio",
@@ -64,19 +99,13 @@ export default function HomePage() {
       socket.on("connect", () => {
         socket.emit("odaİsteği", {
           kullaniciAdi: username.trim(),
-          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
-          playerId: storedPlayerId,
+          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase()
         });
-      });
-
-      socket.on("kimlikAta", (newPlayerId: string) => {
-        localStorage.setItem("tabu_playerId", newPlayerId);
       });
 
       socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
         // Store socket info and redirect to room
         localStorage.setItem("tabu_username", username.trim());
-        localStorage.setItem("tabu_roomCode", data.odaKodu);
         socket.disconnect();
         router.push(`/room/${data.odaKodu}`);
       });
@@ -92,7 +121,7 @@ export default function HomePage() {
         setIsConnecting(false);
       });
     },
-    [username, roomCode, router]
+    [username, roomCode, router, hasAnySession]
   );
 
   return (
@@ -106,7 +135,7 @@ export default function HomePage() {
 
       {/* Top bar */}
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
-        {!isLoggedIn && (
+        {!isRegisteredUser && (
           <>
             <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
               Giriş Yap
@@ -116,7 +145,7 @@ export default function HomePage() {
             </Button>
           </>
         )}
-        {isLoggedIn && (
+        {isRegisteredUser && (
           <Button variant="ghost" size="sm" onClick={() => signOut()}>
             {sessionUsername} (Çıkış)
           </Button>

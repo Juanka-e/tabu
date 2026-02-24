@@ -9,6 +9,7 @@ import { RulesModal } from "@/components/game/rules-modal";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { Moon, Sun, Megaphone, Book, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -35,21 +36,16 @@ export default function RoomPage() {
     const [, startTransition] = useTransition();
     const roomCode = params.code as string;
 
-    // Socket
+    // Socket and Auth Identity
+    const { data: session } = useSession();
+    const myPlayerId = session?.user?.id || "";
+
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [socketId, setSocketId] = useState("");
-    const [myPlayerId, setMyPlayerId] = useState(() => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("tabu_playerId") || "";
-        }
-        return "";
-    });
 
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
     const [players, setPlayers] = useState<Player[]>([]);
-    const [creatorId, setCreatorId] = useState("");
     const [creatorPlayerId, setCreatorPlayerId] = useState("");
 
     // Settings
@@ -85,13 +81,20 @@ export default function RoomPage() {
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
 
+    // Initial check for username - prioritize session name if present
     useEffect(() => {
-        setMounted(true);
-        const hasUsername = localStorage.getItem("tabu_username");
-        if (!hasUsername) {
-            setShowUsernamePrompt(true);
+        setTimeout(() => setMounted(true), 0);
+        const sessionName = session?.user?.name;
+        const localName = localStorage.getItem("tabu_username");
+
+        // If they have a NextAuth session name but no local storage, sync the local storage instantly
+        if (sessionName && !localName) {
+            localStorage.setItem("tabu_username", sessionName);
+            setTimeout(() => setShowUsernamePrompt(false), 0);
+        } else if (!sessionName && !localName) {
+            setTimeout(() => setShowUsernamePrompt(true), 0);
         }
-    }, []);
+    }, [session?.user?.name]);
 
     // Responsive check
     useEffect(() => {
@@ -117,8 +120,8 @@ export default function RoomPage() {
     useEffect(() => {
         if (showUsernamePrompt) return;
 
-        const username = localStorage.getItem("tabu_username") || "Oyuncu";
-        const playerId = localStorage.getItem("tabu_playerId") || undefined;
+        // Give priority to session name, then local storage
+        const username = session?.user?.name || localStorage.getItem("tabu_username") || "Oyuncu";
 
         const socket = io({
             path: "/api/socketio",
@@ -129,24 +132,20 @@ export default function RoomPage() {
 
         socket.on("connect", () => {
             setIsConnected(true);
-            if (socket.id) setSocketId(socket.id);
             socket.emit("odaİsteği", {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
-                playerId,
             });
         });
 
         socket.on("disconnect", () => setIsConnected(false));
 
-        socket.on("kimlikAta", (newPlayerId: string) => {
-            localStorage.setItem("tabu_playerId", newPlayerId);
-            setMyPlayerId(newPlayerId);
-        });
+        // Note: The server no longer emits 'kimlikAta' because identity
+        // is now securely managed via the HttpOnly NextAuth session token.
+        // myPlayerId will be determined through server communication when needed or via session payload.
 
         socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
             setPlayers(data.oyuncular);
-            setCreatorId(data.creatorId);
             setCreatorPlayerId(data.creatorPlayerId || "");
             setSettings(data.ayarlar);
             if (data.seciliKategoriler) setSelectedCategories(data.seciliKategoriler);
@@ -190,7 +189,6 @@ export default function RoomPage() {
 
         socket.on("oyunDurumuGuncelle", (data: GameState) => {
             setGameState(data);
-            if (data.creatorId) setCreatorId(data.creatorId);
         });
 
         socket.on("kartGuncelle", (newCard: CardData | null) => {
@@ -228,7 +226,7 @@ export default function RoomPage() {
         return () => {
             socket.disconnect();
         };
-    }, [roomCode, router, showUsernamePrompt]);
+    }, [roomCode, router, showUsernamePrompt, session?.user?.name]);
 
     // ─── Actions ─────────────────────────────────────────────────
 
@@ -298,8 +296,6 @@ export default function RoomPage() {
                 selectedCategories={selectedCategories}
                 selectedDifficulties={selectedDifficulties}
                 categories={categories}
-                creatorId={creatorId}
-                currentSocketId={socketId}
                 isHost={isHost as boolean}
                 onUpdateSettings={setSettings}
                 onInitialSet={(cats, diffs) => {
@@ -326,12 +322,6 @@ export default function RoomPage() {
                 }}
                 onShuffleTeams={() => emit("takimlariKaristir")}
                 onStartGame={handleStartGame}
-                onKickPlayer={(playerId) =>
-                    emit("oyuncuyuAt", { targetPlayerId: playerId })
-                }
-                onTransferHost={(playerId) =>
-                    emit("yoneticiligiDevret", { targetPlayerId: playerId })
-                }
             />
         );
     };
@@ -371,9 +361,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="A"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarAOpen}
                     onToggle={() => setSidebarAOpen((prev) => !prev)}
@@ -383,6 +371,8 @@ export default function RoomPage() {
                             ? () => emit("takimDegistirİsteği")
                             : undefined
                     }
+                    onTransferHost={(playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId })}
+                    onKickPlayer={(playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId })}
                 />
 
                 {/* Main Content Area */}
@@ -439,9 +429,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="B"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarBOpen}
                     onToggle={() => setSidebarBOpen((prev) => !prev)}
@@ -451,6 +439,8 @@ export default function RoomPage() {
                             ? () => emit("takimDegistirİsteği")
                             : undefined
                     }
+                    onTransferHost={(playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId })}
+                    onKickPlayer={(playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId })}
                 />
 
                 {/* Rules Modal */}

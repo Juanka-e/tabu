@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
         Credentials({
-            name: "Admin Login",
+            id: "credentials",
+            name: "Giriş Yap",
             credentials: {
                 username: { label: "Kullanıcı Adı", type: "text" },
                 password: { label: "Şifre", type: "password" },
@@ -29,29 +30,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (!isValid) return null;
 
-                // Check if user has admin role
-                if (user.role !== "admin") return null;
-
                 return {
                     id: String(user.id),
                     name: user.username,
-                    role: user.role,
+                    role: user.role, // Pass actual DB role
                 };
             },
         }),
+        Credentials({
+            id: "guest-login",
+            name: "Misafir Girişi",
+            credentials: {
+                guestName: { label: "Misafir Adı", type: "text" }
+            },
+            async authorize(credentials) {
+                // Generate a random temporary guest profile securely
+                const guestId = `guest_${crypto.randomUUID()}`;
+                const requestedName = credentials?.guestName as string || `Misafir_${Math.floor(1000 + Math.random() * 9000)}`;
+
+                return {
+                    id: guestId,
+                    name: requestedName,
+                    role: "guest"
+                };
+            }
+        })
     ],
     pages: {
-        signIn: "/admin/login",
+        signIn: "/login",
     },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.role = "admin";
+                token.role = user.role || "guest";
             }
             return token;
         },
         async session({ session, token }) {
-            if (session.user) {
+            if (session.user && token.sub) {
+                session.user.id = token.sub;
                 session.user.role = token.role as string;
             }
             return session;
@@ -59,6 +76,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     session: {
         strategy: "jwt",
-        maxAge: 24 * 60 * 60, // 24 hours
+        maxAge: 30 * 24 * 60 * 60, // 30 days
     },
 });

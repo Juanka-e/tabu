@@ -20,9 +20,18 @@ export default auth((req) => {
         }
     }
 
+    // Protect room routes
+    if (pathname.startsWith("/room")) {
+        if (!req.auth) {
+            const loginUrl = new URL("/login", req.url);
+            loginUrl.searchParams.set("callbackUrl", pathname);
+            return NextResponse.redirect(loginUrl);
+        }
+    }
+
     return NextResponse.next();
 });
 
 export const config = {
-    matcher: ["/admin/:path*", "/api/admin/:path*"],
+    matcher: ["/admin/:path*", "/api/admin/:path*", "/room/:path*"],
 };

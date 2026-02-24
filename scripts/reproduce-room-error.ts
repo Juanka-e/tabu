@@ -18,7 +18,7 @@ async function testRoomJoin() {
             creator.emit("odaİsteği", { kullaniciAdi: "Admin" });
         });
 
-        creator.on("lobiGuncelle", (data: any) => {
+        creator.on("lobiGuncelle", (data: { odaKodu: string }) => {
             if (!roomCode) {
                 roomCode = data.odaKodu;
                 console.log("Room Created:", roomCode);
@@ -42,11 +42,11 @@ async function testRoomJoin() {
             joiner.emit("odaİsteği", { kullaniciAdi: "Joiner", odaKodu: roomCode });
         });
 
-        joiner.on("lobiGuncelle", (data: any) => {
+        joiner.on("lobiGuncelle", (data: { odaKodu: string; oyuncular: { ad: string }[] }) => {
             if (data.odaKodu === roomCode) {
                 console.log("SUCCESS: Joiner joined room", roomCode);
                 // Check players
-                const names = data.oyuncular.map((p: any) => p.ad);
+                const names = data.oyuncular.map((p) => p.ad);
                 console.log("Players:", names);
                 if (names.includes("Joiner")) {
                     resolve();

@@ -1,5 +1,5 @@
 
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
 
 const SERVER_URL = "http://127.0.0.1:3000";
 const PATH = "/api/socketio";
@@ -33,7 +33,7 @@ async function testAdminPersistence() {
                 checkDone();
             });
 
-            socket1.on("lobiGuncelle", (data: any) => {
+            socket1.on("lobiGuncelle", (data: { odaKodu: string; creatorId: string }) => {
                 console.log(`Lobby Update (1): Room: ${data.odaKodu}, Creator: ${data.creatorId}`);
                 if (!roomCode) {
                     roomCode = data.odaKodu;
@@ -97,7 +97,7 @@ async function testAdminPersistence() {
                 });
             });
 
-            socket2.on("lobiGuncelle", (data: any) => {
+            socket2.on("lobiGuncelle", (data: { creatorId: string }) => {
                 console.log(`Lobby Update (2): Creator: ${data.creatorId}, My Socket: ${socket2.id}`);
 
                 if (data.creatorId === socket2.id) {
@@ -126,8 +126,8 @@ async function testAdminPersistence() {
         console.log("\n--- Test Passed Successfully ---");
         process.exit(0);
 
-    } catch (error: any) {
-        console.error("Test Failed Stack:", error.stack);
+    } catch (error) {
+        console.error("Test Failed Stack:", error instanceof Error ? error.stack : String(error));
         if (socket1.connected) socket1.disconnect();
         process.exit(1);
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import {
     Settings,
     Trophy,
@@ -19,9 +18,6 @@ import {
     ChevronDown,
     Square,
     CheckSquare,
-    Crown,
-    UserMinus,
-    ArrowRightLeft,
     Play,
 } from "lucide-react";
 import type { Player, CategoryItem } from "@/types/game";
@@ -33,8 +29,6 @@ interface LobbyProps {
     selectedCategories: number[];
     selectedDifficulties: number[];
     categories: CategoryItem[];
-    creatorId: string;
-    currentSocketId: string;
     isHost: boolean;
     onUpdateSettings: (settings: {
         sure: number;
@@ -46,8 +40,6 @@ interface LobbyProps {
     onInitialSet?: (categories: number[], difficulties: number[]) => void;
     onShuffleTeams: () => void;
     onStartGame: () => void;
-    onKickPlayer: (playerId: string) => void;
-    onTransferHost: (playerId: string) => void;
 }
 
 const difficultyLabels: Record<number, string> = {
@@ -63,17 +55,13 @@ export function Lobby({
     selectedCategories,
     selectedDifficulties,
     categories,
-    creatorId,
-    currentSocketId,
-    isHost,
     onUpdateSettings,
     onUpdateCategories,
     onUpdateDifficulties,
     onInitialSet,
     onShuffleTeams,
     onStartGame,
-    onKickPlayer,
-    onTransferHost,
+    isHost,
 }: LobbyProps) {
     const [copied, setCopied] = useState(false);
     const [hideUrl, setHideUrl] = useState(false);
@@ -130,15 +118,7 @@ export function Lobby({
     }, [categories.length, flatCategories.length]);
 
     // Memoize team player filters - combine into single iteration for better performance
-    const { teamAPlayers, teamBPlayers } = useMemo(() => {
-        const teamA: Player[] = [];
-        const teamB: Player[] = [];
-        for (const player of players) {
-            if (player.takim === "A") teamA.push(player);
-            else if (player.takim === "B") teamB.push(player);
-        }
-        return { teamAPlayers: teamA, teamBPlayers: teamB };
-    }, [players]);
+
 
     // Memoize parent categories for accordion
     const parentCategories = useMemo(() =>
@@ -351,10 +331,9 @@ export function Lobby({
                                         })
                                     }
                                     disabled={!isHost}
-                                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${
-                                        settings.mod === "tur"
-                                            ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 ring-1 ring-blue-500/20"
-                                            : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${settings.mod === "tur"
+                                        ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 ring-1 ring-blue-500/20"
+                                        : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800"
                                         }`}
                                 >
                                     <Hash size={16} />
@@ -371,10 +350,9 @@ export function Lobby({
                                         })
                                     }
                                     disabled={!isHost}
-                                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${
-                                        settings.mod === "skor"
-                                            ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 ring-1 ring-blue-500/20"
-                                            : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${settings.mod === "skor"
+                                        ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 ring-1 ring-blue-500/20"
+                                        : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800"
                                         }`}
                                 >
                                     <Trophy size={16} />
@@ -538,10 +516,9 @@ export function Lobby({
                                                 onClick={() =>
                                                     toggleDifficulty(diff)
                                                 }
-                                                className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                                                    isSelected
-                                                        ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-transparent"
-                                                        : "bg-transparent text-gray-400 border-gray-300 dark:border-slate-600"
+                                                className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${isSelected
+                                                    ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-transparent"
+                                                    : "bg-transparent text-gray-400 border-gray-300 dark:border-slate-600"
                                                     }`}
                                             >
                                                 {difficultyLabels[diff]}
@@ -699,11 +676,10 @@ export function Lobby({
 
                                             {/* Accordion Body - Responsive Grid */}
                                             <div
-                                                className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                                                    isExpanded
-                                                        ? "max-h-96 opacity-100"
-                                                        : "max-h-0 opacity-0"
-                                                }`}
+                                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded
+                                                    ? "max-h-96 opacity-100"
+                                                    : "max-h-0 opacity-0"
+                                                    }`}
                                             >
                                                 <div className="p-3 pt-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 border-t border-gray-100 dark:border-slate-800 mt-1">
                                                     {allItems.map((subCat) => {
@@ -719,10 +695,9 @@ export function Lobby({
                                                                         subCat.id
                                                                     )
                                                                 }
-                                                                className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${
-                                                                    isSelected
-                                                                        ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
-                                                                        : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                                                className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${isSelected
+                                                                    ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
+                                                                    : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                                                                     }`}
                                                             >
                                                                 <span className="text-xs sm:text-sm font-medium truncate">
@@ -764,10 +739,9 @@ export function Lobby({
                                                                 cat.id
                                                             )
                                                         }
-                                                        className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${
-                                                            isSelected
-                                                                ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
-                                                                : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                                        className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${isSelected
+                                                            ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
+                                                            : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                                                             }`}
                                                     >
                                                         <span className="text-xs sm:text-sm font-medium truncate">

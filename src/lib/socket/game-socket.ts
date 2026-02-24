@@ -1,5 +1,4 @@
 import { Server, Socket } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
@@ -65,7 +64,8 @@ interface RoomData {
 
 const rooms = new Map<string, RoomData>();
 const wordActionTimestamps = new Map<string, number>();
-const WORD_ACTION_COOLDOWN_MS = 200;
+const roomWordActionTimestamps = new Map<string, number>();
+const WORD_ACTION_COOLDOWN_MS = 500;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
 const socketToRoom = new Map<string, string>();
@@ -83,9 +83,11 @@ const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
 const ROOM_JOIN_WINDOW_MS = parseInt(process.env.ROOM_JOIN_WINDOW_SECONDS || "60", 10) * 1000;
 const ROOM_JOIN_MAX_ATTEMPTS = parseInt(process.env.ROOM_JOIN_MAX_ATTEMPTS || "100", 10);
 
-// Admin Transfer Timeout
+// Disconnect Timeouts Tracking
 const roomAdminTimeouts = new Map<string, NodeJS.Timeout>();
 const ADMIN_TIMEOUT_MS = parseInt(process.env.ADMIN_TIMEOUT_MS || "180000", 10); // Default 3 mins
+const PLAYER_TIMEOUT_MS = parseInt(process.env.PLAYER_TIMEOUT_MS || "15000", 10); // Default 15 secs
+
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -125,10 +127,12 @@ function normalizeIp(rawIp: string | undefined): string {
 }
 
 function getClientIp(socket: Socket): string {
-    const headerIp = socket.handshake.headers?.["x-forwarded-for"];
-    if (headerIp) {
-        const ip = Array.isArray(headerIp) ? headerIp[0] : headerIp;
-        return normalizeIp(ip.split(",")[0].trim());
+    if (process.env.TRUST_PROXY === "true") {
+        const headerIp = socket.handshake.headers?.["x-forwarded-for"];
+        if (headerIp) {
+            const ip = Array.isArray(headerIp) ? headerIp[0] : headerIp;
+            return normalizeIp(ip.split(",")[0].trim());
+        }
     }
     return normalizeIp(
         socket.handshake.address || "unknown"
@@ -485,9 +489,15 @@ export function setupGameSocket(io: Server): void {
         socket: Socket
     ): Promise<void> {
         const now = Date.now();
+
+        // 1. Socket-level spam prevention (prevents a single user from macro-clicking)
         const lastActionAt = wordActionTimestamps.get(socket.id) || 0;
         if (now - lastActionAt < WORD_ACTION_COOLDOWN_MS) return;
         wordActionTimestamps.set(socket.id, now);
+
+        // 2. Room-level spam prevention (prevents 50 opponents clicking "tabu" at the exact same time)
+        const roomLastActionAt = roomWordActionTimestamps.get(room.odaKodu) || 0;
+        if (now - roomLastActionAt < WORD_ACTION_COOLDOWN_MS) return;
 
         const narrator = room.oyunDurumu.anlatici;
         if (
@@ -561,6 +571,9 @@ export function setupGameSocket(io: Server): void {
 
             room.oyunDurumu.aktifKart = card;
             persistRoom(room);
+
+            // Mark the room action time only ONCE the action is fully verified and DB is hit
+            roomWordActionTimestamps.set(room.odaKodu, now);
 
             // Send card to narrator
             const narratorSocket = io.sockets.sockets.get(narrator.id);
@@ -654,7 +667,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, playerId } = parsed.data;
+                const { kullaniciAdi, odaKodu } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -682,14 +695,17 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    // Determine effective player ID once
-                    // If client sent an ID, use it. Otherwise generate new one.
-                    let effectivePlayerId = playerId;
-                    let isNewId = false;
+                    // SECURITY ARCHITECTURE FIX: (Ban Bypass & Identity Hijack Prevention)
+                    // Discard the client-provided (localStorage) playerId entirely.
+                    // Instead, use the 100% secure, tamper-proof ID verified by NextAuth in server.ts middleware.
+                    const effectivePlayerId = socket.data.userId;
+
                     if (!effectivePlayerId) {
-                        effectivePlayerId = uuidv4();
-                        isNewId = true;
+                        socket.emit("hata", "Oturumunuz doğrulanamadı. Lütfen giriş yapın.");
+                        return;
                     }
+
+                    // No longer emitting "kimlikAta" since we do not rely on local storage anymore.
 
                     const requestedCode = odaKodu
                         ? String(odaKodu).toUpperCase()
@@ -739,11 +755,14 @@ export function setupGameSocket(io: Server): void {
                         (player) => player.playerId === effectivePlayerId
                     );
 
+                    let currentPlayerRef: PlayerData;
+
                     if (existingPlayer) {
                         existingPlayer.id = socket.id;
-                        existingPlayer.ad = sanitizedName;
+                        existingPlayer.ad = sanitizedName; // Reverted back to using the raw name
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
+                        currentPlayerRef = existingPlayer;
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
@@ -766,21 +785,16 @@ export function setupGameSocket(io: Server): void {
                         }
                     } else {
                         const isSpectator = room.oyunDurumu.oyunAktifMi;
-                        const yeniOyuncu: PlayerData = {
+                        currentPlayerRef = {
                             id: socket.id,
                             playerId: effectivePlayerId,
-                            ad: sanitizedName,
+                            ad: sanitizedName, // Allowed to be duplicate
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
                             ip,
                         };
-                        room.oyuncular.push(yeniOyuncu);
-
-                        // Only emit if we generated a new ID
-                        if (isNewId) {
-                            socket.emit("kimlikAta", effectivePlayerId);
-                        }
+                        room.oyuncular.push(currentPlayerRef);
                     }
 
                     persistRoom(room);
@@ -795,6 +809,50 @@ export function setupGameSocket(io: Server): void {
                             ...room.oyunDurumu,
                             creatorId: room.creatorId,
                         });
+
+                        // Emit Turn Info to Late Joiners / Reconnecters
+                        const narrator = room.oyunDurumu.anlatici;
+
+                        if (narrator) {
+                            // Calculate current inspector using same logic as startTurn
+                            const opponentTeam = narrator.takim === "A" ? "B" : "A";
+                            const opponentPlayers = room.oyuncular.filter(
+                                (player) => player.takim === opponentTeam && player.online
+                            );
+
+                            const gozetmenIndex = narrator.takim === "A"
+                                ? room.oyunDurumu.takimB_anlaticiIndex
+                                : room.oyunDurumu.takimA_anlaticiIndex;
+
+                            const inspector = opponentPlayers.length > 0
+                                ? opponentPlayers[((gozetmenIndex || 0) + 1) % opponentPlayers.length] || opponentPlayers[0]
+                                : null;
+
+                            let role = "Tahminci";
+                            let isPrimaryGozetmen = false;
+
+                            if (currentPlayerRef.rol === "İzleyici") {
+                                role = "İzleyici";
+                            } else if (currentPlayerRef.playerId === narrator.playerId) {
+                                role = "Anlatıcı";
+                            } else if (inspector && currentPlayerRef.playerId === inspector.playerId) {
+                                role = "Gözetmen";
+                                isPrimaryGozetmen = true;
+                            } else if (currentPlayerRef.takim !== narrator.takim) {
+                                role = "Gözetmen";
+                            }
+
+                            const shouldSeeCard = role === "Anlatıcı" || role === "Gözetmen";
+                            const currentCard = room.oyunDurumu.aktifKart;
+
+                            socket.emit("yeniTurBilgisi", {
+                                rol: role,
+                                isPrimaryGozetmen,
+                                kart: shouldSeeCard ? currentCard : null,
+                                anlaticiAd: narrator.ad,
+                                gozetmenAd: inspector ? inspector.ad : "-",
+                            });
+                        }
                     }
 
                     broadcastLobby(room);
@@ -1121,19 +1179,41 @@ export function setupGameSocket(io: Server): void {
 
         // ── Disconnect ──
         socket.on("disconnect", () => {
+            const room = getRoomBySocketId(socket.id);
             wordActionTimestamps.delete(socket.id);
             socketToRoom.delete(socket.id);
-            const room = getRoomBySocketId(socket.id);
             if (!room) return;
 
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player) return;
 
             player.online = false;
+
+            if (!room.oyunDurumu.oyunAktifMi) {
+                // Grace Period: Lobide kopan oyuncuları 15 saniye bekleyip siliyoruz.
+                // Yönetici ise ADMIN_TIMEOUT_MS devredeceği için ona özel işlem yapılıyor.
+                const isCreator = room.creatorPlayerId === player.playerId;
+                if (!isCreator) {
+                    const roomCode = room.odaKodu;
+                    const playerId = player.playerId;
+                    setTimeout(() => {
+                        const currentRoom = getRoom(roomCode);
+                        if (!currentRoom || currentRoom.oyunDurumu.oyunAktifMi) return;
+
+                        const stillOffline = currentRoom.oyuncular.find(p => p.playerId === playerId && !p.online);
+                        if (stillOffline) {
+                            currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== playerId);
+                            persistRoom(currentRoom);
+                            broadcastLobby(currentRoom);
+                        }
+                    }, PLAYER_TIMEOUT_MS);
+                }
+            }
+
             const onlinePlayers = room.oyuncular.filter((p) => p.online);
 
             if (onlinePlayers.length === 0) {
-                // Grace period: wait 15 seconds before destroying room
+                // Wait 15 seconds before destroying room
                 // This prevents race condition when homepage disconnects
                 // its socket before the /room/[code] page reconnects
                 const roomCode = room.odaKodu;
@@ -1172,16 +1252,23 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    // Check if admin still offline
+                    // Check if admin still offline or completely deleted (purged in lobby)
                     const adminPlayer = currentRoom.oyuncular.find(p => p.playerId === currentRoom.creatorPlayerId);
-                    if (adminPlayer && !adminPlayer.online) {
+                    if (!adminPlayer || !adminPlayer.online) {
                         const nextAdmin = currentRoom.oyuncular.find(p => p.online);
                         if (nextAdmin) {
+                            const oldAdminPlayerId = currentRoom.creatorPlayerId;
                             currentRoom.creatorId = nextAdmin.id;
                             currentRoom.creatorPlayerId = nextAdmin.playerId;
+
+                            // Odanın lobisinde eski yönetici hayalet olarak kalmasın diye temizle
+                            if (!currentRoom.oyunDurumu.oyunAktifMi) {
+                                currentRoom.oyuncular = currentRoom.oyuncular.filter(p => p.playerId !== oldAdminPlayerId);
+                            }
+
                             persistRoom(currentRoom);
                             broadcastLobby(currentRoom);
-                            io.to(roomCode).emit("hata", `Yönetici süresi doldu. Yeni yönetici: ${nextAdmin.ad}`);
+                            io.to(roomCode).emit("hata", `Yönetici ayrıldı. Yeni yönetici: ${nextAdmin.ad}`);
                         }
                     }
                     roomAdminTimeouts.delete(roomCode);

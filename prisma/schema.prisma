@@ -22,7 +22,7 @@ model User {
 // ─── Tabu Game: Words ──────────────────────────────────────────
 
 model Word {
-  id         Int @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   wordText   String @unique @map("word_text") @db.VarChar(255)
   difficulty Int    @db.TinyInt // 1: Kolay, 2: Orta, 3: Zor
 
