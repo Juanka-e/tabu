@@ -83,13 +83,20 @@ export default function RoomPage() {
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
 
+    // Initial check for username - prioritize session name if present
     useEffect(() => {
         setMounted(true);
-        const hasUsername = localStorage.getItem("tabu_username");
-        if (!hasUsername) {
+        const sessionName = session?.user?.name;
+        const localName = localStorage.getItem("tabu_username");
+
+        // If they have a NextAuth session name but no local storage, sync the local storage instantly
+        if (sessionName && !localName) {
+            localStorage.setItem("tabu_username", sessionName);
+            setShowUsernamePrompt(false);
+        } else if (!sessionName && !localName) {
             setShowUsernamePrompt(true);
         }
-    }, []);
+    }, [session?.user?.name]);
 
     // Responsive check
     useEffect(() => {
@@ -115,7 +122,8 @@ export default function RoomPage() {
     useEffect(() => {
         if (showUsernamePrompt) return;
 
-        const username = localStorage.getItem("tabu_username") || "Oyuncu";
+        // Give priority to session name, then local storage
+        const username = session?.user?.name || localStorage.getItem("tabu_username") || "Oyuncu";
 
         const socket = io({
             path: "/api/socketio",
