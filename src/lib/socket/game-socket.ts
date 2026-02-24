@@ -756,21 +756,11 @@ export function setupGameSocket(io: Server): void {
                         (player) => player.playerId === effectivePlayerId
                     );
 
-                    // Name collision fixing (append number if name is taken by a DIFFERENT player)
-                    let finalName = sanitizedName;
-                    if (!existingPlayer) {
-                        let counter = 1;
-                        while (room.oyuncular.some(p => p.ad === finalName && p.playerId !== effectivePlayerId)) {
-                            finalName = `${sanitizedName} ${counter}`;
-                            counter++;
-                        }
-                    }
-
                     let currentPlayerRef: PlayerData;
 
                     if (existingPlayer) {
                         existingPlayer.id = socket.id;
-                        existingPlayer.ad = finalName;
+                        existingPlayer.ad = sanitizedName; // Reverted back to using the raw name
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
                         currentPlayerRef = existingPlayer;
@@ -799,7 +789,7 @@ export function setupGameSocket(io: Server): void {
                         currentPlayerRef = {
                             id: socket.id,
                             playerId: effectivePlayerId,
-                            ad: finalName,
+                            ad: sanitizedName, // Allowed to be duplicate
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
