@@ -41,12 +41,18 @@ export default function HomePage() {
   // Sync username if session loads late
   useEffect(() => {
     if (sessionUsername && !username) {
-      setUsername(sessionUsername);
+      const timer = setTimeout(() => {
+        setUsername(sessionUsername);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [sessionUsername]);
+  }, [sessionUsername, username]);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleJoinOrCreate = useCallback(

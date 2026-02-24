@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
     Megaphone,
-    Bell,
     ChevronDown,
     X,
     Rocket,
@@ -45,7 +44,9 @@ export function AnnouncementsModal({
 
     useEffect(() => {
         if (isOpen) {
-            setLoading(true);
+            const timer = setTimeout(() => {
+                setLoading(true);
+            }, 0);
             fetch("/api/announcements/visible")
                 .then((res) => res.json())
                 .then((data) => {
@@ -55,6 +56,7 @@ export function AnnouncementsModal({
                 .catch(() => {
                     setLoading(false);
                 });
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
@@ -202,9 +204,9 @@ export function AnnouncementsModal({
                                     <div className="h-px w-full bg-gray-100 dark:bg-slate-700 mb-3 sm:mb-4"></div>
 
                                     {item.mediaUrl && (
-                                        <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden shadow-md bg-black ring-1 ring-black/5">
+                                        <div className="relative w-full rounded-xl overflow-hidden mb-6 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700">
                                             {item.mediaType === "youtube" ? (
-                                                <div className="relative pt-[56.25%]">
+                                                <div className="aspect-video">
                                                     <iframe
                                                         className="absolute inset-0 w-full h-full"
                                                         src={item.mediaUrl.replace(
@@ -218,11 +220,14 @@ export function AnnouncementsModal({
                                                     ></iframe>
                                                 </div>
                                             ) : (
-                                                <img
-                                                    src={item.mediaUrl}
-                                                    alt={item.title}
-                                                    className="w-full h-auto max-h-[200px] sm:max-h-[300px] object-cover"
-                                                />
+                                                <div className="aspect-video relative">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={item.mediaUrl}
+                                                        alt="Duyuru görseli"
+                                                        className="absolute inset-0 w-full h-full object-cover"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     )}

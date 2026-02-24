@@ -47,7 +47,7 @@ export async function PUT(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const word = await prisma.$transaction(async (tx: any) => {
             // Update main word data
-            const updated = await tx.word.update({
+            await tx.word.update({
                 where: { id: wordId },
                 data: {
                     wordText: data.wordText,

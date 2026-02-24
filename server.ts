@@ -26,9 +26,8 @@ app.prepare().then(() => {
     // WebSocket Authentication Middleware
     io.use(async (socket, next) => {
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const token = await getToken({
-                req: { headers: socket.request.headers } as any,
+                req: { headers: socket.request.headers } as never,
                 secret: process.env.AUTH_SECRET,
                 secureCookie: process.env.NODE_ENV === "production"
             });

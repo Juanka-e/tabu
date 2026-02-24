@@ -53,8 +53,8 @@ export function ActiveGame({
                     <div className="flex flex-col items-center justify-center w-32 relative">
                         <div
                             className={`text-4xl font-black font-mono transition-colors ${activeTeam === "A"
-                                    ? "text-red-600 dark:text-red-500"
-                                    : "text-blue-600 dark:text-blue-500"
+                                ? "text-red-600 dark:text-red-500"
+                                : "text-blue-600 dark:text-blue-500"
                                 }`}
                         >
                             {gameState?.kalanZaman ?? 0}
@@ -87,8 +87,8 @@ export function ActiveGame({
                             </span>
                             <span
                                 className={`${activeTeam === "A"
-                                        ? "text-red-600 dark:text-red-400"
-                                        : "text-blue-600 dark:text-blue-400"
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-blue-600 dark:text-blue-400"
                                     } font-bold`}
                             >
                                 {narratorName}
@@ -101,8 +101,8 @@ export function ActiveGame({
                             </span>
                             <span
                                 className={`${activeTeam === "A"
-                                        ? "text-blue-600 dark:text-blue-400"
-                                        : "text-red-600 dark:text-red-400"
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-red-600 dark:text-red-400"
                                     } font-bold`}
                             >
                                 {inspectorName}
@@ -180,24 +180,6 @@ export function ActiveGame({
                             <span className="text-sm">PAS ({gameState?.kalanPasHakki ?? 0})</span>
                         </button>
                     </div>
-
-                    {/* Host sub-controls */}
-                    {isHost && (
-                        <div className="flex justify-center gap-4 mt-6">
-                            <button
-                                onClick={onPauseResume}
-                                className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white flex items-center gap-2 text-sm font-medium transition-colors"
-                            >
-                                <Pause size={16} /> Durdur
-                            </button>
-                            <button
-                                onClick={onResetGame}
-                                className="text-gray-500 dark:text-gray-400 hover:text-red-500 flex items-center gap-2 text-sm font-medium transition-colors"
-                            >
-                                <RotateCcw size={16} /> Bitir
-                            </button>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -211,8 +193,27 @@ export function ActiveGame({
                         >
                             <X size={24} />
                             <span>TABU</span>
+
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Host Controls */}
+            {isHost && (
+                <div className="flex justify-center gap-4 mt-6">
+                    <button
+                        onClick={onPauseResume}
+                        className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-all active:scale-95"
+                    >
+                        <Pause size={18} /> Durdur
+                    </button>
+                    <button
+                        onClick={onResetGame}
+                        className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-all active:scale-95"
+                    >
+                        <RotateCcw size={18} /> Lobiye Dön
+                    </button>
                 </div>
             )}
 

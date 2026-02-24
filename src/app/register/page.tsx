@@ -37,7 +37,7 @@ export default function RegisterPage() {
                 toast.success("Kayıt başarılı! Giriş yapabilirsiniz.");
                 router.push("/login");
             }
-        } catch (err) {
+        } catch {
             setError("Bir hata oluştu.");
         } finally {
             setLoading(false);
