@@ -756,11 +756,24 @@ export function setupGameSocket(io: Server): void {
                         (player) => player.playerId === effectivePlayerId
                     );
 
+                    // Name collision fixing (append number if name is taken by a DIFFERENT player)
+                    let finalName = sanitizedName;
+                    if (!existingPlayer) {
+                        let counter = 1;
+                        while (room.oyuncular.some(p => p.ad === finalName && p.playerId !== effectivePlayerId)) {
+                            finalName = `${sanitizedName} ${counter}`;
+                            counter++;
+                        }
+                    }
+
+                    let currentPlayerRef: PlayerData;
+
                     if (existingPlayer) {
                         existingPlayer.id = socket.id;
-                        existingPlayer.ad = sanitizedName;
+                        existingPlayer.ad = finalName;
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
+                        currentPlayerRef = existingPlayer;
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
@@ -783,16 +796,16 @@ export function setupGameSocket(io: Server): void {
                         }
                     } else {
                         const isSpectator = room.oyunDurumu.oyunAktifMi;
-                        const yeniOyuncu: PlayerData = {
+                        currentPlayerRef = {
                             id: socket.id,
                             playerId: effectivePlayerId,
-                            ad: sanitizedName,
+                            ad: finalName,
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
                             ip,
                         };
-                        room.oyuncular.push(yeniOyuncu);
+                        room.oyuncular.push(currentPlayerRef);
                     }
 
                     persistRoom(room);
@@ -807,6 +820,50 @@ export function setupGameSocket(io: Server): void {
                             ...room.oyunDurumu,
                             creatorId: room.creatorId,
                         });
+
+                        // Emit Turn Info to Late Joiners / Reconnecters
+                        const narrator = room.oyunDurumu.anlatici;
+
+                        if (narrator) {
+                            // Calculate current inspector using same logic as startTurn
+                            const opponentTeam = narrator.takim === "A" ? "B" : "A";
+                            const opponentPlayers = room.oyuncular.filter(
+                                (player) => player.takim === opponentTeam && player.online
+                            );
+
+                            const gozetmenIndex = narrator.takim === "A"
+                                ? room.oyunDurumu.takimB_anlaticiIndex
+                                : room.oyunDurumu.takimA_anlaticiIndex;
+
+                            const inspector = opponentPlayers.length > 0
+                                ? opponentPlayers[((gozetmenIndex || 0) + 1) % opponentPlayers.length] || opponentPlayers[0]
+                                : null;
+
+                            let role = "Tahminci";
+                            let isPrimaryGozetmen = false;
+
+                            if (currentPlayerRef.rol === "İzleyici") {
+                                role = "İzleyici";
+                            } else if (currentPlayerRef.playerId === narrator.playerId) {
+                                role = "Anlatıcı";
+                            } else if (inspector && currentPlayerRef.playerId === inspector.playerId) {
+                                role = "Gözetmen";
+                                isPrimaryGozetmen = true;
+                            } else if (currentPlayerRef.takim !== narrator.takim) {
+                                role = "Gözetmen";
+                            }
+
+                            const shouldSeeCard = role === "Anlatıcı" || role === "Gözetmen";
+                            const currentCard = room.oyunDurumu.aktifKart;
+
+                            socket.emit("yeniTurBilgisi", {
+                                rol: role,
+                                isPrimaryGozetmen,
+                                kart: shouldSeeCard ? currentCard : null,
+                                anlaticiAd: narrator.ad,
+                                gozetmenAd: inspector ? inspector.ad : "-",
+                            });
+                        }
                     }
 
                     broadcastLobby(room);
