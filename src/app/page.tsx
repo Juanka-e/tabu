@@ -55,6 +55,7 @@ export default function HomePage() {
 
       // Get stored playerId for reconnection
       const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
+      const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
 
       const socket: Socket = io({
         path: "/api/socketio",
@@ -66,6 +67,7 @@ export default function HomePage() {
           kullaniciAdi: username.trim(),
           odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
           playerId: storedPlayerId,
+          ...(Number.isInteger(authUserId) ? { authUserId } : {}),
         });
       });
 
@@ -92,7 +94,7 @@ export default function HomePage() {
         setIsConnecting(false);
       });
     },
-    [username, roomCode, router]
+    [roomCode, router, session?.user?.id, username]
   );
 
   return (
@@ -117,9 +119,14 @@ export default function HomePage() {
           </>
         )}
         {isLoggedIn && (
-          <Button variant="ghost" size="sm" onClick={() => signOut()}>
-            {sessionUsername} (Çıkış)
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
+              {sessionUsername} / Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => signOut()}>
+              Cikis
+            </Button>
+          </>
         )}
         <Button
           variant="ghost"

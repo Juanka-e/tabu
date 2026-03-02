@@ -7,24 +7,167 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Admin Panel ───────────────────────────────────────────────
+enum ShopItemType {
+  avatar
+  frame
+  card_back
+}
+
+enum ItemRarity {
+  common
+  rare
+  epic
+  legendary
+}
+
+enum InventorySource {
+  purchase
+  grant
+  migration
+}
+
+enum PurchaseStatus {
+  completed
+  reverted
+}
 
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
   password  String   @db.VarChar(255)
-  role      String   @default("user") @db.VarChar(20) // "user", "admin"
+  role      String   @default("user") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at")
+
+  profile      UserProfile?
+  wallet       Wallet?
+  inventory    InventoryItem[]
+  purchases    Purchase[]
+  matchResults MatchResult[]
+  guestLinks   GuestProgress[]
 
   @@map("users")
 }
 
-// ─── Tabu Game: Words ──────────────────────────────────────────
+model UserProfile {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique @map("user_id")
+  displayName    String?  @map("display_name") @db.VarChar(60)
+  bio            String?  @db.VarChar(300)
+  avatarItemId   Int?     @map("avatar_item_id")
+  frameItemId    Int?     @map("frame_item_id")
+  cardBackItemId Int?     @map("card_back_item_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarItem   ShopItem? @relation("ProfileAvatar", fields: [avatarItemId], references: [id], onDelete: SetNull)
+  frameItem    ShopItem? @relation("ProfileFrame", fields: [frameItemId], references: [id], onDelete: SetNull)
+  cardBackItem ShopItem? @relation("ProfileCardBack", fields: [cardBackItemId], references: [id], onDelete: SetNull)
+
+  @@map("user_profiles")
+}
+
+model Wallet {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  coinBalance Int      @default(0) @map("coin_balance")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model ShopItem {
+  id        Int          @id @default(autoincrement())
+  code      String       @unique @db.VarChar(80)
+  type      ShopItemType
+  name      String       @db.VarChar(120)
+  rarity    ItemRarity   @default(common)
+  priceCoin Int          @map("price_coin")
+  imageUrl  String       @map("image_url") @db.Text
+  isActive  Boolean      @default(true) @map("is_active")
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  inventoryItems     InventoryItem[]
+  purchases          Purchase[]
+  equippedByAvatar   UserProfile[] @relation("ProfileAvatar")
+  equippedByFrame    UserProfile[] @relation("ProfileFrame")
+  equippedByCardBack UserProfile[] @relation("ProfileCardBack")
+
+  @@map("shop_items")
+}
+
+model InventoryItem {
+  id         Int             @id @default(autoincrement())
+  userId     Int             @map("user_id")
+  shopItemId Int             @map("shop_item_id")
+  source     InventorySource @default(purchase)
+  acquiredAt DateTime        @default(now()) @map("acquired_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopItemId])
+  @@index([userId])
+  @@map("inventory_items")
+}
+
+model Purchase {
+  id         Int            @id @default(autoincrement())
+  userId     Int            @map("user_id")
+  shopItemId Int            @map("shop_item_id")
+  priceCoin  Int            @map("price_coin")
+  status     PurchaseStatus @default(completed)
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("purchases")
+}
+
+model MatchResult {
+  id         Int      @id @default(autoincrement())
+  roomCode   String   @map("room_code") @db.VarChar(12)
+  gameType   String   @default("tabu") @map("game_type") @db.VarChar(30)
+  userId     Int      @map("user_id")
+  playerId   String   @map("player_id") @db.VarChar(64)
+  team       String?  @db.VarChar(1)
+  won        Boolean
+  scoreA     Int      @map("score_a")
+  scoreB     Int      @map("score_b")
+  coinEarned Int      @default(0) @map("coin_earned")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomCode, userId])
+  @@index([userId, createdAt])
+  @@map("match_results")
+}
+
+model GuestProgress {
+  id                 Int      @id @default(autoincrement())
+  playerId           String   @unique @map("player_id") @db.VarChar(64)
+  earnedCoinSnapshot Int      @default(0) @map("earned_coin_snapshot")
+  linkedUserId       Int?     @map("linked_user_id")
+  lastSeenAt         DateTime @default(now()) @map("last_seen_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  linkedUser User? @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+
+  @@index([linkedUserId])
+  @@map("guest_progress")
+}
 
 model Word {
-  id         Int @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   wordText   String @unique @map("word_text") @db.VarChar(255)
-  difficulty Int    @db.TinyInt // 1: Kolay, 2: Orta, 3: Zor
+  difficulty Int    @db.TinyInt
 
   tabooWords     TabooWord[]
   wordCategories WordCategory[]
@@ -41,8 +184,6 @@ model TabooWord {
 
   @@map("taboo_words")
 }
-
-// ─── Categories (Hierarchical) ─────────────────────────────────
 
 model Category {
   id        Int     @id @default(autoincrement())
@@ -70,8 +211,6 @@ model WordCategory {
   @@id([wordId, categoryId])
   @@map("word_categories")
 }
-
-// ─── Announcements ─────────────────────────────────────────────
 
 model Announcement {
   id        Int      @id @default(autoincrement())

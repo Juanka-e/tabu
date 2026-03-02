@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/lib/session";
+import { purchaseStoreItem } from "@/lib/economy";
+
+const purchaseSchema = z.object({
+  shopItemId: z.number().int().positive(),
+});
+
+export async function POST(req: Request) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { shopItemId } = purchaseSchema.parse(body);
+
+    const result = await purchaseStoreItem(sessionUser.id, shopItemId);
+    if (!result.ok) {
+      if (result.code === "not_found") {
+        return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
+      }
+      if (result.code === "already_owned") {
+        return NextResponse.json({ error: "Urun zaten sahiplenilmis." }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Yetersiz coin." }, { status: 409 });
+    }
+
+    return NextResponse.json({ item: result.item, coinBalance: result.coinBalance });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Satin alma basarisiz." }, { status: 500 });
+  }
+}

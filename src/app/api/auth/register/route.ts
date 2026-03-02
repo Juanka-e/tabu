@@ -32,6 +32,12 @@ export async function POST(req: Request) {
                 username,
                 password: hashedPassword,
                 role: "user",
+                wallet: {
+                    create: { coinBalance: 0 },
+                },
+                profile: {
+                    create: {},
+                },
             },
         });
 

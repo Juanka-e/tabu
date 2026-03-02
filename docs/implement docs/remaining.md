@@ -121,3 +121,18 @@ Veritabanı ayarları (.env):
 > - ✅ Duyurular modalı API'den veri çekiyor (`/api/announcements/visible`)
 > - ✅ Kategoriler modalı socket'ten veri alıyor (`kategoriListesiGonder`)
 > - 🔄 Test aşamasında gerçek veri akışı doğrulanacak
+
+## Update (2 March 2026)
+
+### ? Completed in this cycle
+- Hybrid auth base (guest gameplay preserved, user account flows enabled)
+- Dashboard/Profile/Store MVP routes and APIs
+- Store purchase and equip APIs (transaction-based purchase)
+- Match finalize reward API and socket-user bridge
+- Prisma schema extension + successful `prisma db push`
+
+### Remaining (next slice)
+- Seed initial store catalog (6 avatar, 4 frame, 4 card back)
+- Reflect equipped cosmetics directly inside in-game UI widgets
+- Guest-to-account progress merge policy implementation (`GuestProgress` snapshot transfer)
+- Stabilize lint baseline for CI green (repo-wide pre-existing lint issues still exist)

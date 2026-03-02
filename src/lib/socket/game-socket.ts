@@ -14,6 +14,7 @@ interface BanList {
 interface PlayerData {
     id: string;
     playerId: string;
+    userId: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
@@ -59,6 +60,17 @@ interface RoomData {
     oyunDurumu: GameStateData;
     zamanlayici: ReturnType<typeof setInterval> | null;
     banList: BanList;
+}
+
+export interface RoomMatchSnapshot {
+    odaKodu: string;
+    oyunAktifMi: boolean;
+    skor: { A: number; B: number };
+    oyuncular: Array<{
+        playerId: string;
+        userId: number | null;
+        takim: "A" | "B" | null;
+    }>;
 }
 
 // ─── State ─────────────────────────────────────────────────────
@@ -175,6 +187,7 @@ const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
     playerId: z.string().uuid().optional(),
+    authUserId: z.number().int().positive().optional(),
 });
 
 const KategoriAyarlariSchema = z.object({
@@ -654,7 +667,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, playerId } = parsed.data;
+                const { kullaniciAdi, odaKodu, playerId, authUserId } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -744,6 +757,9 @@ export function setupGameSocket(io: Server): void {
                         existingPlayer.ad = sanitizedName;
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
+                        if (authUserId) {
+                            existingPlayer.userId = authUserId;
+                        }
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
@@ -769,6 +785,7 @@ export function setupGameSocket(io: Server): void {
                         const yeniOyuncu: PlayerData = {
                             id: socket.id,
                             playerId: effectivePlayerId,
+                            userId: authUserId ?? null,
                             ad: sanitizedName,
                             takim: isSpectator ? null : "A",
                             online: true,
@@ -1122,8 +1139,9 @@ export function setupGameSocket(io: Server): void {
         // ── Disconnect ──
         socket.on("disconnect", () => {
             wordActionTimestamps.delete(socket.id);
+            const roomCode = socketToRoom.get(socket.id);
+            const room = roomCode ? getRoom(roomCode) : undefined;
             socketToRoom.delete(socket.id);
-            const room = getRoomBySocketId(socket.id);
             if (!room) return;
 
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1219,5 +1237,20 @@ export function getRoomMetrics(): {
     return {
         aktifLobiSayisi: rooms.size,
         onlineKullaniciSayisi,
+    };
+}
+
+export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {
+    const room = rooms.get(roomCode);
+    if (!room) return null;
+    return {
+        odaKodu: room.odaKodu,
+        oyunAktifMi: room.oyunDurumu.oyunAktifMi,
+        skor: room.oyunDurumu.skor,
+        oyuncular: room.oyuncular.map((player) => ({
+            playerId: player.playerId,
+            userId: player.userId ?? null,
+            takim: player.takim,
+        })),
     };
 }

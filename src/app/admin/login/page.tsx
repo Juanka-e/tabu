@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ export default function AdminLoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,6 +25,7 @@ export default function AdminLoginPage() {
         const result = await signIn("credentials", {
             username,
             password,
+            portal: "admin",
             redirect: false,
         });
 
@@ -31,7 +33,9 @@ export default function AdminLoginPage() {
             setError("Kullanıcı adı veya şifre hatalı.");
             setLoading(false);
         } else {
-            router.push("/admin");
+            const callbackUrl = searchParams.get("callbackUrl") || "/admin";
+            router.push(callbackUrl);
+            router.refresh();
         }
     };
 

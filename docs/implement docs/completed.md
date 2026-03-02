@@ -223,3 +223,39 @@
 "@dnd-kit/sortable": "^10.0.0",
 "@dnd-kit/utilities": "^3.2.2"
 ```
+
+## ? Faz 16: Hybrid User Platform (Dashboard + Profile + Store) (2 March 2026)
+
+### Auth and Access Separation
+- User and admin login flows were separated with `portal`-based credentials checks.
+- Session now carries `user.id` and `user.role` consistently.
+- Middleware protection expanded for `/dashboard`, `/profile`, `/store`, `/api/user/*`, `/api/store/*`, `/api/game/*`.
+- Files: `src/lib/auth.ts`, `src/middleware.ts`, `src/types/next-auth.d.ts`, `src/app/login/page.tsx`, `src/app/admin/login/page.tsx`
+
+### Database and Economy Foundation
+- Added new Prisma models: `UserProfile`, `Wallet`, `ShopItem`, `InventoryItem`, `Purchase`, `MatchResult`, `GuestProgress`.
+- Added store/economy enums and relations for future game expansion.
+- Ran `prisma db push` successfully on local MySQL (`tabu2`).
+- File: `prisma/schema.prisma`
+
+### API Layer (MVP)
+- Added user APIs: `/api/user/me`, `/api/user/profile`, `/api/user/dashboard`.
+- Added store APIs: `/api/store/items`, `/api/store/purchase`, `/api/store/equip`.
+- Added match reward finalize API: `/api/game/match/finalize`.
+- Files: `src/app/api/user/*`, `src/app/api/store/*`, `src/app/api/game/match/finalize/route.ts`
+
+### New User Pages
+- Added `/dashboard`, `/profile`, `/store` pages.
+- Added shared user navigation component.
+- Files: `src/app/dashboard/page.tsx`, `src/app/profile/page.tsx`, `src/app/store/page.tsx`, `src/components/user/user-nav.tsx`
+
+### Game Socket and Reward Integration
+- Added optional `authUserId` to room join payload and player `userId` tracking.
+- Fixed disconnect lookup ordering bug (`socketToRoom` map usage).
+- Added room match snapshot helper for secure reward validation.
+- Added reward claim trigger on game end for logged-in users.
+- Files: `src/lib/socket/game-socket.ts`, `src/app/room/[code]/page.tsx`, `src/app/page.tsx`, `src/types/game.ts`
+
+### Type Fix
+- Explicitly typed `m` and `match` in dashboard page to remove implicit-any issue.
+- File: `src/app/dashboard/page.tsx`

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
+import { useSession } from "next-auth/react";
 import { Sidebar } from "@/components/game/sidebar";
 import { Lobby } from "@/components/game/lobby";
 import { RulesModal } from "@/components/game/rules-modal";
@@ -34,6 +35,7 @@ export default function RoomPage() {
     const [mounted, setMounted] = useState(false);
     const [, startTransition] = useTransition();
     const roomCode = params.code as string;
+    const { data: session } = useSession();
 
     // Socket
     const socketRef = useRef<Socket | null>(null);
@@ -45,6 +47,7 @@ export default function RoomPage() {
         }
         return "";
     });
+    const rewardClaimedRoomsRef = useRef<Set<string>>(new Set());
 
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
@@ -119,6 +122,7 @@ export default function RoomPage() {
 
         const username = localStorage.getItem("tabu_username") || "Oyuncu";
         const playerId = localStorage.getItem("tabu_playerId") || undefined;
+        const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
 
         const socket = io({
             path: "/api/socketio",
@@ -134,6 +138,7 @@ export default function RoomPage() {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
                 playerId,
+                ...(Number.isInteger(authUserId) ? { authUserId } : {}),
             });
         });
 
@@ -200,6 +205,22 @@ export default function RoomPage() {
         socket.on("oyunBitti", (data: GameOverData) => {
             setView(GameView.GAME_OVER);
             setGameOverData(data);
+
+            const currentPlayerId = localStorage.getItem("tabu_playerId");
+            if (!session?.user?.id || !currentPlayerId) return;
+            if (rewardClaimedRoomsRef.current.has(roomCode)) return;
+
+            rewardClaimedRoomsRef.current.add(roomCode);
+            fetch("/api/game/match/finalize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    roomCode,
+                    playerId: currentPlayerId,
+                }),
+            }).catch(() => {
+                rewardClaimedRoomsRef.current.delete(roomCode);
+            });
         });
 
         socket.on("altinSkorBasladi", () => {
@@ -228,7 +249,7 @@ export default function RoomPage() {
         return () => {
             socket.disconnect();
         };
-    }, [roomCode, router, showUsernamePrompt]);
+    }, [roomCode, router, session?.user?.id, showUsernamePrompt]);
 
     // ─── Actions ─────────────────────────────────────────────────
 

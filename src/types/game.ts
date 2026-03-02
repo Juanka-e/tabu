@@ -15,6 +15,7 @@ export enum GameView {
 export interface Player {
     id: string;
     playerId: string;
+    userId?: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;

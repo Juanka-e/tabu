@@ -1,22 +1,39 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+function isAuthed(req: { auth?: { user?: { id?: string } } | null }): boolean {
+    return Boolean(req.auth?.user?.id);
+}
+
 export default auth((req) => {
     const { pathname } = req.nextUrl;
+    const role = (req.auth?.user as { role?: string } | undefined)?.role;
 
-    // Protect admin routes (except login)
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-        if (!req.auth || (req.auth.user as { role?: string })?.role !== "admin") {
+        if (!isAuthed(req) || role !== "admin") {
             const loginUrl = new URL("/admin/login", req.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
             return NextResponse.redirect(loginUrl);
         }
     }
 
-    // Protect admin API routes
     if (pathname.startsWith("/api/admin")) {
-        if (!req.auth || (req.auth.user as { role?: string })?.role !== "admin") {
-            return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+        if (!isAuthed(req) || role !== "admin") {
+            return NextResponse.json({ error: "Yetkisiz erisim." }, { status: 401 });
+        }
+    }
+
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/profile") || pathname.startsWith("/store")) {
+        if (!isAuthed(req)) {
+            const loginUrl = new URL("/login", req.url);
+            loginUrl.searchParams.set("callbackUrl", pathname);
+            return NextResponse.redirect(loginUrl);
+        }
+    }
+
+    if (pathname.startsWith("/api/user") || pathname.startsWith("/api/store") || pathname.startsWith("/api/game")) {
+        if (!isAuthed(req)) {
+            return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
         }
     }
 
@@ -24,5 +41,14 @@ export default auth((req) => {
 });
 
 export const config = {
-    matcher: ["/admin/:path*", "/api/admin/:path*"],
+    matcher: [
+        "/admin/:path*",
+        "/api/admin/:path*",
+        "/dashboard/:path*",
+        "/profile/:path*",
+        "/store/:path*",
+        "/api/user/:path*",
+        "/api/store/:path*",
+        "/api/game/:path*",
+    ],
 };

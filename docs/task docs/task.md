@@ -71,3 +71,16 @@
 - [ ] Performance optimizations
 - [ ] Production deployment configuration
 - [ ] Create walkthrough documentation
+
+## Phase 9: Hybrid User Platform (March 2, 2026)
+- [x] Add hybrid user/auth foundation (admin + user + guest compatibility)
+- [x] Add Prisma economy/profile/store models
+- [x] Add user APIs (`/api/user/*`)
+- [x] Add store APIs (`/api/store/*`)
+- [x] Add match finalize reward API (`/api/game/match/finalize`)
+- [x] Build `/dashboard`, `/profile`, `/store` pages
+- [x] Connect room flow to reward finalization for logged-in users
+- [x] Fix socket disconnect room lookup order bug
+- [x] Run `prisma db push` on local database
+- [ ] Seed starter store catalog data
+- [ ] Complete cosmetic reflection in active game UI
