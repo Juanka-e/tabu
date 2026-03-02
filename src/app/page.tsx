@@ -18,7 +18,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
@@ -102,8 +102,16 @@ export default function HomePage() {
         <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="rounded-full">
           <Megaphone className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="rounded-full">
-          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="rounded-full"
+        >
+          <span className="relative flex h-5 w-5 items-center justify-center">
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </span>
         </Button>
       </div>
 

@@ -78,3 +78,10 @@
 - CI requires: `npx prisma generate`, `npx tsc --noEmit`, `npm run lint`, `npx prisma db push --skip-generate`, `npm run build`.
 - Current branch changes compile with TypeScript.
 - Repo still has pre-existing lint violations outside this feature scope; CI lint job will fail until those are cleaned.
+
+## Hotfix - Hydration Error (March 2, 2026)
+
+- Issue: Theme toggle icon in `src/app/page.tsx` rendered different SVG trees on server/client (`Sun` vs `Moon`), causing hydration mismatch.
+- Root cause: Conditional icon render used a theme value that differs before/after hydration.
+- Fix: Rendered both icons with CSS dark-mode transitions and removed theme-conditional JSX branching.
+- Verification: `npm run lint` and `npm run build` both pass after the change.
