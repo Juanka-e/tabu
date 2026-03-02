@@ -85,3 +85,35 @@
 - Root cause: Conditional icon render used a theme value that differs before/after hydration.
 - Fix: Rendered both icons with CSS dark-mode transitions and removed theme-conditional JSX branching.
 - Verification: `npm run lint` and `npm run build` both pass after the change.
+## Current Gaps and Decisions (March 2, 2026)
+
+### Confirmed blockers
+- Store purchase flow is technically working, but there are no store records in DB (`shopItem=0`, `activeItem=0`).
+- Existing wallet starts at `0` coin, so purchase always fails unless rewards/seed coin exist.
+- There is no admin-facing user management page yet (list users, adjust coin, inventory, ban/role actions).
+
+### UI decision points to finalize together
+1. Logged-in home experience
+- Option A: Keep home as game-first and show compact "Player Hub" top strip (coin, rank, quick links).
+- Option B: Redirect logged-in users to dashboard and keep home mostly guest-centric.
+
+2. In-game dashboard access
+- Option A (recommended): Right-side slide-over panel (non-blocking), keyboard `D`, mobile bottom sheet.
+- Option B: Separate page/tab (`/dashboard`) with leave-warning when game is active.
+
+3. Store UX style
+- Option A: Card grid with rarity bands + preview + equip CTA.
+- Option B: Collection-style rail (avatars/frames/cards) with sticky detail pane.
+
+4. Admin user management scope (MVP)
+- User list/search/filter
+- Wallet balance edit (+/- coin)
+- Inventory grant/revoke
+- Match history summary
+- Soft account lock (optional)
+
+### Recommended implementation order
+1. Seed store items + baseline coin policy (first login bonus or tutorial reward)
+2. Add admin user management endpoints/pages
+3. Build in-game slide-over "mini dashboard" panel
+4. Apply visual redesign pass for dashboard/store/profile
