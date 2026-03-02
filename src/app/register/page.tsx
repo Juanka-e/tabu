@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import { useState } from "react";
@@ -32,13 +32,13 @@ export default function RegisterPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.error || "Kayıt başarısız.");
+                setError(data.error || "KayÄ±t baÅŸarÄ±sÄ±z.");
             } else {
-                toast.success("Kayıt başarılı! Giriş yapabilirsiniz.");
+                toast.success("KayÄ±t baÅŸarÄ±lÄ±! GiriÅŸ yapabilirsiniz.");
                 router.push("/login");
             }
-        } catch (err) {
-            setError("Bir hata oluştu.");
+        } catch {
+            setError("Bir hata oluÅŸtu.");
         } finally {
             setLoading(false);
         }
@@ -50,10 +50,10 @@ export default function RegisterPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
                         <UserPlus className="w-6 h-6 text-primary" />
-                        Kayıt Ol
+                        KayÄ±t Ol
                     </CardTitle>
                     <CardDescription>
-                        Yeni bir Tabu hesabı oluştur
+                        Yeni bir Tabu hesabÄ± oluÅŸtur
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -61,7 +61,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <Input
                                 type="text"
-                                placeholder="Kullanıcı Adı"
+                                placeholder="KullanÄ±cÄ± AdÄ±"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -71,7 +71,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <Input
                                 type="password"
-                                placeholder="Şifre"
+                                placeholder="Åifre"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -84,13 +84,13 @@ export default function RegisterPage() {
                             </div>
                         )}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "Kayıt Olunuyor..." : "Kayıt Ol"}
+                            {loading ? "KayÄ±t Olunuyor..." : "KayÄ±t Ol"}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Zaten hesabın var mı? <Link href="/login" className="text-primary hover:underline">Giriş Yap</Link>
+                        Zaten hesabÄ±n var mÄ±? <Link href="/login" className="text-primary hover:underline">GiriÅŸ Yap</Link>
                     </p>
                 </CardFooter>
             </Card>

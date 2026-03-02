@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import {
     Settings,
     Trophy,
@@ -19,9 +18,6 @@ import {
     ChevronDown,
     Square,
     CheckSquare,
-    Crown,
-    UserMinus,
-    ArrowRightLeft,
     Play,
 } from "lucide-react";
 import type { Player, CategoryItem } from "@/types/game";
@@ -63,8 +59,6 @@ export function Lobby({
     selectedCategories,
     selectedDifficulties,
     categories,
-    creatorId,
-    currentSocketId,
     isHost,
     onUpdateSettings,
     onUpdateCategories,
@@ -72,8 +66,6 @@ export function Lobby({
     onInitialSet,
     onShuffleTeams,
     onStartGame,
-    onKickPlayer,
-    onTransferHost,
 }: LobbyProps) {
     const [copied, setCopied] = useState(false);
     const [hideUrl, setHideUrl] = useState(false);
@@ -128,17 +120,6 @@ export function Lobby({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [categories.length, flatCategories.length]);
-
-    // Memoize team player filters - combine into single iteration for better performance
-    const { teamAPlayers, teamBPlayers } = useMemo(() => {
-        const teamA: Player[] = [];
-        const teamB: Player[] = [];
-        for (const player of players) {
-            if (player.takim === "A") teamA.push(player);
-            else if (player.takim === "B") teamB.push(player);
-        }
-        return { teamAPlayers: teamA, teamBPlayers: teamB };
-    }, [players]);
 
     // Memoize parent categories for accordion
     const parentCategories = useMemo(() =>

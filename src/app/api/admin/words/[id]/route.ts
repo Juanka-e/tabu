@@ -47,7 +47,7 @@ export async function PUT(
         // Update word and related data in a transaction
         const word = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Update main word data
-            const updated = await tx.word.update({
+            await tx.word.update({
                 where: { id: wordId },
                 data: {
                     wordText: data.wordText,

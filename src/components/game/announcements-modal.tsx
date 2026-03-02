@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
     Megaphone,
     ChevronDown,
@@ -218,9 +219,12 @@ export function AnnouncementsModal({
                                                     ></iframe>
                                                 </div>
                                             ) : (
-                                                <img
+                                                <Image
                                                     src={item.mediaUrl}
                                                     alt={item.title}
+                                                    width={1200}
+                                                    height={675}
+                                                    unoptimized
                                                     className="w-full h-auto max-h-[200px] sm:max-h-[300px] object-cover"
                                                 />
                                             )}

@@ -280,3 +280,9 @@
 - `npm run lint` -> pass (0 errors, warnings remain).
 - `npx tsc --noEmit` -> pass.
 - `npm run build` -> pass.
+
+## ? Faz 18: Warning Cleanup (2 March 2026)
+- Removed all remaining ESLint warnings (unused imports/vars and image lint issue).
+- Replaced announcement modal `<img>` with `next/image` (`unoptimized`) to satisfy Next lint rule.
+- Cleaned admin/game modules with minimal no-behavior-change refactors.
+- Verification: `npm run lint`, `npx tsc --noEmit`, `npm run build` all pass.

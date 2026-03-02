@@ -91,3 +91,8 @@
 - [x] Ensure `npx tsc --noEmit` exits successfully
 - [x] Ensure `npm run build` exits successfully
 - [ ] Optional: reduce warning-only lint findings in legacy admin/game files
+
+## Phase 11: Warning Zeroing (March 2, 2026)
+- [x] Remove all ESLint warnings in current branch scope
+- [x] Keep codebase `any`-free in touched files
+- [x] Re-verify lint + tsc + build after cleanup

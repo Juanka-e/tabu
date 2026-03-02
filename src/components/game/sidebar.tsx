@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, ChevronLeft, ChevronRight, Users, Shield, Swords, Menu, MoreVertical, UserX, ArrowRightLeft } from "lucide-react";
+import { Crown, ChevronLeft, ChevronRight, Users, Shield, Swords, MoreVertical, UserX, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -51,9 +51,7 @@ const teamTheme = {
 export function Sidebar({
     team,
     players,
-    creatorId,
     creatorPlayerId,
-    currentSocketId,
     currentPlayerId,
     isOpen,
     onToggle,

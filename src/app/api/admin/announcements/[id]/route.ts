@@ -24,18 +24,19 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
+        const parsedBody = updateAnnouncementSchema.parse(body);
 
         // Allow partial updates - only include fields that are present
         const data: Record<string, unknown> = {};
-        if (body.title !== undefined) data.title = body.title;
-        if (body.content !== undefined) data.content = body.content;
-        if (body.type !== undefined) data.type = body.type;
-        if (body.isVisible !== undefined) data.isVisible = body.isVisible;
-        if (body.isPinned !== undefined) data.isPinned = body.isPinned;
-        if (body.version !== undefined) data.version = body.version;
-        if (body.tags !== undefined) data.tags = body.tags;
-        if (body.mediaUrl !== undefined) data.mediaUrl = body.mediaUrl;
-        if (body.mediaType !== undefined) data.mediaType = body.mediaType;
+        if (parsedBody.title !== undefined) data.title = parsedBody.title;
+        if (parsedBody.content !== undefined) data.content = parsedBody.content;
+        if (parsedBody.type !== undefined) data.type = parsedBody.type;
+        if (parsedBody.isVisible !== undefined) data.isVisible = parsedBody.isVisible;
+        if (parsedBody.isPinned !== undefined) data.isPinned = parsedBody.isPinned;
+        if (parsedBody.version !== undefined) data.version = parsedBody.version;
+        if (parsedBody.tags !== undefined) data.tags = parsedBody.tags;
+        if (parsedBody.mediaUrl !== undefined) data.mediaUrl = parsedBody.mediaUrl;
+        if (parsedBody.mediaType !== undefined) data.mediaType = parsedBody.mediaType;
 
         const announcement = await prisma.announcement.update({
             where: { id: parseInt(id) },
