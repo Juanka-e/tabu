@@ -84,3 +84,10 @@
 - [x] Run `prisma db push` on local database
 - [ ] Seed starter store catalog data
 - [ ] Complete cosmetic reflection in active game UI
+
+## Phase 10: Lint/CI Hardening (March 2, 2026)
+- [x] Remove all ESLint errors (no `any` in updated scope)
+- [x] Ensure `npm run lint` exits successfully
+- [x] Ensure `npx tsc --noEmit` exits successfully
+- [x] Ensure `npm run build` exits successfully
+- [ ] Optional: reduce warning-only lint findings in legacy admin/game files

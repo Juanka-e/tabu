@@ -136,3 +136,8 @@ Veritabanı ayarları (.env):
 - Reflect equipped cosmetics directly inside in-game UI widgets
 - Guest-to-account progress merge policy implementation (`GuestProgress` snapshot transfer)
 - Stabilize lint baseline for CI green (repo-wide pre-existing lint issues still exist)
+
+## Lint/CI Follow-up (2 March 2026)
+- Lint errors are resolved; ESLint now returns exit code 0.
+- Remaining items are warnings only (unused vars + image optimization warning).
+- If desired, next cleanup can reduce warning count to near-zero for stricter lint baselines.

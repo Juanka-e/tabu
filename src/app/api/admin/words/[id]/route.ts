@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +45,7 @@ export async function PUT(
         const data = updateWordSchema.parse(body);
 
         // Update word and related data in a transaction
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const word = await prisma.$transaction(async (tx: any) => {
+        const word = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Update main word data
             const updated = await tx.word.update({
                 where: { id: wordId },

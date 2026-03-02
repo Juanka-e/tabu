@@ -32,7 +32,6 @@ export default function RoomPage() {
     const params = useParams();
     const router = useRouter();
     const { theme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
     const [, startTransition] = useTransition();
     const roomCode = params.code as string;
     const { data: session } = useSession();
@@ -86,15 +85,10 @@ export default function RoomPage() {
     // Modals
     const [showRules, setShowRules] = useState(false);
     const [showAnnouncements, setShowAnnouncements] = useState(false);
-    const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-        const hasUsername = localStorage.getItem("tabu_username");
-        if (!hasUsername) {
-            setShowUsernamePrompt(true);
-        }
-    }, []);
+    const [showUsernamePrompt, setShowUsernamePrompt] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return !localStorage.getItem("tabu_username");
+    });
 
     // Responsive check
     useEffect(() => {
@@ -394,7 +388,7 @@ export default function RoomPage() {
                     players={players}
                     creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
+                    currentSocketId={socketId}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarAOpen}
                     onToggle={() => setSidebarAOpen((prev) => !prev)}
@@ -422,20 +416,18 @@ export default function RoomPage() {
                         >
                             <Book size={20} />
                         </button>
-                        {mounted && (
-                            <button
-                                onClick={() =>
-                                    setTheme(theme === "dark" ? "light" : "dark")
-                                }
-                                className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:scale-105 transition-all"
-                            >
-                                {theme === "dark" ? (
-                                    <Sun size={20} />
-                                ) : (
-                                    <Moon size={20} />
-                                )}
-                            </button>
-                        )}
+                        <button
+                            onClick={() =>
+                                setTheme(theme === "dark" ? "light" : "dark")
+                            }
+                            className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:scale-105 transition-all"
+                        >
+                            {theme === "dark" ? (
+                                <Sun size={20} />
+                            ) : (
+                                <Moon size={20} />
+                            )}
+                        </button>
                     </div>
 
                     {/* Connection indicator */}
@@ -462,7 +454,7 @@ export default function RoomPage() {
                     players={players}
                     creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketRef.current?.id || ""}
+                    currentSocketId={socketId}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarBOpen}
                     onToggle={() => setSidebarBOpen((prev) => !prev)}

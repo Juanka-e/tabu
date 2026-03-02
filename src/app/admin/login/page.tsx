@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ export default function AdminLoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,13 +29,17 @@ export default function AdminLoginPage() {
         });
 
         if (result?.error) {
-            setError("Kullanıcı adı veya şifre hatalı.");
+            setError("Kullanici adi veya sifre hatali.");
             setLoading(false);
-        } else {
-            const callbackUrl = searchParams.get("callbackUrl") || "/admin";
-            router.push(callbackUrl);
-            router.refresh();
+            return;
         }
+
+        const callbackUrl =
+            typeof window !== "undefined"
+                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/admin"
+                : "/admin";
+        router.push(callbackUrl);
+        router.refresh();
     };
 
     return (
@@ -46,39 +49,21 @@ export default function AdminLoginPage() {
                     <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                         <Shield className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">Admin Girişi</CardTitle>
+                    <CardTitle className="text-xl">Admin Girisi</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Kullanıcı Adı</Label>
-                            <Input
-                                id="username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                                autoFocus
-                            />
+                            <Label htmlFor="username">Kullanici Adi</Label>
+                            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Şifre</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                            <Label htmlFor="password">Sifre</Label>
+                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                         </div>
-                        {error && (
-                            <p className="text-sm text-destructive text-center">{error}</p>
-                        )}
+                        {error && <p className="text-sm text-destructive text-center">{error}</p>}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                "Giriş Yap"
-                            )}
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Giris Yap"}
                         </Button>
                     </form>
                 </CardContent>

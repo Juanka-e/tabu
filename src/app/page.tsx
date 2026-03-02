@@ -1,22 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Gamepad2,
-  Users,
-  Plus,
-  LogIn,
-  Sparkles,
-  Moon,
-  Sun,
-  Megaphone,
-} from "lucide-react";
+import { Gamepad2, Users, Plus, LogIn, Sparkles, Moon, Sun, Megaphone } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
@@ -28,155 +19,113 @@ export default function HomePage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
   const sessionUsername = session?.user?.name || "";
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const handleJoinOrCreate = (isCreate: boolean) => {
+    if (!username.trim()) {
+      setError("Lutfen bir kullanici adi girin.");
+      return;
+    }
 
-  const handleJoinOrCreate = useCallback(
-    (isCreate: boolean) => {
-      if (!username.trim()) {
-        setError("Lütfen bir kullanıcı adı girin.");
-        return;
-      }
+    if (!isCreate && !roomCode.trim()) {
+      setError("Lutfen bir oda kodu girin.");
+      return;
+    }
 
-      if (!isCreate && !roomCode.trim()) {
-        setError("Lütfen bir oda kodu girin.");
-        return;
-      }
+    setIsConnecting(true);
+    setError("");
 
-      setIsConnecting(true);
-      setError("");
+    const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
+    const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
 
-      // Get stored playerId for reconnection
-      const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
-      const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
+    const socket: Socket = io({
+      path: "/api/socketio",
+      transports: ["websocket", "polling"],
+    });
 
-      const socket: Socket = io({
-        path: "/api/socketio",
-        transports: ["websocket", "polling"],
+    socket.on("connect", () => {
+      socket.emit("odaİsteği", {
+        kullaniciAdi: username.trim(),
+        odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
+        playerId: storedPlayerId,
+        ...(Number.isInteger(authUserId) ? { authUserId } : {}),
       });
+    });
 
-      socket.on("connect", () => {
-        socket.emit("odaİsteği", {
-          kullaniciAdi: username.trim(),
-          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
-          playerId: storedPlayerId,
-          ...(Number.isInteger(authUserId) ? { authUserId } : {}),
-        });
-      });
+    socket.on("kimlikAta", (newPlayerId: string) => {
+      localStorage.setItem("tabu_playerId", newPlayerId);
+    });
 
-      socket.on("kimlikAta", (newPlayerId: string) => {
-        localStorage.setItem("tabu_playerId", newPlayerId);
-      });
+    socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
+      localStorage.setItem("tabu_username", username.trim());
+      localStorage.setItem("tabu_roomCode", data.odaKodu);
+      socket.disconnect();
+      router.push(`/room/${data.odaKodu}`);
+    });
 
-      socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
-        // Store socket info and redirect to room
-        localStorage.setItem("tabu_username", username.trim());
-        localStorage.setItem("tabu_roomCode", data.odaKodu);
-        socket.disconnect();
-        router.push(`/room/${data.odaKodu}`);
-      });
+    socket.on("hata", (msg: string) => {
+      setError(msg);
+      setIsConnecting(false);
+      socket.disconnect();
+    });
 
-      socket.on("hata", (msg: string) => {
-        setError(msg);
-        setIsConnecting(false);
-        socket.disconnect();
-      });
-
-      socket.on("connect_error", () => {
-        setError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
-        setIsConnecting(false);
-      });
-    },
-    [roomCode, router, session?.user?.id, username]
-  );
+    socket.on("connect_error", () => {
+      setError("Sunucuya baglanilamadi. Lutfen tekrar deneyin.");
+      setIsConnecting(false);
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Top bar */}
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         {!isLoggedIn && (
           <>
-            <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
-              Giriş Yap
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => router.push("/register")}>
-              Kayıt Ol
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>Giris Yap</Button>
+            <Button variant="outline" size="sm" onClick={() => router.push("/register")}>Kayit Ol</Button>
           </>
         )}
         {isLoggedIn && (
           <>
-            <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-              {sessionUsername} / Dashboard
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => signOut()}>
-              Cikis
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>{sessionUsername} / Dashboard</Button>
+            <Button variant="outline" size="sm" onClick={() => signOut()}>Cikis</Button>
           </>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowAnnouncements(true)}
-          className="rounded-full"
-        >
+        <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="rounded-full">
           <Megaphone className="h-5 w-5" />
         </Button>
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="rounded-full"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="rounded-full">
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
       </div>
 
-      {/* Main card */}
       <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
             <Gamepad2 className="h-8 w-8 text-white" />
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-              TABU
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Online Sözcük Tahmin Oyunu
-            </p>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">TABU</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Online Sozcuk Tahmin Oyunu</p>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-6 pt-4">
-          {/* Username */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Users className="h-4 w-4 text-muted-foreground" />
-              Kullanıcı Adı
+              Kullanici Adi
             </div>
             <Input
-              placeholder="Adınızı girin..."
+              placeholder="Adinizi girin..."
               value={username}
               onChange={(e) => {
                 setUsername(e.target.value);
@@ -192,7 +141,6 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Create Room */}
           <Button
             onClick={() => handleJoinOrCreate(true)}
             disabled={isConnecting || !username.trim()}
@@ -201,26 +149,22 @@ export default function HomePage() {
             {isConnecting ? (
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Bağlanılıyor...
+                Baglaniliyor...
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Yeni Oda Oluştur
+                Yeni Oda Olustur
               </div>
             )}
           </Button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              veya
-            </span>
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">veya</span>
             <Separator className="flex-1" />
           </div>
 
-          {/* Join Room */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Sparkles className="h-4 w-4 text-muted-foreground" />
@@ -228,7 +172,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-2">
               <Input
-                placeholder="Örn: ABC123"
+                placeholder="Orn: ABC123"
                 value={roomCode}
                 onChange={(e) => {
                   setRoomCode(e.target.value.toUpperCase());
@@ -244,19 +188,16 @@ export default function HomePage() {
               />
               <Button
                 onClick={() => handleJoinOrCreate(false)}
-                disabled={
-                  isConnecting || !username.trim() || !roomCode.trim()
-                }
+                disabled={isConnecting || !username.trim() || !roomCode.trim()}
                 variant="secondary"
                 className="h-12 px-6 font-semibold"
               >
                 <LogIn className="h-5 w-5 mr-1" />
-                Katıl
+                Katil
               </Button>
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center animate-in fade-in slide-in-from-top-1">
               {error}
@@ -265,16 +206,9 @@ export default function HomePage() {
         </CardContent>
       </Card>
 
-      {/* Footer */}
-      <p className="mt-6 text-xs text-muted-foreground relative z-10">
-        Tabu Online — Arkadaşlarınla eğlenceli vakit geçir!
-      </p>
+      <p className="mt-6 text-xs text-muted-foreground relative z-10">Tabu Online - Arkadaslarinla eglenceli vakit gecir!</p>
 
-      {/* Announcements Modal */}
-      <AnnouncementsModal
-        isOpen={showAnnouncements}
-        onClose={() => setShowAnnouncements(false)}
-      />
+      <AnnouncementsModal isOpen={showAnnouncements} onClose={() => setShowAnnouncements(false)} />
     </div>
   );
 }

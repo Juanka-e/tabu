@@ -259,3 +259,24 @@
 ### Type Fix
 - Explicitly typed `m` and `match` in dashboard page to remove implicit-any issue.
 - File: `src/app/dashboard/page.tsx`
+
+## ? Faz 17: Lint Error Cleanup + CI Stabilization (2 March 2026)
+
+### Lint Error Fixes
+- Removed all ESLint **error** findings from current codebase state.
+- Replaced explicit `any` usages in test scripts and admin word update route with typed interfaces / Prisma transaction types.
+- Fixed React hook rule violations:
+  - Removed sync `setState` in effect bodies on home/room/socket-provider flows.
+  - Removed render-time ref access in room sidebars.
+  - Removed impure `Math.random()` render path in UI sidebar skeleton.
+- Files: `src/app/page.tsx`, `src/app/room/[code]/page.tsx`, `src/components/providers/socket-provider.tsx`, `src/components/ui/sidebar.tsx`, `scripts/*`, `src/app/api/admin/words/[id]/route.ts`
+
+### Build/CI Parity Fixes
+- Fixed login pages to avoid `useSearchParams` build-time bailout by reading callback URL from `window.location.search` on submit.
+- Re-encoded `src/app/page.tsx` as UTF-8 to resolve parsing/build issue.
+- Files: `src/app/login/page.tsx`, `src/app/admin/login/page.tsx`, `src/app/page.tsx`
+
+### Verification
+- `npm run lint` -> pass (0 errors, warnings remain).
+- `npx tsc --noEmit` -> pass.
+- `npm run build` -> pass.

@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -15,17 +15,16 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const searchParams = useSearchParams();
-
-    const callbackUrl = useMemo(
-        () => searchParams.get("callbackUrl") || "/dashboard",
-        [searchParams]
-    );
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
+
+        const callbackUrl =
+            typeof window !== "undefined"
+                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/dashboard"
+                : "/dashboard";
 
         try {
             const res = await signIn("credentials", {
@@ -60,20 +59,8 @@ export default function LoginPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <Input
-                            type="text"
-                            placeholder="Kullanici Adi"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
-                        <Input
-                            type="password"
-                            placeholder="Sifre"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                        <Input type="text" placeholder="Kullanici Adi" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                        <Input type="password" placeholder="Sifre" value={password} onChange={(e) => setPassword(e.target.value)} required />
                         {error && <div className="text-sm text-red-500 font-medium">{error}</div>}
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? "Giris yapiliyor..." : "Giris Yap"}
@@ -82,10 +69,7 @@ export default function LoginPage() {
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Hesabin yok mu?{" "}
-                        <Link href="/register" className="text-primary hover:underline">
-                            Kayit Ol
-                        </Link>
+                        Hesabin yok mu? <Link href="/register" className="text-primary hover:underline">Kayit Ol</Link>
                     </p>
                 </CardFooter>
             </Card>

@@ -22,6 +22,7 @@ const SocketContext = createContext<SocketContextValue>({
 
 export function SocketProvider({ children }: { children: ReactNode }) {
     const [isConnected, setIsConnected] = useState(false);
+    const [socket, setSocket] = useState<Socket | null>(null);
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -35,21 +36,24 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
         socketInstance.on("connect", () => {
             setIsConnected(true);
+            setSocket(socketInstance);
         });
 
         socketInstance.on("disconnect", () => {
             setIsConnected(false);
+            setSocket(null);
         });
 
         return () => {
             socketInstance.disconnect();
+            setSocket(null);
         };
     }, []);
 
     return (
         <SocketContext.Provider
             value={{
-                socket: socketRef.current,
+                socket,
                 isConnected,
             }}
         >

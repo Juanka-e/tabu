@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
     Megaphone,
-    Bell,
     ChevronDown,
     X,
     Rocket,
@@ -37,24 +36,22 @@ export function AnnouncementsModal({
 }: AnnouncementsModalProps) {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"updates" | "announcements">(
         "updates"
     );
 
     useEffect(() => {
-        if (isOpen) {
-            setLoading(true);
-            fetch("/api/announcements/visible")
-                .then((res) => res.json())
-                .then((data) => {
-                    setAnnouncements(data);
-                    setLoading(false);
-                })
-                .catch(() => {
-                    setLoading(false);
-                });
-        }
+        if (!isOpen) return;
+        fetch("/api/announcements/visible")
+            .then((res) => res.json())
+            .then((data) => {
+                setAnnouncements(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
     }, [isOpen]);
 
     if (!isOpen) return null;
