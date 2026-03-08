@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TABU - Dashboard Prototipi</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #06080f;
+            --bg-card: rgba(17, 24, 39, .65);
+            --bg-card-solid: #111827;
+            --bg-hover: #1a2338;
+            --border: rgba(255, 255, 255, .06);
+            --border-active: rgba(139, 92, 246, .35);
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #64748b;
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --cyan: #22d3ee;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-1);
+            min-height: 100vh;
+        }
+
+        /* ─── Ambient ─── */
+        .ambient {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .ambient .b {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+        }
+
+        .b1 {
+            width: 600px;
+            height: 600px;
+            background: #7c3aed;
+            opacity: .07;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .b2 {
+            width: 400px;
+            height: 400px;
+            background: #3b82f6;
+            opacity: .06;
+            bottom: -100px;
+            right: -50px;
+        }
+
+        /* ─── Top Nav ─── */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 32px;
+            background: rgba(6, 8, 15, .75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-logo {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-3);
+            font-family: 'Inter';
+            font-weight: 600;
+            font-size: .8rem;
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, .04);
+            color: var(--text-2);
+        }
+
+        .nav-link.active {
+            background: rgba(139, 92, 246, .1);
+            color: var(--purple);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px 6px 6px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, .08);
+            border: 1px solid rgba(139, 92, 246, .15);
+        }
+
+        .nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--purple), var(--rose));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: .75rem;
+            color: #fff;
+        }
+
+        .nav-name {
+            font-weight: 700;
+            font-size: .8rem;
+        }
+
+        .nav-coins {
+            font-size: .7rem;
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        .btn-play {
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
+            color: #fff;
+            font-weight: 700;
+            font-size: .8rem;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, .3);
+            transition: all .2s;
+        }
+
+        .btn-play:hover {
+            box-shadow: 0 6px 24px rgba(99, 102, 241, .5);
+            transform: translateY(-1px);
+        }
+
+        /* ─── Main ─── */
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ─── Welcome ─── */
+        .welcome {
+            padding: 28px 32px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, .12), rgba(59, 130, 246, .08));
+            border: 1px solid rgba(139, 92, 246, .15);
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .welcome h1 {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+
+        .welcome p {
+            color: var(--text-2);
+            font-size: .85rem;
+        }
+
+        .welcome-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* ─── Grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            padding: 24px;
+            border-radius: 16px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            transition: all .25s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-active);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 900;
+            margin-top: 8px;
+            font-family: 'Outfit';
+        }
+
+        .stat-sub {
+            font-size: .7rem;
+            color: var(--text-3);
+            margin-top: 4px;
+        }
+
+        .stat-coin .stat-value {
+            color: var(--amber);
+        }
+
+        .stat-match .stat-value {
+            color: var(--blue);
+        }
+
+        .stat-win .stat-value {
+            color: var(--emerald);
+        }
+
+        .stat-streak .stat-value {
+            color: var(--rose);
+        }
+
+        .stat-icon {
+            font-size: 1.3rem;
+            margin-bottom: 6px;
+        }
+
+        /* ─── Sections ─── */
+        .section-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-weight: 800;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ─── Match History ─── */
+        .match-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid rgba(255, 255, 255, .03);
+            margin-bottom: 8px;
+            transition: all .2s;
+        }
+
+        .match-row:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .match-code {
+            font-weight: 700;
+            font-size: .85rem;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        .match-result {
+            font-weight: 700;
+            font-size: .8rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .match-win {
+            background: rgba(16, 185, 129, .12);
+            color: var(--emerald);
+        }
+
+        .match-loss {
+            background: rgba(244, 63, 94, .1);
+            color: var(--rose);
+        }
+
+        .match-score {
+            font-size: .8rem;
+            color: var(--text-2);
+            font-weight: 600;
+        }
+
+        .match-coins {
+            font-size: .8rem;
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        /* ─── Quick Actions ─── */
+        .action-card {
+            display: block;
+            padding: 20px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid rgba(255, 255, 255, .04);
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: var(--text-1);
+            transition: all .25s;
+            cursor: pointer;
+        }
+
+        .action-card:hover {
+            background: rgba(139, 92, 246, .06);
+            border-color: rgba(139, 92, 246, .2);
+            transform: translateX(4px);
+        }
+
+        .action-label {
+            font-size: .65rem;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .action-title {
+            font-weight: 700;
+            font-size: .95rem;
+        }
+
+        .action-desc {
+            font-size: .75rem;
+            color: var(--text-3);
+            margin-top: 4px;
+        }
+
+        /* ─── Inventory Mini ─── */
+        .inventory-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid rgba(255, 255, 255, .03);
+            margin-bottom: 8px;
+        }
+
+        .inv-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .inv-name {
+            font-weight: 600;
+            font-size: .82rem;
+        }
+
+        .inv-detail {
+            font-size: .65rem;
+            color: var(--text-3);
+        }
+
+        .inv-equipped {
+            margin-left: auto;
+            font-size: .6rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: rgba(16, 185, 129, .12);
+            color: var(--emerald);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .welcome-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="ambient">
+        <div class="b b1"></div>
+        <div class="b b2"></div>
+    </div>
+
+    <!-- ═══════ NAV ═══════ -->
+    <nav class="nav">
+        <div class="nav-logo">TABU</div>
+        <div class="nav-links">
+            <a class="nav-link active" href="#">Dashboard</a>
+            <a class="nav-link" href="#">Profil</a>
+            <a class="nav-link" href="#">Mağaza</a>
+        </div>
+        <div class="nav-right">
+            <button class="btn-play">🎮 Oyna</button>
+            <div class="nav-user">
+                <div class="nav-avatar">EP</div>
+                <div>
+                    <div class="nav-name">Erdal</div>
+                    <div class="nav-coins">🪙 2,450</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════ MAIN ═══════ -->
+    <main>
+        <!-- Welcome -->
+        <div class="welcome">
+            <div>
+                <h1>Hoş geldin, Erdal 👋</h1>
+                <p>Son 7 günde 12 maç oynadın — güzel performans!</p>
+            </div>
+            <div class="welcome-actions">
+                <button class="btn-play" style="padding:12px 28px;font-size:.9rem;">➕ Yeni Oda</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card stat-coin">
+                <div class="stat-icon">🪙</div>
+                <div class="stat-label">Coin Bakiyesi</div>
+                <div class="stat-value">2,450</div>
+                <div class="stat-sub">Son maçtan +120</div>
+            </div>
+            <div class="stat-card stat-match">
+                <div class="stat-icon">🎮</div>
+                <div class="stat-label">Toplam Maç</div>
+                <div class="stat-value">47</div>
+                <div class="stat-sub">Bu hafta 12</div>
+            </div>
+            <div class="stat-card stat-win">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-label">Winrate</div>
+                <div class="stat-value">%68</div>
+                <div class="stat-sub">32 galibiyet</div>
+            </div>
+            <div class="stat-card stat-streak">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-label">En İyi Seri</div>
+                <div class="stat-value">5</div>
+                <div class="stat-sub">Aktif seri: 3</div>
+            </div>
+        </div>
+
+        <!-- Sections -->
+        <div class="section-grid">
+            <!-- Match History -->
+            <div class="panel">
+                <div class="panel-title">📋 Son Maçlar</div>
+                <div class="match-row">
+                    <span class="match-code">XKBR</span>
+                    <span class="match-result match-win">Kazandı</span>
+                    <span class="match-score">45 — 32</span>
+                    <span class="match-coins">+120 🪙</span>
+                </div>
+                <div class="match-row">
+                    <span class="match-code">PLMN</span>
+                    <span class="match-result match-win">Kazandı</span>
+                    <span class="match-score">38 — 25</span>
+                    <span class="match-coins">+120 🪙</span>
+                </div>
+                <div class="match-row">
+                    <span class="match-code">QRTF</span>
+                    <span class="match-result match-loss">Kaybetti</span>
+                    <span class="match-score">20 — 34</span>
+                    <span class="match-coins">+40 🪙</span>
+                </div>
+                <div class="match-row">
+                    <span class="match-code">MGZE</span>
+                    <span class="match-result match-win">Kazandı</span>
+                    <span class="match-score">42 — 38</span>
+                    <span class="match-coins">+120 🪙</span>
+                </div>
+                <div class="match-row">
+                    <span class="match-code">DVLA</span>
+                    <span class="match-result match-loss">Kaybetti</span>
+                    <span class="match-score">18 — 29</span>
+                    <span class="match-coins">+40 🪙</span>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div style="display:flex;flex-direction:column;gap:20px;">
+                <!-- Quick Actions -->
+                <div class="panel">
+                    <div class="panel-title">⚡ Hızlı İşlem</div>
+                    <div class="action-card">
+                        <div class="action-label">Oyun</div>
+                        <div class="action-title">Yeni Oda Oluştur</div>
+                        <div class="action-desc">Tek tıkla oyun başlat</div>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-label">Oyun</div>
+                        <div class="action-title">Odaya Katıl</div>
+                        <div class="action-desc">Kodla lobiye geç</div>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-label">Kozmetik</div>
+                        <div class="action-title">Mağazaya Git</div>
+                        <div class="action-desc">Avatar ve çerçeve al</div>
+                    </div>
+                </div>
+
+                <!-- Equipped Items -->
+                <div class="panel">
+                    <div class="panel-title">🎒 Kuşanılmış</div>
+                    <div class="inventory-row">
+                        <div class="inv-icon" style="background:rgba(245,158,11,.12);">🎭</div>
+                        <div>
+                            <div class="inv-name">Altın Savaşçı</div>
+                            <div class="inv-detail">Epic Avatar</div>
+                        </div>
+                        <div class="inv-equipped">Aktif</div>
+                    </div>
+                    <div class="inventory-row">
+                        <div class="inv-icon" style="background:rgba(139,92,246,.12);">🖼️</div>
+                        <div>
+                            <div class="inv-name">Altın Çerçeve</div>
+                            <div class="inv-detail">Rare Frame</div>
+                        </div>
+                        <div class="inv-equipped">Aktif</div>
+                    </div>
+                    <div class="inventory-row">
+                        <div class="inv-icon" style="background:rgba(236,72,153,.12);">🃏</div>
+                        <div>
+                            <div class="inv-name">Holografik</div>
+                            <div class="inv-detail">Legendary Card Back</div>
+                        </div>
+                        <div class="inv-equipped">Aktif</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+
+</html>

@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TABU — In-Game Overlay Prototip</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ═══════════════════════════════════════════
+           REAL GAME LAYOUT — 3-column (sidebar|main|sidebar)
+           ═══════════════════════════════════════════ */
+        .game-layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            transition: filter .3s;
+        }
+
+        .game-layout.dimmed {
+            filter: brightness(.4) blur(2px);
+        }
+
+        /* ─── Team Sidebars ─── */
+        .sidebar {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: all .3s;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-a {
+            background: #fff;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .sidebar-b {
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+        }
+
+        /* Dark theme overrides */
+        .dark .sidebar-a,
+        .dark .sidebar-b {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, .06);
+        }
+
+        .sidebar-header {
+            padding: 20px 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+        .sidebar-a .sidebar-header {
+            color: #dc2626;
+        }
+
+        .sidebar-b .sidebar-header {
+            color: #2563eb;
+        }
+
+        .team-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: .7rem;
+            color: #fff;
+        }
+
+        .sidebar-a .team-badge {
+            background: #dc2626;
+        }
+
+        .sidebar-b .team-badge {
+            background: #2563eb;
+        }
+
+        .team-score {
+            margin-left: auto;
+            font-size: 1.8rem;
+            font-weight: 900;
+            font-family: 'Outfit';
+        }
+
+        .sidebar-a .team-score {
+            color: #dc2626;
+        }
+
+        .sidebar-b .team-score {
+            color: #2563eb;
+        }
+
+        .player-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: background .15s;
+        }
+
+        .player-item:hover {
+            background: rgba(0, 0, 0, .03);
+        }
+
+        .dark .player-item:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .player-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .75rem;
+            color: #fff;
+        }
+
+        .sidebar-a .player-avatar {
+            background: #fca5a5;
+            color: #991b1b;
+        }
+
+        .sidebar-b .player-avatar {
+            background: #93c5fd;
+            color: #1e3a8a;
+        }
+
+        .dark .sidebar-a .player-avatar {
+            background: rgba(220, 38, 38, .2);
+            color: #fca5a5;
+        }
+
+        .dark .sidebar-b .player-avatar {
+            background: rgba(37, 99, 235, .2);
+            color: #93c5fd;
+        }
+
+        .player-name {
+            font-weight: 600;
+            font-size: .82rem;
+            color: #334155;
+        }
+
+        .dark .player-name {
+            color: #e2e8f0;
+        }
+
+        .player-role {
+            font-size: .65rem;
+            color: #94a3b8;
+        }
+
+        .player-crown {
+            margin-left: auto;
+            font-size: .9rem;
+        }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .dark .sidebar-footer {
+            border-color: rgba(255, 255, 255, .06);
+        }
+
+        .switch-team-btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: transparent;
+            font-weight: 600;
+            font-size: .8rem;
+            color: #64748b;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'Inter';
+        }
+
+        .switch-team-btn:hover {
+            border-color: #a78bfa;
+            color: #8b5cf6;
+        }
+
+        .dark .switch-team-btn {
+            border-color: rgba(255, 255, 255, .08);
+            color: #94a3b8;
+        }
+
+        /* ─── Main Content ─── */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            background: #f8fafc;
+            min-width: 0;
+        }
+
+        .dark .main-area {
+            background: #0f172a;
+        }
+
+        /* Header buttons (top-right) */
+        .header-btns {
+            position: absolute;
+            top: 16px;
+            right: 24px;
+            z-index: 30;
+            display: flex;
+            gap: 8px;
+        }
+
+        .hdr-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all .15s;
+            font-size: 1rem;
+            color: #64748b;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+        }
+
+        .hdr-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .dark .hdr-btn {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, .08);
+            color: #94a3b8;
+        }
+
+        /* ─── LOBBY CONTENT (center card) ─── */
+        .lobby-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            overflow-y: auto;
+        }
+
+        .lobby-card {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .06);
+            padding: 32px;
+        }
+
+        .dark .lobby-card {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, .06);
+        }
+
+        .lobby-title {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 4px;
+            color: #0f172a;
+        }
+
+        .dark .lobby-title {
+            color: #f1f5f9;
+        }
+
+        .room-code-display {
+            text-align: center;
+            margin: 16px 0 20px;
+        }
+
+        .room-code-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+            color: #0f172a;
+        }
+
+        .dark .room-code-box {
+            background: rgba(255, 255, 255, .06);
+            color: #f1f5f9;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+            font-size: .9rem;
+            transition: color .15s;
+        }
+
+        .copy-btn:hover {
+            color: #8b5cf6;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .dark .setting-item {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .setting-label {
+            font-size: .65rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .setting-value {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-top: 4px;
+            color: #0f172a;
+        }
+
+        .dark .setting-value {
+            color: #f1f5f9;
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, .3);
+            transition: all .2s;
+            font-family: 'Inter';
+        }
+
+        .start-btn:hover {
+            box-shadow: 0 6px 30px rgba(99, 102, 241, .5);
+            transform: translateY(-1px);
+        }
+
+        /* ─── USER NAV BAR (for logged-in users) ─── */
+        .user-nav-strip {
+            position: absolute;
+            top: 16px;
+            left: 24px;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px 6px 6px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, .1);
+            border: 1px solid rgba(139, 92, 246, .2);
+        }
+
+        .user-chip-av {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: .7rem;
+            color: #fff;
+        }
+
+        .user-chip-name {
+            font-weight: 700;
+            font-size: .78rem;
+        }
+
+        .user-chip-coins {
+            font-size: .65rem;
+            font-weight: 600;
+            color: #f59e0b;
+        }
+
+        .nav-btn {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .04);
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: .75rem;
+            cursor: pointer;
+            transition: all .2s;
+            font-family: 'Inter';
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(139, 92, 246, .1);
+            border-color: rgba(139, 92, 246, .25);
+            color: #a78bfa;
+        }
+
+        /* ═══════════════════════════════════════════
+           OVERLAY PANELS
+           ═══════════════════════════════════════════ */
+        .overlay-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, .5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease;
+        }
+
+        .overlay-backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .overlay-panel {
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, .6);
+            display: flex;
+            flex-direction: column;
+            transform: translateY(20px) scale(.97);
+            transition: transform .25s ease;
+            overflow: hidden;
+        }
+
+        .overlay-backdrop.open .overlay-panel {
+            transform: translateY(0) scale(1);
+        }
+
+        .overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            flex-shrink: 0;
+        }
+
+        .overlay-title {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            transition: all .15s;
+        }
+
+        .close-btn:hover {
+            background: rgba(244, 63, 94, .15);
+            color: #f43f5e;
+            border-color: rgba(244, 63, 94, .3);
+        }
+
+        .overlay-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* ─── Dashboard Overlay ─── */
+        .dash-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .dash-stat {
+            padding: 18px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .ds-icon {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        .ds-label {
+            font-size: .65rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ds-val {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.5rem;
+            margin-top: 4px;
+        }
+
+        .ds-sub {
+            font-size: .65rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .ds-coin {
+            color: #f59e0b;
+        }
+
+        .ds-match {
+            color: #3b82f6;
+        }
+
+        .ds-win {
+            color: #10b981;
+        }
+
+        .ds-streak {
+            color: #f43f5e;
+        }
+
+        .dash-section {
+            margin-bottom: 20px;
+        }
+
+        .dash-section-title {
+            font-weight: 700;
+            font-size: .9rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .match-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid rgba(255, 255, 255, .03);
+            margin-bottom: 6px;
+        }
+
+        .mr-code {
+            font-weight: 700;
+            font-size: .82rem;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        .mr-result {
+            font-weight: 700;
+            font-size: .75rem;
+            padding: 3px 10px;
+            border-radius: 6px;
+        }
+
+        .mr-win {
+            background: rgba(16, 185, 129, .12);
+            color: #10b981;
+        }
+
+        .mr-loss {
+            background: rgba(244, 63, 94, .1);
+            color: #f43f5e;
+        }
+
+        .mr-score {
+            font-size: .8rem;
+            color: #94a3b8;
+        }
+
+        .mr-coins {
+            font-size: .8rem;
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        /* ─── Store Overlay ─── */
+        .store-balance {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-radius: 14px;
+            background: rgba(245, 158, 11, .06);
+            border: 1px solid rgba(245, 158, 11, .12);
+            margin-bottom: 20px;
+        }
+
+        .store-bal-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .store-bal-icon {
+            font-size: 1.6rem;
+        }
+
+        .store-bal-label {
+            font-size: .65rem;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .store-bal-val {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.6rem;
+            color: #f59e0b;
+        }
+
+        .store-note {
+            font-size: .7rem;
+            color: #64748b;
+        }
+
+        .store-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .store-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, .06);
+            background: transparent;
+            color: #64748b;
+            font-weight: 600;
+            font-size: .75rem;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'Inter';
+        }
+
+        .store-tab:hover {
+            border-color: rgba(139, 92, 246, .3);
+            color: #a78bfa;
+        }
+
+        .store-tab.active {
+            background: rgba(139, 92, 246, .1);
+            border-color: rgba(139, 92, 246, .3);
+            color: #a78bfa;
+        }
+
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .store-item {
+            border-radius: 14px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .05);
+            transition: all .25s;
+            cursor: pointer;
+        }
+
+        .store-item:hover {
+            border-color: rgba(139, 92, 246, .3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+        }
+
+        .si-img {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            position: relative;
+        }
+
+        .si-avatar {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        }
+
+        .si-frame {
+            background: linear-gradient(135deg, #0d9488, #059669);
+        }
+
+        .si-cardback {
+            background: linear-gradient(135deg, #be185d, #e11d48);
+        }
+
+        .si-rarity {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: .55rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 5px;
+            text-transform: uppercase;
+        }
+
+        .rr-common {
+            background: rgba(148, 163, 184, .2);
+            color: #94a3b8;
+        }
+
+        .rr-rare {
+            background: rgba(59, 130, 246, .2);
+            color: #60a5fa;
+        }
+
+        .rr-epic {
+            background: rgba(139, 92, 246, .2);
+            color: #a78bfa;
+        }
+
+        .rr-legendary {
+            background: rgba(245, 158, 11, .2);
+            color: #fbbf24;
+        }
+
+        .si-body {
+            padding: 12px 14px;
+        }
+
+        .si-name {
+            font-weight: 700;
+            font-size: .85rem;
+            margin-bottom: 8px;
+        }
+
+        .si-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .si-price {
+            font-weight: 800;
+            font-size: .8rem;
+            color: #f59e0b;
+        }
+
+        .si-buy {
+            padding: 6px 14px;
+            border-radius: 7px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: #fff;
+            font-weight: 700;
+            font-size: .7rem;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'Inter';
+        }
+
+        .si-buy:hover {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, .4);
+        }
+
+        .si-owned {
+            font-size: .65rem;
+            font-weight: 700;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ─── Profile Overlay ─── */
+        .profile-header-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .05);
+            margin-bottom: 24px;
+        }
+
+        .prof-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.6rem;
+            color: #fff;
+            border: 3px solid #f59e0b;
+            box-shadow: 0 0 16px rgba(245, 158, 11, .3);
+        }
+
+        .prof-info h2 {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 1.3rem;
+            margin-bottom: 2px;
+        }
+
+        .prof-bio {
+            font-size: .8rem;
+            color: #94a3b8;
+        }
+
+        .prof-badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .prof-badge {
+            font-size: .6rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(139, 92, 246, .1);
+            color: #a78bfa;
+        }
+
+        .prof-badge-gold {
+            background: rgba(245, 158, 11, .1);
+            color: #f59e0b;
+        }
+
+        .prof-form {
+            margin-bottom: 24px;
+        }
+
+        .prof-field {
+            margin-bottom: 14px;
+        }
+
+        .prof-label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .prof-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .04);
+            color: #f1f5f9;
+            font-family: 'Inter';
+            font-size: .85rem;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .prof-input:focus {
+            border-color: rgba(139, 92, 246, .4);
+        }
+
+        .prof-textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .prof-save {
+            padding: 10px 24px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: #fff;
+            font-weight: 700;
+            font-size: .82rem;
+            cursor: pointer;
+            font-family: 'Inter';
+            transition: all .2s;
+        }
+
+        .prof-save:hover {
+            box-shadow: 0 4px 16px rgba(99, 102, 241, .4);
+        }
+
+        .prof-equipped-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+
+        .prof-eq-card {
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .prof-eq-icon {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .prof-eq-name {
+            font-weight: 700;
+            font-size: .82rem;
+        }
+
+        .prof-eq-type {
+            font-size: .65rem;
+            color: #64748b;
+        }
+
+        .prof-eq-status {
+            font-size: .6rem;
+            font-weight: 700;
+            color: #10b981;
+            margin-top: 6px;
+        }
+
+        /* ─── Scrollbar ─── */
+        .overlay-body::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .overlay-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .overlay-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .1);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-header span,
+            .player-name,
+            .player-role,
+            .player-crown,
+            .switch-team-btn span,
+            .team-score {
+                display: none;
+            }
+
+            .dash-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .store-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .prof-equipped-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body class="dark">
+
+    <!-- ═══════════════════════════════════════════
+     REAL GAME UI (Background)
+     ═══════════════════════════════════════════ -->
+    <div class="game-layout" id="gameLayout">
+
+        <!-- ─── Team A Sidebar (Red) ─── -->
+        <aside class="sidebar sidebar-a">
+            <div class="sidebar-header">
+                <div class="team-badge">A</div>
+                <span>Takım A</span>
+                <div class="team-score">24</div>
+            </div>
+            <div class="player-list">
+                <div class="player-item">
+                    <div class="player-avatar">EP</div>
+                    <div>
+                        <div class="player-name">Erdal</div>
+                        <div class="player-role">Anlatıcı</div>
+                    </div>
+                    <div class="player-crown">👑</div>
+                </div>
+                <div class="player-item">
+                    <div class="player-avatar">AK</div>
+                    <div>
+                        <div class="player-name">Ahmet</div>
+                        <div class="player-role">Tahminci</div>
+                    </div>
+                </div>
+                <div class="player-item">
+                    <div class="player-avatar">SY</div>
+                    <div>
+                        <div class="player-name">Selin</div>
+                        <div class="player-role">Tahminci</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <button class="switch-team-btn">↔ <span>Takım Değiştir</span></button>
+            </div>
+        </aside>
+
+        <!-- ─── Main Area ─── -->
+        <div class="main-area">
+
+            <!-- User Nav (top-left for logged-in) -->
+            <div class="user-nav-strip">
+                <div class="user-chip">
+                    <div class="user-chip-av">E</div>
+                    <div>
+                        <div class="user-chip-name">Erdal</div>
+                        <div class="user-chip-coins">🪙 2,450</div>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="openPanel('dashboard')">📊 Dashboard</button>
+                <button class="nav-btn" onclick="openPanel('store')">🛍️ Mağaza</button>
+                <button class="nav-btn" onclick="openPanel('profile')">👤 Profil</button>
+            </div>
+
+            <!-- Header Buttons (top-right) -->
+            <div class="header-btns">
+                <button class="hdr-btn" title="Duyurular">📢</button>
+                <button class="hdr-btn" title="Kurallar">📖</button>
+                <button class="hdr-btn" title="Tema">🌙</button>
+            </div>
+
+            <!-- Lobby Content -->
+            <div class="lobby-center">
+                <div class="lobby-card">
+                    <div class="lobby-title">Oyun Lobisi</div>
+
+                    <div class="room-code-display">
+                        <div class="room-code-box">
+                            XKBR
+                            <button class="copy-btn" title="Kopyala">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <div class="setting-label">⏱ Süre</div>
+                            <div class="setting-value">60s</div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">🎯 Mod</div>
+                            <div class="setting-value">Tur</div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">🔄 Tur</div>
+                            <div class="setting-value">2</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align:center;font-size:.8rem;color:#94a3b8;margin-bottom:16px;">
+                        👥 6 Oyuncu — Takımlar dengeli
+                    </div>
+
+                    <button class="start-btn">▶ Oyunu Başlat</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── Team B Sidebar (Blue) ─── -->
+        <aside class="sidebar sidebar-b">
+            <div class="sidebar-header">
+                <div class="team-badge">B</div>
+                <span>Takım B</span>
+                <div class="team-score">18</div>
+            </div>
+            <div class="player-list">
+                <div class="player-item">
+                    <div class="player-avatar">MK</div>
+                    <div>
+                        <div class="player-name">Mehmet</div>
+                        <div class="player-role">Gözetmen</div>
+                    </div>
+                </div>
+                <div class="player-item">
+                    <div class="player-avatar">ZD</div>
+                    <div>
+                        <div class="player-name">Zeynep</div>
+                        <div class="player-role">Tahminci</div>
+                    </div>
+                </div>
+                <div class="player-item">
+                    <div class="player-avatar">CY</div>
+                    <div>
+                        <div class="player-name">Can</div>
+                        <div class="player-role">Tahminci</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <button class="switch-team-btn">↔ <span>Takım Değiştir</span></button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     DASHBOARD OVERLAY
+     ═══════════════════════════════════════════ -->
+    <div class="overlay-backdrop" id="overlay-dashboard">
+        <div class="overlay-panel">
+            <div class="overlay-header">
+                <div class="overlay-title">📊 Dashboard</div>
+                <button class="close-btn" onclick="closePanel('dashboard')">✕</button>
+            </div>
+            <div class="overlay-body">
+                <div class="dash-stats">
+                    <div class="dash-stat">
+                        <div class="ds-icon">🪙</div>
+                        <div class="ds-label">Coin</div>
+                        <div class="ds-val ds-coin">2,450</div>
+                        <div class="ds-sub">Son maçtan +120</div>
+                    </div>
+                    <div class="dash-stat">
+                        <div class="ds-icon">🎮</div>
+                        <div class="ds-label">Toplam Maç</div>
+                        <div class="ds-val ds-match">47</div>
+                        <div class="ds-sub">Bu hafta 12</div>
+                    </div>
+                    <div class="dash-stat">
+                        <div class="ds-icon">🏆</div>
+                        <div class="ds-label">Winrate</div>
+                        <div class="ds-val ds-win">%68</div>
+                        <div class="ds-sub">32 galibiyet</div>
+                    </div>
+                    <div class="dash-stat">
+                        <div class="ds-icon">🔥</div>
+                        <div class="ds-label">En İyi Seri</div>
+                        <div class="ds-val ds-streak">5</div>
+                        <div class="ds-sub">Aktif: 3</div>
+                    </div>
+                </div>
+
+                <div class="dash-section">
+                    <div class="dash-section-title">📋 Son 5 Maç</div>
+                    <div class="match-row"><span class="mr-code">XKBR</span><span
+                            class="mr-result mr-win">Kazandı</span><span class="mr-score">45 — 32</span><span
+                            class="mr-coins">+120 🪙</span></div>
+                    <div class="match-row"><span class="mr-code">PLMN</span><span
+                            class="mr-result mr-win">Kazandı</span><span class="mr-score">38 — 25</span><span
+                            class="mr-coins">+120 🪙</span></div>
+                    <div class="match-row"><span class="mr-code">QRTF</span><span
+                            class="mr-result mr-loss">Kaybetti</span><span class="mr-score">20 — 34</span><span
+                            class="mr-coins">+40 🪙</span></div>
+                    <div class="match-row"><span class="mr-code">MGZE</span><span
+                            class="mr-result mr-win">Kazandı</span><span class="mr-score">42 — 38</span><span
+                            class="mr-coins">+120 🪙</span></div>
+                    <div class="match-row"><span class="mr-code">DVLA</span><span
+                            class="mr-result mr-loss">Kaybetti</span><span class="mr-score">18 — 29</span><span
+                            class="mr-coins">+40 🪙</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     STORE OVERLAY
+     ═══════════════════════════════════════════ -->
+    <div class="overlay-backdrop" id="overlay-store">
+        <div class="overlay-panel" style="max-width:1000px">
+            <div class="overlay-header">
+                <div class="overlay-title">🛍️ Mağaza</div>
+                <button class="close-btn" onclick="closePanel('store')">✕</button>
+            </div>
+            <div class="overlay-body">
+                <div class="store-balance">
+                    <div class="store-bal-left">
+                        <div class="store-bal-icon">🪙</div>
+                        <div>
+                            <div class="store-bal-label">Coin Bakiyesi</div>
+                            <div class="store-bal-val">2,450</div>
+                        </div>
+                    </div>
+                    <div class="store-note">💡 Kozmetikler oyun dengesini etkilemez</div>
+                </div>
+
+                <div class="store-tabs">
+                    <button class="store-tab active" onclick="filterStore('all',this)">🏷️ Tümü</button>
+                    <button class="store-tab" onclick="filterStore('avatar',this)">🎭 Avatar</button>
+                    <button class="store-tab" onclick="filterStore('frame',this)">🖼️ Çerçeve</button>
+                    <button class="store-tab" onclick="filterStore('cardback',this)">🃏 Kart Arkası</button>
+                </div>
+
+                <div class="store-grid">
+                    <div class="store-item" data-cat="avatar">
+                        <div class="si-img si-avatar"><span>👑</span><span
+                                class="si-rarity rr-legendary">Legendary</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Altın Kral</div>
+                            <div class="si-footer"><span class="si-price">🪙 800</span><button class="si-buy">Satın
+                                    Al</button></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="avatar">
+                        <div class="si-img si-avatar"><span>⚔️</span><span class="si-rarity rr-epic">Epic</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Altın Savaşçı</div>
+                            <div class="si-footer"><span class="si-owned">✅ Kuşanılmış</span></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="avatar">
+                        <div class="si-img si-avatar"><span>🧙</span><span class="si-rarity rr-epic">Epic</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Büyücü</div>
+                            <div class="si-footer"><span class="si-price">🪙 600</span><button class="si-buy">Satın
+                                    Al</button></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="frame">
+                        <div class="si-img si-frame"><span
+                                style="border:3px solid #fbbf24;border-radius:10px;padding:6px;box-shadow:0 0 12px rgba(251,191,36,.4)">✨</span><span
+                                class="si-rarity rr-legendary">Legendary</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Altın Çerçeve</div>
+                            <div class="si-footer"><span class="si-owned">✅ Kuşanılmış</span></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="frame">
+                        <div class="si-img si-frame"><span
+                                style="border:3px solid #a78bfa;border-radius:10px;padding:6px;box-shadow:0 0 12px rgba(167,139,250,.4)">💜</span><span
+                                class="si-rarity rr-epic">Epic</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Mor Parıltı</div>
+                            <div class="si-footer"><span class="si-price">🪙 500</span><button class="si-buy">Satın
+                                    Al</button></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="cardback">
+                        <div class="si-img si-cardback"><span>🌈</span><span
+                                class="si-rarity rr-legendary">Legendary</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Holografik</div>
+                            <div class="si-footer"><span class="si-owned">✅ Kuşanılmış</span></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="cardback">
+                        <div class="si-img si-cardback"><span>🔥</span><span class="si-rarity rr-epic">Epic</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Alev Deseni</div>
+                            <div class="si-footer"><span class="si-price">🪙 750</span><button class="si-buy">Satın
+                                    Al</button></div>
+                        </div>
+                    </div>
+                    <div class="store-item" data-cat="avatar">
+                        <div class="si-img si-avatar"><span>🐉</span><span class="si-rarity rr-rare">Rare</span></div>
+                        <div class="si-body">
+                            <div class="si-name">Ejderha</div>
+                            <div class="si-footer"><span class="si-price">🪙 400</span><button class="si-buy">Satın
+                                    Al</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     PROFILE OVERLAY
+     ═══════════════════════════════════════════ -->
+    <div class="overlay-backdrop" id="overlay-profile">
+        <div class="overlay-panel">
+            <div class="overlay-header">
+                <div class="overlay-title">👤 Profil</div>
+                <button class="close-btn" onclick="closePanel('profile')">✕</button>
+            </div>
+            <div class="overlay-body">
+                <div class="profile-header-card">
+                    <div class="prof-avatar">E</div>
+                    <div class="prof-info">
+                        <h2>Erdal</h2>
+                        <div class="prof-bio">Tabu ustası 🎯</div>
+                        <div class="prof-badges">
+                            <span class="prof-badge prof-badge-gold">🪙 2,450</span>
+                            <span class="prof-badge">🏆 %68 Win</span>
+                            <span class="prof-badge">🎮 47 Maç</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="prof-form">
+                    <div class="prof-field">
+                        <div class="prof-label">Görünen Ad</div>
+                        <input class="prof-input" value="Erdal" maxlength="60">
+                    </div>
+                    <div class="prof-field">
+                        <div class="prof-label">Kısa Bio</div>
+                        <textarea class="prof-input prof-textarea" maxlength="300">Tabu ustası 🎯</textarea>
+                    </div>
+                    <button class="prof-save">Profili Kaydet</button>
+                </div>
+
+                <div class="dash-section">
+                    <div class="dash-section-title">🎒 Kuşanılmış Kozmetikler</div>
+                    <div class="prof-equipped-grid">
+                        <div class="prof-eq-card">
+                            <div class="prof-eq-icon">⚔️</div>
+                            <div class="prof-eq-name">Altın Savaşçı</div>
+                            <div class="prof-eq-type">Epic Avatar</div>
+                            <div class="prof-eq-status">✅ Aktif</div>
+                        </div>
+                        <div class="prof-eq-card">
+                            <div class="prof-eq-icon">✨</div>
+                            <div class="prof-eq-name">Altın Çerçeve</div>
+                            <div class="prof-eq-type">Legendary Frame</div>
+                            <div class="prof-eq-status">✅ Aktif</div>
+                        </div>
+                        <div class="prof-eq-card">
+                            <div class="prof-eq-icon">🌈</div>
+                            <div class="prof-eq-name">Holografik</div>
+                            <div class="prof-eq-type">Legendary Card Back</div>
+                            <div class="prof-eq-status">✅ Aktif</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPanel(name) {
+            document.getElementById('overlay-' + name).classList.add('open');
+            document.getElementById('gameLayout').classList.add('dimmed');
+        }
+        function closePanel(name) {
+            document.getElementById('overlay-' + name).classList.remove('open');
+            document.getElementById('gameLayout').classList.remove('dimmed');
+        }
+        // Close on backdrop click
+        document.querySelectorAll('.overlay-backdrop').forEach(el => {
+            el.addEventListener('click', e => {
+                if (e.target === el) {
+                    el.classList.remove('open');
+                    document.getElementById('gameLayout').classList.remove('dimmed');
+                }
+            });
+        });
+        // Close on Escape
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.overlay-backdrop.open').forEach(el => {
+                    el.classList.remove('open');
+                });
+                document.getElementById('gameLayout').classList.remove('dimmed');
+            }
+        });
+        // Store filter
+        function filterStore(cat, btn) {
+            document.querySelectorAll('.store-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.store-item').forEach(el => {
+                el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none';
+            });
+        }
+    </script>
+
+</body>
+
+</html>

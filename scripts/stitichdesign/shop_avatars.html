@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tabu Shop: Avatars Selection</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#EF4444", 
+                        secondary: "#3B82F6", 
+                        success: "#00C853",
+                        warning: "#FFAB00",
+                        danger: "#FF1744",
+                        dark: "#1A1A1A",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#121212",
+                        "card-dark": "#1E293B",
+                        gold: "#FFD700",
+                        rarity: {
+                            common: "#94a3b8",
+                            rare: "#3b82f6",
+                            epic: "#a855f7",
+                            legendary: "#eab308"
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        xl: "1rem",
+                        '2xl': "1.5rem",
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+            border-right: 3px solid #3B82F6;
+        }
+        .dark .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60A5FA;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-scroll {
+            animation: scroll 15s linear infinite;
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .glow-epic:hover {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        .glow-legendary:hover {
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans h-screen overflow-hidden relative selection:bg-primary selection:text-white">
+<div aria-hidden="true" class="absolute inset-0 flex w-full h-full z-0 pointer-events-none">
+<aside class="w-64 h-full bg-red-50 dark:bg-red-900/10 border-r border-red-100 dark:border-red-900/20 flex flex-col pt-6 relative opacity-30"></aside>
+<main class="flex-1 relative flex flex-col opacity-30"></main>
+<aside class="w-64 h-full bg-blue-50 dark:bg-blue-900/10 border-l border-blue-100 dark:border-blue-900/20 flex flex-col pt-6 relative opacity-30"></aside>
+</div>
+<div class="absolute inset-0 z-50 flex items-center justify-center glass-overlay p-4 sm:p-6 md:p-8">
+<div class="glass-panel w-full max-w-7xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden relative flex animate-fade-in-up">
+<button class="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-200/50 dark:bg-slate-700/50 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 flex items-center justify-center backdrop-blur-sm transition-all text-slate-600 dark:text-slate-300 shadow-sm">
+<span class="material-icons-round text-lg">close</span>
+</button>
+<nav class="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md">
+<div class="mb-8">
+<div class="w-10 h-10 bg-gradient-to-tr from-primary to-secondary rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">T</div>
+</div>
+<div class="flex flex-col gap-6 w-full">
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</button>
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">backpack</span>
+<span class="text-[10px] font-medium">Inv</span>
+</button>
+<button class="nav-item active w-full py-3 flex flex-col items-center justify-center gap-1 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">shopping_bag</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4 w-full">
+<button class="w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+<span class="material-icons-round text-xl">help</span>
+</button>
+</div>
+</nav>
+<main class="flex-1 h-full overflow-y-auto relative scroll-smooth bg-white/30 dark:bg-black/10">
+<div class="p-8 md:p-10 max-w-6xl mx-auto h-full flex flex-col">
+<header class="flex items-center justify-between mb-8 shrink-0">
+<div>
+<h1 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-3">
+                                Item Shop
+                                <span class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 text-xs px-2 py-1 rounded-md font-bold uppercase tracking-wide">Season 4</span>
+</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Upgrade your style and power up.</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-xl border border-amber-200 dark:border-amber-700/30 flex items-center gap-3 shadow-sm group cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+<div class="w-8 h-8 rounded-full bg-gradient-to-b from-yellow-300 to-yellow-600 shadow-inner flex items-center justify-center ring-2 ring-yellow-100 dark:ring-yellow-800/50">
+<span class="material-icons-round text-yellow-50 text-lg drop-shadow-md">monetization_on</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 tracking-wider">Gold Coins</span>
+<span class="font-black text-slate-800 dark:text-white text-lg leading-none">12,450</span>
+</div>
+<button class="w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-700/50 text-amber-700 dark:text-amber-200 flex items-center justify-center hover:scale-110 transition-transform">
+<span class="material-icons-round text-sm">add</span>
+</button>
+</div>
+</div>
+</header>
+<div class="flex flex-col lg:flex-row gap-8 h-full">
+<div class="w-full lg:w-48 shrink-0 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-sm transition-all whitespace-nowrap">
+<span class="material-icons-round text-lg">local_fire_department</span>
+                                Daily Offers
+                            </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 font-bold text-sm transition-all whitespace-nowrap">
+<span class="material-icons-round text-lg">face</span>
+                                Avatars
+                            </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-sm transition-all whitespace-nowrap">
+<span class="material-icons-round text-lg">crop_free</span>
+                                Frames
+                            </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-sm transition-all whitespace-nowrap">
+<span class="material-icons-round text-lg">inventory_2</span>
+                                Bundles
+                            </button>
+</div>
+<div class="flex-1 pb-8">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                    Available Avatars <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px]">24</span>
+</h3>
+<div class="flex gap-2">
+<button class="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">Sort by Price</button>
+<button class="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">Sort by Rarity</button>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-slate-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Common</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-800">
+<span class="material-icons-round text-6xl text-slate-500 dark:text-slate-400">person</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Basic Recruit</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">100 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Buy</button>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-blue-500/30 dark:border-blue-500/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 glow-hover group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-blue-500/20">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-blue-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Rare</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-cyan-500">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">water_drop</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Aqua Marine</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">450 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">Buy</button>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-purple-500/30 dark:border-purple-500/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 glow-epic group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-purple-500/20">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-purple-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Epic</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-600">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">auto_fix_high</span>
+</div>
+<div class="absolute inset-0 bg-white/10 group-hover:animate-pulse"></div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Neon Ghost</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,200 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">Buy</button>
+</div>
+</div>
+<div class="bg-gradient-to-b from-amber-500/10 to-transparent dark:from-amber-500/10 rounded-2xl p-4 border border-amber-500/40 dark:border-amber-500/40 hover:bg-amber-500/5 dark:hover:bg-amber-500/20 transition-all hover:-translate-y-1 glow-legendary group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-amber-500/30">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Legendary</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-600">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">local_fire_department</span>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Royal Knight</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">2,500 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg shadow-amber-500/30">Buy</button>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-blue-500/30 dark:border-blue-500/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 glow-hover group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-blue-500/20">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-blue-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Rare</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-400 to-blue-500">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">bolt</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Storm Born</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">500 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">Buy</button>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-slate-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Common</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-400 to-emerald-600">
+<span class="material-icons-round text-6xl text-white">forest</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Nature Spirit</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">150 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Buy</button>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl p-4 border border-purple-500/30 dark:border-purple-500/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all hover:-translate-y-1 glow-epic group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-purple-500/20">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-purple-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Epic</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-fuchsia-500 to-purple-700">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">psychology</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Mind Weaver</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,350 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">Buy</button>
+</div>
+</div>
+<div class="bg-gradient-to-b from-amber-500/10 to-transparent dark:from-amber-500/10 rounded-2xl p-4 border border-amber-500/40 dark:border-amber-500/40 hover:bg-amber-500/5 dark:hover:bg-amber-500/20 transition-all hover:-translate-y-1 glow-legendary group relative">
+<div class="relative w-full aspect-square bg-slate-200 dark:bg-slate-700/50 rounded-xl mb-3 overflow-hidden ring-1 ring-amber-500/30">
+<div class="absolute top-2 right-2 z-10">
+<span class="bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur-sm uppercase">Legendary</span>
+</div>
+<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-600 to-rose-700">
+<span class="material-icons-round text-6xl text-white drop-shadow-md">gavel</span>
+</div>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Judge of Souls</h4>
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">3,000 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<button class="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg shadow-amber-500/30">Buy</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-72 min-w-[280px] h-full border-l border-slate-200/50 dark:border-slate-700/50 bg-white/40 dark:bg-black/20 flex flex-col backdrop-blur-md">
+<div class="p-8 flex flex-col items-center text-center">
+<div class="relative mb-4 group cursor-pointer">
+<img alt="Player Avatar" class="w-24 h-24 rounded-2xl shadow-xl ring-2 ring-white/50 dark:ring-slate-700 object-cover transform group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx9NQ6ISF5sz_vpBbasOackdaRH_S1VtV-Y2oKPhgmWfO8Hxli9J4D0CNPP5jja8DcMELVDTJo5UipBNzsIzjKjWyFWbwYfEzq2Mt0Ie1fGb-fozgaeU-0U1SC0zGeQzf6lgkQYfpBZ6w2t-vlsCGNH-s7ojlV2_I4AI8oqywpKStVtpLdiOL2KC9WIzC1zlrptpNFi36LTQi2Y8ZAwwMR3umRzuWFSTLZsNY2lIfvB7_c-ZDbo5XdaHlIquCT3cqQfYSZv2b-12I"/>
+<div class="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-md border-2 border-white dark:border-slate-800"></div>
+</div>
+<h2 class="text-xl font-black text-slate-800 dark:text-white">Player One</h2>
+<p class="text-xs font-bold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-4">Level 42</p>
+<button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors mb-6 shadow-sm">
+<span class="material-icons-round text-sm">settings</span>
+                        Settings
+                    </button>
+<div class="w-full bg-slate-100/50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50 mb-6">
+<div class="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+<span>XP Progress</span>
+<span class="text-slate-800 dark:text-white font-bold">82%</span>
+</div>
+<div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full w-[82%] shadow-sm relative overflow-hidden">
+<div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+</div>
+</div>
+<div class="text-[10px] text-slate-400 mt-2 text-right">2,450 / 3,000 XP</div>
+</div>
+<div class="w-full text-left mb-6">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Quick Equip</h3>
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-indigo-400 transition-all">
+<span class="material-icons-round text-white text-lg opacity-90">palette</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-orange-400 transition-all opacity-50 hover:opacity-100">
+<span class="material-icons-round text-white text-lg opacity-90">local_fire_department</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-400 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+<span class="material-icons-round text-lg">add</span>
+</div>
+</div>
+</div>
+<div class="w-full text-left">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex justify-between">
+                            New Arrivals
+                            <span class="text-[10px] text-blue-500 cursor-pointer">View All</span>
+</h3>
+<div class="w-full overflow-hidden relative h-32 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+<div class="flex animate-scroll absolute h-full w-[200%]">
+<div class="w-1/2 h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20 px-4">
+<div class="flex items-center gap-3">
+<span class="material-icons-round text-4xl text-purple-500">auto_fix_high</span>
+<div>
+<div class="text-xs font-bold text-slate-800 dark:text-white">Void Staff</div>
+<div class="text-[10px] text-slate-500">Mage Weapon</div>
+</div>
+</div>
+</div>
+<div class="w-1/2 h-full flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-cyan-500/20 px-4">
+<div class="flex items-center gap-3">
+<span class="material-icons-round text-4xl text-blue-500">shield</span>
+<div>
+<div class="text-xs font-bold text-slate-800 dark:text-white">Frost Guard</div>
+<div class="text-[10px] text-slate-500">Tank Armor</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto p-6 border-t border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/50">
+<div class="flex items-center justify-between text-xs text-slate-500">
+<span>Server Time</span>
+<span class="font-mono">14:02 UTC</span>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+    // Use local storage to persist dark mode or default to system preference
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+    } else {
+        document.documentElement.classList.remove('dark')
+    }
+</script>
+
+</body></html>

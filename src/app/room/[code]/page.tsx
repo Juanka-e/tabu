@@ -8,7 +8,8 @@ import { Sidebar } from "@/components/game/sidebar";
 import { Lobby } from "@/components/game/lobby";
 import { RulesModal } from "@/components/game/rules-modal";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
-import { Moon, Sun, Megaphone, Book, Menu } from "lucide-react";
+import { DashboardOverlay } from "@/components/game/dashboard-overlay";
+import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { GameView } from "@/types/game";
 import type {
@@ -85,6 +86,7 @@ export default function RoomPage() {
     // Modals
     const [showRules, setShowRules] = useState(false);
     const [showAnnouncements, setShowAnnouncements] = useState(false);
+    const [showDashboard, setShowDashboard] = useState(false);
     const [showUsernamePrompt, setShowUsernamePrompt] = useState(() => {
         if (typeof window === "undefined") return false;
         return !localStorage.getItem("tabu_username");
@@ -404,6 +406,14 @@ export default function RoomPage() {
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
                     {/* Header Buttons */}
                     <div className="absolute top-4 right-6 z-30 flex gap-2">
+                        {session?.user && (
+                            <button
+                                onClick={() => setShowDashboard(true)}
+                                className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all"
+                            >
+                                <LayoutDashboard size={20} />
+                            </button>
+                        )}
                         <button
                             onClick={() => setShowAnnouncements(true)}
                             className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 transition-all"
@@ -477,6 +487,14 @@ export default function RoomPage() {
                     isOpen={showAnnouncements}
                     onClose={() => setShowAnnouncements(false)}
                 />
+
+                {/* Dashboard Overlay */}
+                {session?.user && (
+                    <DashboardOverlay
+                        isOpen={showDashboard}
+                        onClose={() => setShowDashboard(false)}
+                    />
+                )}
             </div>
         </>
     );
