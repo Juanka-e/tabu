@@ -67,7 +67,10 @@ export function ShopContent() {
                     fetch("/api/store/items", { cache: "no-store" }),
                     fetch("/api/user/dashboard", { cache: "no-store" }),
                 ]);
-                if (itemRes.ok) setItems(await itemRes.json());
+                if (itemRes.ok) {
+                    const data = await itemRes.json();
+                    setItems(Array.isArray(data) ? data : data.items ?? []);
+                }
                 if (dashRes.ok) {
                     const d = await dashRes.json();
                     setCoinBalance(d.coinBalance ?? 0);
@@ -156,8 +159,8 @@ export function ShopContent() {
                                 key={cat.id}
                                 onClick={() => setCategory(cat.id)}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all whitespace-nowrap ${active
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 font-bold"
-                                        : "hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 font-bold"
+                                    : "hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                     }`}
                             >
                                 <Icon size={18} />
@@ -369,8 +372,8 @@ function ShopItemCard({
                     onClick={() => onBuy(item)}
                     disabled={busy || item.owned}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 ${item.owned
-                            ? "bg-green-500 text-white cursor-default"
-                            : rarityBuyBtn[item.rarity]
+                        ? "bg-green-500 text-white cursor-default"
+                        : rarityBuyBtn[item.rarity]
                         }`}
                 >
                     {item.owned ? "Owned" : busy ? "..." : "Buy"}
