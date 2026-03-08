@@ -1,40 +1,35 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { UserNav } from "@/components/user/user-nav";
 import { Button } from "@/components/ui/button";
+import type { DashboardDataResponse, StoreItemView } from "@/types/economy";
 
-type StoreItem = {
-  id: number;
-  name: string;
-  type: "avatar" | "frame" | "card_back";
-  rarity: "common" | "rare" | "epic" | "legendary";
-  priceCoin: number;
-  imageUrl: string;
-};
+const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 export default function StorePage() {
   const { data: session } = useSession();
-  const [items, setItems] = useState<StoreItem[]>([]);
+  const [items, setItems] = useState<StoreItemView[]>([]);
   const [coin, setCoin] = useState(0);
-  const [busyId, setBusyId] = useState(0);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const [itemRes, dashRes] = await Promise.all([
+      const [itemResponse, dashboardResponse] = await Promise.all([
         fetch("/api/store/items", { cache: "no-store" }),
         fetch("/api/user/dashboard", { cache: "no-store" }),
       ]);
 
-      if (itemRes.ok) {
-        const data = (await itemRes.json()) as { items: StoreItem[] };
-        setItems(data.items);
+      if (itemResponse.ok) {
+        const itemsPayload = (await itemResponse.json()) as { items: StoreItemView[] };
+        setItems(itemsPayload.items);
       }
 
-      if (dashRes.ok) {
-        const data = (await dashRes.json()) as { coinBalance: number };
-        setCoin(data.coinBalance);
+      if (dashboardResponse.ok) {
+        const dashboardPayload = (await dashboardResponse.json()) as DashboardDataResponse;
+        setCoin(dashboardPayload.coinBalance);
       }
     };
     void load();
@@ -50,25 +45,34 @@ export default function StorePage() {
 
   const buy = async (shopItemId: number) => {
     setBusyId(shopItemId);
-    const res = await fetch("/api/store/purchase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shopItemId }),
-    });
+    try {
+      const response = await fetch("/api/store/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopItemId }),
+      });
 
-    const data = await res.json();
-    setBusyId(0);
+      const payload = (await response.json()) as { coinBalance?: number; error?: string };
+      if (!response.ok) {
+        window.alert(payload.error || "Satin alma basarisiz.");
+        return;
+      }
 
-    if (!res.ok) {
-      alert(data.error || "Satin alma basarisiz.");
-      return;
+      setCoin(payload.coinBalance ?? coin);
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === shopItemId ? { ...item, owned: true } : item
+        )
+      );
+      window.alert("Urun envantere eklendi.");
+    } finally {
+      setBusyId(null);
     }
-
-    setCoin(data.coinBalance ?? coin);
-    alert("Urun envantere eklendi.");
   };
 
-  if (!session?.user) return null;
+  if (!session?.user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfccb,_#f8fafc_40%,_#dbeafe)] dark:bg-[radial-gradient(circle_at_top,_#14532d,_#020617_40%,_#1e293b)]">
@@ -98,8 +102,8 @@ function Category({
   onBuy,
 }: {
   title: string;
-  items: StoreItem[];
-  busyId: number;
+  items: StoreItemView[];
+  busyId: number | null;
   coin: number;
   onBuy: (id: number) => void;
 }) {
@@ -108,20 +112,32 @@ function Category({
       <h2 className="text-xl font-black">{title}</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
-          const disabled = busyId === item.id || coin < item.priceCoin;
+          const disabled = busyId === item.id || coin < item.priceCoin || item.owned;
           return (
             <article key={item.id} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 p-4 space-y-3">
-              <div className="h-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs text-zinc-500">
-                {item.imageUrl}
+              <div className="h-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs text-zinc-500 overflow-hidden">
+                {item.imageUrl ? (
+                  <Image
+                    loader={passthroughImageLoader}
+                    unoptimized
+                    src={item.imageUrl}
+                    alt={item.name}
+                    width={320}
+                    height={80}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  item.name
+                )}
               </div>
               <div>
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-xs text-zinc-500">{item.rarity}</p>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium">{item.priceCoin} coin</span>
                 <Button size="sm" disabled={disabled} onClick={() => onBuy(item.id)}>
-                  {busyId === item.id ? "..." : "Satin Al"}
+                  {item.equipped ? "Kusaniyor" : item.owned ? "Sahip" : busyId === item.id ? "..." : "Satin Al"}
                 </Button>
               </div>
             </article>

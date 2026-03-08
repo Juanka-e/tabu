@@ -6,29 +6,12 @@ import { UserNav } from "@/components/user/user-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { EquippedSlots, InventoryItemView, UserInventoryResponse } from "@/types/economy";
 
-type OwnedItem = {
-  id: number;
-  shopItem: {
-    id: number;
-    name: string;
-    type: "avatar" | "frame" | "card_back";
-    rarity: string;
-  };
-};
-
-type ProfileResponse = {
-  id: number;
-  name: string;
-  role: string;
-  profile: {
-    displayName: string | null;
-    bio: string | null;
-    avatarItemId: number | null;
-    frameItemId: number | null;
-    cardBackItemId: number | null;
-  } | null;
-  inventory: OwnedItem[];
+const emptyEquippedSlots: EquippedSlots = {
+  avatarItemId: null,
+  frameItemId: null,
+  cardBackItemId: null,
 };
 
 export default function ProfilePage() {
@@ -37,34 +20,32 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [ownedItems, setOwnedItems] = useState<OwnedItem[]>([]);
-  const [equipped, setEquipped] = useState({ avatarItemId: 0, frameItemId: 0, cardBackItemId: 0 });
+  const [ownedItems, setOwnedItems] = useState<InventoryItemView[]>([]);
+  const [equipped, setEquipped] = useState<EquippedSlots>(emptyEquippedSlots);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [meRes, profileRes] = await Promise.all([
-        fetch("/api/user/me", { cache: "no-store" }),
-        fetch("/api/user/dashboard", { cache: "no-store" }),
-      ]);
 
-      if (meRes.ok) {
-        const me = (await meRes.json()) as ProfileResponse;
-        setDisplayName(me.profile?.displayName || me.name || "");
-        setBio(me.profile?.bio || "");
-        setOwnedItems(me.inventory || []);
+      try {
+        const meResponse = await fetch("/api/user/me", { cache: "no-store" });
+        if (!meResponse.ok) {
+          setLoading(false);
+          return;
+        }
+
+        const me = (await meResponse.json()) as UserInventoryResponse;
+        setDisplayName(me.profile.displayName || me.name || "");
+        setBio(me.profile.bio || "");
+        setOwnedItems(me.items);
         setEquipped({
-          avatarItemId: me.profile?.avatarItemId || 0,
-          frameItemId: me.profile?.frameItemId || 0,
-          cardBackItemId: me.profile?.cardBackItemId || 0,
+          avatarItemId: me.profile.avatarItemId,
+          frameItemId: me.profile.frameItemId,
+          cardBackItemId: me.profile.cardBackItemId,
         });
+      } finally {
+        setLoading(false);
       }
-
-      if (profileRes.ok) {
-        // no-op: call keeps dashboard cache warm for fast nav
-      }
-
-      setLoading(false);
     };
 
     void load();
@@ -72,44 +53,51 @@ export default function ProfilePage() {
 
   const grouped = useMemo(() => {
     return {
-      avatar: ownedItems.filter((item) => item.shopItem.type === "avatar"),
-      frame: ownedItems.filter((item) => item.shopItem.type === "frame"),
-      card_back: ownedItems.filter((item) => item.shopItem.type === "card_back"),
+      avatar: ownedItems.filter((item) => item.type === "avatar"),
+      frame: ownedItems.filter((item) => item.type === "frame"),
+      card_back: ownedItems.filter((item) => item.type === "card_back"),
     };
   }, [ownedItems]);
 
   const saveProfile = async () => {
     setSaving(true);
-    const res = await fetch("/api/user/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName, bio }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      alert("Profil guncellenemedi.");
-      return;
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName, bio }),
+      });
+
+      if (!response.ok) {
+        window.alert("Profil guncellenemedi.");
+        return;
+      }
+
+      window.alert("Profil kaydedildi.");
+    } finally {
+      setSaving(false);
     }
-    alert("Profil kaydedildi.");
   };
 
-  const equip = async (shopItemId: number, type: "avatar" | "frame" | "card_back") => {
-    const res = await fetch("/api/store/equip", {
+  const equip = async (shopItemId: number) => {
+    const response = await fetch("/api/store/equip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shopItemId }),
     });
-    if (!res.ok) {
-      alert("Kusanma islemi basarisiz.");
+
+    if (!response.ok) {
+      window.alert("Kusanma islemi basarisiz.");
       return;
     }
 
-    if (type === "avatar") setEquipped((prev) => ({ ...prev, avatarItemId: shopItemId }));
-    if (type === "frame") setEquipped((prev) => ({ ...prev, frameItemId: shopItemId }));
-    if (type === "card_back") setEquipped((prev) => ({ ...prev, cardBackItemId: shopItemId }));
+    const payload = (await response.json()) as { equippedSlots: EquippedSlots };
+    setEquipped(payload.equippedSlots);
   };
 
-  if (!session?.user) return null;
+  if (!session?.user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#fff7ed,_#fafafa_35%,_#ecfeff)] dark:bg-[radial-gradient(circle_at_top_right,_#1f2937,_#020617_35%,_#052e16)]">
@@ -117,9 +105,9 @@ export default function ProfilePage() {
       <main className="mx-auto max-w-6xl p-4 md:p-8 space-y-6">
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 p-5 space-y-3">
           <h1 className="text-2xl font-black">Profil</h1>
-          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Gorunen ad" maxLength={60} />
-          <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Kisa bio" maxLength={300} rows={3} />
-          <Button onClick={saveProfile} disabled={saving}>{saving ? "Kaydediliyor..." : "Profili Kaydet"}</Button>
+          <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Gorunen ad" maxLength={60} />
+          <Textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Kisa bio" maxLength={300} rows={3} />
+          <Button onClick={() => void saveProfile()} disabled={saving}>{saving ? "Kaydediliyor..." : "Profili Kaydet"}</Button>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -128,21 +116,21 @@ export default function ProfilePage() {
             items={grouped.avatar}
             activeId={equipped.avatarItemId}
             loading={loading}
-            onEquip={(id) => equip(id, "avatar")}
+            onEquip={equip}
           />
           <CosmeticColumn
             title="Cerceve"
             items={grouped.frame}
             activeId={equipped.frameItemId}
             loading={loading}
-            onEquip={(id) => equip(id, "frame")}
+            onEquip={equip}
           />
           <CosmeticColumn
             title="Kart Arkasi"
             items={grouped.card_back}
             activeId={equipped.cardBackItemId}
             loading={loading}
-            onEquip={(id) => equip(id, "card_back")}
+            onEquip={equip}
           />
         </section>
       </main>
@@ -158,8 +146,8 @@ function CosmeticColumn({
   loading,
 }: {
   title: string;
-  items: OwnedItem[];
-  activeId: number;
+  items: InventoryItemView[];
+  activeId: number | null;
   loading: boolean;
   onEquip: (id: number) => void;
 }) {
@@ -173,17 +161,17 @@ function CosmeticColumn({
           <p className="text-sm text-zinc-500">Bu kategoride urun yok.</p>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2">
+            <div key={item.inventoryItemId} className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2">
               <div>
-                <p className="text-sm font-medium">{item.shopItem.name}</p>
-                <p className="text-xs text-zinc-500">{item.shopItem.rarity}</p>
+                <p className="text-sm font-medium">{item.name}</p>
+                <p className="text-xs text-zinc-500">{item.rarity}</p>
               </div>
               <Button
                 size="sm"
-                variant={activeId === item.shopItem.id ? "default" : "outline"}
-                onClick={() => onEquip(item.shopItem.id)}
+                variant={activeId === item.shopItemId ? "default" : "outline"}
+                onClick={() => onEquip(item.shopItemId)}
               >
-                {activeId === item.shopItem.id ? "Kusaniyor" : "Kusan"}
+                {activeId === item.shopItemId ? "Kusaniyor" : "Kusan"}
               </Button>
             </div>
           ))

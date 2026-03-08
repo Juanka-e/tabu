@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Image, { type ImageLoaderProps } from "next/image";
 import {
     Card,
     CardContent,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +60,8 @@ const emptyItem: Omit<ShopItem, "id" | "createdAt" | "_count"> = {
     isActive: true,
     sortOrder: 0,
 };
+
+const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 export default function ShopItemsPage() {
     const [items, setItems] = useState<ShopItem[]>([]);
@@ -310,9 +311,13 @@ export default function ShopItemsPage() {
                                 >
                                     <td className="p-3">
                                         {item.imageUrl ? (
-                                            <img
+                                            <Image
+                                                loader={passthroughImageLoader}
+                                                unoptimized
                                                 src={item.imageUrl}
                                                 alt={item.name}
+                                                width={40}
+                                                height={40}
                                                 className="w-10 h-10 rounded-lg object-cover border border-border"
                                             />
                                         ) : (
@@ -548,9 +553,13 @@ export default function ShopItemsPage() {
                                 </div>
                                 {form.imageUrl && (
                                     <div className="mt-2">
-                                        <img
+                                        <Image
+                                            loader={passthroughImageLoader}
+                                            unoptimized
                                             src={form.imageUrl}
                                             alt="Preview"
+                                            width={64}
+                                            height={64}
                                             className="w-16 h-16 rounded-lg object-cover border border-border"
                                         />
                                     </div>

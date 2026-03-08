@@ -240,3 +240,79 @@ Admin panelden kozmetik CRUD islemleri yapilabilir hale getirildi.
 2. Kod, isim, tur, nadirlik, fiyat + gorsel yukle
 3. Kaydet → magazada otomatik gorunur (`isActive=true`)
 4. Oyuncu overlay'den satin alir → envanterde equip eder
+
+---
+
+## Ana Sayfa Dashboard (8 Mart 2026)
+
+### Ne Yapildi?
+Login olan kullanicinin ana sayfasi (`/`) in-game overlay ile ayni glassmorphism 3-sutun dashboard layout'una donusturuldu.
+
+### Degisiklikler
+- `src/components/game/dashboard-overlay.tsx` — `DashboardLayout` shared bilesenine ayrildi
+- `src/app/page.tsx` — login kullanici: tam sayfa dashboard + compact header bar
+  - Header: Logo + Yeni Oda + Oda Kodu + Duyurular + Tema + Admin + Cikis
+  - Body: `DashboardLayout` (Nav | Content | Profile Sidebar)
+  - Misafir gorunumu: degismedi (eski basit kart)
+
+### Mimari
+```
+page.tsx (login user)
+  ├── Header bar (compact: logo, Yeni Oda, oda kodu, utils)
+  └── glass-panel (full page)
+      └── DashboardLayout (shared)
+          ├── DashboardNav
+          ├── DashboardContent (Dash/Inv/Shop/Settings)
+          └── DashboardProfileSidebar
+```
+
+---
+
+## Bug Fix — Shop items.slice (8 Mart 2026)
+
+- **Sorun:** `items.slice is not a function` hatasi — `/api/store/items` `{ items: [...] }` donduruyor ama kod `setItems(await res.json())` yapiyor.
+- **Problem:** Response objesi dogrudan array olarak kullaniliyordu.
+- **Cozum:** `Array.isArray(data) ? data : data.items ?? []` ile her iki formata uyum saglandi.
+- **Dosya:** `src/components/game/dashboard-pages/shop-content.tsx`
+## 8 Mart 2026 Plan Referansi
+
+Bu dokuman mevcut durum ve yapilan isler icin tutulur.
+Detayli uygulanabilir plan ayri dokumanda yazildi:
+
+- `docs/dashboard-ui/cosmetics-implementation-plan.md`
+
+Bu planda netlestirilen ana kararlar:
+
+- kart on yuzu ve kart arka yuzu ayri sistem olacak
+- `card_face` yeni tip olarak eklenecek
+- avatar agirlikli `image`, frame ve kart temalari agirlikli `template` olacak
+- admin panelden kozmetik, bundle, indirim ve kupon yonetimi yapilacak
+- settings ekranindaki ses/muzik alanlari mock ama stateful kalacak
+- mock veri final API kontratina uyacak, gecici hack mantiginda olmayacak
+
+---
+
+## Dashboard Contract Alignment Update (8 March 2026)
+
+### Bu turda tamamlananlar
+- `GET /api/user/inventory` eklendi ve overlay inventory bu endpoint'e gecirildi.
+- Overlay inventory artik yalnizca sahip olunan urunleri gosteriyor.
+- Equip akisi `/api/store/equip` uzerinden `shopItemId` ile calisiyor.
+- Overlay shop artik `/api/store/items` cevabindaki `owned` ve `equipped` alanlarini kullaniyor.
+- Satin alma akisi `/api/store/purchase` cevabindaki `coinBalance` alanina baglandi.
+- Profile sidebar artik fake `level`, `xp`, `equippedAvatar` gibi alanlari beklemiyor.
+- Sidebar veri kaynagi olarak `/api/user/dashboard` + `/api/user/me` birlikte kullaniliyor.
+- Settings ekraninda profil alanlari gercek API ile, ses/muzik/dil alanlari ise local-state mock olarak calisiyor.
+- `/profile`, `/store` ve `/dashboard` sayfalari yeni economy tipleri ile uyumlu hale getirildi.
+
+### Dogrulama
+- `npm run lint` = gecti
+- `npx tsc --noEmit` = gecti
+- `npm run build` = gecti
+
+### Sonraki teknik faz
+- `card_face` modelini eklemek
+- kart on / kart arka sistemini ayirmak
+- template tabanli kozmetik tanimlarini admin paneline acmak
+- bundle / discount / coupon yonetimini eklemek
+- production-shaped mock katalog ve kampanya seed'lerini eklemek

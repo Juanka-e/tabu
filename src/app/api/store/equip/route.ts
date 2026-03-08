@@ -25,7 +25,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Urun envanterde degil." }, { status: 409 });
     }
 
-    return NextResponse.json({ profile: result.profile });
+    return NextResponse.json({
+      profile: result.profile,
+      equippedSlots: {
+        avatarItemId: result.profile.avatarItemId,
+        frameItemId: result.profile.frameItemId,
+        cardBackItemId: result.profile.cardBackItemId,
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });

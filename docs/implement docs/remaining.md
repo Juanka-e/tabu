@@ -141,3 +141,42 @@ Veritabanı ayarları (.env):
 - Lint errors are resolved; ESLint now returns exit code 0.
 - Remaining items are warnings only (unused vars + image optimization warning).
 - If desired, next cleanup can reduce warning count to near-zero for stricter lint baselines.
+
+## UI / Economy Next Slice (8 March 2026)
+
+### Planned
+- [ ] Stabilize dashboard overlay data contracts against real APIs
+- [ ] Add true inventory API flow for overlay inventory page
+- [ ] Add `card_face` cosmetic type separate from `card_back`
+- [ ] Extend shop data model for `renderMode`, `templateKey`, `templateConfig`
+- [ ] Add bundle support (`ShopBundleItem`)
+- [ ] Add discount campaign CRUD and pricing rules
+- [ ] Add coupon code CRUD and redemption flow
+- [ ] Add mock catalog seed aligned with final API contracts
+- [ ] Reflect equipped avatar/frame in room sidebars and lobby
+- [ ] Reflect `card_back` in preview / transition flows
+- [ ] Reflect `card_face` inside active `GameCard`
+- [ ] Keep settings audio/language controls mock but stateful
+
+Reference:
+- `docs/dashboard-ui/cosmetics-implementation-plan.md`
+
+## Progress Update (8 March 2026)
+
+### Completed in this slice
+- Dashboard overlay request/response contracts were aligned with the real backend APIs.
+- `GET /api/user/inventory` was added and is now the source of truth for owned cosmetics.
+- Overlay inventory now equips items through `/api/store/equip` using `shopItemId`.
+- Overlay shop now consumes `owned`, `equipped`, and `coinBalance` correctly.
+- Profile sidebar now reads live profile + economy data without fake `level/xp` fields.
+- Settings page keeps audio/music/language controls mock but persists them locally.
+- `/profile`, `/store`, and `/dashboard` pages were updated to the new typed economy responses.
+- Verification is green: `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Remaining
+- Add `card_face` to Prisma, admin flows, and active game rendering.
+- Split card front and card back cosmetic systems in UI and data model.
+- Add template-driven cosmetic definitions for frame/card styling.
+- Add bundle, discount, and coupon data models plus admin CRUD.
+- Seed production-shaped mock cosmetics, promotions, and coupon data.
+- Reflect equipped avatar/frame/card theme inside room sidebars and `GameCard`.

@@ -28,7 +28,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Yetersiz coin." }, { status: 409 });
     }
 
-    return NextResponse.json({ item: result.item, coinBalance: result.coinBalance });
+    return NextResponse.json({
+      item: result.item,
+      awardedItems: [result.item],
+      coinBalance: result.coinBalance,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });

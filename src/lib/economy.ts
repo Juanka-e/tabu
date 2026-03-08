@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, ShopItemType } from "@prisma/client";
+import type {
+    DashboardDataResponse,
+    EquippedSlots,
+    InventoryItemView,
+    StoreItemView,
+    UserInventoryProfile,
+    UserInventoryResponse,
+} from "@/types/economy";
 
 export const WIN_REWARD = 120;
 export const LOSS_REWARD = 40;
@@ -44,10 +52,19 @@ export async function getDashboardData(userId: number) {
     return {
         coinBalance: wallet?.coinBalance ?? 0,
         totalMatches,
+        totalWins,
         totalCoinEarned: matchStats._sum.coinEarned ?? 0,
         winRate: totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0,
-        recentMatches,
-    };
+        recentMatches: recentMatches.map((match) => ({
+            id: match.id,
+            roomCode: match.roomCode,
+            won: match.won,
+            scoreA: match.scoreA,
+            scoreB: match.scoreB,
+            coinEarned: match.coinEarned,
+            createdAt: match.createdAt.toISOString(),
+        })),
+    } satisfies DashboardDataResponse;
 }
 
 export async function getProfileData(userId: number) {
@@ -70,14 +87,131 @@ export async function getProfileData(userId: number) {
     return { profile, inventory };
 }
 
-export async function listStoreItems(type?: ShopItemType) {
-    return prisma.shopItem.findMany({
+function getEquippedSlots(profile: {
+    avatarItemId: number | null;
+    frameItemId: number | null;
+    cardBackItemId: number | null;
+} | null): EquippedSlots {
+    return {
+        avatarItemId: profile?.avatarItemId ?? null,
+        frameItemId: profile?.frameItemId ?? null,
+        cardBackItemId: profile?.cardBackItemId ?? null,
+    };
+}
+
+function isEquipped(shopItemId: number, itemType: ShopItemType, equippedSlots: EquippedSlots): boolean {
+    if (itemType === "avatar") return equippedSlots.avatarItemId === shopItemId;
+    if (itemType === "frame") return equippedSlots.frameItemId === shopItemId;
+    return equippedSlots.cardBackItemId === shopItemId;
+}
+
+export async function getInventoryData(userId: number): Promise<UserInventoryResponse> {
+    await ensureUserCore(userId);
+
+    const [user, wallet, { profile, inventory }] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, username: true, role: true },
+        }),
+        prisma.wallet.findUnique({ where: { userId } }),
+        getProfileData(userId),
+    ]);
+
+    const equippedSlots = getEquippedSlots(profile);
+
+    const items: InventoryItemView[] = inventory.map((entry) => ({
+        inventoryItemId: entry.id,
+        shopItemId: entry.shopItemId,
+        code: entry.shopItem.code,
+        name: entry.shopItem.name,
+        type: entry.shopItem.type,
+        rarity: entry.shopItem.rarity,
+        priceCoin: entry.shopItem.priceCoin,
+        imageUrl: entry.shopItem.imageUrl,
+        source: entry.source,
+        acquiredAt: entry.acquiredAt.toISOString(),
+        equipped: isEquipped(entry.shopItemId, entry.shopItem.type, equippedSlots),
+    }));
+
+    const normalizedProfile: UserInventoryProfile = {
+        displayName: profile?.displayName ?? null,
+        bio: profile?.bio ?? null,
+        avatarItemId: equippedSlots.avatarItemId,
+        frameItemId: equippedSlots.frameItemId,
+        cardBackItemId: equippedSlots.cardBackItemId,
+    };
+
+    return {
+        id: user?.id ?? userId,
+        name: user?.username ?? "",
+        role: user?.role ?? "user",
+        wallet: {
+            coinBalance: wallet?.coinBalance ?? 0,
+        },
+        profile: normalizedProfile,
+        items,
+    };
+}
+
+export async function listStoreItems(type?: ShopItemType, userId?: number): Promise<StoreItemView[]> {
+    const loadItemsPromise = prisma.shopItem.findMany({
         where: {
             isActive: true,
             ...(type ? { type } : {}),
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
+
+    if (!userId) {
+        const items = await loadItemsPromise;
+        return items.map((item) => ({
+            id: item.id,
+            code: item.code,
+            name: item.name,
+            type: item.type,
+            rarity: item.rarity,
+            priceCoin: item.priceCoin,
+            imageUrl: item.imageUrl,
+            isActive: item.isActive,
+            sortOrder: item.sortOrder,
+            owned: false,
+            equipped: false,
+        }));
+    }
+
+    await ensureUserCore(userId);
+    const [items, profile, inventory] = await Promise.all([
+        loadItemsPromise,
+        prisma.userProfile.findUnique({
+            where: { userId },
+            select: {
+                avatarItemId: true,
+                frameItemId: true,
+                cardBackItemId: true,
+            },
+        }),
+        prisma.inventoryItem.findMany({
+            where: { userId },
+            select: { shopItemId: true },
+        }),
+    ]);
+
+    const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
+    const equippedSlots = getEquippedSlots(profile);
+
+    return items.map((item) => ({
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        type: item.type,
+        rarity: item.rarity,
+        priceCoin: item.priceCoin,
+        imageUrl: item.imageUrl,
+        isActive: item.isActive,
+        sortOrder: item.sortOrder,
+        owned: ownedIds.has(item.id),
+        equipped: isEquipped(item.id, item.type, equippedSlots),
+    }));
 }
 
 export async function purchaseStoreItem(userId: number, shopItemId: number) {

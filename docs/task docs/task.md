@@ -96,3 +96,29 @@
 - [x] Remove all ESLint warnings in current branch scope
 - [x] Keep codebase `any`-free in touched files
 - [x] Re-verify lint + tsc + build after cleanup
+
+## Phase 12: Cosmetics, Cards, Promotions (March 8, 2026)
+- [x] Align overlay UI request/response contracts with real backend APIs
+- [x] Add `GET /api/user/inventory`
+- [ ] Add `card_face` support in Prisma and UI
+- [ ] Split card front and card back systems
+- [ ] Add render strategy for `image` and `template` cosmetics
+- [ ] Add admin support for template-based cosmetic creation
+- [ ] Add bundle schema and admin management
+- [ ] Add discount campaign schema and admin management
+- [ ] Add coupon code schema and admin management
+- [ ] Seed mock cosmetics/offers/coupons with production-shaped data
+- [ ] Render equipped avatar/frame in room sidebars
+- [ ] Render equipped card theme in `GameCard`
+- [x] Keep settings page audio/music controls mock but stateful
+
+Reference:
+- `docs/dashboard-ui/cosmetics-implementation-plan.md`
+
+### Phase 12 Update (March 8, 2026)
+- [x] Overlay dashboard pages now use real request/response contracts
+- [x] Inventory overlay now reads owned items from `/api/user/inventory`
+- [x] Shop overlay now uses `shopItemId`, `coinBalance`, `owned`, and `equipped`
+- [x] Profile sidebar now combines `/api/user/dashboard` and `/api/user/me`
+- [x] `/profile`, `/store`, and `/dashboard` pages were aligned to the new economy types
+- [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`

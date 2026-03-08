@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { getDashboardData } from "@/lib/economy";
 import { UserNav } from "@/components/user/user-nav";
 import Link from "next/link";
-import type { MatchResult } from "@prisma/client";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -14,7 +13,7 @@ export default async function DashboardPage() {
   const userId = Number(session.user.id);
   const data = await getDashboardData(userId);
 
-  const winCount = data.recentMatches.filter((m: MatchResult) => m.won).length;
+  const winCount = data.recentMatches.filter((match) => match.won).length;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#f5f3ff,_#f8fafc_40%,_#ecfeff)] dark:bg-[radial-gradient(circle_at_top_left,_#111827,_#020617_40%,_#052e16)]">
@@ -53,7 +52,7 @@ export default async function DashboardPage() {
             {data.recentMatches.length === 0 ? (
               <p className="text-sm text-zinc-500">Henuz mac kaydi yok.</p>
             ) : (
-              data.recentMatches.map((match: MatchResult) => (
+              data.recentMatches.map((match) => (
                 <div key={match.id} className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm">
                   <span>{match.roomCode}</span>
                   <span className={match.won ? "text-emerald-600" : "text-zinc-500"}>{match.won ? "Kazandi" : "Kaybetti"}</span>

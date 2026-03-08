@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ShopItemType } from "@prisma/client";
 import { listStoreItems } from "@/lib/economy";
+import { getSessionUser } from "@/lib/session";
 
 const querySchema = z.object({
   type: z.nativeEnum(ShopItemType).optional(),
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Gecersiz filtre." }, { status: 422 });
   }
 
-  const items = await listStoreItems(parsed.data.type);
+  const sessionUser = await getSessionUser();
+  const items = await listStoreItems(parsed.data.type, sessionUser?.id);
   return NextResponse.json({ items });
 }

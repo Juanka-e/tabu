@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode, type MouseEvent } from "react";
 import { X } from "lucide-react";
 import { DashboardNav, type DashboardTab } from "./dashboard-nav";
 import { DashboardProfileSidebar } from "./dashboard-profile-sidebar";
@@ -11,8 +11,6 @@ interface DashboardOverlayProps {
 }
 
 export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
-    const [activeTab, setActiveTab] = useState<DashboardTab>("dash");
-
     // Close on ESC
     useEffect(() => {
         if (!isOpen) return;
@@ -36,7 +34,7 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
     }, [isOpen]);
 
     const handleBackdrop = useCallback(
-        (e: React.MouseEvent) => {
+        (e: MouseEvent<HTMLDivElement>) => {
             if (e.target === e.currentTarget) onClose();
         },
         [onClose]
@@ -58,17 +56,45 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
                     <X size={16} />
                 </button>
 
-                {/* Nav sidebar */}
-                <DashboardNav activeTab={activeTab} onTabChange={setActiveTab} />
-
-                {/* Main content */}
-                <main className="flex-1 h-full overflow-y-auto relative scroll-smooth">
-                    <DashboardContent activeTab={activeTab} onTabChange={setActiveTab} />
-                </main>
-
-                {/* Profile sidebar (hidden on mobile/tablet) */}
-                <DashboardProfileSidebar onTabChange={setActiveTab} />
+                <DashboardLayout />
             </div>
+        </div>
+    );
+}
+
+/**
+ * Shared 3-column dashboard layout:  Nav | Content | Profile Sidebar
+ * Used by both DashboardOverlay (in-game hover) and the full-page home.
+ */
+export function DashboardLayout({
+    defaultTab = "dash",
+    className = "",
+    showPlayTab = false,
+    playContent,
+}: {
+    defaultTab?: DashboardTab;
+    className?: string;
+    showPlayTab?: boolean;
+    playContent?: ReactNode;
+}) {
+    const [activeTab, setActiveTab] = useState<DashboardTab>(defaultTab);
+
+    return (
+        <div className={`flex w-full h-full ${className}`}>
+            {/* Nav sidebar */}
+            <DashboardNav activeTab={activeTab} onTabChange={setActiveTab} showPlayTab={showPlayTab} />
+
+            {/* Main content */}
+            <main className="flex-1 h-full overflow-y-auto relative scroll-smooth">
+                {activeTab === "play" && playContent ? (
+                    playContent
+                ) : (
+                    <DashboardContent activeTab={activeTab} />
+                )}
+            </main>
+
+            {/* Profile sidebar (hidden on mobile/tablet) */}
+            <DashboardProfileSidebar onTabChange={setActiveTab} />
         </div>
     );
 }
@@ -76,10 +102,8 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
 /* Lazy-load page content based on active tab */
 function DashboardContent({
     activeTab,
-    onTabChange,
 }: {
     activeTab: DashboardTab;
-    onTabChange: (tab: DashboardTab) => void;
 }) {
     switch (activeTab) {
         case "dash":
@@ -137,3 +161,4 @@ function PageLoading() {
         </div>
     );
 }
+

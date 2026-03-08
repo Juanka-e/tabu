@@ -6,13 +6,15 @@ import {
     ShoppingBag,
     Settings,
     HelpCircle,
+    Play,
 } from "lucide-react";
 
-export type DashboardTab = "dash" | "inventory" | "shop" | "settings";
+export type DashboardTab = "play" | "dash" | "inventory" | "shop" | "settings";
 
 interface DashboardNavProps {
     activeTab: DashboardTab;
     onTabChange: (tab: DashboardTab) => void;
+    showPlayTab?: boolean;
 }
 
 const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string }[] = [
@@ -22,14 +24,26 @@ const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string 
     { id: "settings", icon: Settings, label: "Settings" },
 ];
 
-export function DashboardNav({ activeTab, onTabChange }: DashboardNavProps) {
+export function DashboardNav({ activeTab, onTabChange, showPlayTab }: DashboardNavProps) {
     return (
         <nav className="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md z-10 max-md:hidden">
-            {/* Logo */}
+            {/* Logo or Play button */}
             <div className="mb-8">
-                <div className="w-10 h-10 bg-gradient-to-tr from-red-500 to-blue-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">
-                    T
-                </div>
+                {showPlayTab ? (
+                    <button
+                        onClick={() => onTabChange("play")}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all ${activeTab === "play"
+                                ? "bg-gradient-to-tr from-purple-500 to-blue-600 text-white scale-110 ring-2 ring-purple-400/40"
+                                : "bg-gradient-to-tr from-purple-500 to-blue-600 text-white hover:scale-105"
+                            }`}
+                    >
+                        <Play size={20} className="ml-0.5" />
+                    </button>
+                ) : (
+                    <div className="w-10 h-10 bg-gradient-to-tr from-red-500 to-blue-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">
+                        T
+                    </div>
+                )}
             </div>
 
             {/* Nav items */}
@@ -42,8 +56,8 @@ export function DashboardNav({ activeTab, onTabChange }: DashboardNavProps) {
                             key={item.id}
                             onClick={() => onTabChange(item.id)}
                             className={`w-full py-3 flex flex-col items-center justify-center gap-1 transition-all group ${isActive
-                                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-r-[3px] border-blue-500"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-r-[3px] border-blue-500"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
                                 }`}
                         >
                             <Icon
@@ -70,10 +84,15 @@ export function DashboardNav({ activeTab, onTabChange }: DashboardNavProps) {
 export function DashboardNavMobile({
     activeTab,
     onTabChange,
+    showPlayTab,
 }: DashboardNavProps) {
+    const allItems = showPlayTab
+        ? [{ id: "play" as DashboardTab, icon: Play, label: "Play" }, ...navItems]
+        : navItems;
+
     return (
         <nav className="w-full border-b border-slate-200/50 dark:border-slate-700/50 flex items-center py-2 px-4 bg-white/50 dark:bg-black/30 backdrop-blur-md justify-evenly md:hidden">
-            {navItems.map((item) => {
+            {allItems.map((item) => {
                 const isActive = activeTab === item.id;
                 const Icon = item.icon;
                 return (
@@ -81,8 +100,8 @@ export function DashboardNavMobile({
                         key={item.id}
                         onClick={() => onTabChange(item.id)}
                         className={`py-2 px-3 flex flex-col items-center justify-center gap-1 transition-all rounded-lg ${isActive
-                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                : "text-slate-500 dark:text-slate-400"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "text-slate-500 dark:text-slate-400"
                             }`}
                     >
                         <Icon size={20} />
@@ -93,3 +112,4 @@ export function DashboardNavMobile({
         </nav>
     );
 }
+

@@ -142,9 +142,13 @@ Dashboard, oyun ekranının üzerinde açılan bir **glassmorphism overlay panel
 - `src/app/admin/(dashboard)/shop-items/page.tsx` — admin CRUD sayfası
 - `src/components/admin/admin-sidebar.tsx` — "Kozmetikler" linki eklendi
 
-### Faz 8: Ana Sayfa Entegrasyonu ⬜ (opsiyonel)
+### Faz 8: Ana Sayfa Dashboard ✅ (8 Mart 2026)
 
-- Giriş yapan kullanıcılar için ana sayfada da dashboard butonu eklenebilir
+**Dosyalar:**
+- `src/components/game/dashboard-overlay.tsx` — `DashboardLayout` shared bilesenine ayrıldı
+- `src/app/page.tsx` — login kullanıcı: tam sayfa glassmorphism dashboard + compact header (Yeni Oda / Oda Kodu / Duyurular / Admin / Çıkış)
+
+Kullanıcı giriş yaptığında aynı 3-sütun dashboard layout'u (Nav | Content | Profile Sidebar) tam sayfa olarak görüntülenir. Misafir görünümü eskisi gibi basit kart olarak kalır.
 
 ---
 
@@ -234,3 +238,17 @@ Admin Panel → /admin/shop-items
   ├── Sil → DELETE /api/admin/shop-items/[id] (soft)
   └── Görsel → POST /api/admin/shop-items/upload → /public/cosmetics/
 ```
+## 8 Mart 2026 Plan Referansi
+
+Bu dokuman tasarim ve mevcut durum referansi olarak kalir.
+Uygulanabilir teknik plan ayri dokumanda yazildi:
+
+- `docs/dashboard-ui/cosmetics-implementation-plan.md`
+
+Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
+
+- `card_face` tipinin `card_back`ten ayri eklenmesi
+- image ve template bazli kozmetik render mantigi
+- bundle, indirim kampanyasi ve kupon kodu veri modeli
+- admin panelde template tabanli urun olusturma
+- mock veri ve mock settings akisinin final API kontratina uydurulmasi

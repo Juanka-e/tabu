@@ -1,67 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import {
-    User,
+    ChevronRight,
     Gamepad2,
+    LogOut,
+    Music,
+    Save,
     Shield,
+    User,
     UserCog,
     Volume2,
-    Music,
-    ChevronRight,
-    LogOut,
-    Save,
 } from "lucide-react";
+import {
+    defaultDashboardSettings,
+    readDashboardSettings,
+    type DashboardLanguage,
+    type DashboardSettingsState,
+    writeDashboardSettings,
+} from "@/lib/dashboard-settings";
+import type { UserInventoryResponse } from "@/types/economy";
 
 export function SettingsContent() {
     const { data: session } = useSession();
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
-    const [soundOn, setSoundOn] = useState(true);
-    const [musicOn, setMusicOn] = useState(false);
-    const [language, setLanguage] = useState("tr");
-    const [showOnline, setShowOnline] = useState(true);
+    const [settings, setSettings] = useState<DashboardSettingsState>(defaultDashboardSettings);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        if (!session?.user) return;
+        if (!session?.user) {
+            return;
+        }
+
         setDisplayName(session.user.name || "");
+        setSettings(readDashboardSettings());
+
         const load = async () => {
             try {
-                const res = await fetch("/api/user/me", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({}),
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.displayName) setDisplayName(data.displayName);
-                    if (data.bio) setBio(data.bio);
+                const response = await fetch("/api/user/me", { cache: "no-store" });
+                if (!response.ok) {
+                    return;
                 }
+
+                const payload = (await response.json()) as UserInventoryResponse;
+                setDisplayName(payload.profile.displayName || payload.name || session.user.name || "");
+                setBio(payload.profile.bio || "");
             } catch {
-                // silently fail
+                // Keep local fallbacks.
             }
         };
+
         void load();
     }, [session]);
+
+    useEffect(() => {
+        writeDashboardSettings(settings);
+    }, [settings]);
+
+    const languageOptions = useMemo(
+        () => [
+            { value: "tr" as DashboardLanguage, label: "Turkce" },
+            { value: "en" as DashboardLanguage, label: "English (US)" },
+            { value: "es" as DashboardLanguage, label: "Espanol" },
+        ],
+        []
+    );
 
     const handleSave = async () => {
         setSaving(true);
         setSaved(false);
+
         try {
-            const res = await fetch("/api/user/me", {
-                method: "POST",
+            const response = await fetch("/api/user/profile", {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ displayName, bio }),
             });
-            if (res.ok) {
+
+            if (response.ok) {
                 setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
+                window.setTimeout(() => setSaved(false), 2000);
             }
         } catch {
-            // silently fail
+            // Keep current inputs on failure.
         } finally {
             setSaving(false);
         }
@@ -69,22 +93,19 @@ export function SettingsContent() {
 
     return (
         <div className="p-8 md:p-10 max-w-4xl mx-auto">
-            {/* Header */}
             <header className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
                         Settings
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">
-                        Manage your account and preferences.
+                        Profile fields are live. Audio and gameplay options remain mock state for now.
                     </p>
                 </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left column */}
                 <div className="space-y-6">
-                    {/* Profile Settings */}
                     <section className="bg-white/60 dark:bg-slate-800/60 rounded-2xl border border-white/40 dark:border-slate-700/40 p-6 backdrop-blur-sm shadow-sm">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <User size={20} className="text-blue-500" />
@@ -102,8 +123,9 @@ export function SettingsContent() {
                                     id="displayName"
                                     type="text"
                                     value={displayName}
-                                    onChange={(e) => setDisplayName(e.target.value)}
+                                    onChange={(event) => setDisplayName(event.target.value)}
                                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    maxLength={60}
                                 />
                             </div>
                             <div>
@@ -117,15 +139,17 @@ export function SettingsContent() {
                                     id="bio"
                                     rows={3}
                                     value={bio}
-                                    onChange={(e) => setBio(e.target.value)}
+                                    onChange={(event) => setBio(event.target.value)}
                                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                                    maxLength={300}
                                 />
                             </div>
                             <div className="pt-2 text-right">
                                 <button
-                                    onClick={handleSave}
+                                    onClick={() => void handleSave()}
                                     disabled={saving}
                                     className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2 rounded-lg shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                                    type="button"
                                 >
                                     <Save size={14} />
                                     {saved ? "Saved!" : saving ? "Saving..." : "Save Changes"}
@@ -134,7 +158,6 @@ export function SettingsContent() {
                         </div>
                     </section>
 
-                    {/* Privacy */}
                     <section className="bg-white/60 dark:bg-slate-800/60 rounded-2xl border border-white/40 dark:border-slate-700/40 p-6 backdrop-blur-sm shadow-sm">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <Shield size={20} className="text-purple-500" />
@@ -146,20 +169,18 @@ export function SettingsContent() {
                                     Show Online Status
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    Allow friends to see when you are online
+                                    Mock preference stored locally until presence service is added.
                                 </div>
                             </div>
                             <ToggleSwitch
-                                checked={showOnline}
-                                onChange={setShowOnline}
+                                checked={settings.showOnline}
+                                onChange={(value) => setSettings((current) => ({ ...current, showOnline: value }))}
                             />
                         </div>
                     </section>
                 </div>
 
-                {/* Right column */}
                 <div className="space-y-6">
-                    {/* Game Settings */}
                     <section className="bg-white/60 dark:bg-slate-800/60 rounded-2xl border border-white/40 dark:border-slate-700/40 p-6 backdrop-blur-sm shadow-sm">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <Gamepad2 size={20} className="text-orange-500" />
@@ -174,8 +195,8 @@ export function SettingsContent() {
                                     </span>
                                 </div>
                                 <ToggleSwitch
-                                    checked={soundOn}
-                                    onChange={setSoundOn}
+                                    checked={settings.soundOn}
+                                    onChange={(value) => setSettings((current) => ({ ...current, soundOn: value }))}
                                 />
                             </div>
                             <div className="flex items-center justify-between">
@@ -186,8 +207,8 @@ export function SettingsContent() {
                                     </span>
                                 </div>
                                 <ToggleSwitch
-                                    checked={musicOn}
-                                    onChange={setMusicOn}
+                                    checked={settings.musicOn}
+                                    onChange={(value) => setSettings((current) => ({ ...current, musicOn: value }))}
                                 />
                             </div>
                             <div className="pt-2">
@@ -195,26 +216,32 @@ export function SettingsContent() {
                                     Language
                                 </label>
                                 <select
-                                    value={language}
-                                    onChange={(e) => setLanguage(e.target.value)}
+                                    value={settings.language}
+                                    onChange={(event) =>
+                                        setSettings((current) => ({
+                                            ...current,
+                                            language: event.target.value as DashboardLanguage,
+                                        }))
+                                    }
                                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                                 >
-                                    <option value="tr">Türkçe</option>
-                                    <option value="en">English (US)</option>
-                                    <option value="es">Español</option>
+                                    {languageOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
                     </section>
 
-                    {/* Account */}
                     <section className="bg-white/60 dark:bg-slate-800/60 rounded-2xl border border-white/40 dark:border-slate-700/40 p-6 backdrop-blur-sm shadow-sm">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <UserCog size={20} className="text-red-500" />
                             Account
                         </h3>
                         <div className="space-y-3">
-                            <button className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group">
+                            <button className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group" type="button">
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                     Change Password
                                 </span>
@@ -226,6 +253,7 @@ export function SettingsContent() {
                             <button
                                 onClick={() => signOut({ callbackUrl: "/" })}
                                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-600 dark:text-red-400"
+                                type="button"
                             >
                                 <span className="text-sm font-bold">Log Out</span>
                                 <LogOut size={18} />
@@ -238,19 +266,19 @@ export function SettingsContent() {
     );
 }
 
-/* Toggle switch component */
 function ToggleSwitch({
     checked,
     onChange,
 }: {
     checked: boolean;
-    onChange: (v: boolean) => void;
+    onChange: (value: boolean) => void;
 }) {
     return (
         <button
             onClick={() => onChange(!checked)}
             className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${checked ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
                 }`}
+            type="button"
         >
             <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-6" : "translate-x-0.5"
