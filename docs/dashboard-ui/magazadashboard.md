@@ -316,3 +316,44 @@ Bu planda netlestirilen ana kararlar:
 - template tabanli kozmetik tanimlarini admin paneline acmak
 - bundle / discount / coupon yonetimini eklemek
 - production-shaped mock katalog ve kampanya seed'lerini eklemek
+
+---
+
+## Card Face + Template Slice (9 March 2026)
+
+### Veri modeli
+- `ShopItemType` artik `card_face` tipini de iceriyor.
+- `ShopItem` artik `renderMode`, `templateKey`, `templateConfig` alanlarini tasiyor.
+- `UserProfile` artik `cardFaceItemId` ile aktif kart on temasini sakliyor.
+
+### Admin tarafi
+- `/admin/shop-items` artik image ve template tabanli urun olusturabiliyor.
+- Template urunlerde `templateKey` ve `templateConfig` JSON alanlari formdan yonetiliyor.
+- JSON config sadece primitive degerler kabul ediyor; nested serbest veri alinmiyor.
+- `avatar` urunleri icin template modu bilerek kapali tutuldu.
+
+### Oyun tarafi
+- Room sayfasi giris yapan kullanicinin `card_face` item'ini `/api/user/me` uzerinden okuyor.
+- Secili `card_face` icin guvenli resolver calisiyor:
+  - destekli renkler yalnizca hex formatinda
+  - destekli texture anahtarlari whitelist ile sinirli
+  - overlay opacity clamp ediliyor
+- `GameCard` artik tema prop'u aliyor ve baslik/govde/footer gorunusunu buna gore degistirebiliyor.
+- `card_back` ile `card_face` artik veri modelinde ve equip akisinda ayrik.
+
+### Test ve guvenlik
+- Test script eklendi: `npm run test:card-face`
+- Dogrulama:
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+  - `npm audit --omit=dev`
+- Audit bulgusu:
+  - `multer < 2.1.1` high severity DoS riski
+  - cozum: `multer` `^2.1.1` seviyesine yukseltildi
+  - sonuc: `0 vulnerabilities`
+
+### Hala kalanlar
+- frame ve `card_back` icin template renderer yuzeyini oyunda kullanmak
+- bundle / discount / coupon CRUD
+- oyuncu sidebari icin diger kullanicilarin avatar/frame snapshot'larini socket state'e tasimak

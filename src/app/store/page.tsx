@@ -40,6 +40,7 @@ export default function StorePage() {
       avatar: items.filter((item) => item.type === "avatar"),
       frame: items.filter((item) => item.type === "frame"),
       card_back: items.filter((item) => item.type === "card_back"),
+      card_face: items.filter((item) => item.type === "card_face"),
     };
   }, [items]);
 
@@ -89,6 +90,7 @@ export default function StorePage() {
         <Category title="Avatar" items={grouped.avatar} busyId={busyId} coin={coin} onBuy={buy} />
         <Category title="Cerceve" items={grouped.frame} busyId={busyId} coin={coin} onBuy={buy} />
         <Category title="Kart Arkasi" items={grouped.card_back} busyId={busyId} coin={coin} onBuy={buy} />
+        <Category title="Kart Onu" items={grouped.card_face} busyId={busyId} coin={coin} onBuy={buy} />
       </main>
     </div>
   );

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { ShopItemType, ItemRarity } from "@prisma/client";
+import { shopItemWriteSchema, toPrismaShopItemCreateData } from "@/lib/cosmetics/shop-item-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +34,10 @@ export async function GET(request: NextRequest) {
 }
 
 // POST — Create a new shop item
-const createSchema = z.object({
-    code: z.string().min(1).max(80),
-    type: z.nativeEnum(ShopItemType),
-    name: z.string().min(1).max(120),
-    rarity: z.nativeEnum(ItemRarity).default("common"),
-    priceCoin: z.number().int().min(0),
-    imageUrl: z.string().default(""),
-    isActive: z.boolean().default(true),
-    sortOrder: z.number().int().default(0),
-});
-
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const data = createSchema.parse(body);
+        const data = toPrismaShopItemCreateData(shopItemWriteSchema.parse(body));
 
         const item = await prisma.shopItem.create({ data });
         return NextResponse.json(item, { status: 201 });

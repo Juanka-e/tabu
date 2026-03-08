@@ -37,6 +37,7 @@ const tabs: { id: StoreItemType; label: string }[] = [
     { id: "avatar", label: "Avatars" },
     { id: "frame", label: "Frames" },
     { id: "card_back", label: "Card Backs" },
+    { id: "card_face", label: "Card Faces" },
 ];
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
@@ -53,7 +54,10 @@ function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): 
     if (item.type === "frame") {
         return equippedSlots.frameItemId === item.shopItemId;
     }
-    return equippedSlots.cardBackItemId === item.shopItemId;
+    if (item.type === "card_back") {
+        return equippedSlots.cardBackItemId === item.shopItemId;
+    }
+    return equippedSlots.cardFaceItemId === item.shopItemId;
 }
 
 export function InventoryContent() {
@@ -67,6 +71,7 @@ export function InventoryContent() {
         avatarItemId: null,
         frameItemId: null,
         cardBackItemId: null,
+        cardFaceItemId: null,
     });
     const [displayName, setDisplayName] = useState("Player");
 
@@ -89,6 +94,7 @@ export function InventoryContent() {
                     avatarItemId: payload.profile.avatarItemId,
                     frameItemId: payload.profile.frameItemId,
                     cardBackItemId: payload.profile.cardBackItemId,
+                    cardFaceItemId: payload.profile.cardFaceItemId,
                 });
                 setDisplayName(payload.profile.displayName || payload.name || session.user.name || "Player");
             } catch {

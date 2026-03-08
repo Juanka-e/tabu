@@ -11,6 +11,8 @@ import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
 import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
+import { resolveCardFaceTheme, type ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
+import type { UserInventoryResponse } from "@/types/economy";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -71,6 +73,7 @@ export default function RoomPage() {
     const [myRole, setMyRole] = useState("Tahminci");
     const [narratorName, setNarratorName] = useState("");
     const [inspectorName, setInspectorName] = useState("");
+    const [cardFaceTheme, setCardFaceTheme] = useState<ResolvedCardFaceTheme | null>(null);
 
     // Transition
     const [transition, setTransition] = useState<TransitionData | null>(null);
@@ -247,6 +250,41 @@ export default function RoomPage() {
         };
     }, [roomCode, router, session?.user?.id, showUsernamePrompt]);
 
+    useEffect(() => {
+        if (!session?.user?.id) {
+            return;
+        }
+
+        const loadEquippedCosmetics = async () => {
+            try {
+                const response = await fetch("/api/user/me", { cache: "no-store" });
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = (await response.json()) as UserInventoryResponse;
+                const equippedCardFace =
+                    payload.items.find((item) => item.type === "card_face" && item.equipped) ?? null;
+
+                setCardFaceTheme(
+                    equippedCardFace
+                        ? resolveCardFaceTheme({
+                            renderMode: equippedCardFace.renderMode,
+                            imageUrl: equippedCardFace.imageUrl,
+                            templateKey: equippedCardFace.templateKey,
+                            templateConfig: equippedCardFace.templateConfig,
+                            rarity: equippedCardFace.rarity,
+                        })
+                        : null
+                );
+            } catch {
+                // Keep default card when cosmetics cannot be loaded.
+            }
+        };
+
+        void loadEquippedCosmetics();
+    }, [session?.user?.id]);
+
     // ─── Actions ─────────────────────────────────────────────────
 
     const emit = useCallback(
@@ -290,6 +328,7 @@ export default function RoomPage() {
                     inspectorName={inspectorName}
                     isHost={isHost as boolean}
                     settings={settings}
+                    cardFaceTheme={cardFaceTheme}
                     onWordAction={handleWordAction}
                     onPauseResume={() => emit("oyunKontrolİsteği")}
                     onResetGame={() => emit("oyunuSifirlaİsteği")}

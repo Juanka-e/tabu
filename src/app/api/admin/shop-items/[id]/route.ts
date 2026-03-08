@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { ShopItemType, ItemRarity } from "@prisma/client";
+import { shopItemUpdateSchema, toPrismaShopItemUpdateData } from "@/lib/cosmetics/shop-item-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -31,17 +31,6 @@ export async function GET(
 }
 
 // PUT — Update shop item
-const updateSchema = z.object({
-    code: z.string().min(1).max(80).optional(),
-    type: z.nativeEnum(ShopItemType).optional(),
-    name: z.string().min(1).max(120).optional(),
-    rarity: z.nativeEnum(ItemRarity).optional(),
-    priceCoin: z.number().int().min(0).optional(),
-    imageUrl: z.string().optional(),
-    isActive: z.boolean().optional(),
-    sortOrder: z.number().int().optional(),
-});
-
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -49,7 +38,7 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
-        const data = updateSchema.parse(body);
+        const data = toPrismaShopItemUpdateData(shopItemUpdateSchema.parse(body));
 
         const item = await prisma.shopItem.update({
             where: { id: parseInt(id) },

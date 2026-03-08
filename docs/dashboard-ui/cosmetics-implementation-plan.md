@@ -28,6 +28,15 @@ Neden:
 - `frame` avatari cevreler, bagimsiz kusanilir
 - `card_back` kart acilmadan once veya preview alaninda kullanilir
 - `card_face` aktif Tabu kartinin on yuz temasini degistirir
+
+## Progress Checkpoint (9 March 2026)
+
+Bu planin ilk uygulanan kismi:
+- `card_face` tipi eklendi
+- `renderMode`, `templateKey`, `templateConfig` alanlari eklendi
+- admin CRUD image/template urunleri kabul eder hale getirildi
+- `GameCard` tarafinda equipped `card_face` tema resolve akisi kuruldu
+- smoke test ve audit dogrulamasi eklendi
 - `bundle` tek urun degil, urun grubu oldugu icin ayri iliski ister
 
 ### 2. Kart on yuzu ve kart arka yuzu ayri sistem olacak

@@ -5,6 +5,7 @@ import type {
     EquippedSlots,
     InventoryItemView,
     StoreItemView,
+    TemplateConfig,
     UserInventoryProfile,
     UserInventoryResponse,
 } from "@/types/economy";
@@ -75,6 +76,7 @@ export async function getProfileData(userId: number) {
             avatarItem: true,
             frameItem: true,
             cardBackItem: true,
+            cardFaceItem: true,
         },
     });
 
@@ -91,18 +93,42 @@ function getEquippedSlots(profile: {
     avatarItemId: number | null;
     frameItemId: number | null;
     cardBackItemId: number | null;
+    cardFaceItemId: number | null;
 } | null): EquippedSlots {
     return {
         avatarItemId: profile?.avatarItemId ?? null,
         frameItemId: profile?.frameItemId ?? null,
         cardBackItemId: profile?.cardBackItemId ?? null,
+        cardFaceItemId: profile?.cardFaceItemId ?? null,
     };
 }
 
 function isEquipped(shopItemId: number, itemType: ShopItemType, equippedSlots: EquippedSlots): boolean {
     if (itemType === "avatar") return equippedSlots.avatarItemId === shopItemId;
     if (itemType === "frame") return equippedSlots.frameItemId === shopItemId;
-    return equippedSlots.cardBackItemId === shopItemId;
+    if (itemType === "card_back") return equippedSlots.cardBackItemId === shopItemId;
+    return equippedSlots.cardFaceItemId === shopItemId;
+}
+
+function normalizeTemplateConfig(value: Prisma.JsonValue | null): TemplateConfig | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const entries = Object.entries(value);
+    const configEntries: [string, string | number | boolean][] = [];
+
+    for (const [key, entryValue] of entries) {
+        if (
+            typeof entryValue === "string" ||
+            typeof entryValue === "number" ||
+            typeof entryValue === "boolean"
+        ) {
+            configEntries.push([key, entryValue]);
+        }
+    }
+
+    return configEntries.length > 0 ? Object.fromEntries(configEntries) : null;
 }
 
 export async function getInventoryData(userId: number): Promise<UserInventoryResponse> {
@@ -126,8 +152,11 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
         name: entry.shopItem.name,
         type: entry.shopItem.type,
         rarity: entry.shopItem.rarity,
+        renderMode: entry.shopItem.renderMode,
         priceCoin: entry.shopItem.priceCoin,
         imageUrl: entry.shopItem.imageUrl,
+        templateKey: entry.shopItem.templateKey,
+        templateConfig: normalizeTemplateConfig(entry.shopItem.templateConfig),
         source: entry.source,
         acquiredAt: entry.acquiredAt.toISOString(),
         equipped: isEquipped(entry.shopItemId, entry.shopItem.type, equippedSlots),
@@ -139,6 +168,7 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
         avatarItemId: equippedSlots.avatarItemId,
         frameItemId: equippedSlots.frameItemId,
         cardBackItemId: equippedSlots.cardBackItemId,
+        cardFaceItemId: equippedSlots.cardFaceItemId,
     };
 
     return {
@@ -170,8 +200,11 @@ export async function listStoreItems(type?: ShopItemType, userId?: number): Prom
             name: item.name,
             type: item.type,
             rarity: item.rarity,
+            renderMode: item.renderMode,
             priceCoin: item.priceCoin,
             imageUrl: item.imageUrl,
+            templateKey: item.templateKey,
+            templateConfig: normalizeTemplateConfig(item.templateConfig),
             isActive: item.isActive,
             sortOrder: item.sortOrder,
             owned: false,
@@ -188,6 +221,7 @@ export async function listStoreItems(type?: ShopItemType, userId?: number): Prom
                 avatarItemId: true,
                 frameItemId: true,
                 cardBackItemId: true,
+                cardFaceItemId: true,
             },
         }),
         prisma.inventoryItem.findMany({
@@ -205,8 +239,11 @@ export async function listStoreItems(type?: ShopItemType, userId?: number): Prom
         name: item.name,
         type: item.type,
         rarity: item.rarity,
+        renderMode: item.renderMode,
         priceCoin: item.priceCoin,
         imageUrl: item.imageUrl,
+        templateKey: item.templateKey,
+        templateConfig: normalizeTemplateConfig(item.templateConfig),
         isActive: item.isActive,
         sortOrder: item.sortOrder,
         owned: ownedIds.has(item.id),
@@ -294,6 +331,7 @@ export async function equipStoreItem(userId: number, shopItemId: number) {
     if (item.type === "avatar") data.avatarItemId = item.id;
     if (item.type === "frame") data.frameItemId = item.id;
     if (item.type === "card_back") data.cardBackItemId = item.id;
+    if (item.type === "card_face") data.cardFaceItemId = item.id;
 
     const profile = await prisma.userProfile.update({
         where: { userId },
@@ -302,6 +340,7 @@ export async function equipStoreItem(userId: number, shopItemId: number) {
             avatarItem: true,
             frameItem: true,
             cardBackItem: true,
+            cardFaceItem: true,
         },
     });
 

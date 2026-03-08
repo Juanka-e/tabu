@@ -1,11 +1,15 @@
-export type StoreItemType = "avatar" | "frame" | "card_back";
+export type StoreItemType = "avatar" | "frame" | "card_back" | "card_face";
 export type StoreItemRarity = "common" | "rare" | "epic" | "legendary";
 export type InventoryItemSource = "purchase" | "grant" | "migration";
+export type StoreItemRenderMode = "image" | "template";
+export type TemplateConfigValue = string | number | boolean;
+export type TemplateConfig = Record<string, TemplateConfigValue>;
 
 export interface EquippedSlots {
     avatarItemId: number | null;
     frameItemId: number | null;
     cardBackItemId: number | null;
+    cardFaceItemId: number | null;
 }
 
 export interface StoreItemView {
@@ -14,8 +18,11 @@ export interface StoreItemView {
     name: string;
     type: StoreItemType;
     rarity: StoreItemRarity;
+    renderMode: StoreItemRenderMode;
     priceCoin: number;
     imageUrl: string;
+    templateKey: string | null;
+    templateConfig: TemplateConfig | null;
     isActive: boolean;
     sortOrder: number;
     owned: boolean;
@@ -29,8 +36,11 @@ export interface InventoryItemView {
     name: string;
     type: StoreItemType;
     rarity: StoreItemRarity;
+    renderMode: StoreItemRenderMode;
     priceCoin: number;
     imageUrl: string;
+    templateKey: string | null;
+    templateConfig: TemplateConfig | null;
     source: InventoryItemSource;
     acquiredAt: string;
     equipped: boolean;
@@ -42,6 +52,7 @@ export interface UserInventoryProfile {
     avatarItemId: number | null;
     frameItemId: number | null;
     cardBackItemId: number | null;
+    cardFaceItemId: number | null;
 }
 
 export interface UserInventoryResponse {

@@ -100,16 +100,16 @@
 ## Phase 12: Cosmetics, Cards, Promotions (March 8, 2026)
 - [x] Align overlay UI request/response contracts with real backend APIs
 - [x] Add `GET /api/user/inventory`
-- [ ] Add `card_face` support in Prisma and UI
-- [ ] Split card front and card back systems
+- [x] Add `card_face` support in Prisma and UI
+- [x] Split card front and card back systems
 - [ ] Add render strategy for `image` and `template` cosmetics
-- [ ] Add admin support for template-based cosmetic creation
+- [x] Add admin support for template-based cosmetic creation
 - [ ] Add bundle schema and admin management
 - [ ] Add discount campaign schema and admin management
 - [ ] Add coupon code schema and admin management
 - [ ] Seed mock cosmetics/offers/coupons with production-shaped data
 - [ ] Render equipped avatar/frame in room sidebars
-- [ ] Render equipped card theme in `GameCard`
+- [x] Render equipped card theme in `GameCard`
 - [x] Keep settings page audio/music controls mock but stateful
 
 Reference:
@@ -122,3 +122,11 @@ Reference:
 - [x] Profile sidebar now combines `/api/user/dashboard` and `/api/user/me`
 - [x] `/profile`, `/store`, and `/dashboard` pages were aligned to the new economy types
 - [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+### Phase 12 Update (March 9, 2026)
+- [x] Prisma schema extended with `card_face`, `renderMode`, `templateKey`, and `templateConfig`
+- [x] `UserProfile` now supports an equipped `cardFaceItemId`
+- [x] Admin shop item CRUD supports image/template cosmetics and safe JSON config input
+- [x] Room page now resolves the logged-in user's equipped `card_face` and applies it to `GameCard`
+- [x] Smoke test added: `npm run test:card-face`
+- [x] Security check completed: `npm audit --omit=dev` is clean after upgrading `multer`

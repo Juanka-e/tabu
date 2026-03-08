@@ -12,6 +12,7 @@ const emptyEquippedSlots: EquippedSlots = {
   avatarItemId: null,
   frameItemId: null,
   cardBackItemId: null,
+  cardFaceItemId: null,
 };
 
 export default function ProfilePage() {
@@ -42,6 +43,7 @@ export default function ProfilePage() {
           avatarItemId: me.profile.avatarItemId,
           frameItemId: me.profile.frameItemId,
           cardBackItemId: me.profile.cardBackItemId,
+          cardFaceItemId: me.profile.cardFaceItemId,
         });
       } finally {
         setLoading(false);
@@ -56,6 +58,7 @@ export default function ProfilePage() {
       avatar: ownedItems.filter((item) => item.type === "avatar"),
       frame: ownedItems.filter((item) => item.type === "frame"),
       card_back: ownedItems.filter((item) => item.type === "card_back"),
+      card_face: ownedItems.filter((item) => item.type === "card_face"),
     };
   }, [ownedItems]);
 
@@ -110,7 +113,7 @@ export default function ProfilePage() {
           <Button onClick={() => void saveProfile()} disabled={saving}>{saving ? "Kaydediliyor..." : "Profili Kaydet"}</Button>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <CosmeticColumn
             title="Avatar"
             items={grouped.avatar}
@@ -129,6 +132,13 @@ export default function ProfilePage() {
             title="Kart Arkasi"
             items={grouped.card_back}
             activeId={equipped.cardBackItemId}
+            loading={loading}
+            onEquip={equip}
+          />
+          <CosmeticColumn
+            title="Kart Onu"
+            items={grouped.card_face}
+            activeId={equipped.cardFaceItemId}
             loading={loading}
             onEquip={equip}
           />

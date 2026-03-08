@@ -31,6 +31,7 @@ export async function POST(req: Request) {
         avatarItemId: result.profile.avatarItemId,
         frameItemId: result.profile.frameItemId,
         cardBackItemId: result.profile.cardBackItemId,
+        cardFaceItemId: result.profile.cardFaceItemId,
       },
     });
   } catch (error) {

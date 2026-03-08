@@ -11,6 +11,12 @@ enum ShopItemType {
   avatar
   frame
   card_back
+  card_face
+}
+
+enum CosmeticRenderMode {
+  image
+  template
 }
 
 enum ItemRarity {
@@ -56,6 +62,7 @@ model UserProfile {
   avatarItemId   Int?     @map("avatar_item_id")
   frameItemId    Int?     @map("frame_item_id")
   cardBackItemId Int?     @map("card_back_item_id")
+  cardFaceItemId Int?     @map("card_face_item_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -63,6 +70,7 @@ model UserProfile {
   avatarItem   ShopItem? @relation("ProfileAvatar", fields: [avatarItemId], references: [id], onDelete: SetNull)
   frameItem    ShopItem? @relation("ProfileFrame", fields: [frameItemId], references: [id], onDelete: SetNull)
   cardBackItem ShopItem? @relation("ProfileCardBack", fields: [cardBackItemId], references: [id], onDelete: SetNull)
+  cardFaceItem ShopItem? @relation("ProfileCardFace", fields: [cardFaceItemId], references: [id], onDelete: SetNull)
 
   @@map("user_profiles")
 }
@@ -84,8 +92,11 @@ model ShopItem {
   type      ShopItemType
   name      String       @db.VarChar(120)
   rarity    ItemRarity   @default(common)
+  renderMode CosmeticRenderMode @default(image) @map("render_mode")
   priceCoin Int          @map("price_coin")
   imageUrl  String       @map("image_url") @db.Text
+  templateKey String?    @map("template_key") @db.VarChar(80)
+  templateConfig Json?   @map("template_config")
   isActive  Boolean      @default(true) @map("is_active")
   sortOrder Int          @default(0) @map("sort_order")
   createdAt DateTime     @default(now()) @map("created_at")
@@ -96,6 +107,7 @@ model ShopItem {
   equippedByAvatar   UserProfile[] @relation("ProfileAvatar")
   equippedByFrame    UserProfile[] @relation("ProfileFrame")
   equippedByCardBack UserProfile[] @relation("ProfileCardBack")
+  equippedByCardFace UserProfile[] @relation("ProfileCardFace")
 
   @@map("shop_items")
 }

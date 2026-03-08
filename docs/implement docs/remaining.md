@@ -173,9 +173,16 @@ Reference:
 - `/profile`, `/store`, and `/dashboard` pages were updated to the new typed economy responses.
 - Verification is green: `npm run lint`, `npx tsc --noEmit`, `npm run build`.
 
+### Completed in the March 9 card-face slice
+- `card_face` was added to the Prisma and TypeScript economy model.
+- Cosmetic items now support `renderMode`, `templateKey`, and `templateConfig`.
+- Admin shop item CRUD now supports template-driven cosmetics with validated JSON config.
+- Room gameplay now resolves the logged-in player's equipped `card_face` and passes it into `GameCard`.
+- `scripts/test-card-face-theme.ts` was added and wired to `npm run test:card-face`.
+- `multer` was upgraded to `^2.1.1` to clear the high-severity audit finding.
+- Security verification passed: `npm audit --omit=dev` returns `0 vulnerabilities`.
+
 ### Remaining
-- Add `card_face` to Prisma, admin flows, and active game rendering.
-- Split card front and card back cosmetic systems in UI and data model.
 - Add template-driven cosmetic definitions for frame/card styling.
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.

@@ -252,3 +252,14 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - bundle, indirim kampanyasi ve kupon kodu veri modeli
 - admin panelde template tabanli urun olusturma
 - mock veri ve mock settings akisinin final API kontratina uydurulmasi
+
+## 9 Mart 2026 Uygulama Notu
+
+- `card_face` tipi aktif edildi.
+- `ShopItem` icin `renderMode`, `templateKey`, `templateConfig` alanlari eklendi.
+- `/admin/shop-items` artik image/template ayrimini yonetebiliyor.
+- `GameCard` temasi, login kullanicinin equip ettigi `card_face` urununden resolve ediliyor.
+- Security:
+  - admin ve store/user API korumasi `src/middleware.ts` uzerinden devam ediyor
+  - shop item create/update validator'lari artik ortak zod schema uzerinden calisiyor
+  - `npm audit --omit=dev` sonucunda bulunan `multer` zafiyeti kapatildi

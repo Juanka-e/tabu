@@ -31,6 +31,7 @@ export async function PATCH(req: Request) {
         avatarItem: true,
         frameItem: true,
         cardBackItem: true,
+        cardFaceItem: true,
       },
     });
 

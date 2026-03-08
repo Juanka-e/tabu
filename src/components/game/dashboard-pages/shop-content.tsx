@@ -22,6 +22,7 @@ const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[
     { id: "avatar", icon: UserCircle, label: "Avatars" },
     { id: "frame", icon: Frame, label: "Frames" },
     { id: "card_back", icon: ShoppingBag, label: "Card Backs" },
+    { id: "card_face", icon: ShoppingBag, label: "Card Faces" },
 ];
 
 const rarityBadgeColor = {
