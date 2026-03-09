@@ -384,3 +384,30 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Card Back Transition Slice (9 March 2026)
+
+### Tamamlananlar
+- `card_back` icin ayri resolver eklendi: `src/lib/cosmetics/card-back.ts`.
+- Gecis ekrani artik giris yapan kullanicinin equip ettigi `card_back` temasini gosterebiliyor.
+- `scripts/test-card-back-theme.ts` smoke testi ve `npm run test:card-back` komutu eklendi.
+
+### Misafir Akisi Garantisi
+- Misafir kullanicida `card_back` yuklenmiyor.
+- Kozmetik fetch'i sadece `session.user.id` varsa calisiyor.
+- Render tarafinda da `cardBackTheme` ve `cardFaceTheme` session yoksa zorla `null` maskeleniyor.
+- Bu nedenle misafir girisi ve kayitsiz oyun akisinda davranis degisikligi yok.
+
+### Guvenlik ve Mantik
+- Kozmetik verisi halen `/api/user/me` uzerinden geliyor; bu route login gerektiriyor.
+- `card_back` sadece oyuncunun kendi client'inda gosteriliyor; rakibe veya tahmin bilgisine ek veri sizdirmiyor.
+- Image/template varyantlari whitelist/sanitize kurallari ile resolve ediliyor.
+
+### Bu Turdaki Dogrulama
+- `npm run test:card-back`
+- `npm run test:card-face`
+- `npm run test:frame-theme`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

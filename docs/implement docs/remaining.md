@@ -199,3 +199,14 @@ Reference:
 - Reflect `card_back` in preview / transition flows.
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.
+
+### Completed in the March 9 card-back slice
+- Transition screen now supports equipped `card_back` themes for authenticated users.
+- Guest gameplay remains unchanged; cosmetics stay disabled without login.
+- Added smoke test: `npm run test:card-back`.
+- Verification passed: `npm run test:card-back`, `npm run test:card-face`, `npm run test:frame-theme`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add bundle, discount, and coupon data models plus admin CRUD.
+- Seed production-shaped mock cosmetics, promotions, and coupon data.
+- Extend `card_back` beyond transition to other non-sensitive preview surfaces if desired.

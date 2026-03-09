@@ -12,6 +12,7 @@ import { DashboardOverlay } from "@/components/game/dashboard-overlay";
 import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { resolveCardFaceTheme, type ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
+import { resolveCardBackTheme, type ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import type { UserInventoryResponse } from "@/types/economy";
 import { GameView } from "@/types/game";
 import type {
@@ -74,6 +75,7 @@ export default function RoomPage() {
     const [narratorName, setNarratorName] = useState("");
     const [inspectorName, setInspectorName] = useState("");
     const [cardFaceTheme, setCardFaceTheme] = useState<ResolvedCardFaceTheme | null>(null);
+    const [cardBackTheme, setCardBackTheme] = useState<ResolvedCardBackTheme | null>(null);
 
     // Transition
     const [transition, setTransition] = useState<TransitionData | null>(null);
@@ -255,9 +257,14 @@ export default function RoomPage() {
             return;
         }
 
+        const controller = new AbortController();
+
         const loadEquippedCosmetics = async () => {
             try {
-                const response = await fetch("/api/user/me", { cache: "no-store" });
+                const response = await fetch("/api/user/me", {
+                    cache: "no-store",
+                    signal: controller.signal,
+                });
                 if (!response.ok) {
                     return;
                 }
@@ -265,6 +272,8 @@ export default function RoomPage() {
                 const payload = (await response.json()) as UserInventoryResponse;
                 const equippedCardFace =
                     payload.items.find((item) => item.type === "card_face" && item.equipped) ?? null;
+                const equippedCardBack =
+                    payload.items.find((item) => item.type === "card_back" && item.equipped) ?? null;
 
                 setCardFaceTheme(
                     equippedCardFace
@@ -277,12 +286,33 @@ export default function RoomPage() {
                         })
                         : null
                 );
-            } catch {
-                // Keep default card when cosmetics cannot be loaded.
+                setCardBackTheme(
+                    equippedCardBack
+                        ? resolveCardBackTheme({
+                            renderMode: equippedCardBack.renderMode,
+                            imageUrl: equippedCardBack.imageUrl,
+                            templateKey: equippedCardBack.templateKey,
+                            templateConfig: equippedCardBack.templateConfig,
+                            rarity: equippedCardBack.rarity,
+                        })
+                        : null
+                );
+            } catch (error) {
+                if (error instanceof DOMException && error.name === "AbortError") {
+                    return;
+                }
+
+                // Keep default cosmetics when they cannot be loaded.
+                setCardFaceTheme(null);
+                setCardBackTheme(null);
             }
         };
 
         void loadEquippedCosmetics();
+
+        return () => {
+            controller.abort();
+        };
     }, [session?.user?.id]);
 
     // ─── Actions ─────────────────────────────────────────────────
@@ -295,6 +325,8 @@ export default function RoomPage() {
     );
 
     const isHost = myPlayerId && creatorPlayerId ? myPlayerId === creatorPlayerId : false;
+    const effectiveCardFaceTheme = session?.user?.id ? cardFaceTheme : null;
+    const effectiveCardBackTheme = session?.user?.id ? cardBackTheme : null;
 
     const handleStartGame = useCallback(() => {
         emit("oyunBaslatİsteği", {
@@ -315,7 +347,7 @@ export default function RoomPage() {
 
     const renderGameContent = () => {
         if (view === GameView.TRANSITION && transition) {
-            return <TransitionScreen transition={transition} />;
+            return <TransitionScreen transition={transition} cardBackTheme={effectiveCardBackTheme} />;
         }
 
         if (view === GameView.PLAYING) {
@@ -328,7 +360,7 @@ export default function RoomPage() {
                     inspectorName={inspectorName}
                     isHost={isHost as boolean}
                     settings={settings}
-                    cardFaceTheme={cardFaceTheme}
+                    cardFaceTheme={effectiveCardFaceTheme}
                     onWordAction={handleWordAction}
                     onPauseResume={() => emit("oyunKontrolİsteği")}
                     onResetGame={() => emit("oyunuSifirlaİsteği")}

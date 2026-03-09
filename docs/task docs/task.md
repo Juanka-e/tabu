@@ -140,3 +140,11 @@ Reference:
 - [x] Sidebar renders equipped avatar/frame without changing the approved UI structure
 - [x] Socket join ignores spoofed client `authUserId` values and resolves identity from the session cookie
 - [x] Verification completed: `npm run test:frame-theme`, `npm run test:card-face`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+- [x] Render equipped `card_back` in the room transition screen for authenticated users
+- [x] Keep guest room flow free of cosmetic fetches and cosmetic rendering
+- [x] Add smoke test coverage for card-back resolver (`npm run test:card-back`)
+
+### Phase 12 Update (March 9, 2026 - Card Back Transition)
+- [x] Transition screen now renders equipped `card_back` themes for logged-in users
+- [x] Guest flow remains unchanged; cosmetics stay gated behind login
+- [x] Verification completed: `npm run test:card-back`, `npm run test:card-face`, `npm run test:frame-theme`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

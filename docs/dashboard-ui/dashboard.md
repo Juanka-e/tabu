@@ -271,3 +271,10 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Frame visuals use a sanitized resolver (`src/lib/cosmetics/frame.ts`) so template colors stay whitelist/hex-safe.
 - Socket join now verifies user identity from the session cookie instead of trusting client-sent `authUserId`.
 - Added smoke coverage: `npm run test:frame-theme`.
+
+## 9 March 2026 Update - Card Back in Transition
+
+- `TransitionScreen` now accepts an optional `cardBackTheme`.
+- Equipped `card_back` cosmetics render only for authenticated users and only on their own transition screen.
+- Guest users keep the default transition UI with no cosmetic fetch.
+- Added smoke coverage: `npm run test:card-back`.
