@@ -1,5 +1,6 @@
 "use client";
 
+import Image, { type ImageLoaderProps } from "next/image";
 import { Crown, ChevronLeft, ChevronRight, Users, Shield, Swords, MoreVertical, UserX, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,8 @@ const teamTheme = {
         footerBg: "bg-blue-500",
     },
 };
+
+const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 export function Sidebar({
     team,
@@ -193,11 +196,40 @@ export function Sidebar({
                             {/* Avatar */}
                             <div className="relative">
                                 <div
-                                    className={`relative w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm transition-transform duration-200 group-hover:scale-105 ${theme.avatar} ring-2 ring-white dark:ring-slate-900`}
+                                    className="relative w-11 h-11 rounded-2xl p-[2px] shadow-sm transition-transform duration-200 group-hover:scale-105 ring-2 ring-white dark:ring-slate-900 overflow-hidden"
+                                    style={{
+                                        backgroundColor: player.cosmetics?.frameAccentColor ?? undefined,
+                                    }}
                                 >
-                                    {(player.ad || "?")
-                                        .substring(0, 1)
-                                        .toUpperCase()}
+                                    {player.cosmetics?.frameImageUrl && (
+                                        <Image
+                                            loader={passthroughImageLoader}
+                                            unoptimized
+                                            src={player.cosmetics.frameImageUrl}
+                                            alt=""
+                                            aria-hidden="true"
+                                            fill
+                                            className="object-cover opacity-50 pointer-events-none"
+                                        />
+                                    )}
+                                    <div
+                                        className={`relative z-10 w-full h-full rounded-[14px] flex items-center justify-center font-black text-lg overflow-hidden ${theme.avatar}`}
+                                    >
+                                        {player.cosmetics?.avatarImageUrl ? (
+                                            <Image
+                                                loader={passthroughImageLoader}
+                                                unoptimized
+                                                src={player.cosmetics.avatarImageUrl}
+                                                alt={player.ad}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            (player.ad || "?")
+                                                .substring(0, 1)
+                                                .toUpperCase()
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Crown for Host */}

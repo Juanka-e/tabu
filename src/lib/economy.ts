@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, ShopItemType } from "@prisma/client";
+import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import type {
     DashboardDataResponse,
     EquippedSlots,
     InventoryItemView,
+    PlayerAppearanceSnapshot,
     StoreItemView,
     TemplateConfig,
     UserInventoryProfile,
@@ -12,6 +14,20 @@ import type {
 
 export const WIN_REWARD = 120;
 export const LOSS_REWARD = 40;
+
+type AppearanceProfileRecord = {
+    userId: number;
+    avatarItem: {
+        imageUrl: string;
+    } | null;
+    frameItem: {
+        imageUrl: string;
+        rarity: "common" | "rare" | "epic" | "legendary";
+        renderMode: "image" | "template";
+        templateKey: string | null;
+        templateConfig: Prisma.JsonValue | null;
+    } | null;
+};
 
 export async function ensureUserCore(userId: number) {
     await prisma.$transaction([
@@ -89,6 +105,72 @@ export async function getProfileData(userId: number) {
     return { profile, inventory };
 }
 
+export async function getPlayerAppearanceSnapshot(userId: number): Promise<PlayerAppearanceSnapshot> {
+    await ensureUserCore(userId);
+
+    const profile = await prisma.userProfile.findUnique({
+        where: { userId },
+        include: {
+            avatarItem: {
+                select: {
+                    imageUrl: true,
+                },
+            },
+            frameItem: {
+                select: {
+                    imageUrl: true,
+                    rarity: true,
+                    renderMode: true,
+                    templateKey: true,
+                    templateConfig: true,
+                },
+            },
+        },
+    });
+
+    return profile ? mapPlayerAppearanceSnapshot(profile) : createEmptyAppearanceSnapshot();
+}
+
+export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<Map<number, PlayerAppearanceSnapshot>> {
+    const uniqueUserIds = [...new Set(userIds.filter((userId) => Number.isInteger(userId) && userId > 0))];
+    if (uniqueUserIds.length === 0) {
+        return new Map();
+    }
+
+    await Promise.all(uniqueUserIds.map((userId) => ensureUserCore(userId)));
+
+    const profiles = await prisma.userProfile.findMany({
+        where: {
+            userId: {
+                in: uniqueUserIds,
+            },
+        },
+        include: {
+            avatarItem: {
+                select: {
+                    imageUrl: true,
+                },
+            },
+            frameItem: {
+                select: {
+                    imageUrl: true,
+                    rarity: true,
+                    renderMode: true,
+                    templateKey: true,
+                    templateConfig: true,
+                },
+            },
+        },
+    });
+
+    const profileMap = new Map<number, PlayerAppearanceSnapshot>();
+    for (const profile of profiles) {
+        profileMap.set(profile.userId, mapPlayerAppearanceSnapshot(profile));
+    }
+
+    return profileMap;
+}
+
 function getEquippedSlots(profile: {
     avatarItemId: number | null;
     frameItemId: number | null;
@@ -129,6 +211,32 @@ function normalizeTemplateConfig(value: Prisma.JsonValue | null): TemplateConfig
     }
 
     return configEntries.length > 0 ? Object.fromEntries(configEntries) : null;
+}
+
+function createEmptyAppearanceSnapshot(): PlayerAppearanceSnapshot {
+    return {
+        avatarImageUrl: null,
+        frameImageUrl: null,
+        frameAccentColor: null,
+    };
+}
+
+function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAppearanceSnapshot {
+    const frameTheme = profile.frameItem
+        ? resolveFrameTheme({
+            renderMode: profile.frameItem.renderMode,
+            imageUrl: profile.frameItem.imageUrl,
+            templateKey: profile.frameItem.templateKey,
+            templateConfig: normalizeTemplateConfig(profile.frameItem.templateConfig),
+            rarity: profile.frameItem.rarity,
+        })
+        : null;
+
+    return {
+        avatarImageUrl: profile.avatarItem?.imageUrl ?? null,
+        frameImageUrl: frameTheme?.imageUrl ?? null,
+        frameAccentColor: frameTheme?.accentColor ?? null,
+    };
 }
 
 export async function getInventoryData(userId: number): Promise<UserInventoryResponse> {

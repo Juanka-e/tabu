@@ -130,3 +130,13 @@ Reference:
 - [x] Room page now resolves the logged-in user's equipped `card_face` and applies it to `GameCard`
 - [x] Smoke test added: `npm run test:card-face`
 - [x] Security check completed: `npm audit --omit=dev` is clean after upgrading `multer`
+- [x] Add render strategy for `image` and `template` frame cosmetics in room sidebars
+- [x] Render equipped avatar/frame in room sidebars
+- [x] Verify socket-auth identity server-side during room join
+- [x] Add smoke test coverage for frame theme resolver (`npm run test:frame-theme`)
+
+### Phase 12 Update (March 9, 2026 - Room Cosmetics)
+- [x] Room socket payload now includes typed player cosmetics snapshots
+- [x] Sidebar renders equipped avatar/frame without changing the approved UI structure
+- [x] Socket join ignores spoofed client `authUserId` values and resolves identity from the session cookie
+- [x] Verification completed: `npm run test:frame-theme`, `npm run test:card-face`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

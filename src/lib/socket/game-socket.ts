@@ -1,8 +1,11 @@
 import { Server, Socket } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { getToken } from "next-auth/jwt";
+import { getPlayerAppearanceSnapshot } from "@/lib/economy";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
+import type { PlayerCosmetics } from "@/types/game";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -20,6 +23,7 @@ interface PlayerData {
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
     ip: string;
+    cosmetics: PlayerCosmetics;
 }
 
 interface NarratorInfo {
@@ -226,7 +230,10 @@ export function setupGameSocket(io: Server): void {
 
     function broadcastLobby(room: RoomData): void {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const sanitizedPlayers = room.oyuncular.map(({ ip, ...rest }) => rest);
+        const sanitizedPlayers = room.oyuncular.map(({ ip, cosmetics, ...rest }) => ({
+            ...rest,
+            cosmetics: cosmetics ?? createEmptyPlayerCosmetics(),
+        }));
         io.to(room.odaKodu).emit("lobiGuncelle", {
             odaKodu: room.odaKodu,
             creatorId: room.creatorId,
@@ -695,6 +702,17 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
+                    const socketAuthUserId = await getSocketAuthUserId(socket);
+                    const effectiveAuthUserId = socketAuthUserId ?? null;
+
+                    if (authUserId && authUserId !== effectiveAuthUserId) {
+                        console.warn("Ignored mismatched client authUserId for socket join", {
+                            socketId: socket.id,
+                            claimedUserId: authUserId,
+                            verifiedUserId: effectiveAuthUserId,
+                        });
+                    }
+
                     // Determine effective player ID once
                     // If client sent an ID, use it. Otherwise generate new one.
                     let effectivePlayerId = playerId;
@@ -757,9 +775,10 @@ export function setupGameSocket(io: Server): void {
                         existingPlayer.ad = sanitizedName;
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
-                        if (authUserId) {
-                            existingPlayer.userId = authUserId;
+                        if (effectiveAuthUserId) {
+                            existingPlayer.userId = effectiveAuthUserId;
                         }
+                        await hydratePlayerCosmetics(existingPlayer);
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
@@ -785,13 +804,15 @@ export function setupGameSocket(io: Server): void {
                         const yeniOyuncu: PlayerData = {
                             id: socket.id,
                             playerId: effectivePlayerId,
-                            userId: authUserId ?? null,
+                            userId: effectiveAuthUserId,
                             ad: sanitizedName,
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
                             ip,
+                            cosmetics: createEmptyPlayerCosmetics(),
                         };
+                        await hydratePlayerCosmetics(yeniOyuncu);
                         room.oyuncular.push(yeniOyuncu);
 
                         // Only emit if we generated a new ID
@@ -1238,6 +1259,66 @@ export function getRoomMetrics(): {
         aktifLobiSayisi: rooms.size,
         onlineKullaniciSayisi,
     };
+}
+
+function createEmptyPlayerCosmetics(): PlayerCosmetics {
+    return {
+        avatarImageUrl: null,
+        frameImageUrl: null,
+        frameAccentColor: null,
+    };
+}
+
+function isSecureSocketHandshake(socket: Socket): boolean {
+    const forwardedProto = socket.handshake.headers["x-forwarded-proto"];
+    const normalizedProto = Array.isArray(forwardedProto)
+        ? forwardedProto[0]
+        : forwardedProto;
+
+    if (typeof normalizedProto === "string") {
+        return normalizedProto.split(",")[0].trim() === "https";
+    }
+
+    const origin = socket.handshake.headers.origin;
+    if (typeof origin === "string") {
+        return origin.startsWith("https://");
+    }
+
+    return process.env.NODE_ENV === "production";
+}
+
+async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader || !process.env.AUTH_SECRET) {
+        return null;
+    }
+
+    const token = await getToken({
+        req: {
+            headers: {
+                cookie: cookieHeader,
+            },
+        },
+        secret: process.env.AUTH_SECRET,
+        secureCookie: isSecureSocketHandshake(socket),
+    });
+
+    const userId = Number(token?.sub);
+    return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {
+    if (!player.userId) {
+        player.cosmetics = createEmptyPlayerCosmetics();
+        return;
+    }
+
+    try {
+        player.cosmetics = await getPlayerAppearanceSnapshot(player.userId);
+    } catch (error) {
+        console.error("Player cosmetics could not be loaded", error);
+        player.cosmetics = createEmptyPlayerCosmetics();
+    }
 }
 
 export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {

@@ -263,3 +263,11 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - admin ve store/user API korumasi `src/middleware.ts` uzerinden devam ediyor
   - shop item create/update validator'lari artik ortak zod schema uzerinden calisiyor
   - `npm audit --omit=dev` sonucunda bulunan `multer` zafiyeti kapatildi
+
+## 9 March 2026 Update - Room Snapshot Cosmetics
+
+- Room lobby payload now includes a typed `cosmetics` snapshot per player.
+- `Sidebar` renders equipped avatar/frame without extra client fetches; the existing layout stays unchanged.
+- Frame visuals use a sanitized resolver (`src/lib/cosmetics/frame.ts`) so template colors stay whitelist/hex-safe.
+- Socket join now verifies user identity from the session cookie instead of trusting client-sent `authUserId`.
+- Added smoke coverage: `npm run test:frame-theme`.

@@ -187,3 +187,15 @@ Reference:
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.
 - Reflect equipped avatar/frame/card theme inside room sidebars and `GameCard`.
+
+### Completed in the March 9 room-cosmetics slice
+- Room player snapshots now carry equipped avatar/frame cosmetics.
+- Team sidebars render equipped avatar/frame while preserving the accepted game UI.
+- Socket join no longer trusts client-sent `authUserId`; identity is verified from the session cookie.
+- Added smoke test: `npm run test:frame-theme`.
+- Verification passed: `npm run test:frame-theme`, `npm run test:card-face`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Reflect `card_back` in preview / transition flows.
+- Add bundle, discount, and coupon data models plus admin CRUD.
+- Seed production-shaped mock cosmetics, promotions, and coupon data.

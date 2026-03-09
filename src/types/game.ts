@@ -10,6 +10,12 @@ export enum GameView {
     GAME_OVER = "GAME_OVER",
 }
 
+export interface PlayerCosmetics {
+    avatarImageUrl: string | null;
+    frameImageUrl: string | null;
+    frameAccentColor: string | null;
+}
+
 // ─── Player & Room ─────────────────────────────────────────────
 
 export interface Player {
@@ -20,6 +26,7 @@ export interface Player {
     takim: "A" | "B" | null;
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
+    cosmetics?: PlayerCosmetics;
 }
 
 export interface RoomSettings {

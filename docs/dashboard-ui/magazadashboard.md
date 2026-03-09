@@ -357,3 +357,30 @@ Bu planda netlestirilen ana kararlar:
 - frame ve `card_back` icin template renderer yuzeyini oyunda kullanmak
 - bundle / discount / coupon CRUD
 - oyuncu sidebari icin diger kullanicilarin avatar/frame snapshot'larini socket state'e tasimak
+
+## Room Kozmetik Senkronu ve Socket Guvenligi (9 March 2026)
+
+### Tamamlananlar
+- Oyun odasindaki `oyuncular` snapshot'ina `cosmetics` alani eklendi.
+- Sidebar artik oyuncunun equip ettigi avatar ve frame bilgisini dogrudan room snapshot'inden render ediyor.
+- Frame template'leri icin guvenli accent-color resolver eklendi.
+- `scripts/test-frame-theme.ts` smoke testi ve `npm run test:frame-theme` komutu eklendi.
+
+### Guvenlik Duzeltmesi
+- Socket join akisinda istemciden gelen `authUserId` artik guven kaynagi olarak kullanilmiyor.
+- Server, kullanici kimligini session cookie + `AUTH_SECRET` ile dogruluyor.
+- Client bir baska `authUserId` gonderirse bu deger yok sayiliyor ve warning log uretiliyor.
+- Boylece baska bir kullanicinin kozmetigini veya hesap bagini spoof etme yolu kapatildi.
+
+### Etki
+- Login kullanicisinin equip ettigi avatar/frame oyun odasinda gorunur hale geldi.
+- Misafir akisinda davranis degismedi; cosmetics alani bos snapshot ile devam ediyor.
+- Room UI tasarimi korunarak veri akisi server-dogrulanmis hale getirildi.
+
+### Bu Turdaki Dogrulama
+- `npm run test:frame-theme`
+- `npm run test:card-face`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

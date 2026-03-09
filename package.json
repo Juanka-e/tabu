@@ -9,6 +9,7 @@
     "start": "node server.js",
     "lint": "eslint",
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
+    "test:frame-theme": "tsx scripts/test-frame-theme.ts",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio"

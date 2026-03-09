@@ -84,3 +84,9 @@ export interface DashboardDataResponse {
     winRate: number;
     recentMatches: DashboardMatchView[];
 }
+
+export interface PlayerAppearanceSnapshot {
+    avatarImageUrl: string | null;
+    frameImageUrl: string | null;
+    frameAccentColor: string | null;
+}
