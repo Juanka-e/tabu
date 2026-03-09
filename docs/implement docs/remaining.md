@@ -347,6 +347,21 @@ Reference:
 - Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
 - Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
 
+### Completed in the March 9 admin-preview slice
+- Added a live cosmetic preview panel to `/admin/shop-items`.
+- The modal now shows:
+  - a large stage preview
+  - a mini shop-card merchandising preview
+- Preview rendering reuses the same frame/card-face/card-back resolver logic and pattern/motion helpers as the game UI.
+- Invalid template JSON now surfaces as a preview-side validation message before save.
+- Verification passed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
+
 ### Completed in the March 9 dashboard-route slice
 - Removed the old standalone `/dashboard` experience from the active authenticated flow.
 - Promoted `/dashboard` to the canonical authenticated full-page dashboard route.

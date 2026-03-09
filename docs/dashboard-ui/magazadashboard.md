@@ -747,3 +747,41 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Admin Cosmetic Live Preview (9 March 2026)
+
+### Ne yapildi
+- `/admin/shop-items` modal'i daha genis bir authoring yuzeyine cevrildi.
+- Formun sagina canli `preview` paneli eklendi.
+- Preview su katmanlari gosterir:
+  - `Stage` -> urunun oyun ici karakteri
+  - `Shop Card Snapshot` -> magazadaki merchandising gorunumu
+
+### Teknik mantik
+- Preview ayri bir sahte stil sistemi kullanmaz.
+- Asagidaki resolver'lar dogrudan tekrar kullanilir:
+  - `resolveFrameTheme`
+  - `resolveCardFaceTheme`
+  - `resolveCardBackTheme`
+- Pattern, glow ve motion efektleri de ortak `effects.ts` helper'lari ile uretilir.
+- Boylece admin panel ile runtime oyun arasinda stil drift'i azaltildi.
+
+### Authoring etkisi
+- Admin:
+  - image URL degistirince
+  - rarity degistirince
+  - `badgeText` ve `isFeatured` ayarlayinca
+  - `templateKey` veya JSON config girince
+  sonucu aninda gorebilir.
+- Gecersiz template JSON varsa preview paneli bunu acik hata mesaji ile bildirir.
+
+### Guvenlik ve risk
+- Yeni API eklenmedi.
+- Yeni preview katmani tamamen client-side ve mevcut sanitize edilmis resolver'lar ustunden calisir.
+- JSON execution veya CSS injection yuzeyi acilmaz; preview sadece izinli alanlari yorumlar.
+
+### Bu Turdaki Dogrulama
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

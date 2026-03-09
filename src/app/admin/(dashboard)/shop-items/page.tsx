@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "rea
 import Image, { type ImageLoaderProps } from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { CosmeticLivePreview } from "@/components/admin/cosmetic-live-preview";
 import {
     Edit2,
     FileJson2,
@@ -429,6 +430,35 @@ export default function ShopItemsPage() {
 
     const imageUploadDisabled = form.renderMode !== "image";
     const templateExample = useMemo(() => getTemplateExample(form.type), [form.type]);
+    const previewTemplateResult = useMemo(() => {
+        if (form.renderMode !== "template") {
+            return { config: null, error: null as string | null };
+        }
+
+        try {
+            return {
+                config: parseTemplateConfig(form.templateConfigText),
+                error: null as string | null,
+            };
+        } catch (error) {
+            return {
+                config: null,
+                error: error instanceof Error ? error.message : "Template config gecersiz.",
+            };
+        }
+    }, [form.renderMode, form.templateConfigText]);
+    const previewDraft = useMemo(() => ({
+        type: form.type,
+        name: form.name,
+        rarity: form.rarity,
+        renderMode: form.renderMode,
+        imageUrl: form.imageUrl.trim(),
+        templateKey: form.templateKey.trim() || null,
+        templateConfig: previewTemplateResult.config,
+        badgeText: form.badgeText.trim() || null,
+        isFeatured: form.isFeatured,
+        priceCoin: form.priceCoin,
+    }), [form.badgeText, form.imageUrl, form.isFeatured, form.name, form.priceCoin, form.rarity, form.renderMode, form.templateKey, form.type, previewTemplateResult.config]);
 
     return (
         <div className="space-y-6">
@@ -570,149 +600,158 @@ export default function ShopItemsPage() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-5 border-b border-border">
                             <h2 className="text-lg font-bold text-foreground">{editingItem ? "Kozmetik Duzenle" : "Yeni Kozmetik"}</h2>
                             <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-muted transition-colors" type="button">
                                 <X size={18} />
                             </button>
                         </div>
-                        <div className="p-5 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Kod (benzersiz)</label>
-                                <input type="text" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} placeholder="signal_grid_face" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
-                            </div>
+                        <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1.2fr)_380px]">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Kod (benzersiz)</label>
+                                    <input type="text" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} placeholder="signal_grid_face" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Isim</label>
-                                <input type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Signal Grid" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
-                            </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Isim</label>
+                                    <input type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Signal Grid" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Tur</label>
-                                    <select
-                                        value={form.type}
-                                        onChange={(event) => {
-                                            const nextType = event.target.value as ItemType;
-                                            setForm((current) => ({
-                                                ...current,
-                                                type: nextType,
-                                                renderMode: nextType === "avatar" ? "image" : current.renderMode,
-                                            }));
-                                        }}
-                                        className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
-                                    >
-                                        <option value="avatar">Avatar</option>
-                                        <option value="frame">Cerceve</option>
-                                        <option value="card_back">Kart Arkasi</option>
-                                        <option value="card_face">Kart Onu</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nadirlik</label>
-                                    <select value={form.rarity} onChange={(event) => setForm((current) => ({ ...current, rarity: event.target.value as Rarity }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none">
-                                        <option value="common">Common</option>
-                                        <option value="rare">Rare</option>
-                                        <option value="epic">Epic</option>
-                                        <option value="legendary">Legendary</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Render</label>
-                                    <select value={form.renderMode} onChange={(event) => setForm((current) => ({ ...current, renderMode: event.target.value as RenderMode }))} disabled={form.type === "avatar"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none disabled:opacity-60">
-                                        <option value="image">Image</option>
-                                        <option value="template">Template</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Fiyat (Coin)</label>
-                                    <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Siralama</label>
-                                    <input type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Etiket</label>
-                                    <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENI / LIMITLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
-                                </div>
-                            </div>
-
-                            <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div>
-                                        <h3 className="text-sm font-semibold text-foreground">Render Kaynagi</h3>
-                                        <p className="text-xs text-muted-foreground">Image urunler URL kullanir, template urunler key + config ile render edilir.</p>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Tur</label>
+                                        <select
+                                            value={form.type}
+                                            onChange={(event) => {
+                                                const nextType = event.target.value as ItemType;
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    type: nextType,
+                                                    renderMode: nextType === "avatar" ? "image" : current.renderMode,
+                                                }));
+                                            }}
+                                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
+                                        >
+                                            <option value="avatar">Avatar</option>
+                                            <option value="frame">Cerceve</option>
+                                            <option value="card_back">Kart Arkasi</option>
+                                            <option value="card_face">Kart Onu</option>
+                                        </select>
                                     </div>
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">{form.renderMode}</span>
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nadirlik</label>
+                                        <select value={form.rarity} onChange={(event) => setForm((current) => ({ ...current, rarity: event.target.value as Rarity }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none">
+                                            <option value="common">Common</option>
+                                            <option value="rare">Rare</option>
+                                            <option value="epic">Epic</option>
+                                            <option value="legendary">Legendary</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Render</label>
+                                        <select value={form.renderMode} onChange={(event) => setForm((current) => ({ ...current, renderMode: event.target.value as RenderMode }))} disabled={form.type === "avatar"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none disabled:opacity-60">
+                                            <option value="image">Image</option>
+                                            <option value="template">Template</option>
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Gorsel URL</label>
-                                    <div className="flex gap-3 items-end">
-                                        <div className="flex-1">
-                                            <input type="text" value={form.imageUrl} onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="/cosmetics/card-faces/signal-grid.png" disabled={imageUploadDisabled} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
-                                        </div>
-                                        <label className={`px-3 py-2 text-sm bg-muted rounded-lg transition-colors flex items-center gap-1 font-medium text-foreground shrink-0 ${imageUploadDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/80"}`}>
-                                            <Upload size={14} />
-                                            {uploading ? "..." : "Yukle"}
-                                            <input type="file" accept="image/*" onChange={handleUpload} disabled={imageUploadDisabled} className="hidden" />
-                                        </label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Fiyat (Coin)</label>
+                                        <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
-                                    {form.imageUrl && (
-                                        <div className="mt-2">
-                                            <Image loader={passthroughImageLoader} unoptimized src={form.imageUrl} alt="Preview" width={64} height={64} className="w-16 h-16 rounded-lg object-cover border border-border" />
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Siralama</label>
+                                        <input type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Etiket</label>
+                                        <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENI / LIMITLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-foreground">Render Kaynagi</h3>
+                                            <p className="text-xs text-muted-foreground">Image urunler URL kullanir, template urunler key + config ile render edilir.</p>
                                         </div>
-                                    )}
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">{form.renderMode}</span>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Gorsel URL</label>
+                                        <div className="flex gap-3 items-end">
+                                            <div className="flex-1">
+                                                <input type="text" value={form.imageUrl} onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="/cosmetics/card-faces/signal-grid.png" disabled={imageUploadDisabled} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
+                                            </div>
+                                            <label className={`px-3 py-2 text-sm bg-muted rounded-lg transition-colors flex items-center gap-1 font-medium text-foreground shrink-0 ${imageUploadDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/80"}`}>
+                                                <Upload size={14} />
+                                                {uploading ? "..." : "Yukle"}
+                                                <input type="file" accept="image/*" onChange={handleUpload} disabled={imageUploadDisabled} className="hidden" />
+                                            </label>
+                                        </div>
+                                        {form.imageUrl && (
+                                            <div className="mt-2">
+                                                <Image loader={passthroughImageLoader} unoptimized src={form.imageUrl} alt="Preview" width={64} height={64} className="w-16 h-16 rounded-lg object-cover border border-border" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Template Key</label>
+                                            <input type="text" value={form.templateKey} onChange={(event) => setForm((current) => ({ ...current, templateKey: event.target.value }))} placeholder="signal_grid" disabled={form.renderMode !== "template"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
+                                        </div>
+                                        <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3 bg-background/60">
+                                            Ornek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="mb-1 flex items-center justify-between gap-3">
+                                            <label className="block text-xs font-bold text-muted-foreground uppercase">Template Config (JSON)</label>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    Rehber: <code>docs/dashboard-ui/cosmetic-authoring-spec.md</code>
+                                                </span>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={form.renderMode !== "template"}
+                                                    onClick={() => setForm((current) => ({ ...current, templateConfigText: templateExample }))}
+                                                    className="h-7 gap-1 px-2 text-[11px]"
+                                                >
+                                                    <FileJson2 size={12} />
+                                                    Ornek Doldur
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <textarea value={form.templateConfigText} onChange={(event) => setForm((current) => ({ ...current, templateConfigText: event.target.value }))} placeholder={templateExample} disabled={form.renderMode !== "template"} rows={14} className="w-full px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 resize-y" />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Template Key</label>
-                                        <input type="text" value={form.templateKey} onChange={(event) => setForm((current) => ({ ...current, templateKey: event.target.value }))} placeholder="signal_grid" disabled={form.renderMode !== "template"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
-                                    </div>
-                                    <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3 bg-background/60">
-                                        Ornek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="mb-1 flex items-center justify-between gap-3">
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase">Template Config (JSON)</label>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[11px] text-muted-foreground">
-                                                Rehber: <code>docs/dashboard-ui/cosmetic-authoring-spec.md</code>
-                                            </span>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={form.renderMode !== "template"}
-                                                onClick={() => setForm((current) => ({ ...current, templateConfigText: templateExample }))}
-                                                className="h-7 gap-1 px-2 text-[11px]"
-                                            >
-                                                <FileJson2 size={12} />
-                                                Ornek Doldur
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <textarea value={form.templateConfigText} onChange={(event) => setForm((current) => ({ ...current, templateConfigText: event.target.value }))} placeholder={templateExample} disabled={form.renderMode !== "template"} rows={14} className="w-full px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 resize-y" />
+                                    <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                        <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
+                                        <span className="text-sm font-medium text-foreground">Sag panelde one cikar</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                        <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
+                                        <span className="text-sm font-medium text-foreground">Magazada aktif</span>
+                                    </label>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-                                    <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                    <span className="text-sm font-medium text-foreground">Sag panelde one cikar</span>
-                                </label>
-                                <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-                                    <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                    <span className="text-sm font-medium text-foreground">Magazada aktif</span>
-                                </label>
+                            <div className="xl:sticky xl:top-0 xl:self-start">
+                                <CosmeticLivePreview
+                                    draft={previewDraft}
+                                    templateConfigError={previewTemplateResult.error}
+                                />
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 p-5 border-t border-border">

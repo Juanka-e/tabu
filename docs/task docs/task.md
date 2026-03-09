@@ -259,3 +259,10 @@ Reference:
 - [x] Add category filtering UI to `/admin/words`
 - [x] Reuse existing `categoryId` admin API filtering support from the words endpoint
 - [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Admin Cosmetic Live Preview)
+- [x] Add a dedicated live preview component for admin cosmetic authoring
+- [x] Reuse game-side frame/card-face/card-back resolver logic in the admin preview stage
+- [x] Add a mini shop-card snapshot so `badgeText`, rarity, and featured emphasis are visible before save
+- [x] Surface invalid template JSON in the preview panel without requiring a save roundtrip
+- [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

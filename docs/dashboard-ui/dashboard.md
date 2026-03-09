@@ -402,3 +402,12 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - `/store` -> `/dashboard?tab=shop`
 - Boylece authenticated uygulama yuzeyi tek bir shell altinda toplandi.
 - Bu yapi, public root ile authenticated dashboard alanini daha net ayirdigi icin tercih edildi.
+
+## 9 March 2026 Update - Admin Cosmetic Live Preview
+
+- `/admin/shop-items` modal'i iki kolonlu hale getirildi:
+  - sol: authoring formu
+  - sag: canli preview stage
+- Preview, image ve template kozmetikleri kaydetmeden once gormeyi saglar.
+- `frame`, `card_face` ve `card_back` preview'lari oyun tarafindaki ayni theme resolver mantigini kullanir.
+- Ayrica preview icinde mini bir `shop card snapshot` da bulunur; boylece rozet, rarity ve featured vurgu ayni modal icinde gorulebilir.

@@ -419,6 +419,18 @@ Kurallar:
 7. `Ornek Doldur` ile baslangic json'u al, sonra ozellestir
 8. kaydet
 
+### Canli preview
+- `/admin/shop-items` modal'i artik kaydetmeden once canli preview gosterir.
+- Preview mantigi, oyun tarafinda kullanilan ayni resolver'lari kullanir:
+  - `frame`
+  - `card_face`
+  - `card_back`
+- Bu nedenle admin panelde gordugun stil, oyunda cikacak gorunume yakindir.
+- JSON gecersiz ise preview sag panelinde hata mesaji gorunur ve fallback preview devam eder.
+- Preview alaninda iki seviye vardir:
+  - `Stage`: urunun oyun ici karakteri
+  - `Shop Card Snapshot`: magazadaki merchandising gorunumu
+
 ---
 
 ## Merchandising Kurallari
