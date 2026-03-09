@@ -208,13 +208,13 @@ export function AnnouncementsModal({
                                                 <div className="relative pt-[56.25%]">
                                                     <iframe
                                                         className="absolute inset-0 w-full h-full"
-                                                        src={item.mediaUrl.replace(
-                                                            "watch?v=",
-                                                            "embed/"
-                                                        )}
+                                                        src={item.mediaUrl}
                                                         title="Content Video"
                                                         frameBorder="0"
                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        loading="lazy"
+                                                        referrerPolicy="strict-origin-when-cross-origin"
+                                                        sandbox="allow-scripts allow-same-origin allow-presentation"
                                                         allowFullScreen
                                                     ></iframe>
                                                 </div>

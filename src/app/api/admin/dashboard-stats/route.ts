@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRoomMetrics } from "@/lib/socket/room-metrics";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         // Word counts by difficulty
         const [totalWords, easyCount, mediumCount, hardCount, totalCategories] =

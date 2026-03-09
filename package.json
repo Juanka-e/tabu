@@ -12,6 +12,8 @@
     "test:catalog": "tsx scripts/test-mock-catalog.ts",
     "test:promotions": "tsx scripts/test-promotion-schema.ts",
     "test:store-pricing": "tsx scripts/test-store-pricing.ts",
+    "test:announcement-security": "tsx scripts/test-announcement-security.ts",
+    "test:admin-guards": "tsx scripts/test-admin-route-guards.ts",
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
     "test:card-back": "tsx scripts/test-card-back-theme.ts",
     "test:frame-theme": "tsx scripts/test-frame-theme.ts",

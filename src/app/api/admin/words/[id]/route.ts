@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     const { id } = await params;
     const word = await prisma.word.findUnique({
         where: { id: parseInt(id) },
@@ -38,6 +44,11 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const { id } = await params;
         const wordId = parseInt(id);
@@ -107,6 +118,11 @@ export async function DELETE(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const { id } = await params;
         await prisma.word.delete({ where: { id: parseInt(id) } });

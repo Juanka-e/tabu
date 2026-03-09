@@ -183,3 +183,13 @@ Reference:
 - [x] Guest flow remains unchanged; cosmetics and checkout stay login-gated
 - [x] Middleware build issue fixed by moving shared auth config out of Prisma-bound auth module
 - [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:catalog`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Security Hardening)
+- [x] Add route-level admin guards to all remaining admin API handlers
+- [x] Sanitize admin announcement HTML on write and on public/admin read
+- [x] Restrict announcement media URLs to safe image / YouTube embed formats
+- [x] Harden announcement iframe rendering attributes
+- [x] Harden admin asset upload with MIME-to-extension mapping and image signature checks
+- [x] Add baseline response security headers in `next.config.ts`
+- [x] Add smoke tests: `npm run test:admin-guards`, `npm run test:announcement-security`
+- [x] Verification completed: `npm run test:admin-guards`, `npm run test:announcement-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

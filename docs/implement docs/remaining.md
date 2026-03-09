@@ -243,3 +243,19 @@ Reference:
 - Standardized real UI coin visuals with a shared badge/mark component.
 - Split auth config so middleware remains edge-safe and Prisma is not bundled into middleware.
 - Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:catalog`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Completed in the March 9 security-hardening slice
+- Added route-level admin guards to all remaining admin API routes.
+- Added server-side announcement sanitization and media URL normalization.
+- Hardened announcement iframe/image rendering.
+- Hardened shop-item upload with MIME-to-extension mapping and image signature checks.
+- Added baseline response security headers in `next.config.ts`.
+- Added smoke tests: `npm run test:admin-guards`, `npm run test:announcement-security`.
+- Verification passed: `npm run test:admin-guards`, `npm run test:announcement-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Replace client-controlled `playerId` with server-controlled room identity.
+- Remove reward finalization dependency on client-supplied `playerId`.
+- Make coupon `usageLimit` enforcement atomic under concurrent requests.
+- Add HTTP rate limiting for register/store/coupon endpoints.
+- Add nonce-based CSP if inline scripts are kept.
