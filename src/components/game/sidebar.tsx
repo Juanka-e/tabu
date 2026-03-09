@@ -4,6 +4,11 @@ import Image, { type ImageLoaderProps } from "next/image";
 import { Crown, ChevronLeft, ChevronRight, Users, Shield, Swords, MoreVertical, UserX, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+    buildCosmeticPatternStyle,
+    getCosmeticMotionClass,
+    getCosmeticMotionStyle,
+} from "@/lib/cosmetics/effects";
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -50,6 +55,12 @@ const teamTheme = {
 };
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
+
+function toHexAlpha(opacity: number): string {
+    return Math.round(Math.max(0, Math.min(1, opacity)) * 255)
+        .toString(16)
+        .padStart(2, "0");
+}
 
 export function Sidebar({
     team,
@@ -184,6 +195,27 @@ export function Sidebar({
                     const isCreator = player.playerId === creatorPlayerId;
                     const isMe = player.playerId === currentPlayerId;
                     const canManage = isHost && !isMe && !isCreator;
+                    const framePatternStyle = player.cosmetics?.framePattern && player.cosmetics.frameAccentColor
+                        ? buildCosmeticPatternStyle({
+                            pattern: player.cosmetics.framePattern,
+                            primaryColor: player.cosmetics.frameAccentColor,
+                            secondaryColor: player.cosmetics.frameSecondaryColor ?? player.cosmetics.frameAccentColor,
+                            scale: player.cosmetics.framePatternScale ?? 14,
+                            opacity: player.cosmetics.framePatternOpacity ?? 0,
+                        })
+                        : undefined;
+                    const frameMotionClass = player.cosmetics?.frameMotionPreset
+                        ? getCosmeticMotionClass(player.cosmetics.frameMotionPreset)
+                        : "";
+                    const frameMotionStyle = player.cosmetics?.frameMotionSpeedMs
+                        ? getCosmeticMotionStyle(player.cosmetics.frameMotionSpeedMs)
+                        : undefined;
+                    const frameThickness = player.cosmetics?.frameThickness ?? 2;
+                    const frameRadius = player.cosmetics?.frameRadius ?? 16;
+                    const frameGlowColor = player.cosmetics?.frameGlowColor ?? player.cosmetics?.frameAccentColor ?? undefined;
+                    const frameGlowOpacity = player.cosmetics?.frameGlowOpacity ?? 0;
+                    const frameGlowBlur = player.cosmetics?.frameGlowBlur ?? 18;
+                    const frameStyle = player.cosmetics?.frameStyle ?? "solid";
 
                     return (
                         <div
@@ -196,11 +228,24 @@ export function Sidebar({
                             {/* Avatar */}
                             <div className="relative">
                                 <div
-                                    className="relative w-11 h-11 rounded-2xl p-[2px] shadow-sm transition-transform duration-200 group-hover:scale-105 ring-2 ring-white dark:ring-slate-900 overflow-hidden"
+                                    className={`relative w-11 h-11 shadow-sm transition-transform duration-200 group-hover:scale-105 ring-2 ring-white dark:ring-slate-900 overflow-hidden ${frameMotionClass}`}
                                     style={{
+                                        padding: `${frameThickness}px`,
+                                        borderRadius: `${frameRadius}px`,
                                         backgroundColor: player.cosmetics?.frameAccentColor ?? undefined,
+                                        boxShadow: frameGlowColor
+                                            ? `0 0 ${frameGlowBlur}px -6px ${frameGlowColor}${toHexAlpha(frameGlowOpacity)}`
+                                            : undefined,
+                                        ...frameMotionStyle,
                                     }}
                                 >
+                                    {framePatternStyle && (
+                                        <div
+                                            className="absolute inset-0 pointer-events-none"
+                                            aria-hidden="true"
+                                            style={framePatternStyle}
+                                        />
+                                    )}
                                     {player.cosmetics?.frameImageUrl && (
                                         <Image
                                             loader={passthroughImageLoader}
@@ -210,6 +255,25 @@ export function Sidebar({
                                             aria-hidden="true"
                                             fill
                                             className="object-cover opacity-50 pointer-events-none"
+                                        />
+                                    )}
+                                    {frameStyle === "double" && (
+                                        <div
+                                            className="absolute inset-[4px] rounded-[12px] border pointer-events-none"
+                                            aria-hidden="true"
+                                            style={{
+                                                borderColor: `${player.cosmetics?.frameSecondaryColor ?? player.cosmetics?.frameAccentColor ?? "#ffffff"}88`,
+                                            }}
+                                        />
+                                    )}
+                                    {frameStyle === "ornate" && (
+                                        <div
+                                            className="absolute inset-[3px] rounded-[14px] pointer-events-none"
+                                            aria-hidden="true"
+                                            style={{
+                                                border: `1px solid ${player.cosmetics?.frameSecondaryColor ?? player.cosmetics?.frameAccentColor ?? "#ffffff"}99`,
+                                                boxShadow: `inset 0 0 0 1px ${player.cosmetics?.frameAccentColor ?? "#ffffff"}55`,
+                                            }}
                                         />
                                     )}
                                     <div

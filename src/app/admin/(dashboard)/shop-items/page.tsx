@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Edit2,
+    FileJson2,
     Eye,
     EyeOff,
     Image as ImageIcon,
@@ -108,20 +109,140 @@ function parseTemplateConfig(templateConfigText: string): TemplateConfig | null 
         throw new Error("Template config must be a JSON object.");
     }
 
-    const configEntries: [string, string | number | boolean][] = [];
-    for (const [key, value] of Object.entries(parsed)) {
-        if (
-            typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean"
-        ) {
-            configEntries.push([key, value]);
-        } else {
-            throw new Error("Template config values must be string, number or boolean.");
-        }
+    const normalized = normalizeTemplateObject(parsed as Record<string, unknown>, 0);
+    return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+function normalizeTemplateObject(input: Record<string, unknown>, depth: number): TemplateConfig {
+    if (depth > 3) {
+        throw new Error("Template config supports up to 3 nested levels.");
     }
 
-    return configEntries.length > 0 ? Object.fromEntries(configEntries) : null;
+    const normalizedEntries: [string, TemplateConfig[keyof TemplateConfig]][] = [];
+
+    for (const [key, value] of Object.entries(input)) {
+        if (!key.trim()) {
+            continue;
+        }
+
+        if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+            normalizedEntries.push([key, value]);
+            continue;
+        }
+
+        if (Array.isArray(value)) {
+            if (!value.every((entry) => entry === null || typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean")) {
+                throw new Error("Template config arrays can only contain string, number, boolean or null values.");
+            }
+            normalizedEntries.push([key, value]);
+            continue;
+        }
+
+        if (typeof value === "object") {
+            const nestedObject = value as Record<string, unknown>;
+            normalizedEntries.push([key, normalizeTemplateObject(nestedObject, depth + 1)]);
+            continue;
+        }
+
+        throw new Error("Unsupported template config value.");
+    }
+
+    return Object.fromEntries(normalizedEntries);
+}
+
+function getTemplateExample(type: ItemType): string {
+    if (type === "frame") {
+        return JSON.stringify(
+            {
+                palette: {
+                    primary: "#22c55e",
+                    secondary: "#bbf7d0",
+                },
+                pattern: {
+                    type: "rings",
+                    opacity: 0.22,
+                    scale: 14,
+                },
+                glow: {
+                    color: "#4ade80",
+                    blur: 24,
+                    opacity: 0.24,
+                },
+                frame: {
+                    style: "ornate",
+                    thickness: 3,
+                    radius: 20,
+                },
+                motion: {
+                    preset: "pulse",
+                    speedMs: 4200,
+                },
+            },
+            null,
+            2
+        );
+    }
+
+    if (type === "card_back") {
+        return JSON.stringify(
+            {
+                palette: {
+                    surface: "#111827",
+                    border: "#38bdf8",
+                    primary: "#22d3ee",
+                    secondary: "#93c5fd",
+                    title: "#f8fafc",
+                    detail: "#cbd5e1",
+                },
+                pattern: {
+                    type: "chevrons",
+                    opacity: 0.2,
+                    scale: 18,
+                },
+                glow: {
+                    color: "#38bdf8",
+                    blur: 30,
+                    opacity: 0.22,
+                },
+                motion: {
+                    preset: "drift",
+                    speedMs: 6200,
+                },
+            },
+            null,
+            2
+        );
+    }
+
+    return JSON.stringify(
+        {
+            palette: {
+                primary: "#8b5cf6",
+                secondary: "#ddd6fe",
+                surface: "#1e1b4b",
+                border: "#c4b5fd",
+                word: "#ffffff",
+                taboo: "#fda4af",
+                footer: "#ede9fe",
+            },
+            pattern: {
+                type: "noise",
+                opacity: 0.18,
+                scale: 16,
+            },
+            glow: {
+                color: "#a855f7",
+                blur: 28,
+                opacity: 0.2,
+            },
+            motion: {
+                preset: "shimmer",
+                speedMs: 3400,
+            },
+        },
+        null,
+        2
+    );
 }
 
 export default function ShopItemsPage() {
@@ -297,6 +418,7 @@ export default function ShopItemsPage() {
     };
 
     const imageUploadDisabled = form.renderMode !== "image";
+    const templateExample = useMemo(() => getTemplateExample(form.type), [form.type]);
 
     return (
         <div className="space-y-6">
@@ -525,13 +647,31 @@ export default function ShopItemsPage() {
                                         <input type="text" value={form.templateKey} onChange={(event) => setForm((current) => ({ ...current, templateKey: event.target.value }))} placeholder="signal_grid" disabled={form.renderMode !== "template"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
                                     </div>
                                     <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3 bg-background/60">
-                                        Ornek config anahtarlari: <code>accentColor</code>, <code>surfaceColor</code>, <code>tabooColor</code>, <code>texture</code>.
+                                        Ornek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Template Config (JSON)</label>
-                                    <textarea value={form.templateConfigText} onChange={(event) => setForm((current) => ({ ...current, templateConfigText: event.target.value }))} placeholder={'{\n  "accentColor": "#2563eb",\n  "surfaceColor": "#0f172a",\n  "tabooColor": "#ef4444",\n  "texture": "grid"\n}'} disabled={form.renderMode !== "template"} rows={7} className="w-full px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 resize-y" />
+                                    <div className="mb-1 flex items-center justify-between gap-3">
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase">Template Config (JSON)</label>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] text-muted-foreground">
+                                                Rehber: <code>docs/dashboard-ui/cosmetic-authoring-spec.md</code>
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={form.renderMode !== "template"}
+                                                onClick={() => setForm((current) => ({ ...current, templateConfigText: templateExample }))}
+                                                className="h-7 gap-1 px-2 text-[11px]"
+                                            >
+                                                <FileJson2 size={12} />
+                                                Ornek Doldur
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <textarea value={form.templateConfigText} onChange={(event) => setForm((current) => ({ ...current, templateConfigText: event.target.value }))} placeholder={templateExample} disabled={form.renderMode !== "template"} rows={14} className="w-full px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60 resize-y" />
                                 </div>
                             </div>
 

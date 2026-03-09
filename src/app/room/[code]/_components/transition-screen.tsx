@@ -2,6 +2,11 @@
 
 import Image, { type ImageLoaderProps } from "next/image";
 import { Clock } from "lucide-react";
+import {
+    buildCosmeticPatternStyle,
+    getCosmeticMotionClass,
+    getCosmeticMotionStyle,
+} from "@/lib/cosmetics/effects";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import type { TransitionData } from "@/types/game";
 
@@ -12,21 +17,18 @@ interface TransitionScreenProps {
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
-function getTextureClass(texture: ResolvedCardBackTheme["texture"]): string {
-    if (texture === "grid") {
-        return "bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]";
-    }
-    if (texture === "dots") {
-        return "bg-[radial-gradient(circle,rgba(255,255,255,0.18)_1px,transparent_1px)] bg-[size:18px_18px]";
-    }
-    if (texture === "diagonal") {
-        return "bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.12)_75%,transparent_75%,transparent)] bg-[size:20px_20px]";
-    }
-    return "";
-}
-
 export function TransitionScreen({ transition, cardBackTheme }: TransitionScreenProps) {
-    const textureClass = cardBackTheme ? getTextureClass(cardBackTheme.texture) : "";
+    const motionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
+    const motionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
+    const patternStyle = cardBackTheme
+        ? buildCosmeticPatternStyle({
+            pattern: cardBackTheme.pattern,
+            primaryColor: cardBackTheme.borderColor,
+            secondaryColor: cardBackTheme.secondaryColor,
+            scale: cardBackTheme.patternScale,
+            opacity: cardBackTheme.patternOpacity,
+        })
+        : undefined;
 
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 animate-in fade-in zoom-in-95">
@@ -37,7 +39,9 @@ export function TransitionScreen({ transition, cardBackTheme }: TransitionScreen
                         style={{
                             backgroundColor: cardBackTheme.surfaceColor,
                             borderColor: cardBackTheme.borderColor,
-                            boxShadow: `0 20px 50px -25px ${cardBackTheme.accentColor}`,
+                            boxShadow: `0 20px 50px -25px ${cardBackTheme.accentColor}, 0 0 ${cardBackTheme.glowBlur}px -12px ${cardBackTheme.glowColor}${Math.round(cardBackTheme.glowOpacity * 255)
+                                .toString(16)
+                                .padStart(2, "0")}`,
                         }}
                     >
                         {cardBackTheme.overlayImageUrl && (
@@ -52,8 +56,12 @@ export function TransitionScreen({ transition, cardBackTheme }: TransitionScreen
                                 style={{ opacity: cardBackTheme.overlayOpacity }}
                             />
                         )}
-                        {textureClass && (
-                            <div className={`absolute inset-0 pointer-events-none opacity-70 ${textureClass}`} aria-hidden="true" />
+                        {patternStyle && (
+                            <div
+                                className={`absolute inset-0 pointer-events-none ${motionClass}`}
+                                aria-hidden="true"
+                                style={{ ...patternStyle, ...motionStyle }}
+                            />
                         )}
                         <div
                             className="absolute inset-0 pointer-events-none"
@@ -109,7 +117,7 @@ export function TransitionScreen({ transition, cardBackTheme }: TransitionScreen
                             className={`ml-2 rounded px-2 py-0.5 text-xs ${transition.anlatici.takim === "A"
                                 ? "bg-red-500/20 text-red-400"
                                 : "bg-blue-500/20 text-blue-400"
-                            }`}
+                                }`}
                         >
                             {transition.anlatici.takim === "A" ? "Takım A" : "Takım B"}
                         </span>
@@ -127,3 +135,4 @@ export function TransitionScreen({ transition, cardBackTheme }: TransitionScreen
         </div>
     );
 }
+

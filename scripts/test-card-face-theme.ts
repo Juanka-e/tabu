@@ -6,17 +6,40 @@ const templateTheme = resolveCardFaceTheme({
     imageUrl: "",
     templateKey: "signal_grid",
     templateConfig: {
-        accentColor: "#10b981",
-        borderColor: "#6ee7b7",
-        texture: "dots",
-        overlayOpacity: 0.9,
+        palette: {
+            primary: "#10b981",
+            secondary: "#a7f3d0",
+            border: "#6ee7b7",
+        },
+        pattern: {
+            type: "rings",
+            opacity: 0.3,
+            scale: 22,
+        },
+        glow: {
+            color: "#34d399",
+            blur: 38,
+            opacity: 0.28,
+        },
+        motion: {
+            preset: "pulse",
+            speedMs: 4100,
+        },
+        overlay: {
+            opacity: 0.9,
+        },
     },
     rarity: "epic",
 });
 
 assert.equal(templateTheme.accentColor, "#10b981");
+assert.equal(templateTheme.secondaryColor, "#a7f3d0");
 assert.equal(templateTheme.borderColor, "#6ee7b7");
-assert.equal(templateTheme.texture, "dots");
+assert.equal(templateTheme.pattern, "rings");
+assert.equal(templateTheme.patternScale, 22);
+assert.equal(templateTheme.motionPreset, "pulse");
+assert.equal(templateTheme.motionSpeedMs, 4100);
+assert.equal(templateTheme.glowBlur, 38);
 assert.equal(templateTheme.overlayOpacity, 0.35);
 assert.equal(templateTheme.overlayImageUrl, null);
 
@@ -25,14 +48,18 @@ const unsafeTheme = resolveCardFaceTheme({
     imageUrl: "",
     templateKey: "ember_glow",
     templateConfig: {
-        accentColor: "javascript:alert(1)",
-        texture: "<script>",
+        palette: {
+            primary: "javascript:alert(1)",
+        },
+        pattern: {
+            type: "<script>",
+        },
     },
     rarity: "legendary",
 });
 
 assert.equal(unsafeTheme.accentColor, "#f97316");
-assert.equal(unsafeTheme.texture, "diagonal");
+assert.equal(unsafeTheme.pattern, "diagonal");
 
 const imageTheme = resolveCardFaceTheme({
     renderMode: "image",

@@ -926,3 +926,27 @@ Critical Findings
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Hardening Note (9 March 2026 - Rich Cosmetic JSON)
+
+### Added guardrails
+- Template cosmetic config is no longer flat-only, but the richer JSON surface is still bounded:
+  - max object depth: `3`
+  - max keys per object: `24`
+  - max scalar-array length: `12`
+  - no object arrays
+- Supported value types are limited to:
+  - string
+  - number
+  - boolean
+  - null
+  - scalar arrays
+  - nested objects
+- Arbitrary CSS and JS injection is still not supported.
+- Renderer resolvers sanitize:
+  - hex colors
+  - enum-like pattern/motion/frame-style values
+  - numeric ranges for blur, opacity, speed, scale, thickness, radius
+
+### Security assessment
+- This keeps cosmetic authoring expressive enough for premium effects without opening a general-purpose style/script injection surface.

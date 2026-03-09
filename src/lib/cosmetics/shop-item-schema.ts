@@ -1,5 +1,6 @@
 import { CosmeticRenderMode, ItemRarity, Prisma, ShopItemType } from "@prisma/client";
 import { z } from "zod";
+import type { TemplateConfig, TemplateConfigScalar, TemplateConfigValue } from "@/types/economy";
 
 const safeImageUrlSchema = z
     .string()
@@ -14,8 +15,70 @@ const safeImageUrlSchema = z
         "Image URL must be relative or http(s)."
     );
 
-const templatePrimitiveSchema = z.union([z.string().max(120), z.number(), z.boolean()]);
-const safeTemplateConfigSchema = z.record(z.string().max(80), templatePrimitiveSchema);
+const templateScalarSchema: z.ZodType<TemplateConfigScalar> = z.union([
+    z.string().max(160),
+    z.number().finite().refine((value) => Math.abs(value) <= 10_000, "Number is out of supported range."),
+    z.boolean(),
+    z.null(),
+]);
+
+const templateArraySchema = z.array(templateScalarSchema).max(12);
+
+const templateConfigValueSchema: z.ZodType<TemplateConfigValue> = z.lazy(() =>
+    z.union([
+        templateScalarSchema,
+        templateArraySchema,
+        z.record(z.string().trim().min(1).max(80), templateConfigValueSchema),
+    ])
+);
+
+function validateTemplateNode(
+    value: TemplateConfigValue,
+    context: z.RefinementCtx,
+    path: Array<string | number>,
+    depth: number
+) {
+    if (depth > 3) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path,
+            message: "Template config nesting is limited to 3 levels.",
+        });
+        return;
+    }
+
+    if (Array.isArray(value)) {
+        if (value.length > 12) {
+            context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path,
+                message: "Template config arrays support at most 12 entries.",
+            });
+        }
+        return;
+    }
+
+    if (value && typeof value === "object") {
+        const entries = Object.entries(value);
+        if (entries.length > 24) {
+            context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path,
+                message: "Template config objects support at most 24 keys.",
+            });
+        }
+
+        for (const [key, entryValue] of entries) {
+            validateTemplateNode(entryValue, context, [...path, key], depth + 1);
+        }
+    }
+}
+
+const safeTemplateConfigSchema: z.ZodType<TemplateConfig> = z
+    .record(z.string().trim().min(1).max(80), templateConfigValueSchema)
+    .superRefine((value, context) => {
+        validateTemplateNode(value, context, [], 0);
+    });
 
 const shopItemBaseSchema = z.object({
     code: z

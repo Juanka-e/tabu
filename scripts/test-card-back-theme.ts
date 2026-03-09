@@ -6,15 +6,36 @@ const templateTheme = resolveCardBackTheme({
     imageUrl: "",
     templateKey: "royal_seal",
     templateConfig: {
-        accentColor: "#22c55e",
-        texture: "grid",
-        overlayOpacity: 0.8,
+        palette: {
+            primary: "#22c55e",
+            secondary: "#bbf7d0",
+        },
+        pattern: {
+            type: "grid",
+            opacity: 0.26,
+            scale: 24,
+        },
+        motion: {
+            preset: "drift",
+            speedMs: 6800,
+        },
+        glow: {
+            blur: 40,
+            opacity: 0.24,
+        },
+        overlay: {
+            opacity: 0.8,
+        },
     },
     rarity: "epic",
 });
 
 assert.equal(templateTheme.accentColor, "#22c55e");
-assert.equal(templateTheme.texture, "grid");
+assert.equal(templateTheme.secondaryColor, "#bbf7d0");
+assert.equal(templateTheme.pattern, "grid");
+assert.equal(templateTheme.patternScale, 24);
+assert.equal(templateTheme.motionPreset, "drift");
+assert.equal(templateTheme.glowBlur, 40);
 assert.equal(templateTheme.overlayOpacity, 0.45);
 assert.equal(templateTheme.overlayImageUrl, null);
 
@@ -23,14 +44,18 @@ const unsafeTheme = resolveCardBackTheme({
     imageUrl: "",
     templateKey: "ember_vault",
     templateConfig: {
-        borderColor: "javascript:alert(1)",
-        texture: "<svg>",
+        palette: {
+            border: "javascript:alert(1)",
+        },
+        pattern: {
+            type: "<svg>",
+        },
     },
     rarity: "legendary",
 });
 
 assert.equal(unsafeTheme.borderColor, "#fb923c");
-assert.equal(unsafeTheme.texture, "diagonal");
+assert.equal(unsafeTheme.pattern, "diagonal");
 
 const imageTheme = resolveCardBackTheme({
     renderMode: "image",

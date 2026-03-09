@@ -649,3 +649,47 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Rich Cosmetic Authoring ve Tasarim Rehberi (9 March 2026)
+
+### Tamamlananlar
+- Template config yapisi flat primitive map olmaktan cikarildi; nested JSON authoring destekleniyor.
+- Guvenli authoring bloklari:
+  - `palette`
+  - `pattern`
+  - `glow`
+  - `motion`
+  - `frame`
+  - `overlay`
+- Frame renderer artik daha zengin stil tasiyor:
+  - `frameStyle`
+  - `pattern`
+  - `glow`
+  - `motion`
+  - `thickness`
+  - `radius`
+- Card face ve card back renderer'lari da artik:
+  - ikinci renk
+  - desen yogunlugu
+  - glow
+  - motion
+  mantigini okuyabiliyor.
+- Admin panelde template urun olustururken `Ornek Doldur` yardimcisi eklendi.
+- Ayrica AI ve manuel authoring icin kalici rehber yazildi:
+  - `docs/dashboard-ui/cosmetic-authoring-spec.md`
+
+### Guvenlik mantigi
+- JSON nesting `3` seviye ile sinirli.
+- Object basina key sayisi ve array uzunlugu sinirli.
+- Sadece scalar veya scalar-array degerler kabul ediliyor.
+- Arbitrary CSS/JS injection desteklenmiyor.
+
+### Bu Turdaki Dogrulama
+- `npm run test:template-config`
+- `npm run test:frame-theme`
+- `npm run test:card-face`
+- `npm run test:card-back`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

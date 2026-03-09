@@ -6,13 +6,35 @@ const templateTheme = resolveFrameTheme({
     imageUrl: "",
     templateKey: "ember_edge",
     templateConfig: {
-        accentColor: "#22c55e",
+        palette: {
+            primary: "#22c55e",
+            secondary: "#bbf7d0",
+        },
+        pattern: {
+            type: "noise",
+            opacity: 0.18,
+            scale: 18,
+        },
+        frame: {
+            style: "ornate",
+            thickness: 4,
+            radius: 22,
+        },
+        motion: {
+            preset: "shimmer",
+            speedMs: 3800,
+        },
     },
     rarity: "epic",
 });
 
 assert.ok(templateTheme);
 assert.equal(templateTheme?.accentColor, "#22c55e");
+assert.equal(templateTheme?.secondaryColor, "#bbf7d0");
+assert.equal(templateTheme?.pattern, "noise");
+assert.equal(templateTheme?.frameStyle, "ornate");
+assert.equal(templateTheme?.thickness, 4);
+assert.equal(templateTheme?.motionPreset, "shimmer");
 assert.equal(templateTheme?.imageUrl, null);
 
 const unsafeTemplateTheme = resolveFrameTheme({
@@ -20,7 +42,9 @@ const unsafeTemplateTheme = resolveFrameTheme({
     imageUrl: "",
     templateKey: "royal_ring",
     templateConfig: {
-        accentColor: "javascript:alert(1)",
+        palette: {
+            primary: "javascript:alert(1)",
+        },
     },
     rarity: "rare",
 });

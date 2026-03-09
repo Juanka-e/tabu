@@ -342,3 +342,22 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - the inline hydration-warning suppression script
   - the `next-themes` theme bootstrap script
 - This reduces the blast radius of any residual HTML injection by blocking non-nonced script execution on pages.
+
+## 9 March 2026 Update - Rich Cosmetic Authoring
+
+- Template cosmetics are no longer limited to flat color keys.
+- The authoring surface now supports nested JSON groups for:
+  - `palette`
+  - `pattern`
+  - `glow`
+  - `motion`
+  - `frame`
+  - `overlay`
+- Frame, card-face, and card-back renderers now support:
+  - richer patterns
+  - glow layers
+  - motion presets
+  - more distinct rarity styling
+- Admin shop-item editor now includes a stronger JSON example flow for template cosmetics.
+- Authoring reference added:
+  - `docs/dashboard-ui/cosmetic-authoring-spec.md`

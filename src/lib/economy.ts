@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, ShopItemType } from "@prisma/client";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
+import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
 import {
     normalizeCouponCode,
     resolveCatalogPricing,
@@ -16,7 +17,6 @@ import type {
     PlayerAppearanceSnapshot,
     StoreItemView,
     StoreCatalogResponse,
-    TemplateConfig,
     UserInventoryProfile,
     UserInventoryResponse,
 } from "@/types/economy";
@@ -201,32 +201,23 @@ function isEquipped(shopItemId: number, itemType: ShopItemType, equippedSlots: E
     return equippedSlots.cardFaceItemId === shopItemId;
 }
 
-function normalizeTemplateConfig(value: Prisma.JsonValue | null): TemplateConfig | null {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-        return null;
-    }
-
-    const entries = Object.entries(value);
-    const configEntries: [string, string | number | boolean][] = [];
-
-    for (const [key, entryValue] of entries) {
-        if (
-            typeof entryValue === "string" ||
-            typeof entryValue === "number" ||
-            typeof entryValue === "boolean"
-        ) {
-            configEntries.push([key, entryValue]);
-        }
-    }
-
-    return configEntries.length > 0 ? Object.fromEntries(configEntries) : null;
-}
-
 function createEmptyAppearanceSnapshot(): PlayerAppearanceSnapshot {
     return {
         avatarImageUrl: null,
         frameImageUrl: null,
         frameAccentColor: null,
+        frameSecondaryColor: null,
+        framePattern: null,
+        framePatternOpacity: null,
+        framePatternScale: null,
+        frameGlowColor: null,
+        frameGlowBlur: null,
+        frameGlowOpacity: null,
+        frameStyle: null,
+        frameThickness: null,
+        frameRadius: null,
+        frameMotionPreset: null,
+        frameMotionSpeedMs: null,
     };
 }
 
@@ -245,6 +236,18 @@ function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAp
         avatarImageUrl: profile.avatarItem?.imageUrl ?? null,
         frameImageUrl: frameTheme?.imageUrl ?? null,
         frameAccentColor: frameTheme?.accentColor ?? null,
+        frameSecondaryColor: frameTheme?.secondaryColor ?? null,
+        framePattern: frameTheme?.pattern ?? null,
+        framePatternOpacity: frameTheme?.patternOpacity ?? null,
+        framePatternScale: frameTheme?.patternScale ?? null,
+        frameGlowColor: frameTheme?.glowColor ?? null,
+        frameGlowBlur: frameTheme?.glowBlur ?? null,
+        frameGlowOpacity: frameTheme?.glowOpacity ?? null,
+        frameStyle: frameTheme?.frameStyle ?? null,
+        frameThickness: frameTheme?.thickness ?? null,
+        frameRadius: frameTheme?.radius ?? null,
+        frameMotionPreset: frameTheme?.motionPreset ?? null,
+        frameMotionSpeedMs: frameTheme?.motionSpeedMs ?? null,
     };
 }
 

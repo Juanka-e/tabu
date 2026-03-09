@@ -2,8 +2,23 @@ export type StoreItemType = "avatar" | "frame" | "card_back" | "card_face";
 export type StoreItemRarity = "common" | "rare" | "epic" | "legendary";
 export type InventoryItemSource = "purchase" | "grant" | "migration";
 export type StoreItemRenderMode = "image" | "template";
-export type TemplateConfigValue = string | number | boolean;
-export type TemplateConfig = Record<string, TemplateConfigValue>;
+export type TemplateConfigScalar = string | number | boolean | null;
+export type TemplateConfigArray = TemplateConfigScalar[];
+export interface TemplateConfigObject {
+    [key: string]: TemplateConfigValue;
+}
+export type TemplateConfigValue = TemplateConfigScalar | TemplateConfigArray | TemplateConfigObject;
+export type TemplateConfig = TemplateConfigObject;
+export type CosmeticPattern =
+    | "none"
+    | "grid"
+    | "dots"
+    | "diagonal"
+    | "chevrons"
+    | "rings"
+    | "noise";
+export type CosmeticMotionPreset = "none" | "pulse" | "drift" | "shimmer";
+export type CosmeticFrameStyle = "solid" | "double" | "ornate";
 export type PromotionTargetType = "global" | "shop_item" | "bundle";
 export type PromotionDiscountType = "percentage" | "fixed_coin";
 
@@ -115,6 +130,18 @@ export interface PlayerAppearanceSnapshot {
     avatarImageUrl: string | null;
     frameImageUrl: string | null;
     frameAccentColor: string | null;
+    frameSecondaryColor: string | null;
+    framePattern: CosmeticPattern | null;
+    framePatternOpacity: number | null;
+    framePatternScale: number | null;
+    frameGlowColor: string | null;
+    frameGlowBlur: number | null;
+    frameGlowOpacity: number | null;
+    frameStyle: CosmeticFrameStyle | null;
+    frameThickness: number | null;
+    frameRadius: number | null;
+    frameMotionPreset: CosmeticMotionPreset | null;
+    frameMotionSpeedMs: number | null;
 }
 
 export interface ShopBundleItemView {

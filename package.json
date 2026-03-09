@@ -17,6 +17,7 @@
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
     "test:card-back": "tsx scripts/test-card-back-theme.ts",
     "test:frame-theme": "tsx scripts/test-frame-theme.ts",
+    "test:template-config": "tsx scripts/test-template-config.ts",
     "test:player-identity": "tsx scripts/test-player-identity.ts",
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",

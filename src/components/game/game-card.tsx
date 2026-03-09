@@ -2,6 +2,11 @@
 
 import Image, { type ImageLoaderProps } from "next/image";
 import { Feather, Flame, Target, X } from "lucide-react";
+import {
+    buildCosmeticPatternStyle,
+    getCosmeticMotionClass,
+    getCosmeticMotionStyle,
+} from "@/lib/cosmetics/effects";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { CardData, Difficulty } from "@/types/game";
 
@@ -37,23 +42,20 @@ const difficultyConfig: Record<
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
-function getTextureClass(texture: ResolvedCardFaceTheme["texture"]): string {
-    if (texture === "grid") {
-        return "bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]";
-    }
-    if (texture === "dots") {
-        return "bg-[radial-gradient(circle,rgba(255,255,255,0.16)_1px,transparent_1px)] bg-[size:18px_18px]";
-    }
-    if (texture === "diagonal") {
-        return "bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.12)_75%,transparent_75%,transparent)] bg-[size:20px_20px]";
-    }
-    return "";
-}
-
 export function GameCard({ card, theme }: GameCardProps) {
     const config = difficultyConfig[card.difficulty] || difficultyConfig[2];
     const Icon = config.icon;
-    const textureClass = theme ? getTextureClass(theme.texture) : "";
+    const motionClass = theme ? getCosmeticMotionClass(theme.motionPreset) : "";
+    const motionStyle = theme ? getCosmeticMotionStyle(theme.motionSpeedMs) : undefined;
+    const patternStyle = theme
+        ? buildCosmeticPatternStyle({
+            pattern: theme.pattern,
+            primaryColor: theme.borderColor,
+            secondaryColor: theme.secondaryColor,
+            scale: theme.patternScale,
+            opacity: theme.patternOpacity,
+        })
+        : undefined;
 
     const headerClass = card.categoryColor || theme ? "" : config.bg;
     const headerStyle = card.categoryColor
@@ -70,7 +72,9 @@ export function GameCard({ card, theme }: GameCardProps) {
                     theme
                         ? {
                             borderColor: theme.borderColor,
-                            boxShadow: `0 20px 45px -25px ${theme.accentColor}`,
+                            boxShadow: `0 20px 45px -25px ${theme.accentColor}, 0 0 ${theme.glowBlur}px -10px ${theme.glowColor}${Math.round(theme.glowOpacity * 255)
+                                .toString(16)
+                                .padStart(2, "0")}`,
                         }
                         : undefined
                 }
@@ -91,8 +95,12 @@ export function GameCard({ card, theme }: GameCardProps) {
                             style={{ opacity: theme.overlayOpacity }}
                         />
                     )}
-                    {theme && textureClass && (
-                        <div className={`absolute inset-0 opacity-60 pointer-events-none ${textureClass}`} aria-hidden="true" />
+                    {theme && patternStyle && (
+                        <div
+                            className={`absolute inset-0 pointer-events-none ${motionClass}`}
+                            aria-hidden="true"
+                            style={{ ...patternStyle, ...motionStyle }}
+                        />
                     )}
                     {theme && (
                         <div

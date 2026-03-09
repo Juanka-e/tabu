@@ -313,3 +313,17 @@ Reference:
 - Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
 - Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
 - Add CSP report collection / monitoring if runtime violation visibility is required.
+
+### Completed in the March 9 rich-cosmetics slice
+- Expanded template cosmetics from flat key/value overrides to nested JSON authoring.
+- Added safe support for `palette`, `pattern`, `glow`, `motion`, `frame`, and `overlay` blocks.
+- Upgraded frame/card-face/card-back renderers to use richer visual effect layers.
+- Added stronger template examples to `/admin/shop-items`.
+- Added authoring guide for AI-assisted cosmetic creation: `docs/dashboard-ui/cosmetic-authoring-spec.md`.
+- Verification passed: `npm run test:template-config`, `npm run test:frame-theme`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.

@@ -14,6 +14,18 @@ export interface PlayerCosmetics {
     avatarImageUrl: string | null;
     frameImageUrl: string | null;
     frameAccentColor: string | null;
+    frameSecondaryColor?: string | null;
+    framePattern?: "none" | "grid" | "dots" | "diagonal" | "chevrons" | "rings" | "noise" | null;
+    framePatternOpacity?: number | null;
+    framePatternScale?: number | null;
+    frameGlowColor?: string | null;
+    frameGlowBlur?: number | null;
+    frameGlowOpacity?: number | null;
+    frameStyle?: "solid" | "double" | "ornate" | null;
+    frameThickness?: number | null;
+    frameRadius?: number | null;
+    frameMotionPreset?: "none" | "pulse" | "drift" | "shimmer" | null;
+    frameMotionSpeedMs?: number | null;
 }
 
 // ─── Player & Room ─────────────────────────────────────────────

@@ -230,3 +230,13 @@ Reference:
 - [x] Apply nonce to the inline hydration guard script and `next-themes` bootstrap script
 - [x] Add smoke test: `npm run test:csp`
 - [x] Verification completed: `npm run test:csp`, `npm run test:request-security`, `npm run test:player-identity`, `npm run test:audit-log`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Rich Cosmetic Authoring)
+- [x] Expand template cosmetics from flat primitive config to nested JSON authoring
+- [x] Add safe template blocks for `palette`, `pattern`, `glow`, `motion`, `frame`, and `overlay`
+- [x] Upgrade frame, card-face, and card-back resolvers to use richer effect layers
+- [x] Reflect richer frame styling in room sidebar visuals
+- [x] Add stronger admin JSON examples and one-click example fill flow
+- [x] Add authoring rules doc for AI-assisted cosmetic production (`docs/dashboard-ui/cosmetic-authoring-spec.md`)
+- [x] Add smoke test: `npm run test:template-config`
+- [x] Verification completed: `npm run test:template-config`, `npm run test:frame-theme`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

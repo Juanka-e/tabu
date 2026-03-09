@@ -1,6 +1,14 @@
-import type { TemplateConfig, StoreItemRarity, StoreItemRenderMode } from "@/types/economy";
-
-type CardBackTexture = "none" | "grid" | "dots" | "diagonal";
+import {
+    getTemplateNumber,
+    getTemplateString,
+} from "@/lib/cosmetics/template-config";
+import type {
+    CosmeticMotionPreset,
+    CosmeticPattern,
+    StoreItemRarity,
+    StoreItemRenderMode,
+    TemplateConfig,
+} from "@/types/economy";
 
 export interface CardBackThemeSource {
     renderMode: StoreItemRenderMode;
@@ -14,48 +22,97 @@ export interface ResolvedCardBackTheme {
     surfaceColor: string;
     borderColor: string;
     accentColor: string;
+    secondaryColor: string;
     titleColor: string;
     detailColor: string;
-    texture: CardBackTexture;
+    pattern: CosmeticPattern;
+    patternOpacity: number;
+    patternScale: number;
+    motionPreset: CosmeticMotionPreset;
+    motionSpeedMs: number;
+    glowColor: string;
+    glowBlur: number;
+    glowOpacity: number;
     overlayImageUrl: string | null;
     overlayOpacity: number;
 }
 
 const safeHexColorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-const supportedTextures = new Set<CardBackTexture>(["none", "grid", "dots", "diagonal"]);
+const supportedPatterns = new Set<CosmeticPattern>([
+    "none",
+    "grid",
+    "dots",
+    "diagonal",
+    "chevrons",
+    "rings",
+    "noise",
+]);
+const supportedMotions = new Set<CosmeticMotionPreset>(["none", "pulse", "drift", "shimmer"]);
 
 const rarityThemes: Record<StoreItemRarity, Omit<ResolvedCardBackTheme, "overlayImageUrl" | "overlayOpacity">> = {
     common: {
         surfaceColor: "#0f172a",
         borderColor: "#475569",
         accentColor: "#94a3b8",
+        secondaryColor: "#cbd5e1",
         titleColor: "#f8fafc",
         detailColor: "#cbd5e1",
-        texture: "none",
+        pattern: "none",
+        patternOpacity: 0,
+        patternScale: 18,
+        motionPreset: "none",
+        motionSpeedMs: 5000,
+        glowColor: "#94a3b8",
+        glowBlur: 22,
+        glowOpacity: 0.18,
     },
     rare: {
         surfaceColor: "#082f49",
         borderColor: "#38bdf8",
         accentColor: "#7dd3fc",
+        secondaryColor: "#67e8f9",
         titleColor: "#e0f2fe",
         detailColor: "#bae6fd",
-        texture: "grid",
+        pattern: "grid",
+        patternOpacity: 0.2,
+        patternScale: 18,
+        motionPreset: "drift",
+        motionSpeedMs: 7000,
+        glowColor: "#38bdf8",
+        glowBlur: 24,
+        glowOpacity: 0.2,
     },
     epic: {
         surfaceColor: "#2e1065",
         borderColor: "#a855f7",
         accentColor: "#c084fc",
+        secondaryColor: "#ddd6fe",
         titleColor: "#f5f3ff",
         detailColor: "#ddd6fe",
-        texture: "dots",
+        pattern: "dots",
+        patternOpacity: 0.22,
+        patternScale: 18,
+        motionPreset: "pulse",
+        motionSpeedMs: 5000,
+        glowColor: "#a855f7",
+        glowBlur: 28,
+        glowOpacity: 0.24,
     },
     legendary: {
         surfaceColor: "#431407",
         borderColor: "#f97316",
         accentColor: "#fdba74",
+        secondaryColor: "#fed7aa",
         titleColor: "#fff7ed",
         detailColor: "#fed7aa",
-        texture: "diagonal",
+        pattern: "diagonal",
+        patternOpacity: 0.24,
+        patternScale: 20,
+        motionPreset: "shimmer",
+        motionSpeedMs: 3600,
+        glowColor: "#fb923c",
+        glowBlur: 32,
+        glowOpacity: 0.28,
     },
 };
 
@@ -63,18 +120,32 @@ function getSafeColor(value: TemplateConfig[string] | undefined, fallback: strin
     return typeof value === "string" && safeHexColorPattern.test(value) ? value : fallback;
 }
 
-function getSafeTexture(value: TemplateConfig[string] | undefined, fallback: CardBackTexture): CardBackTexture {
-    return typeof value === "string" && supportedTextures.has(value as CardBackTexture)
-        ? (value as CardBackTexture)
+function getSafePattern(value: string | undefined, fallback: CosmeticPattern): CosmeticPattern {
+    return value && supportedPatterns.has(value as CosmeticPattern)
+        ? (value as CosmeticPattern)
         : fallback;
 }
 
-function getSafeOpacity(value: TemplateConfig[string] | undefined, fallback: number): number {
+function getSafeOpacity(value: number | undefined, fallback: number, max: number): number {
     if (typeof value !== "number" || Number.isNaN(value)) {
         return fallback;
     }
 
-    return Math.min(0.45, Math.max(0, value));
+    return Math.min(max, Math.max(0, value));
+}
+
+function getSafeRange(value: number | undefined, fallback: number, min: number, max: number): number {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+        return fallback;
+    }
+
+    return Math.min(max, Math.max(min, value));
+}
+
+function getSafeMotion(value: string | undefined, fallback: CosmeticMotionPreset): CosmeticMotionPreset {
+    return value && supportedMotions.has(value as CosmeticMotionPreset)
+        ? (value as CosmeticMotionPreset)
+        : fallback;
 }
 
 function applyTemplateKey(
@@ -88,7 +159,8 @@ function applyTemplateKey(
                 surfaceColor: "#111827",
                 borderColor: "#60a5fa",
                 accentColor: "#22d3ee",
-                texture: "grid",
+                secondaryColor: "#93c5fd",
+                pattern: "grid",
             };
         case "royal_seal":
             return {
@@ -96,7 +168,8 @@ function applyTemplateKey(
                 surfaceColor: "#312e81",
                 borderColor: "#c4b5fd",
                 accentColor: "#f59e0b",
-                texture: "dots",
+                secondaryColor: "#ddd6fe",
+                pattern: "dots",
             };
         case "ember_vault":
             return {
@@ -104,7 +177,8 @@ function applyTemplateKey(
                 surfaceColor: "#3f1d0f",
                 borderColor: "#fb923c",
                 accentColor: "#fdba74",
-                texture: "diagonal",
+                secondaryColor: "#ffedd5",
+                pattern: "diagonal",
             };
         default:
             return baseTheme;
@@ -127,13 +201,77 @@ export function resolveCardBackTheme(source: CardBackThemeSource | null): Resolv
     const config = source.templateConfig ?? {};
 
     return {
-        surfaceColor: getSafeColor(config.surfaceColor, keyedTheme.surfaceColor),
-        borderColor: getSafeColor(config.borderColor, keyedTheme.borderColor),
-        accentColor: getSafeColor(config.accentColor, keyedTheme.accentColor),
-        titleColor: getSafeColor(config.titleColor, keyedTheme.titleColor),
-        detailColor: getSafeColor(config.detailColor, keyedTheme.detailColor),
-        texture: getSafeTexture(config.texture, keyedTheme.texture),
+        surfaceColor: getSafeColor(
+            getTemplateString(config, ["palette", "surface"]) ?? getTemplateString(config, ["surfaceColor"]),
+            keyedTheme.surfaceColor
+        ),
+        borderColor: getSafeColor(
+            getTemplateString(config, ["palette", "border"]) ?? getTemplateString(config, ["borderColor"]),
+            keyedTheme.borderColor
+        ),
+        accentColor: getSafeColor(
+            getTemplateString(config, ["palette", "primary"]) ?? getTemplateString(config, ["accentColor"]),
+            keyedTheme.accentColor
+        ),
+        secondaryColor: getSafeColor(
+            getTemplateString(config, ["palette", "secondary"]),
+            keyedTheme.secondaryColor
+        ),
+        titleColor: getSafeColor(
+            getTemplateString(config, ["palette", "title"]) ?? getTemplateString(config, ["titleColor"]),
+            keyedTheme.titleColor
+        ),
+        detailColor: getSafeColor(
+            getTemplateString(config, ["palette", "detail"]) ?? getTemplateString(config, ["detailColor"]),
+            keyedTheme.detailColor
+        ),
+        pattern: getSafePattern(
+            getTemplateString(config, ["pattern", "type"]) ?? getTemplateString(config, ["texture"]),
+            keyedTheme.pattern
+        ),
+        patternOpacity: getSafeOpacity(
+            getTemplateNumber(config, ["pattern", "opacity"]),
+            keyedTheme.patternOpacity,
+            0.42
+        ),
+        patternScale: getSafeRange(
+            getTemplateNumber(config, ["pattern", "scale"]),
+            keyedTheme.patternScale,
+            8,
+            42
+        ),
+        motionPreset: getSafeMotion(
+            getTemplateString(config, ["motion", "preset"]),
+            keyedTheme.motionPreset
+        ),
+        motionSpeedMs: getSafeRange(
+            getTemplateNumber(config, ["motion", "speedMs"]),
+            keyedTheme.motionSpeedMs,
+            1800,
+            12000
+        ),
+        glowColor: getSafeColor(
+            getTemplateString(config, ["glow", "color"]),
+            keyedTheme.glowColor
+        ),
+        glowBlur: getSafeRange(
+            getTemplateNumber(config, ["glow", "blur"]),
+            keyedTheme.glowBlur,
+            8,
+            56
+        ),
+        glowOpacity: getSafeOpacity(
+            getTemplateNumber(config, ["glow", "opacity"]),
+            keyedTheme.glowOpacity,
+            0.36
+        ),
         overlayImageUrl: source.renderMode === "image" && source.imageUrl ? source.imageUrl : null,
-        overlayOpacity: source.renderMode === "image" ? 0.24 : getSafeOpacity(config.overlayOpacity, 0),
+        overlayOpacity: source.renderMode === "image"
+            ? 0.24
+            : getSafeOpacity(
+                getTemplateNumber(config, ["overlay", "opacity"]) ?? getTemplateNumber(config, ["overlayOpacity"]),
+                0,
+                0.45
+            ),
     };
 }

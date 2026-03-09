@@ -1,6 +1,14 @@
-import type { TemplateConfig, StoreItemRarity, StoreItemRenderMode } from "@/types/economy";
-
-type CardFaceTexture = "none" | "grid" | "dots" | "diagonal";
+import {
+    getTemplateNumber,
+    getTemplateString,
+} from "@/lib/cosmetics/template-config";
+import type {
+    CosmeticMotionPreset,
+    CosmeticPattern,
+    StoreItemRarity,
+    StoreItemRenderMode,
+    TemplateConfig,
+} from "@/types/economy";
 
 export interface CardFaceThemeSource {
     renderMode: StoreItemRenderMode;
@@ -12,55 +20,107 @@ export interface CardFaceThemeSource {
 
 export interface ResolvedCardFaceTheme {
     accentColor: string;
+    secondaryColor: string;
     surfaceColor: string;
     borderColor: string;
     wordColor: string;
     tabooColor: string;
     footerColor: string;
+    pattern: CosmeticPattern;
+    patternOpacity: number;
+    patternScale: number;
+    motionPreset: CosmeticMotionPreset;
+    motionSpeedMs: number;
+    glowColor: string;
+    glowBlur: number;
+    glowOpacity: number;
     overlayImageUrl: string | null;
     overlayOpacity: number;
-    texture: CardFaceTexture;
 }
 
 const safeHexColorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-const supportedTextures = new Set<CardFaceTexture>(["none", "grid", "dots", "diagonal"]);
+const supportedPatterns = new Set<CosmeticPattern>([
+    "none",
+    "grid",
+    "dots",
+    "diagonal",
+    "chevrons",
+    "rings",
+    "noise",
+]);
+const supportedMotions = new Set<CosmeticMotionPreset>(["none", "pulse", "drift", "shimmer"]);
 
-const rarityThemes: Record<StoreItemRarity, Omit<ResolvedCardFaceTheme, "overlayImageUrl" | "overlayOpacity">> = {
+const rarityThemes: Record<
+    StoreItemRarity,
+    Omit<ResolvedCardFaceTheme, "overlayImageUrl" | "overlayOpacity">
+> = {
     common: {
         accentColor: "#64748b",
+        secondaryColor: "#cbd5e1",
         surfaceColor: "#f8fafc",
         borderColor: "#cbd5e1",
         wordColor: "#ffffff",
         tabooColor: "#dc2626",
         footerColor: "#e2e8f0",
-        texture: "none",
+        pattern: "none",
+        patternOpacity: 0,
+        patternScale: 18,
+        motionPreset: "none",
+        motionSpeedMs: 5000,
+        glowColor: "#94a3b8",
+        glowBlur: 24,
+        glowOpacity: 0.22,
     },
     rare: {
         accentColor: "#2563eb",
+        secondaryColor: "#67e8f9",
         surfaceColor: "#0f172a",
         borderColor: "#60a5fa",
         wordColor: "#ffffff",
         tabooColor: "#f87171",
         footerColor: "#dbeafe",
-        texture: "grid",
+        pattern: "grid",
+        patternOpacity: 0.2,
+        patternScale: 18,
+        motionPreset: "drift",
+        motionSpeedMs: 7200,
+        glowColor: "#38bdf8",
+        glowBlur: 26,
+        glowOpacity: 0.2,
     },
     epic: {
         accentColor: "#7c3aed",
+        secondaryColor: "#c084fc",
         surfaceColor: "#1e1b4b",
         borderColor: "#c084fc",
         wordColor: "#ffffff",
         tabooColor: "#fda4af",
         footerColor: "#ede9fe",
-        texture: "dots",
+        pattern: "dots",
+        patternOpacity: 0.22,
+        patternScale: 18,
+        motionPreset: "pulse",
+        motionSpeedMs: 5200,
+        glowColor: "#a855f7",
+        glowBlur: 30,
+        glowOpacity: 0.24,
     },
     legendary: {
         accentColor: "#ea580c",
+        secondaryColor: "#fdba74",
         surfaceColor: "#431407",
         borderColor: "#fdba74",
         wordColor: "#fff7ed",
         tabooColor: "#fecaca",
         footerColor: "#ffedd5",
-        texture: "diagonal",
+        pattern: "diagonal",
+        patternOpacity: 0.26,
+        patternScale: 20,
+        motionPreset: "shimmer",
+        motionSpeedMs: 3600,
+        glowColor: "#fb923c",
+        glowBlur: 34,
+        glowOpacity: 0.28,
     },
 };
 
@@ -68,17 +128,31 @@ function getSafeColor(value: TemplateConfig[string] | undefined, fallback: strin
     return typeof value === "string" && safeHexColorPattern.test(value) ? value : fallback;
 }
 
-function getSafeTexture(value: TemplateConfig[string] | undefined, fallback: CardFaceTexture): CardFaceTexture {
-    return typeof value === "string" && supportedTextures.has(value as CardFaceTexture)
-        ? (value as CardFaceTexture)
+function getSafePattern(value: string | undefined, fallback: CosmeticPattern): CosmeticPattern {
+    return value && supportedPatterns.has(value as CosmeticPattern)
+        ? (value as CosmeticPattern)
         : fallback;
 }
 
-function getSafeOpacity(value: TemplateConfig[string] | undefined, fallback: number): number {
+function getSafeOpacity(value: number | undefined, fallback: number, max: number): number {
     if (typeof value !== "number" || Number.isNaN(value)) {
         return fallback;
     }
-    return Math.min(0.35, Math.max(0, value));
+    return Math.min(max, Math.max(0, value));
+}
+
+function getSafeMotion(value: string | undefined, fallback: CosmeticMotionPreset): CosmeticMotionPreset {
+    return value && supportedMotions.has(value as CosmeticMotionPreset)
+        ? (value as CosmeticMotionPreset)
+        : fallback;
+}
+
+function getSafeRange(value: number | undefined, fallback: number, min: number, max: number): number {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+        return fallback;
+    }
+
+    return Math.min(max, Math.max(min, value));
 }
 
 function applyTemplateKey(baseTheme: Omit<ResolvedCardFaceTheme, "overlayImageUrl" | "overlayOpacity">, templateKey: string | null) {
@@ -87,24 +161,28 @@ function applyTemplateKey(baseTheme: Omit<ResolvedCardFaceTheme, "overlayImageUr
             return {
                 ...baseTheme,
                 accentColor: "#0ea5e9",
+                secondaryColor: "#67e8f9",
                 borderColor: "#67e8f9",
-                texture: "grid" as const,
+                pattern: "grid" as const,
             };
         case "ember_glow":
             return {
                 ...baseTheme,
                 accentColor: "#f97316",
+                secondaryColor: "#fdba74",
                 borderColor: "#fdba74",
                 surfaceColor: "#431407",
-                texture: "diagonal" as const,
+                pattern: "diagonal" as const,
+                motionPreset: "shimmer" as const,
             };
         case "royal_velvet":
             return {
                 ...baseTheme,
                 accentColor: "#8b5cf6",
+                secondaryColor: "#ddd6fe",
                 borderColor: "#c4b5fd",
                 surfaceColor: "#312e81",
-                texture: "dots" as const,
+                pattern: "dots" as const,
             };
         default:
             return baseTheme;
@@ -127,14 +205,81 @@ export function resolveCardFaceTheme(source: CardFaceThemeSource | null): Resolv
     const config = source.templateConfig ?? {};
 
     return {
-        accentColor: getSafeColor(config.accentColor, keyedTheme.accentColor),
-        surfaceColor: getSafeColor(config.surfaceColor, keyedTheme.surfaceColor),
-        borderColor: getSafeColor(config.borderColor, keyedTheme.borderColor),
-        wordColor: getSafeColor(config.wordColor, keyedTheme.wordColor),
-        tabooColor: getSafeColor(config.tabooColor, keyedTheme.tabooColor),
-        footerColor: getSafeColor(config.footerColor, keyedTheme.footerColor),
-        texture: getSafeTexture(config.texture, keyedTheme.texture),
+        accentColor: getSafeColor(
+            getTemplateString(config, ["palette", "primary"]) ?? getTemplateString(config, ["accentColor"]),
+            keyedTheme.accentColor
+        ),
+        secondaryColor: getSafeColor(
+            getTemplateString(config, ["palette", "secondary"]),
+            keyedTheme.secondaryColor
+        ),
+        surfaceColor: getSafeColor(
+            getTemplateString(config, ["palette", "surface"]) ?? getTemplateString(config, ["surfaceColor"]),
+            keyedTheme.surfaceColor
+        ),
+        borderColor: getSafeColor(
+            getTemplateString(config, ["palette", "border"]) ?? getTemplateString(config, ["borderColor"]),
+            keyedTheme.borderColor
+        ),
+        wordColor: getSafeColor(
+            getTemplateString(config, ["palette", "word"]) ?? getTemplateString(config, ["wordColor"]),
+            keyedTheme.wordColor
+        ),
+        tabooColor: getSafeColor(
+            getTemplateString(config, ["palette", "taboo"]) ?? getTemplateString(config, ["tabooColor"]),
+            keyedTheme.tabooColor
+        ),
+        footerColor: getSafeColor(
+            getTemplateString(config, ["palette", "footer"]) ?? getTemplateString(config, ["footerColor"]),
+            keyedTheme.footerColor
+        ),
+        pattern: getSafePattern(
+            getTemplateString(config, ["pattern", "type"]) ?? getTemplateString(config, ["texture"]),
+            keyedTheme.pattern
+        ),
+        patternOpacity: getSafeOpacity(
+            getTemplateNumber(config, ["pattern", "opacity"]),
+            keyedTheme.patternOpacity,
+            0.42
+        ),
+        patternScale: getSafeRange(
+            getTemplateNumber(config, ["pattern", "scale"]),
+            keyedTheme.patternScale,
+            8,
+            40
+        ),
+        motionPreset: getSafeMotion(
+            getTemplateString(config, ["motion", "preset"]),
+            keyedTheme.motionPreset
+        ),
+        motionSpeedMs: getSafeRange(
+            getTemplateNumber(config, ["motion", "speedMs"]),
+            keyedTheme.motionSpeedMs,
+            1800,
+            12000
+        ),
+        glowColor: getSafeColor(
+            getTemplateString(config, ["glow", "color"]),
+            keyedTheme.glowColor
+        ),
+        glowBlur: getSafeRange(
+            getTemplateNumber(config, ["glow", "blur"]),
+            keyedTheme.glowBlur,
+            8,
+            56
+        ),
+        glowOpacity: getSafeOpacity(
+            getTemplateNumber(config, ["glow", "opacity"]),
+            keyedTheme.glowOpacity,
+            0.36
+        ),
         overlayImageUrl: source.renderMode === "image" && source.imageUrl ? source.imageUrl : null,
-        overlayOpacity: source.renderMode === "image" ? 0.18 : getSafeOpacity(config.overlayOpacity, 0),
+        overlayOpacity: source.renderMode === "image"
+            ? 0.18
+            : getSafeOpacity(
+                getTemplateNumber(config, ["overlay", "opacity"]) ?? getTemplateNumber(config, ["overlayOpacity"]),
+                0,
+                0.35
+            ),
     };
 }
