@@ -177,6 +177,117 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+/* Dashboard overlay glassmorphism */
+.glass-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.dark .glass-panel {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cosmeticPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.88;
+  }
+
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+}
+
+.cosmetic-motion-pulse {
+  animation: cosmeticPulse 5s ease-in-out infinite;
+}
+
+@keyframes cosmeticDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  25% {
+    transform: translate3d(2px, -2px, 0);
+  }
+
+  75% {
+    transform: translate3d(-2px, 2px, 0);
+  }
+}
+
+.cosmetic-motion-drift {
+  animation: cosmeticDrift 7s ease-in-out infinite;
+}
+
+@keyframes cosmeticShimmer {
+  0% {
+    transform: translateX(-16%);
+    opacity: 0.72;
+  }
+
+  50% {
+    transform: translateX(16%);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-16%);
+    opacity: 0.72;
+  }
+}
+
+.cosmetic-motion-shimmer {
+  animation: cosmeticShimmer 3.6s linear infinite;
+}
+
+@keyframes storeRadarMarquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+}
+
+.store-radar-track {
+  animation: storeRadarMarquee 26s linear infinite;
+  will-change: transform;
+}
+
+.store-radar-track:hover {
+  animation-play-state: paused;
+}
+
 /* Tiptap Editor Styles */
 .ProseMirror {
   outline: none;

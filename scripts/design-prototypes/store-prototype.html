@@ -1,0 +1,789 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TABU - MaÄŸaza Prototipi</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #06080f;
+            --card: rgba(17, 24, 39, .65);
+            --card-solid: #111827;
+            --hover: #1a2338;
+            --border: rgba(255, 255, 255, .06);
+            --border-active: rgba(139, 92, 246, .35);
+            --t1: #f1f5f9;
+            --t2: #94a3b8;
+            --t3: #64748b;
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --cyan: #22d3ee;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--t1);
+            min-height: 100vh
+        }
+
+        /* Ambient */
+        .amb {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden
+        }
+
+        .amb .b {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px)
+        }
+
+        .b1 {
+            width: 500px;
+            height: 500px;
+            background: #f59e0b;
+            opacity: .04;
+            top: -150px;
+            right: -100px
+        }
+
+        .b2 {
+            width: 400px;
+            height: 400px;
+            background: #8b5cf6;
+            opacity: .06;
+            bottom: -100px;
+            left: 20%
+        }
+
+        /* Nav */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 32px;
+            background: rgba(6, 8, 15, .75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .nav-logo {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--t3);
+            font-family: 'Inter';
+            font-weight: 600;
+            font-size: .8rem;
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, .04);
+            color: var(--t2)
+        }
+
+        .nav-link.active {
+            background: rgba(139, 92, 246, .1);
+            color: var(--purple)
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px 6px 6px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, .08);
+            border: 1px solid rgba(139, 92, 246, .15)
+        }
+
+        .nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--purple), var(--rose));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: .75rem;
+            color: #fff
+        }
+
+        .nav-name {
+            font-weight: 700;
+            font-size: .8rem
+        }
+
+        .nav-coins {
+            font-size: .7rem;
+            color: var(--amber);
+            font-weight: 600
+        }
+
+        .btn-play {
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
+            color: #fff;
+            font-weight: 700;
+            font-size: .8rem;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, .3);
+            transition: all .2s
+        }
+
+        .btn-play:hover {
+            box-shadow: 0 6px 24px rgba(99, 102, 241, .5);
+            transform: translateY(-1px)
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px
+        }
+
+        /* Balance Bar */
+        .balance-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 28px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, .08), rgba(245, 158, 11, .02));
+            border: 1px solid rgba(245, 158, 11, .15);
+            margin-bottom: 28px;
+        }
+
+        .balance-left {
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        .balance-icon {
+            font-size: 2rem
+        }
+
+        .balance-label {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--t3);
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        .balance-val {
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 2rem;
+            color: var(--amber)
+        }
+
+        .balance-note {
+            font-size: .75rem;
+            color: var(--t3)
+        }
+
+        /* Category Tabs */
+        .cat-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            flex-wrap: wrap
+        }
+
+        .cat-tab {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--t3);
+            font-family: 'Inter';
+            font-weight: 600;
+            font-size: .8rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .cat-tab:hover {
+            border-color: var(--border-active);
+            color: var(--t2)
+        }
+
+        .cat-tab.active {
+            background: rgba(139, 92, 246, .1);
+            border-color: var(--border-active);
+            color: var(--purple)
+        }
+
+        /* Product Grid */
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px
+        }
+
+        .product-card {
+            border-radius: 18px;
+            overflow: hidden;
+            background: var(--card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            transition: all .3s;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            border-color: var(--border-active);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .3)
+        }
+
+        .product-img {
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-img .visual {
+            font-size: 3.5rem;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .3));
+            transition: transform .3s;
+        }
+
+        .product-card:hover .visual {
+            transform: scale(1.1) rotate(-3deg)
+        }
+
+        .type-avatar .product-img {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed)
+        }
+
+        .type-frame .product-img {
+            background: linear-gradient(135deg, #0d9488, #059669)
+        }
+
+        .type-cardback .product-img {
+            background: linear-gradient(135deg, #be185d, #e11d48)
+        }
+
+        .rarity-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: .6rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .rarity-common {
+            background: rgba(148, 163, 184, .2);
+            color: #94a3b8
+        }
+
+        .rarity-rare {
+            background: rgba(59, 130, 246, .2);
+            color: #60a5fa
+        }
+
+        .rarity-epic {
+            background: rgba(139, 92, 246, .2);
+            color: #a78bfa
+        }
+
+        .rarity-legendary {
+            background: rgba(245, 158, 11, .2);
+            color: #fbbf24
+        }
+
+        .product-body {
+            padding: 16px 18px
+        }
+
+        .product-name {
+            font-weight: 700;
+            font-size: .95rem;
+            margin-bottom: 2px
+        }
+
+        .product-type {
+            font-size: .7rem;
+            color: var(--t3);
+            margin-bottom: 12px
+        }
+
+        .product-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .product-price {
+            font-weight: 800;
+            font-size: .9rem;
+            color: var(--amber);
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .btn-buy {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
+            color: #fff;
+            font-weight: 700;
+            font-size: .75rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-buy:hover {
+            box-shadow: 0 4px 16px rgba(99, 102, 241, .4);
+            transform: scale(1.05)
+        }
+
+        .btn-buy.owned {
+            background: rgba(16, 185, 129, .12);
+            color: var(--emerald);
+            cursor: default;
+        }
+
+        .btn-buy.owned:hover {
+            box-shadow: none;
+            transform: none
+        }
+
+        /* Owned indicator */
+        .owned-check {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .7rem;
+            font-weight: 600;
+            color: var(--emerald)
+        }
+
+        /* Section Title */
+        .section-title {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .badge {
+            font-size: .65rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(139, 92, 246, .1);
+            color: var(--purple);
+        }
+
+        /* Footer Note */
+        .store-note {
+            text-align: center;
+            padding: 20px;
+            font-size: .75rem;
+            color: var(--t3);
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+
+        @media(max-width:768px) {
+            .products {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .balance-bar {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center
+            }
+        }
+
+        @media(max-width:480px) {
+            .products {
+                grid-template-columns: 1fr
+            }
+        }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="amb">
+        <div class="b b1"></div>
+        <div class="b b2"></div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-logo">TABU</div>
+        <div class="nav-links">
+            <a class="nav-link" href="#">Dashboard</a>
+            <a class="nav-link" href="#">Profil</a>
+            <a class="nav-link active" href="#">MaÄŸaza</a>
+        </div>
+        <div class="nav-right">
+            <button class="btn-play">ğŸ® Oyna</button>
+            <div class="nav-user">
+                <div class="nav-avatar">EP</div>
+                <div>
+                    <div class="nav-name">Erdal</div>
+                    <div class="nav-coins"><span class="coin-mark" aria-hidden="true"></span> 2,450</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Balance -->
+        <div class="balance-bar">
+            <div class="balance-left">
+                <div class="balance-icon"><span class="coin-mark" aria-hidden="true"></span></div>
+                <div>
+                    <div class="balance-label">Coin Bakiyesi</div>
+                    <div class="balance-val">2,450</div>
+                </div>
+            </div>
+            <div class="balance-note">ğŸ’¡ Kozmetik Ã¼rÃ¼nler oyun dengesini etkilemez</div>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="cat-tabs">
+            <button class="cat-tab active" onclick="filterCat('all',this)">ğŸ·ï¸ TÃ¼mÃ¼</button>
+            <button class="cat-tab" onclick="filterCat('avatar',this)">ğŸ­ Avatar</button>
+            <button class="cat-tab" onclick="filterCat('frame',this)">ğŸ–¼ï¸ Ã‡erÃ§eve</button>
+            <button class="cat-tab" onclick="filterCat('cardback',this)">ğŸƒ Kart ArkasÄ±</button>
+        </div>
+
+        <!-- â”€â”€â”€ AVATAR â”€â”€â”€ -->
+        <div class="section-title" data-cat="avatar">ğŸ­ Avatar <span class="badge">6 ÃœrÃ¼n</span></div>
+        <div class="products" data-cat="avatar">
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">ğŸ‘‘</div>
+                    <div class="rarity-badge rarity-legendary">Legendary</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">AltÄ±n Kral</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 800</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">âš”ï¸</div>
+                    <div class="rarity-badge rarity-epic">Epic</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">AltÄ±n SavaÅŸÃ§Ä±</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="owned-check">âœ… Envanterde</div>
+                        <button class="btn-buy owned">KuÅŸanÄ±lmÄ±ÅŸ</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">ğŸ§™</div>
+                    <div class="rarity-badge rarity-epic">Epic</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">BÃ¼yÃ¼cÃ¼</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 600</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">ğŸ‰</div>
+                    <div class="rarity-badge rarity-rare">Rare</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Ejderha</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 400</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">ğŸ¦Š</div>
+                    <div class="rarity-badge rarity-common">Common</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Tilki</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 150</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-avatar">
+                <div class="product-img">
+                    <div class="visual">ğŸº</div>
+                    <div class="rarity-badge rarity-common">Common</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Kurt</div>
+                    <div class="product-type">Avatar</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 150</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- â”€â”€â”€ FRAME â”€â”€â”€ -->
+        <div class="section-title" data-cat="frame">ğŸ–¼ï¸ Ã‡erÃ§eve <span class="badge">4 ÃœrÃ¼n</span></div>
+        <div class="products" data-cat="frame">
+            <div class="product-card type-frame">
+                <div class="product-img">
+                    <div class="visual"
+                        style="font-size:2.5rem;border:4px solid #fbbf24;border-radius:14px;padding:8px;box-shadow:0 0 20px rgba(251,191,36,.4)">
+                        âœ¨</div>
+                    <div class="rarity-badge rarity-legendary">Legendary</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">AltÄ±n Ã‡erÃ§eve</div>
+                    <div class="product-type">Ã‡erÃ§eve</div>
+                    <div class="product-footer">
+                        <div class="owned-check">âœ… Envanterde</div>
+                        <button class="btn-buy owned">KuÅŸanÄ±lmÄ±ÅŸ</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-frame">
+                <div class="product-img">
+                    <div class="visual"
+                        style="font-size:2.5rem;border:4px solid #a78bfa;border-radius:14px;padding:8px;box-shadow:0 0 20px rgba(167,139,250,.4)">
+                        ğŸ’œ</div>
+                    <div class="rarity-badge rarity-epic">Epic</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Mor ParÄ±ltÄ±</div>
+                    <div class="product-type">Ã‡erÃ§eve</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 500</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-frame">
+                <div class="product-img">
+                    <div class="visual"
+                        style="font-size:2.5rem;border:4px solid #60a5fa;border-radius:14px;padding:8px;box-shadow:0 0 20px rgba(96,165,250,.4)">
+                        ğŸ’</div>
+                    <div class="rarity-badge rarity-rare">Rare</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Buz Ã‡erÃ§eve</div>
+                    <div class="product-type">Ã‡erÃ§eve</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 300</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-frame">
+                <div class="product-img">
+                    <div class="visual"
+                        style="font-size:2.5rem;border:3px solid #94a3b8;border-radius:14px;padding:8px">ğŸ”²</div>
+                    <div class="rarity-badge rarity-common">Common</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Basit Ã‡erÃ§eve</div>
+                    <div class="product-type">Ã‡erÃ§eve</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 100</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- â”€â”€â”€ CARD BACK â”€â”€â”€ -->
+        <div class="section-title" data-cat="cardback">ğŸƒ Kart ArkasÄ± <span class="badge">4 ÃœrÃ¼n</span></div>
+        <div class="products" data-cat="cardback">
+            <div class="product-card type-cardback">
+                <div class="product-img">
+                    <div class="visual">ğŸŒˆ</div>
+                    <div class="rarity-badge rarity-legendary">Legendary</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Holografik</div>
+                    <div class="product-type">Kart ArkasÄ±</div>
+                    <div class="product-footer">
+                        <div class="owned-check">âœ… Envanterde</div>
+                        <button class="btn-buy owned">KuÅŸanÄ±lmÄ±ÅŸ</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-cardback">
+                <div class="product-img">
+                    <div class="visual">ğŸ”¥</div>
+                    <div class="rarity-badge rarity-epic">Epic</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Alev Deseni</div>
+                    <div class="product-type">Kart ArkasÄ±</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 750</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-cardback">
+                <div class="product-img">
+                    <div class="visual">ğŸŒŠ</div>
+                    <div class="rarity-badge rarity-rare">Rare</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Okyanus</div>
+                    <div class="product-type">Kart ArkasÄ±</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 350</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+            <div class="product-card type-cardback">
+                <div class="product-img">
+                    <div class="visual">ğŸŒ‘</div>
+                    <div class="rarity-badge rarity-common">Common</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">Gece</div>
+                    <div class="product-type">Kart ArkasÄ±</div>
+                    <div class="product-footer">
+                        <div class="product-price"><span class="coin-mark" aria-hidden="true"></span> 120</div>
+                        <button class="btn-buy">SatÄ±n Al</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="store-note">
+            ğŸ’¡ TÃ¼m Ã¼rÃ¼nler kozmetiktir ve oyun dengesi Ã¼zerinde hiÃ§bir etkisi yoktur.<br>
+            MaÃ§ kazanarak coin kazan, maÄŸazadan kozmetik satÄ±n al!
+        </div>
+    </main>
+
+    <script>
+        function filterCat(cat, btn) {
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            const titles = document.querySelectorAll('.section-title[data-cat]');
+            const grids = document.querySelectorAll('.products[data-cat]');
+            titles.forEach(el => el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none');
+            grids.forEach(el => el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none');
+        }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,379 @@
+﻿<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tabu Overlay: Inventory Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#EF4444",
+                        secondary: "#3B82F6",
+                        success: "#00C853",
+                        warning: "#FFAB00",
+                        danger: "#FF1744",
+                        dark: "#1A1A1A",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#121212",
+                        "card-dark": "#1E293B",
+                        rarity: {
+                            common: "#94a3b8",
+                            rare: "#3b82f6",
+                            epic: "#a855f7",
+                            legendary: "#eab308"
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        xl: "1rem",
+                        '2xl': "1.5rem",
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+            border-right: 3px solid #3B82F6;
+        }
+        .dark .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60A5FA;
+        }
+        .rarity-glow-legendary {
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+        }
+        .rarity-glow-epic {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }.coin-icon {
+            background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.2);
+        }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans h-screen overflow-hidden relative selection:bg-primary selection:text-white">
+<div aria-hidden="true" class="absolute inset-0 flex w-full h-full z-0 pointer-events-none">
+<aside class="w-64 h-full bg-red-50 dark:bg-red-900/10 border-r border-red-100 dark:border-red-900/20 flex flex-col pt-6 relative opacity-30"></aside>
+<main class="flex-1 relative flex flex-col opacity-30"></main>
+<aside class="w-64 h-full bg-blue-50 dark:bg-blue-900/10 border-l border-blue-100 dark:border-blue-900/20 flex flex-col pt-6 relative opacity-30"></aside>
+</div>
+<div class="absolute inset-0 z-50 flex items-center justify-center glass-overlay p-4 sm:p-6 md:p-8">
+<div class="glass-panel w-full max-w-7xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden relative flex animate-fade-in-up flex-col md:flex-row">
+<button class="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-200/50 dark:bg-slate-700/50 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 flex items-center justify-center backdrop-blur-sm transition-all text-slate-600 dark:text-slate-300 shadow-sm">
+<span class="material-icons-round text-lg">close</span>
+</button>
+<nav class="w-full md:w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex md:flex-col flex-row items-center py-4 md:py-8 px-4 md:px-0 bg-white/50 dark:bg-black/30 backdrop-blur-md justify-between md:justify-start z-10">
+<div class="md:mb-8 hidden md:block">
+<div class="w-10 h-10 bg-gradient-to-tr from-primary to-secondary rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">T</div>
+</div>
+<div class="flex md:flex-col gap-2 md:gap-6 w-full justify-evenly md:justify-start">
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group rounded-lg md:rounded-none">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</button>
+<button class="nav-item active w-full py-3 flex flex-col items-center justify-center gap-1 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group rounded-lg md:rounded-none">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">backpack</span>
+<span class="text-[10px] font-medium">Inv</span>
+</button>
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group rounded-lg md:rounded-none">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">shopping_bag</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4 w-full hidden md:flex">
+<button class="w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+<span class="material-icons-round text-xl">help</span>
+</button>
+</div>
+</nav>
+<main class="flex-1 h-full overflow-hidden relative flex flex-col">
+<div class="p-6 md:p-8 h-full flex flex-col">
+<header class="flex items-center justify-between mb-6 flex-shrink-0">
+<div>
+<h1 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Inventory</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Manage your gear and appearance.</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-white/40 dark:bg-slate-800/40 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm border border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm">
+<span class="coin-mark coin-mark-lg" aria-hidden="true"></span>
+<span class="text-slate-700 dark:text-slate-200">12,450</span>
+</div>
+</div>
+</header>
+<div class="flex gap-2 mb-6 border-b border-slate-200/50 dark:border-slate-700/50 pb-1 flex-shrink-0 overflow-x-auto scrollbar-hide">
+<button class="px-5 py-2.5 rounded-t-lg text-sm font-bold bg-white/60 dark:bg-slate-800/60 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 transition-colors">
+                            Avatars
+                        </button>
+<button class="px-5 py-2.5 rounded-t-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 transition-colors">
+                            Frames
+                        </button>
+<button class="px-5 py-2.5 rounded-t-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 transition-colors">
+                            Card Backs
+                        </button>
+</div>
+<div class="flex-1 flex gap-6 overflow-hidden">
+<div class="flex-1 overflow-y-auto pr-2 pb-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-yellow-400/30 dark:border-yellow-600/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative rarity-glow-legendary flex flex-col">
+<div class="aspect-square rounded-lg bg-gradient-to-br from-yellow-900/10 to-yellow-600/20 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-yellow-500 text-[9px] font-bold text-white uppercase tracking-wider">Legendary</div>
+<img alt="King's Crown" class="w-16 h-16 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBf-pEeHm43I2SMZwopAXbQ0ciN2in9WM6_-DaLjxb-X_CPVtCYtNQNMePqvfoFZeVPoWvJdqgaIuPF_yFUmhFgNg11_7MjRGgNR-_D-eAsHPfnqjxlABpTxd1J8YtfJgkVKZM0lrOsIuZwbZTCFYFv-8xd8eFhgiGpXepNQHzwCRRFpLSvktl3F4vhh9nCNkksklvwPiy_zM1VYaT8slQ_ne6CdNh-4HK4umEF_z3aMtsrxsOCGWWUD0xGKubWPUQjOCA27tHeKp8"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">King's Visage</h3>
+<p class="text-xs text-yellow-600 dark:text-yellow-500 font-medium mb-3">Season 1 Reward</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-colors">
+                                        Equip
+                                    </button>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-purple-400/30 dark:border-purple-600/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative rarity-glow-epic flex flex-col ring-2 ring-blue-500/50">
+<div class="aspect-square rounded-lg bg-gradient-to-br from-purple-900/10 to-purple-600/20 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-purple-500 text-[9px] font-bold text-white uppercase tracking-wider">Epic</div>
+<img alt="Cyber Punk" class="w-16 h-16 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFmZtD-Ot-28cRLOMfJG5N8iCh1QL5dIlEzqajwXCQEpR3wrM4W4djV5cqiDdbC6XXfzArsdQ1gVjxm-GPgUtfMjDy7L8uJGcnElLKj1JfItVKEjIuggXqyXesx-EMXiSG_E-P5b4aK0T5CPw3BnBGjiXkaAOmve7KboWAEXxu1Y52rcYbs69wxdgaK6Wk8dEGiEEvq1srs4hr4hJoqjRm-pmQYZXeVgFDkw-MxPG2MX1gw-emovwcIRMe06SedTUzK4kN3nzzEOc"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">Cyber Punk</h3>
+<p class="text-xs text-purple-600 dark:text-purple-400 font-medium mb-3">Event Exclusive</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-blue-500 text-white text-xs font-bold cursor-default">
+                                        Equipped
+                                    </button>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-blue-300/30 dark:border-blue-700/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative flex flex-col">
+<div class="aspect-square rounded-lg bg-gradient-to-br from-blue-900/10 to-blue-600/20 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-blue-500 text-[9px] font-bold text-white uppercase tracking-wider">Rare</div>
+<img alt="Winter Zoom" class="w-16 h-16 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAyWHzrijnCKU7pnx7exKbpdhW5jlVvSYeu9GXEV2ZoGeVmxW4ETHGMcv_rofcvPW7wBY4yrlAjxc3JMI4iNCsrR0SCA-S5HZP4g8AOHSf8etBTA4FvdYY4m-OdQqtGOJYIjwMXk8mCuFnClfPPs0wTQVTY-TnDvD19Ov3PfCMRDXqy9fMCNm_khUXtSOgDKFbFDqtdUEVMVDOaeD3hO8uUsyxtrzdfm8oQFn61fDmX0PlC6QY8sT2eVJAlx9czEN4lXj4qmZLfe0"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">Winter Zoom</h3>
+<p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-3">Level 20 Unlock</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-colors">
+                                        Equip
+                                    </button>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-300/30 dark:border-slate-700/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative flex flex-col opacity-80">
+<div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700/50 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-slate-500 text-[9px] font-bold text-white uppercase tracking-wider">Common</div>
+<span class="material-icons-round text-4xl text-slate-400">face</span>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">Default #1</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-3">Starter Item</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-colors">
+                                        Equip
+                                    </button>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-300/30 dark:border-slate-700/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative flex flex-col opacity-80">
+<div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700/50 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-slate-500 text-[9px] font-bold text-white uppercase tracking-wider">Common</div>
+<span class="material-icons-round text-4xl text-slate-400">face_3</span>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">Default #2</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-3">Starter Item</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-colors">
+                                        Equip
+                                    </button>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-xl p-3 border border-blue-300/30 dark:border-blue-700/30 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group relative flex flex-col">
+<div class="aspect-square rounded-lg bg-gradient-to-br from-blue-900/10 to-blue-600/20 mb-3 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-blue-500 text-[9px] font-bold text-white uppercase tracking-wider">Rare</div>
+<img alt="Inferno" class="w-16 h-16 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRapyXA5W7D53Z0wHyDPsf808EHhhStZdxYscjWXsOMES4NoN5LgZ6uCAJUdtJygSO2ySqb8GkRf9uEjZ5d39ywm_g3TtnxE1pq_rl1M0-Tx2Ur_BeFzjMl03267Tceck128sGfr_2JOJzTchKp_e2LEkV_6WB8BAvFl3pticmuXhaYll5dz1MpxkdRzmJBq-mDvCsUl4zUJFGl0BY38FHmpCRzRlSojSHjh-mZ3ZnuZusnRXYY02dUcBbztOA97QjOzseavQXa-o"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">Inferno</h3>
+<p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-3">Shop Purchase</p>
+</div>
+<button class="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-colors">
+                                        Equip
+                                    </button>
+</div>
+</div>
+</div>
+<div class="w-64 hidden xl:flex flex-col flex-shrink-0 bg-white/40 dark:bg-slate-800/40 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 p-6 backdrop-blur-sm">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-6">Preview</h3>
+<div class="relative w-full aspect-[3/4] rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-inner flex flex-col items-center justify-center p-4 mb-6 group overflow-hidden">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+<div class="w-24 h-24 rounded-full border-4 border-purple-500 shadow-xl overflow-hidden z-10 mb-4 ring-4 ring-purple-500/30">
+<img alt="Cyber Punk" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3OpYDMpCm_T-qNG3yvU-xEcwQ7ccqqrQDK3hkcUVIE4zJt4KCtWFZ8QT5AWrylw-11TzT9393w8XrreLKZW3pQaHoeezPLDZifKFWqJ3nZ6AM4ExmPmmBrd0XiUPdoTXJqn3W8YfDEJE8CflgwPPuDMA2LtsXrdAzrbxXcBvLm2Numx7e8vbA9slSBvl4_YD9hT__-PfzieJsmWJ2vgy9OtV8p6Ujk92HvY3eSFFU66XDDMoywgMgp32JcCHFKhprTLuYwF5SCxY"/>
+</div>
+<div class="text-center z-10">
+<h4 class="font-black text-slate-800 dark:text-white text-lg">Player One</h4>
+<div class="text-xs font-bold text-purple-600 dark:text-purple-400 mt-1">"The Glitch"</div>
+</div>
+<div class="absolute bottom-4 left-4 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-500">
+                                    42
+                                </div>
+</div>
+<div class="mt-auto">
+<h4 class="font-bold text-slate-800 dark:text-white mb-1">Cyber Punk</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                                    An electrified avatar for those who live in the neon shadows.
+                                </p>
+<div class="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 p-2 rounded-lg border border-purple-100 dark:border-purple-800/30">
+<span class="material-icons-round text-sm">auto_awesome</span>
+                                    Epic Rarity
+                                </div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-full md:w-72 min-w-[280px] h-auto md:h-full border-t md:border-t-0 md:border-l border-slate-200/50 dark:border-slate-700/50 bg-white/40 dark:bg-black/20 flex flex-col backdrop-blur-md overflow-y-auto">
+<div class="p-8 flex flex-col items-center text-center">
+<div class="relative mb-4 group cursor-pointer">
+<img alt="Player Avatar" class="w-24 h-24 rounded-2xl shadow-xl ring-2 ring-white/50 dark:ring-slate-700 object-cover transform group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx9NQ6ISF5sz_vpBbasOackdaRH_S1VtV-Y2oKPhgmWfO8Hxli9J4D0CNPP5jja8DcMELVDTJo5UipBNzsIzjKjWyFWbwYfEzq2Mt0Ie1fGb-fozgaeU-0U1SC0zGeQzf6lgkQYfpBZ6w2t-vlsCGNH-s7ojlV2_I4AI8oqywpKStVtpLdiOL2KC9WIzC1zlrptpNFi36LTQi2Y8ZAwwMR3umRzuWFSTLZsNY2lIfvB7_c-ZDbo5XdaHlIquCT3cqQfYSZv2b-12I"/>
+<div class="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-md border-2 border-white dark:border-slate-800"></div>
+</div>
+<h2 class="text-xl font-black text-slate-800 dark:text-white">Player One</h2>
+<p class="text-xs font-bold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-4">Level 42</p>
+<button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors mb-6 shadow-sm">
+<span class="material-icons-round text-sm">settings</span>
+                        Settings
+                    </button>
+<div class="w-full bg-slate-100/50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50 mb-6">
+<div class="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+<span>XP Progress</span>
+<span class="text-slate-800 dark:text-white font-bold">82%</span>
+</div>
+<div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full w-[82%] shadow-sm relative overflow-hidden">
+<div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+</div>
+</div>
+<div class="text-[10px] text-slate-400 mt-2 text-right">2,450 / 3,000 XP</div>
+</div>
+<div class="w-full text-left mb-6">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Quick Equip</h3>
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-indigo-400 transition-all">
+<span class="material-icons-round text-white text-lg opacity-90">palette</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-orange-400 transition-all opacity-50 hover:opacity-100">
+<span class="material-icons-round text-white text-lg opacity-90">local_fire_department</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-400 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+<span class="material-icons-round text-lg">add</span>
+</div>
+</div>
+</div>
+<div class="w-full text-left">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shop Deals</h3>
+<span class="text-[10px] text-primary font-bold animate-pulse">New!</span>
+</div>
+<div class="relative w-full h-32 rounded-xl overflow-hidden group cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800">
+<img alt="Special Bundle" class="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvaOk4TwdmJPOkuXVAMQTNt36zizxmTtYRoMNPNk8tNMyt_POlDMMCv90cOFPlFvFnDcQlY6hLYiVxuvUKbZgR0ky9GYpqwbYl60fl5OOOdcMODlOvUfWnk6l-tccfZcsZnKKHz3kj_1e0HZ9RQ7PHn0KJxGdl1wUn-fCiJvemCiMX7VnHM0gpcVA_w-BdrwMX1IZ0pj1Y8HZLTNtIHLoXun0C2gmhOMlwMfUt1g4Jpy_gnk6ZLgY8Emo4ZtPaEL_4yzdiEacbBtU"/>
+</div>
+<div class="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent">
+<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full self-start mb-1">-30% OFF</span>
+<h4 class="text-white font-bold text-sm">Neon Warfare Bundle</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-slate-300 text-xs line-through">1200</span>
+<span class="text-yellow-400 text-xs font-bold">840</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+        // Use local storage to persist dark mode or default to system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+
+</body></html>

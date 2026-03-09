@@ -7,24 +7,312 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Admin Panel ───────────────────────────────────────────────
+enum ShopItemType {
+  avatar
+  frame
+  card_back
+  card_face
+}
+
+enum CosmeticRenderMode {
+  image
+  template
+}
+
+enum ItemRarity {
+  common
+  rare
+  epic
+  legendary
+}
+
+enum InventorySource {
+  purchase
+  grant
+  migration
+}
+
+enum PurchaseStatus {
+  completed
+  reverted
+}
+
+enum PromotionTargetType {
+  global
+  shop_item
+  bundle
+}
+
+enum PromotionDiscountType {
+  percentage
+  fixed_coin
+}
 
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
   password  String   @db.VarChar(255)
-  role      String   @default("user") @db.VarChar(20) // "user", "admin"
+  role      String   @default("user") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at")
+
+  profile      UserProfile?
+  wallet       Wallet?
+  inventory    InventoryItem[]
+  purchases    Purchase[]
+  matchResults MatchResult[]
+  guestLinks   GuestProgress[]
+  auditLogs    AuditLog[]   @relation("AuditActor")
 
   @@map("users")
 }
 
-// ─── Tabu Game: Words ──────────────────────────────────────────
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actorUserId Int?     @map("actor_user_id")
+  actorRole   String   @map("actor_role") @db.VarChar(20)
+  action      String   @db.VarChar(80)
+  resourceType String  @map("resource_type") @db.VarChar(80)
+  resourceId  String?  @map("resource_id") @db.VarChar(120)
+  ipAddress   String?  @map("ip_address") @db.VarChar(64)
+  userAgent   String?  @map("user_agent") @db.VarChar(255)
+  summary     String?  @db.VarChar(255)
+  metadata    Json?    @db.Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([resourceType, createdAt])
+  @@map("audit_logs")
+}
+
+model UserProfile {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique @map("user_id")
+  displayName    String?  @map("display_name") @db.VarChar(60)
+  bio            String?  @db.VarChar(300)
+  avatarItemId   Int?     @map("avatar_item_id")
+  frameItemId    Int?     @map("frame_item_id")
+  cardBackItemId Int?     @map("card_back_item_id")
+  cardFaceItemId Int?     @map("card_face_item_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarItem   ShopItem? @relation("ProfileAvatar", fields: [avatarItemId], references: [id], onDelete: SetNull)
+  frameItem    ShopItem? @relation("ProfileFrame", fields: [frameItemId], references: [id], onDelete: SetNull)
+  cardBackItem ShopItem? @relation("ProfileCardBack", fields: [cardBackItemId], references: [id], onDelete: SetNull)
+  cardFaceItem ShopItem? @relation("ProfileCardFace", fields: [cardFaceItemId], references: [id], onDelete: SetNull)
+
+  @@map("user_profiles")
+}
+
+model Wallet {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  coinBalance Int      @default(0) @map("coin_balance")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model ShopItem {
+  id        Int          @id @default(autoincrement())
+  code      String       @unique @db.VarChar(80)
+  type      ShopItemType
+  name      String       @db.VarChar(120)
+  rarity    ItemRarity   @default(common)
+  renderMode CosmeticRenderMode @default(image) @map("render_mode")
+  priceCoin Int          @map("price_coin")
+  imageUrl  String       @map("image_url") @db.Text
+  templateKey String?    @map("template_key") @db.VarChar(80)
+  templateConfig Json?   @map("template_config")
+  badgeText String?      @map("badge_text") @db.VarChar(24)
+  isFeatured Boolean     @default(false) @map("is_featured")
+  isActive  Boolean      @default(true) @map("is_active")
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  inventoryItems     InventoryItem[]
+  purchases          Purchase[]
+  bundleEntries      ShopBundleItem[]
+  discountCampaigns  DiscountCampaign[]
+  couponCodes        CouponCode[]
+  equippedByAvatar   UserProfile[] @relation("ProfileAvatar")
+  equippedByFrame    UserProfile[] @relation("ProfileFrame")
+  equippedByCardBack UserProfile[] @relation("ProfileCardBack")
+  equippedByCardFace UserProfile[] @relation("ProfileCardFace")
+
+  @@map("shop_items")
+}
+
+model ShopBundle {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(120)
+  description String?  @db.VarChar(300)
+  priceCoin   Int      @map("price_coin")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items             ShopBundleItem[]
+  discountCampaigns DiscountCampaign[]
+  couponCodes       CouponCode[]
+  purchases         Purchase[]
+
+  @@map("shop_bundles")
+}
+
+model ShopBundleItem {
+  id         Int      @id @default(autoincrement())
+  bundleId   Int      @map("bundle_id")
+  shopItemId Int      @map("shop_item_id")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  bundle   ShopBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  shopItem ShopItem   @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, shopItemId])
+  @@index([bundleId, sortOrder])
+  @@map("shop_bundle_items")
+}
+
+model DiscountCampaign {
+  id               Int                   @id @default(autoincrement())
+  code             String                @unique @db.VarChar(80)
+  name             String                @db.VarChar(120)
+  description      String?               @db.VarChar(300)
+  targetType       PromotionTargetType   @default(global) @map("target_type")
+  discountType     PromotionDiscountType @map("discount_type")
+  percentageOff    Int?                  @map("percentage_off")
+  fixedCoinOff     Int?                  @map("fixed_coin_off")
+  shopItemId       Int?                  @map("shop_item_id")
+  bundleId         Int?                  @map("bundle_id")
+  usageLimit       Int?                  @map("usage_limit")
+  usedCount        Int                   @default(0) @map("used_count")
+  startsAt         DateTime?             @map("starts_at")
+  endsAt           DateTime?             @map("ends_at")
+  isActive         Boolean               @default(true) @map("is_active")
+  stackableWithCoupon Boolean            @default(false) @map("stackable_with_coupon")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  shopItem ShopItem?   @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+  bundle   ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, isActive])
+  @@map("discount_campaigns")
+}
+
+model CouponCode {
+  id               Int                   @id @default(autoincrement())
+  code             String                @unique @db.VarChar(80)
+  name             String                @db.VarChar(120)
+  description      String?               @db.VarChar(300)
+  targetType       PromotionTargetType   @default(global) @map("target_type")
+  discountType     PromotionDiscountType @map("discount_type")
+  percentageOff    Int?                  @map("percentage_off")
+  fixedCoinOff     Int?                  @map("fixed_coin_off")
+  shopItemId       Int?                  @map("shop_item_id")
+  bundleId         Int?                  @map("bundle_id")
+  usageLimit       Int?                  @map("usage_limit")
+  usedCount        Int                   @default(0) @map("used_count")
+  startsAt         DateTime?             @map("starts_at")
+  endsAt           DateTime?             @map("ends_at")
+  isActive         Boolean               @default(true) @map("is_active")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  shopItem ShopItem?   @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+  bundle   ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  purchases Purchase[]
+
+  @@index([targetType, isActive])
+  @@map("coupon_codes")
+}
+
+model InventoryItem {
+  id         Int             @id @default(autoincrement())
+  userId     Int             @map("user_id")
+  shopItemId Int             @map("shop_item_id")
+  source     InventorySource @default(purchase)
+  acquiredAt DateTime        @default(now()) @map("acquired_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopItemId])
+  @@index([userId])
+  @@map("inventory_items")
+}
+
+model Purchase {
+  id           Int            @id @default(autoincrement())
+  userId       Int            @map("user_id")
+  shopItemId   Int?           @map("shop_item_id")
+  bundleId     Int?           @map("bundle_id")
+  couponCodeId Int?           @map("coupon_code_id")
+  priceCoin    Int            @map("price_coin")
+  listPriceCoin Int?          @map("list_price_coin")
+  discountCoin Int            @default(0) @map("discount_coin")
+  status       PurchaseStatus @default(completed)
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem   ShopItem?  @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+  bundle     ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  couponCode CouponCode? @relation(fields: [couponCodeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([bundleId])
+  @@index([couponCodeId])
+  @@map("purchases")
+}
+
+model MatchResult {
+  id         Int      @id @default(autoincrement())
+  roomCode   String   @map("room_code") @db.VarChar(12)
+  gameType   String   @default("tabu") @map("game_type") @db.VarChar(30)
+  userId     Int      @map("user_id")
+  playerId   String   @map("player_id") @db.VarChar(64)
+  team       String?  @db.VarChar(1)
+  won        Boolean
+  scoreA     Int      @map("score_a")
+  scoreB     Int      @map("score_b")
+  coinEarned Int      @default(0) @map("coin_earned")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomCode, userId])
+  @@index([userId, createdAt])
+  @@map("match_results")
+}
+
+model GuestProgress {
+  id                 Int      @id @default(autoincrement())
+  playerId           String   @unique @map("player_id") @db.VarChar(64)
+  earnedCoinSnapshot Int      @default(0) @map("earned_coin_snapshot")
+  linkedUserId       Int?     @map("linked_user_id")
+  lastSeenAt         DateTime @default(now()) @map("last_seen_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  linkedUser User? @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+
+  @@index([linkedUserId])
+  @@map("guest_progress")
+}
 
 model Word {
   id         Int    @id @default(autoincrement())
   wordText   String @unique @map("word_text") @db.VarChar(255)
-  difficulty Int    @db.TinyInt // 1: Kolay, 2: Orta, 3: Zor
+  difficulty Int    @db.TinyInt
 
   tabooWords     TabooWord[]
   wordCategories WordCategory[]
@@ -41,8 +329,6 @@ model TabooWord {
 
   @@map("taboo_words")
 }
-
-// ─── Categories (Hierarchical) ─────────────────────────────────
 
 model Category {
   id        Int     @id @default(autoincrement())
@@ -70,8 +356,6 @@ model WordCategory {
   @@id([wordId, categoryId])
   @@map("word_categories")
 }
-
-// ─── Announcements ─────────────────────────────────────────────
 
 model Announcement {
   id        Int      @id @default(autoincrement())

@@ -10,15 +10,35 @@ export enum GameView {
     GAME_OVER = "GAME_OVER",
 }
 
+export interface PlayerCosmetics {
+    avatarImageUrl: string | null;
+    frameImageUrl: string | null;
+    frameAccentColor: string | null;
+    frameSecondaryColor?: string | null;
+    framePattern?: "none" | "grid" | "dots" | "diagonal" | "chevrons" | "rings" | "noise" | null;
+    framePatternOpacity?: number | null;
+    framePatternScale?: number | null;
+    frameGlowColor?: string | null;
+    frameGlowBlur?: number | null;
+    frameGlowOpacity?: number | null;
+    frameStyle?: "solid" | "double" | "ornate" | null;
+    frameThickness?: number | null;
+    frameRadius?: number | null;
+    frameMotionPreset?: "none" | "pulse" | "drift" | "shimmer" | null;
+    frameMotionSpeedMs?: number | null;
+}
+
 // ─── Player & Room ─────────────────────────────────────────────
 
 export interface Player {
     id: string;
     playerId: string;
+    userId?: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
+    cosmetics?: PlayerCosmetics;
 }
 
 export interface RoomSettings {

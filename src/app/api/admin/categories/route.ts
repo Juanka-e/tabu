@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { invalidateCategoryCache } from "@/lib/socket/category-service";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
 // GET - List categories
 export async function GET() {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     const categories = await prisma.category.findMany({
         orderBy: { sortOrder: "asc" },
         include: {
@@ -29,6 +35,11 @@ const createCategorySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const body = await request.json();
         const data = createCategorySchema.parse(body);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
     Megaphone,
     ChevronDown,
@@ -11,7 +12,6 @@ import {
     Tag,
     Pin,
 } from "lucide-react";
-import DOMPurify from "isomorphic-dompurify";
 
 interface Announcement {
     id: number;
@@ -37,27 +37,22 @@ export function AnnouncementsModal({
 }: AnnouncementsModalProps) {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"updates" | "announcements">(
         "updates"
     );
 
     useEffect(() => {
-        if (isOpen) {
-            const timer = setTimeout(() => {
-                setLoading(true);
-            }, 0);
-            fetch("/api/announcements/visible")
-                .then((res) => res.json())
-                .then((data) => {
-                    setAnnouncements(data);
-                    setLoading(false);
-                })
-                .catch(() => {
-                    setLoading(false);
-                });
-            return () => clearTimeout(timer);
-        }
+        if (!isOpen) return;
+        fetch("/api/announcements/visible")
+            .then((res) => res.json())
+            .then((data) => {
+                setAnnouncements(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -115,10 +110,11 @@ export function AnnouncementsModal({
                             onClick={() =>
                                 setExpandedId(isExpanded ? null : item.id)
                             }
-                            className={`group relative rounded-xl sm:rounded-2xl border transition-all cursor-pointer overflow-hidden ${isExpanded
-                                ? "bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-900/50 shadow-lg ring-1 ring-blue-500/10"
-                                : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600 hover:shadow-md"
-                                } ${item.isPinned ? "ring-2 ring-amber-400/30" : ""}`}
+                            className={`group relative rounded-xl sm:rounded-2xl border transition-all cursor-pointer overflow-hidden ${
+                                isExpanded
+                                    ? "bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-900/50 shadow-lg ring-1 ring-blue-500/10"
+                                    : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600 hover:shadow-md"
+                            } ${item.isPinned ? "ring-2 ring-amber-400/30" : ""}`}
                         >
                             <div className="p-3 sm:p-5">
                                 {/* Meta Header Row */}
@@ -175,18 +171,20 @@ export function AnnouncementsModal({
                                 {/* Title & Chevron */}
                                 <div className="flex justify-between items-start gap-2 sm:gap-4">
                                     <h3
-                                        className={`text-sm sm:text-lg font-bold leading-tight transition-colors ${isExpanded
-                                            ? "text-blue-600 dark:text-blue-400"
-                                            : "text-slate-800 dark:text-white"
-                                            }`}
+                                        className={`text-sm sm:text-lg font-bold leading-tight transition-colors ${
+                                            isExpanded
+                                                ? "text-blue-600 dark:text-blue-400"
+                                                : "text-slate-800 dark:text-white"
+                                        }`}
                                     >
                                         {item.title}
                                     </h3>
                                     <div
-                                        className={`p-1 rounded-full bg-gray-50 dark:bg-slate-700/50 text-gray-400 transition-transform duration-300 ${isExpanded
-                                            ? "rotate-180 bg-blue-50 text-blue-500 dark:bg-blue-900/30"
-                                            : "group-hover:bg-gray-100 dark:group-hover:bg-slate-700"
-                                            }`}
+                                        className={`p-1 rounded-full bg-gray-50 dark:bg-slate-700/50 text-gray-400 transition-transform duration-300 ${
+                                            isExpanded
+                                                ? "rotate-180 bg-blue-50 text-blue-500 dark:bg-blue-900/30"
+                                                : "group-hover:bg-gray-100 dark:group-hover:bg-slate-700"
+                                        }`}
                                     >
                                         <ChevronDown size={16} />
                                     </div>
@@ -195,46 +193,47 @@ export function AnnouncementsModal({
 
                             {/* Expanded Content */}
                             <div
-                                className={`transition-all duration-300 ease-in-out ${isExpanded
-                                    ? "max-h-[600px] sm:max-h-[800px] opacity-100"
-                                    : "max-h-0 opacity-0"
-                                    }`}
+                                className={`transition-all duration-300 ease-in-out ${
+                                    isExpanded
+                                        ? "max-h-[600px] sm:max-h-[800px] opacity-100"
+                                        : "max-h-0 opacity-0"
+                                }`}
                             >
                                 <div className="px-3 sm:px-5 pb-3 sm:pb-5 pt-0">
                                     <div className="h-px w-full bg-gray-100 dark:bg-slate-700 mb-3 sm:mb-4"></div>
 
                                     {item.mediaUrl && (
-                                        <div className="relative w-full rounded-xl overflow-hidden mb-6 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700">
+                                        <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden shadow-md bg-black ring-1 ring-black/5">
                                             {item.mediaType === "youtube" ? (
-                                                <div className="aspect-video">
+                                                <div className="relative pt-[56.25%]">
                                                     <iframe
                                                         className="absolute inset-0 w-full h-full"
-                                                        src={item.mediaUrl.replace(
-                                                            "watch?v=",
-                                                            "embed/"
-                                                        )}
+                                                        src={item.mediaUrl}
                                                         title="Content Video"
                                                         frameBorder="0"
                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        loading="lazy"
+                                                        referrerPolicy="strict-origin-when-cross-origin"
+                                                        sandbox="allow-scripts allow-same-origin allow-presentation"
                                                         allowFullScreen
                                                     ></iframe>
                                                 </div>
                                             ) : (
-                                                <div className="aspect-video relative">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={item.mediaUrl}
-                                                        alt="Duyuru görseli"
-                                                        className="absolute inset-0 w-full h-full object-cover"
-                                                    />
-                                                </div>
+                                                <Image
+                                                    src={item.mediaUrl}
+                                                    alt={item.title}
+                                                    width={1200}
+                                                    height={675}
+                                                    unoptimized
+                                                    className="w-full h-auto max-h-[200px] sm:max-h-[300px] object-cover"
+                                                />
                                             )}
                                         </div>
                                     )}
                                     <div
                                         className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed"
                                         dangerouslySetInnerHTML={{
-                                            __html: typeof window !== 'undefined' ? DOMPurify.sanitize(item.content) : item.content,
+                                            __html: item.content,
                                         }}
                                     />
                                 </div>
@@ -284,10 +283,11 @@ export function AnnouncementsModal({
                             setActiveTab("updates");
                             setExpandedId(null);
                         }}
-                        className={`flex-1 relative py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${activeTab === "updates"
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                            : "bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
-                            }`}
+                        className={`flex-1 relative py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                            activeTab === "updates"
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                                : "bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
+                        }`}
                     >
                         Güncellemeler
                     </button>
@@ -296,10 +296,11 @@ export function AnnouncementsModal({
                             setActiveTab("announcements");
                             setExpandedId(null);
                         }}
-                        className={`flex-1 relative py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${activeTab === "announcements"
-                            ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
-                            : "bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
-                            }`}
+                        className={`flex-1 relative py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                            activeTab === "announcements"
+                                ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
+                                : "bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
+                        }`}
                     >
                         Duyurular
                     </button>

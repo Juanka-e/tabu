@@ -2,6 +2,7 @@
 
 import { Check, X, ArrowRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
 import { GameCard } from "@/components/game/game-card";
+import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { GameState, CardData } from "@/types/game";
 
 interface ActiveGameProps {
@@ -12,6 +13,7 @@ interface ActiveGameProps {
     inspectorName: string;
     isHost: boolean;
     settings: { sure: number; mod: "tur" | "skor"; deger: number };
+    cardFaceTheme: ResolvedCardFaceTheme | null;
     onWordAction: (action: "dogru" | "tabu" | "pas") => void;
     onPauseResume: () => void;
     onResetGame: () => void;
@@ -25,6 +27,7 @@ export function ActiveGame({
     inspectorName,
     isHost,
     settings,
+    cardFaceTheme,
     onWordAction,
     onPauseResume,
     onResetGame,
@@ -134,7 +137,7 @@ export function ActiveGame({
                 {/* Card for narrator and inspector */}
                 {card && (myRole === "Anlatıcı" || myRole === "Gözetmen") && (
                     <div className="w-full flex justify-center animate-fade-in">
-                        <GameCard card={card} />
+                        <GameCard card={card} theme={cardFaceTheme} />
                     </div>
                 )}
 
