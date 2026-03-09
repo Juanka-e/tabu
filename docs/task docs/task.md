@@ -299,3 +299,10 @@ Reference:
 - [x] Fix the room create/join request contract so public home, authenticated dashboard, and room reconnect all use the same socket event
 - [x] Standardize room create/join onto ASCII event name `room:request` to avoid future encoding mismatches
 - [x] Verification completed: `npm run lint`, `npm run build`
+
+### Phase 12 Update (March 9, 2026 - Room Hydration and Security Review)
+- [x] Fix room page theme-toggle hydration mismatch by switching to dual-icon CSS visibility instead of server/client conditional icon JSX
+- [x] Re-review admin panel route protection and direct admin API exposure
+- [x] Re-review store purchase / equip / coupon flow for client-side coin bypass risk
+- [x] Document current `card_face` / `card_back` behavior and the recommended next rendering model
+- [x] Verification completed: `npm run lint`, `npm run build`

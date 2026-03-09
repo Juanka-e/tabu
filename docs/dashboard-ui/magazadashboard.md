@@ -919,3 +919,38 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Card Face / Card Back Behavior (9 March 2026)
+
+### Current behavior
+- `card_face` su anda aktif oyunda sadece karti gercekten goren kullanicinin client'inda uygulanir.
+- Bu nedenle:
+  - anlatici karti goruyorsa kendi kusandigi `card_face` temasini gorur
+  - gozetmen kendi ekraninda kart goruyorsa kendi client temasini gorur
+  - guest oyuncular varsayilan kart gorunumuyle kalir
+- `card_back` su anda asil olarak `transition-screen` yuzeyinde kullanilir.
+- Tahminci ekranindaki `Tahmin Et!` kutusu bir card-back renderer degildir; bu ayrik bir gameplay placeholder kartidir.
+
+### Neden boyle
+- Mevcut implementasyon oyuncunun kendi cosmetic deneyimini aktif eder ama baskasinin cosmetic secimini oyun snapshot'ina tasimaz.
+- Bu yaklasim dusuk riskliydi; once ekonomi ve equip akisi stabil hale getirildi.
+
+### Su an satin alinan kartta renk mantigi
+- Default kartlarda kategori rengi `card.categoryColor` ile header'a uygulanir.
+- Eger `card_face` equip edildiyse:
+  - kart temasi border, glow, pattern, footer, word/taboo renklerini degistirir
+  - kategori rengi varsa header'da hala kategori rengi onceliklidir
+- Yani bugunku model:
+  - kategori rengi = gameplay bilgisi
+  - cosmetic tema = premium stil katmani
+
+### Onerilen kalici yol
+- `card_face` icin iki katmanli sistem daha dogru:
+  - gameplay layer: kategori/difficulty sinyali korunur
+  - cosmetic layer: border, texture, glow, frame, footer, overlay uygular
+- Boylece satin alinan kart temasi karti premium hissettirir ama gameplay okunurlugunu bozmaz.
+
+### Sonraki iyilestirme secenegi
+- Eger istersek bir sonraki slice'ta `card_face` yayilimini narrator-owned hale getirebiliriz:
+  - aktif turun anlaticisinin equip ettigi `card_face` tum karti goren client'lara gider
+  - tahminci placeholder kutusu da ayri bir `guess-panel theme` ile `card_back` diline baglanabilir

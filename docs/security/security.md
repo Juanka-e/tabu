@@ -950,3 +950,52 @@ Critical Findings
 
 ### Security assessment
 - This keeps cosmetic authoring expressive enough for premium effects without opening a general-purpose style/script injection surface.
+
+## Current Review (9 March 2026 - Admin Panel and Store Abuse)
+
+### Admin panel external access
+- I did not find a direct unauthenticated or non-admin bypass into the current admin panel.
+- Current protection is layered:
+  - `src/proxy.ts` blocks `/admin/*` and `/api/admin/*` for non-admin sessions
+  - admin API routes also use `requireAdminSession()` server-side
+- Practical result:
+  - a normal user cannot reach admin data or admin mutations just by calling the routes directly
+  - a guest session cannot reach admin data or admin mutations
+
+### Remaining admin risk model
+- Admin access is still fully compromiseable if any of these happen:
+  - admin credentials are leaked
+  - an admin session cookie is stolen
+  - `AUTH_SECRET` is weak or misconfigured in production
+- So the open risk is no longer route bypass; it is session/account compromise hardening.
+
+### Store / coin bypass review
+- I did not find a client-side coin bypass in the current purchase flow.
+- The client does not send the final price or resulting balance as trusted input.
+- Server-side flow computes everything again in `src/lib/economy.ts`:
+  - resolves active discount campaign
+  - resolves optional coupon
+  - clamps discount amount
+  - computes `finalPriceCoin`
+  - checks wallet balance
+  - decrements wallet in the transaction
+  - writes inventory and purchase rows in the same transaction
+- Practical result:
+  - changing price in DevTools does not help
+  - changing coin balance in the UI does not help
+  - re-sending the same request still depends on current server wallet state
+
+### Residual store risks
+- Abuse is still possible through normal attack classes, not direct price bypass:
+  - stolen authenticated session
+  - distributed request spam beyond in-memory rate limit scope
+  - future business-logic bugs in new promotion rules
+- Current in-memory rate limits are good for baseline protection but are not multi-instance durable.
+
+### Current conclusion
+- No direct admin-panel auth bypass found in current code.
+- No direct coin or store-price bypass found in current code.
+- Highest remaining practical risks are:
+  - session theft / admin account compromise
+  - future business-logic regressions in socket/store flows
+  - lack of centralized persistent rate limiting for scaled deployments
