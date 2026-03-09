@@ -1,9 +1,17 @@
-import { Prisma } from "@prisma/client";
+import {
+    CosmeticRenderMode as PrismaCosmeticRenderMode,
+    ItemRarity as PrismaItemRarity,
+    Prisma,
+    ShopItemType as PrismaShopItemType,
+} from "@prisma/client";
 import { z } from "zod";
 import {
     STORE_ITEM_RARITIES,
     STORE_ITEM_RENDER_MODES,
     STORE_ITEM_TYPES,
+    type StoreItemRarity,
+    type StoreItemRenderMode,
+    type StoreItemType,
     type TemplateConfig,
     type TemplateConfigScalar,
     type TemplateConfigValue,
@@ -176,23 +184,58 @@ export const shopItemUpdateSchema = shopItemUpdateBaseSchema.superRefine((value,
 export type ShopItemWriteInput = z.infer<typeof shopItemWriteSchema>;
 export type ShopItemUpdateInput = z.infer<typeof shopItemUpdateSchema>;
 
+const PRISMA_SHOP_ITEM_TYPE_MAP: Record<StoreItemType, PrismaShopItemType> = {
+    avatar: PrismaShopItemType.avatar,
+    frame: PrismaShopItemType.frame,
+    card_back: PrismaShopItemType.card_back,
+    card_face: PrismaShopItemType.card_face,
+};
+
+const PRISMA_ITEM_RARITY_MAP: Record<StoreItemRarity, PrismaItemRarity> = {
+    common: PrismaItemRarity.common,
+    rare: PrismaItemRarity.rare,
+    epic: PrismaItemRarity.epic,
+    legendary: PrismaItemRarity.legendary,
+};
+
+const PRISMA_RENDER_MODE_MAP: Record<StoreItemRenderMode, PrismaCosmeticRenderMode> = {
+    image: PrismaCosmeticRenderMode.image,
+    template: PrismaCosmeticRenderMode.template,
+};
+
+export function toPrismaShopItemType(value: StoreItemType): PrismaShopItemType {
+    return PRISMA_SHOP_ITEM_TYPE_MAP[value];
+}
+
+export function toPrismaItemRarity(value: StoreItemRarity): PrismaItemRarity {
+    return PRISMA_ITEM_RARITY_MAP[value];
+}
+
 export function toPrismaShopItemCreateData(input: ShopItemWriteInput): Prisma.ShopItemCreateInput {
     return {
-        ...input,
+        code: input.code,
+        type: PRISMA_SHOP_ITEM_TYPE_MAP[input.type],
+        name: input.name,
+        rarity: PRISMA_ITEM_RARITY_MAP[input.rarity],
+        renderMode: PRISMA_RENDER_MODE_MAP[input.renderMode],
+        priceCoin: input.priceCoin,
+        imageUrl: input.imageUrl,
         templateKey: input.templateKey ?? null,
         templateConfig: input.templateConfig ?? Prisma.JsonNull,
         badgeText: input.badgeText ?? null,
         isFeatured: input.isFeatured,
+        isActive: input.isActive,
+        sortOrder: input.sortOrder,
     };
 }
 
 export function toPrismaShopItemUpdateData(input: ShopItemUpdateInput): Prisma.ShopItemUpdateInput {
     return {
         ...(input.code !== undefined ? { code: input.code } : {}),
-        ...(input.type !== undefined ? { type: input.type } : {}),
+        ...(input.type !== undefined ? { type: PRISMA_SHOP_ITEM_TYPE_MAP[input.type] } : {}),
         ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.rarity !== undefined ? { rarity: input.rarity } : {}),
-        ...(input.renderMode !== undefined ? { renderMode: input.renderMode } : {}),
+        ...(input.rarity !== undefined ? { rarity: PRISMA_ITEM_RARITY_MAP[input.rarity] } : {}),
+        ...(input.renderMode !== undefined ? { renderMode: PRISMA_RENDER_MODE_MAP[input.renderMode] } : {}),
         ...(input.priceCoin !== undefined ? { priceCoin: input.priceCoin } : {}),
         ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
         ...(input.templateKey !== undefined ? { templateKey: input.templateKey ?? null } : {}),

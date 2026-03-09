@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import {
+    CosmeticRenderMode,
+    ItemRarity,
+    ShopItemType,
+} from "@prisma/client";
+import {
     shopItemUpdateSchema,
     shopItemWriteSchema,
+    toPrismaShopItemCreateData,
 } from "../src/lib/cosmetics/shop-item-schema";
 
 const imageItem = shopItemWriteSchema.safeParse({
@@ -44,6 +50,15 @@ const templateItem = shopItemWriteSchema.safeParse({
 });
 
 assert.equal(templateItem.success, true);
+
+if (!templateItem.success) {
+    throw new Error("template item parse failed unexpectedly");
+}
+
+const prismaPayload = toPrismaShopItemCreateData(templateItem.data);
+assert.equal(prismaPayload.type, ShopItemType.card_face);
+assert.equal(prismaPayload.rarity, ItemRarity.legendary);
+assert.equal(prismaPayload.renderMode, CosmeticRenderMode.template);
 
 const invalidAvatar = shopItemUpdateSchema.safeParse({
     type: "avatar",

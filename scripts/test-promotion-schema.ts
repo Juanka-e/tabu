@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import {
+    PromotionDiscountType,
+    PromotionTargetType,
+} from "@prisma/client";
+import {
     bundleWriteSchema,
     couponCodeWriteSchema,
     discountCampaignWriteSchema,
+    toPrismaCouponCodeCreateData,
+    toPrismaDiscountCampaignCreateData,
 } from "../src/lib/promotions/promotion-schema";
 
 const bundleResult = bundleWriteSchema.safeParse({
@@ -56,6 +62,13 @@ const discountWithLimit = discountCampaignWriteSchema.safeParse({
 });
 
 assert.equal(discountWithLimit.success, true);
+if (!discountWithLimit.success) {
+    throw new Error("discount parse failed unexpectedly");
+}
+
+const discountPayload = toPrismaDiscountCampaignCreateData(discountWithLimit.data);
+assert.equal(discountPayload.targetType, PromotionTargetType.bundle);
+assert.equal(discountPayload.discountType, PromotionDiscountType.percentage);
 
 const couponResult = couponCodeWriteSchema.safeParse({
     code: "spring25",
@@ -74,5 +87,12 @@ const couponResult = couponCodeWriteSchema.safeParse({
 });
 
 assert.equal(couponResult.success, true);
+if (!couponResult.success) {
+    throw new Error("coupon parse failed unexpectedly");
+}
+
+const couponPayload = toPrismaCouponCodeCreateData(couponResult.data);
+assert.equal(couponPayload.targetType, PromotionTargetType.global);
+assert.equal(couponPayload.discountType, PromotionDiscountType.fixed_coin);
 
 console.log("promotion schema smoke test passed");

@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
-import { shopItemWriteSchema, toPrismaShopItemCreateData } from "@/lib/cosmetics/shop-item-schema";
+import {
+    shopItemWriteSchema,
+    toPrismaItemRarity,
+    toPrismaShopItemCreateData,
+    toPrismaShopItemType,
+} from "@/lib/cosmetics/shop-item-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import { STORE_ITEM_RARITIES, STORE_ITEM_TYPES } from "@/types/economy";
 
@@ -37,8 +42,8 @@ export async function GET(request: NextRequest) {
 
     const items = await prisma.shopItem.findMany({
         where: {
-            ...(type ? { type } : {}),
-            ...(rarity ? { rarity } : {}),
+            ...(type ? { type: toPrismaShopItemType(type) } : {}),
+            ...(rarity ? { rarity: toPrismaItemRarity(rarity) } : {}),
             ...(activeOnly ? { isActive: true } : {}),
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],

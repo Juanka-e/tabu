@@ -286,3 +286,10 @@ Reference:
 - [x] Keep the rollout rarity-first; defer `season` merchandising metadata for later
 - [x] Add smoke test: `npm run test:shop-order`
 - [x] Verification completed: `npm run test:shop-order`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Prisma Enum Hotfix)
+- [x] Add explicit runtime enum mapping before Prisma create/update calls for shop items
+- [x] Apply the same mapping pattern to promotion create/update mappers
+- [x] Update admin shop-item filter queries to use Prisma-safe enum values
+- [x] Extend smoke tests to validate mapper output against Prisma enums
+- [x] Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

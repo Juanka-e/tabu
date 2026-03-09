@@ -397,6 +397,24 @@ Reference:
 - Add CSP report collection / monitoring if runtime violation visibility is required.
 - Consider a later `season` merchandising layer only after rarity and featured ordering prove stable in production.
 
+### Completed in the March 9 prisma-enum-hotfix slice
+- Added explicit runtime-safe enum mapping between local API string unions and Prisma enum values for:
+  - shop item create/update
+  - promotion create/update
+  - admin shop-item filter queries
+- Prevented Prisma validation failures like:
+  - `Invalid value for argument type. Expected ShopItemType.`
+- Extended smoke tests so mapper output is also checked, not just zod parsing:
+  - `npm run test:promotions`
+  - `npm run test:shop-items`
+- Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Consider a later `season` merchandising layer only after rarity and featured ordering prove stable in production.
+
 ### Completed in the March 9 admin-preview slice
 - Added a live cosmetic preview panel to `/admin/shop-items`.
 - The modal now shows:

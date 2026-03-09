@@ -1,4 +1,8 @@
-import { Prisma } from "@prisma/client";
+import {
+    Prisma,
+    PromotionDiscountType as PrismaPromotionDiscountType,
+    PromotionTargetType as PrismaPromotionTargetType,
+} from "@prisma/client";
 import { z } from "zod";
 import {
     PROMOTION_DISCOUNT_TYPES,
@@ -212,6 +216,17 @@ export type DiscountCampaignUpdateInput = z.infer<typeof discountCampaignUpdateS
 export type CouponCodeWriteInput = z.infer<typeof couponCodeWriteSchema>;
 export type CouponCodeUpdateInput = z.infer<typeof couponCodeUpdateSchema>;
 
+const PRISMA_PROMOTION_TARGET_TYPE_MAP: Record<PromotionTargetType, PrismaPromotionTargetType> = {
+    global: PrismaPromotionTargetType.global,
+    shop_item: PrismaPromotionTargetType.shop_item,
+    bundle: PrismaPromotionTargetType.bundle,
+};
+
+const PRISMA_PROMOTION_DISCOUNT_TYPE_MAP: Record<PromotionDiscountType, PrismaPromotionDiscountType> = {
+    percentage: PrismaPromotionDiscountType.percentage,
+    fixed_coin: PrismaPromotionDiscountType.fixed_coin,
+};
+
 function parseDateOrNull(value: string | null | undefined): Date | null {
     return value ? new Date(value) : null;
 }
@@ -253,8 +268,8 @@ export function toPrismaDiscountCampaignCreateData(
         code: input.code,
         name: input.name,
         description: input.description ?? null,
-        targetType: input.targetType,
-        discountType: input.discountType,
+        targetType: PRISMA_PROMOTION_TARGET_TYPE_MAP[input.targetType],
+        discountType: PRISMA_PROMOTION_DISCOUNT_TYPE_MAP[input.discountType],
         percentageOff: input.percentageOff ?? null,
         fixedCoinOff: input.fixedCoinOff ?? null,
         usageLimit: input.usageLimit ?? null,
@@ -274,8 +289,12 @@ export function toPrismaDiscountCampaignUpdateData(
         ...(input.code !== undefined ? { code: input.code } : {}),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description ?? null } : {}),
-        ...(input.targetType !== undefined ? { targetType: input.targetType } : {}),
-        ...(input.discountType !== undefined ? { discountType: input.discountType } : {}),
+        ...(input.targetType !== undefined
+            ? { targetType: PRISMA_PROMOTION_TARGET_TYPE_MAP[input.targetType] }
+            : {}),
+        ...(input.discountType !== undefined
+            ? { discountType: PRISMA_PROMOTION_DISCOUNT_TYPE_MAP[input.discountType] }
+            : {}),
         ...(input.percentageOff !== undefined ? { percentageOff: input.percentageOff ?? null } : {}),
         ...(input.fixedCoinOff !== undefined ? { fixedCoinOff: input.fixedCoinOff ?? null } : {}),
         ...(input.usageLimit !== undefined ? { usageLimit: input.usageLimit ?? null } : {}),
@@ -305,8 +324,8 @@ export function toPrismaCouponCodeCreateData(input: CouponCodeWriteInput): Prism
         code: input.code,
         name: input.name,
         description: input.description ?? null,
-        targetType: input.targetType,
-        discountType: input.discountType,
+        targetType: PRISMA_PROMOTION_TARGET_TYPE_MAP[input.targetType],
+        discountType: PRISMA_PROMOTION_DISCOUNT_TYPE_MAP[input.discountType],
         percentageOff: input.percentageOff ?? null,
         fixedCoinOff: input.fixedCoinOff ?? null,
         usageLimit: input.usageLimit ?? null,
@@ -323,8 +342,12 @@ export function toPrismaCouponCodeUpdateData(input: CouponCodeUpdateInput): Pris
         ...(input.code !== undefined ? { code: input.code } : {}),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description ?? null } : {}),
-        ...(input.targetType !== undefined ? { targetType: input.targetType } : {}),
-        ...(input.discountType !== undefined ? { discountType: input.discountType } : {}),
+        ...(input.targetType !== undefined
+            ? { targetType: PRISMA_PROMOTION_TARGET_TYPE_MAP[input.targetType] }
+            : {}),
+        ...(input.discountType !== undefined
+            ? { discountType: PRISMA_PROMOTION_DISCOUNT_TYPE_MAP[input.discountType] }
+            : {}),
         ...(input.percentageOff !== undefined ? { percentageOff: input.percentageOff ?? null } : {}),
         ...(input.fixedCoinOff !== undefined ? { fixedCoinOff: input.fixedCoinOff ?? null } : {}),
         ...(input.usageLimit !== undefined ? { usageLimit: input.usageLimit ?? null } : {}),

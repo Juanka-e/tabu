@@ -882,3 +882,40 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Prisma Enum Mapping Hotfix (9 March 2026)
+
+### Problem
+- Admin panelden shop item olustururken Prisma su hatayi veriyordu:
+  - `Invalid value for argument type. Expected ShopItemType.`
+- Benzer risk promosyon create/update katmaninda da vardi.
+
+### Koku neden
+- UI ve validator katmaninda local string union kullanimi dogruydu.
+- Ancak Prisma create/update asamasinda bu stringler runtime'da her ortamda guvenilir kabul edilmedi.
+- Sonuc olarak:
+  - validation geciyor
+  - route icinde Prisma create/update patliyordu
+
+### Uygulanan cozum
+- Validator tarafindaki local typed sabitler korundu.
+- Prisma'ya yazmadan hemen once explicit enum map uygulandi:
+  - `StoreItemType -> Prisma ShopItemType`
+  - `StoreItemRarity -> Prisma ItemRarity`
+  - `StoreItemRenderMode -> Prisma CosmeticRenderMode`
+  - `PromotionTargetType -> Prisma PromotionTargetType`
+  - `PromotionDiscountType -> Prisma PromotionDiscountType`
+- Shop item admin filtre sorgusu da ayni map ile guncellendi.
+
+### Neden bu yontem
+- UI ve API kontratlari string union ile sade kalir.
+- Prisma client'a geciste runtime-safe enum degeri garanti edilir.
+- Bu yaklasim onceki `nativeEnum` kaynakli kiriklarla da celismez.
+
+### Bu Turdaki Dogrulama
+- `npm run test:promotions`
+- `npm run test:shop-items`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

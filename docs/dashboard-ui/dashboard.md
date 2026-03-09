@@ -456,3 +456,16 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Karar: ilk asamada sistem daha sade tutulacak; once rarity dili sabitlenecek, gerekirse sonra season katmani eklenecek.
 - Yeni smoke test eklendi:
   - `npm run test:shop-order`
+
+## 9 March 2026 Update - Prisma Enum Mapping Hotfix
+
+- Admin `shop-items` create akisinda Prisma runtime enum dogrulamasi hata veriyordu.
+- Bunu gidermek icin local string union yapisi korunup Prisma create/update sinirinda explicit enum map eklendi.
+- Ayni pattern promosyon create/update mapper'larina da uygulandi.
+- Kapsanan alanlar:
+  - `ShopItemType`
+  - `ItemRarity`
+  - `CosmeticRenderMode`
+  - `PromotionTargetType`
+  - `PromotionDiscountType`
+- Boylece validator ve UI sade kalirken Prisma client'a giden deger runtime-safe hale geldi.
