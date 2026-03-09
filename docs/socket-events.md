@@ -4,7 +4,7 @@
 
 | Event Name | Payload | Description |
 | :--- | :--- | :--- |
-| `odaİsteği` | `{ kullaniciAdi: string, odaKodu?: string, playerId?: string }` | Request to create (if no code) or join a room. |
+| `odaİsteği` | `{ kullaniciAdi: string, odaKodu?: string }` | Request to create (if no code) or join a room. |
 | `takimlariKaristir` | `void` | (Admin only) Shuffles players between Team A and Team B. |
 | `yoneticiligiDevret` | `{ targetPlayerId: string }` | (Admin only) Transfers room admin rights to another player. |
 | `oyuncuyuAt` | `{ targetPlayerId: string }` | (Admin only) Kicks and bans a player from the room. |
@@ -19,7 +19,6 @@
 
 | Event Name | Payload | Description |
 | :--- | :--- | :--- |
-| `kimlikAta` | `string` (UUID) | Sent to client upon first join. Client should save this `playerId`. |
 | `lobiGuncelle` | `RoomData` | Broadcasts full room state (players, settings) to all clients. |
 | `oyunDurumuGuncelle` | `GameState` | Broadcasts active game state (scores, timer, current card masked). |
 | `oyunBasladi` | `void` | Signals that the game has started. Clients switch to Game view. |

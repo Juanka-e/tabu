@@ -2,6 +2,7 @@ import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
+import { getToken } from "next-auth/jwt";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -20,6 +21,31 @@ app.prepare().then(() => {
             methods: ["GET", "POST"],
         },
         transports: ["websocket", "polling"],
+    });
+
+    // WebSocket Authentication Middleware
+    io.use(async (socket, next) => {
+        try {
+            const token = await getToken({
+                req: { headers: socket.request.headers } as never,
+                secret: process.env.AUTH_SECRET,
+                secureCookie: process.env.NODE_ENV === "production"
+            });
+
+            if (!token || !token.sub) {
+                return next(new Error("Unauthorized: Lütfen giriş yapın."));
+            }
+
+            // Securely attach the NextAuth unique ID to the socket
+            // This replaces the vulnerable localStorage setup
+            socket.data.userId = token.sub;
+
+            // Proceed if valid token exists
+            next();
+        } catch (error) {
+            console.error("Socket authentication failed:", error);
+            next(new Error("Authentication failed"));
+        }
     });
 
     // Initialize game socket logic

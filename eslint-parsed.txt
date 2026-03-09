@@ -1,0 +1,35 @@
+D:\gemini_tabu_test\geminitabu\newnextjs\src\components\game\announcements-modal.tsx
+  47:13 Definition for rule 'react-compiler/react-compiler' was not found. [react-compiler/react-compiler]
+  48:13 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\gemini_tabu_test\geminitabu\newnextjs\src\components\game\announcements-modal.tsx:48:13
+  46 |         if (isOpen) {
+  47 |             // eslint-disable-next-line react-compiler/react-compiler
+> 48 |             setLoading(true);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  49 |             fetch("/api/announcements/visible")
+  50 |                 .then((res) => res.json())
+  51 |                 .then((data) => { [react-hooks/set-state-in-effect]
+D:\gemini_tabu_test\geminitabu\newnextjs\src\components\providers\socket-provider.tsx
+  34:9 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\gemini_tabu_test\geminitabu\newnextjs\src\components\providers\socket-provider.tsx:34:9
+  32 |         });
+  33 |
+> 34 |         setSocket(socketInstance);
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  35 |
+  36 |         socketInstance.on("connect", () => {
+  37 |             setIsConnected(true); [react-hooks/set-state-in-effect]
