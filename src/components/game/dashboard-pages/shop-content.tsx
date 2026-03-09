@@ -451,9 +451,19 @@ function ShopItemCard({
 
     return (
         <div
-            className={`group relative rounded-2xl border border-white/40 bg-white/40 p-4 transition-all hover:-translate-y-1 hover:bg-white/60 dark:border-slate-700/40 dark:bg-slate-800/40 dark:hover:bg-slate-800/60 ${rarityGlow[item.rarity]}`}
+            className={`group relative rounded-2xl border p-4 transition-all hover:-translate-y-1 hover:bg-white/60 dark:bg-slate-800/40 dark:hover:bg-slate-800/60 ${item.isFeatured
+                ? "border-fuchsia-200/80 bg-gradient-to-b from-white/70 to-fuchsia-50/50 dark:border-fuchsia-900/50 dark:from-slate-800/70 dark:to-fuchsia-950/20"
+                : "border-white/40 bg-white/40 dark:border-slate-700/40"
+                } ${rarityGlow[item.rarity]}`}
         >
             <div className="relative mb-3 aspect-square overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700/50">
+                {item.badgeText ? (
+                    <div className="absolute left-2 top-2 z-10">
+                        <span className="rounded-full bg-blue-600/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-sm">
+                            {item.badgeText}
+                        </span>
+                    </div>
+                ) : null}
                 <div className="absolute right-2 top-2 z-10">
                     <span
                         className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm backdrop-blur-sm ${rarityBadgeColor[item.rarity]}`}

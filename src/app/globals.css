@@ -269,6 +269,25 @@
   animation: cosmeticShimmer 3.6s linear infinite;
 }
 
+@keyframes storeRadarMarquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+}
+
+.store-radar-track {
+  animation: storeRadarMarquee 26s linear infinite;
+  will-change: transform;
+}
+
+.store-radar-track:hover {
+  animation-play-state: paused;
+}
+
 /* Tiptap Editor Styles */
 .ProseMirror {
   outline: none;

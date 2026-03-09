@@ -399,8 +399,12 @@ Kurallar:
 2. `type` sec
 3. `renderMode = image`
 4. gorsel yukle veya URL gir
-5. `templateKey` ve `templateConfig` bos birak
-6. kaydet
+5. merchandizing alanlarini belirle:
+   - `sortOrder`: magazadaki ana sira
+   - `isFeatured`: sag dashboard `Shop Radar` havuzuna girsin mi?
+   - `badgeText`: gerekiyorsa `YENI`, `LIMITLI`, `PREMIUM`
+6. `templateKey` ve `templateConfig` bos birak
+7. kaydet
 
 ### Template tabanli urun
 1. `/admin/shop-items` ac
@@ -408,8 +412,37 @@ Kurallar:
 3. `renderMode = template`
 4. `templateKey` gir
 5. bu dokumandaki uygun JSON'u `templateConfig` alanina yapistir
-6. `Ornek Doldur` ile baslangic json'u al, sonra ozellestir
-7. kaydet
+6. merchandizing alanlarini belirle:
+   - `sortOrder`
+   - `isFeatured`
+   - `badgeText`
+7. `Ornek Doldur` ile baslangic json'u al, sonra ozellestir
+8. kaydet
+
+---
+
+## Merchandising Kurallari
+
+### `sortOrder`
+- Tum magaza grid'i bu alana gore siralanir.
+- Daha kucuk deger daha yukari demektir.
+- Onerilen artis: `10, 20, 30...`
+- Yeni urun eklerken araya girebilmek icin bosluk birak.
+
+### `isFeatured`
+- `true` ise urun dashboard sag panelindeki `Shop Radar` havuzuna girebilir.
+- `Shop Radar` tum featured urunleri ayni anda gostermez; kullanicinin sahip olmadigi featured urunlerden secim yapar.
+- Bu nedenle featured flag, "magazada one cikan urun havuzu" anlamina gelir.
+
+### `badgeText`
+- Maksimum `24` karakter.
+- Onerilen kullanimlar:
+  - `YENI`
+  - `LIMITLI`
+  - `PREMIUM`
+  - `SEZON`
+- Rozet, hem magaza kartinda hem `Shop Radar` rail'inde gorunur.
+- Her urunde rozet kullanma; sadece dikkat cekmek istedigin urunlerde kullan.
 
 ---
 

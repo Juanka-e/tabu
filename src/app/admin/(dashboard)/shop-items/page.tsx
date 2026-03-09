@@ -34,6 +34,8 @@ interface ShopItem {
     imageUrl: string;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
+    badgeText: string | null;
+    isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
     createdAt: string;
@@ -50,6 +52,8 @@ interface ShopItemFormState {
     imageUrl: string;
     templateKey: string;
     templateConfigText: string;
+    badgeText: string;
+    isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
 }
@@ -78,6 +82,8 @@ const emptyItem: ShopItemFormState = {
     imageUrl: "",
     templateKey: "",
     templateConfigText: "",
+    badgeText: "",
+    isFeatured: false,
     isActive: true,
     sortOrder: 0,
 };
@@ -315,6 +321,8 @@ export default function ShopItemsPage() {
             imageUrl: item.imageUrl,
             templateKey: item.templateKey || "",
             templateConfigText: stringifyTemplateConfig(item.templateConfig),
+            badgeText: item.badgeText || "",
+            isFeatured: item.isFeatured,
             isActive: item.isActive,
             sortOrder: item.sortOrder,
         });
@@ -334,6 +342,8 @@ export default function ShopItemsPage() {
                 imageUrl: form.imageUrl.trim(),
                 templateKey: form.templateKey.trim() || null,
                 templateConfig: parseTemplateConfig(form.templateConfigText),
+                badgeText: form.badgeText.trim() || null,
+                isFeatured: form.isFeatured,
                 isActive: form.isActive,
                 sortOrder: form.sortOrder,
             };
@@ -482,6 +492,8 @@ export default function ShopItemsPage() {
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tur</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Render</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nadirlik</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Spotlight</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Sira</th>
                                 <th className="text-right p-3 font-medium text-muted-foreground">Fiyat</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Satis</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Durum</th>
@@ -491,12 +503,12 @@ export default function ShopItemsPage() {
                         <tbody>
                             {loading && (
                                 <tr>
-                                    <td colSpan={9} className="p-8 text-center text-muted-foreground">Yukleniyor...</td>
+                                    <td colSpan={11} className="p-8 text-center text-muted-foreground">Yukleniyor...</td>
                                 </tr>
                             )}
                             {!loading && filteredItems.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="p-8 text-center text-muted-foreground">Kozmetik bulunamadi.</td>
+                                    <td colSpan={11} className="p-8 text-center text-muted-foreground">Kozmetik bulunamadi.</td>
                                 </tr>
                             )}
                             {filteredItems.map((item) => (
@@ -511,7 +523,14 @@ export default function ShopItemsPage() {
                                         )}
                                     </td>
                                     <td className="p-3">
-                                        <div className="font-medium text-foreground">{item.name}</div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="font-medium text-foreground">{item.name}</div>
+                                            {item.badgeText ? (
+                                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                                    {item.badgeText}
+                                                </span>
+                                            ) : null}
+                                        </div>
                                         <div className="text-xs text-muted-foreground font-mono">{item.code}</div>
                                     </td>
                                     <td className="p-3 text-muted-foreground">{typeLabels[item.type]}</td>
@@ -519,6 +538,12 @@ export default function ShopItemsPage() {
                                     <td className="p-3">
                                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${rarityColors[item.rarity]}`}>{item.rarity}</span>
                                     </td>
+                                    <td className="p-3 text-center">
+                                        <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${item.isFeatured ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" : "bg-muted text-muted-foreground"}`}>
+                                            {item.isFeatured ? "Spotlight" : "Standart"}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-center font-mono text-xs text-muted-foreground">{item.sortOrder}</td>
                                     <td className="p-3 text-right font-bold text-foreground">{item.priceCoin.toLocaleString()}</td>
                                     <td className="p-3 text-center text-muted-foreground">{item._count?.purchases ?? 0}</td>
                                     <td className="p-3 text-center">
@@ -602,7 +627,7 @@ export default function ShopItemsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Fiyat (Coin)</label>
                                     <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
@@ -610,6 +635,10 @@ export default function ShopItemsPage() {
                                 <div>
                                     <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Siralama</label>
                                     <input type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Etiket</label>
+                                    <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENI / LIMITLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                 </div>
                             </div>
 
@@ -675,10 +704,16 @@ export default function ShopItemsPage() {
                                 </div>
                             </div>
 
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                <span className="text-sm font-medium text-foreground">Magazada aktif</span>
-                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                    <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
+                                    <span className="text-sm font-medium text-foreground">Sag panelde one cikar</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                    <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
+                                    <span className="text-sm font-medium text-foreground">Magazada aktif</span>
+                                </label>
+                            </div>
                         </div>
                         <div className="flex justify-end gap-2 p-5 border-t border-border">
                             <Button variant="outline" onClick={() => setShowModal(false)}>Iptal</Button>

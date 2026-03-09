@@ -277,6 +277,8 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
         imageUrl: entry.shopItem.imageUrl,
         templateKey: entry.shopItem.templateKey,
         templateConfig: normalizeTemplateConfig(entry.shopItem.templateConfig),
+        badgeText: entry.shopItem.badgeText,
+        isFeatured: entry.shopItem.isFeatured,
         source: entry.source,
         acquiredAt: entry.acquiredAt.toISOString(),
         equipped: isEquipped(entry.shopItemId, entry.shopItem.type, equippedSlots),
@@ -315,6 +317,8 @@ type StoreCatalogItemRecord = Prisma.ShopItemGetPayload<{
         imageUrl: true;
         templateKey: true;
         templateConfig: true;
+        badgeText: true;
+        isFeatured: true;
         isActive: true;
         sortOrder: true;
         createdAt: true;
@@ -420,8 +424,11 @@ function mapStoreItemView(
         imageUrl: item.imageUrl,
         templateKey: item.templateKey,
         templateConfig: normalizeTemplateConfig(item.templateConfig),
+        badgeText: item.badgeText,
+        isFeatured: item.isFeatured,
         isActive: item.isActive,
         sortOrder: item.sortOrder,
+        createdAt: item.createdAt.toISOString(),
         owned: ownedIds.has(item.id),
         equipped: isEquipped(item.id, item.type, equippedSlots),
     };
@@ -511,6 +518,8 @@ async function loadStoreContext(userId?: number) {
                 imageUrl: true,
                 templateKey: true,
                 templateConfig: true,
+                badgeText: true,
+                isFeatured: true,
                 isActive: true,
                 sortOrder: true,
                 createdAt: true,
@@ -849,6 +858,8 @@ export async function purchaseStoreItem(
                     imageUrl: true,
                     templateKey: true,
                     templateConfig: true,
+                    badgeText: true,
+                    isFeatured: true,
                     isActive: true,
                     sortOrder: true,
                     createdAt: true,
@@ -999,6 +1010,8 @@ export async function purchaseStoreBundle(
                                     imageUrl: true,
                                     templateKey: true,
                                     templateConfig: true,
+                                    badgeText: true,
+                                    isFeatured: true,
                                     isActive: true,
                                     sortOrder: true,
                                     createdAt: true,

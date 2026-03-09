@@ -693,3 +693,57 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Shop Radar, Featured Sira ve Hydration Fix (9 March 2026)
+
+### Veri modeli
+- `ShopItem` artik iki yeni alan tasir:
+  - `badgeText`
+  - `isFeatured`
+- `StoreItemView` ve `InventoryItemView` kontratlari bu alanlarla guncellendi.
+- Seed edilen mock katalog da artik:
+  - featured urunler
+  - rozet metinleri
+  - tekil `sortOrder`
+  bilgisini ayni kontratta tasir.
+
+### Admin panel
+- `/admin/shop-items` ekraninda artik admin:
+  - urun sirasi
+  - `featured` durumu
+  - `badgeText`
+  alanlarini ayni modal uzerinden yonetebilir.
+- `badgeText` alani `YENI`, `LIMITLI`, `PREMIUM` gibi rozetler icin kullanilir.
+- `sortOrder` magaza grid'inin ana sirasini belirleyen tek alandir.
+- `isFeatured` ise sag dashboard rail'inde one cikacak urun havuzunu belirler.
+
+### Dashboard UI
+- Sag profil sidebar icine `Shop Radar` adli kayan bir urun rail'i eklendi.
+- Rail davranisi:
+  - sadece login kullanicida aktif
+  - `Quick Equip` altinda render edilir
+  - `featured && !owned` urunleri tercih eder
+  - featured havuz bos ise aktif urunlerden fallback secim yapar
+  - kartlar otomatik kayar, hover ile durur
+  - tiklaninca `Shop` tabina gecis yapar
+- Bu alanin amaci gameplay-first dashboard dilini bozmadan merak uyandiran bir merchandizing yuzeyi olusturmaktir.
+
+### Shop kartlari
+- Featured urunler daha guclu border / arka plan ile vurgulanir.
+- `badgeText` varsa kart ustunde rozet olarak gorunur.
+- Grid sirasini backend `sortOrder` belirlemeye devam eder; admin tam kontrol sahibidir.
+
+### Hydration hotfix
+- `src/app/layout.tsx` icindeki inline nonce script'i kaldirildi.
+- `nonce=""` / `nonce="..."` uyusmazligindan dogan hydration hatasi kapanmis oldu.
+- CSP nonce akisi bozulmadi; `next-themes` nonce ile calismaya devam eder.
+
+### Bu Turdaki Dogrulama
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:catalog`
+- `npm run test:csp`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

@@ -40,8 +40,11 @@ export interface StoreItemView {
     imageUrl: string;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
+    badgeText: string | null;
+    isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
+    createdAt: string;
     owned: boolean;
     equipped: boolean;
 }
@@ -82,6 +85,8 @@ export interface InventoryItemView {
     imageUrl: string;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
+    badgeText: string | null;
+    isFeatured: boolean;
     source: InventoryItemSource;
     acquiredAt: string;
     equipped: boolean;

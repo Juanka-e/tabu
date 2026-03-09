@@ -240,3 +240,13 @@ Reference:
 - [x] Add authoring rules doc for AI-assisted cosmetic production (`docs/dashboard-ui/cosmetic-authoring-spec.md`)
 - [x] Add smoke test: `npm run test:template-config`
 - [x] Verification completed: `npm run test:template-config`, `npm run test:frame-theme`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Shop Radar and Product Merchandising)
+- [x] Add `badgeText` and `isFeatured` fields to `ShopItem`
+- [x] Propagate merchandising fields through store/economy response types and Prisma selects
+- [x] Update mock catalog and seed flow to include badges, featured flags, and deterministic sort order
+- [x] Extend `/admin/shop-items` to manage `sortOrder`, `isFeatured`, and `badgeText`
+- [x] Add auto-sliding `Shop Radar` discovery rail under `Quick Equip` in the dashboard sidebar
+- [x] Render admin-defined product badges and featured highlighting in shop cards
+- [x] Remove the old inline nonce script from `src/app/layout.tsx` to resolve nonce hydration mismatch
+- [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:catalog`, `npm run test:csp`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

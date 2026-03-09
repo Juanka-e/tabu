@@ -17,6 +17,8 @@ export interface MockShopItemSeed {
     imageUrl: string;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
+    badgeText: string | null;
+    isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
 }
@@ -73,6 +75,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         imageUrl: "/cosmetics/mock/avatars/pulse-fox.svg",
         templateKey: null,
         templateConfig: null,
+        badgeText: "YENI",
+        isFeatured: true,
         isActive: true,
         sortOrder: 10,
     },
@@ -86,6 +90,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         imageUrl: "/cosmetics/mock/avatars/neon-owl.svg",
         templateKey: null,
         templateConfig: null,
+        badgeText: "Spotlight",
+        isFeatured: true,
         isActive: true,
         sortOrder: 20,
     },
@@ -101,6 +107,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         templateConfig: {
             accentColor: "#c084fc",
         },
+        badgeText: null,
+        isFeatured: false,
         isActive: true,
         sortOrder: 30,
     },
@@ -114,6 +122,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         imageUrl: "/cosmetics/mock/frames/arctic-gate.svg",
         templateKey: null,
         templateConfig: null,
+        badgeText: "YENI",
+        isFeatured: true,
         isActive: true,
         sortOrder: 40,
     },
@@ -129,6 +139,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         templateConfig: {
             accentColor: "#22d3ee",
         },
+        badgeText: null,
+        isFeatured: false,
         isActive: true,
         sortOrder: 50,
     },
@@ -142,6 +154,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         imageUrl: "/cosmetics/mock/card-backs/ember-vault.svg",
         templateKey: null,
         templateConfig: null,
+        badgeText: "LIMITLI",
+        isFeatured: true,
         isActive: true,
         sortOrder: 60,
     },
@@ -158,6 +172,8 @@ export const mockShopItems: MockShopItemSeed[] = [
             borderColor: "#67e8f9",
             texture: "grid",
         },
+        badgeText: "YENI",
+        isFeatured: true,
         isActive: true,
         sortOrder: 70,
     },
@@ -171,6 +187,8 @@ export const mockShopItems: MockShopItemSeed[] = [
         imageUrl: "/cosmetics/mock/card-faces/ember-glow.svg",
         templateKey: null,
         templateConfig: null,
+        badgeText: "PREMIUM",
+        isFeatured: true,
         isActive: true,
         sortOrder: 80,
     },

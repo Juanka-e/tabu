@@ -361,3 +361,27 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Admin shop-item editor now includes a stronger JSON example flow for template cosmetics.
 - Authoring reference added:
   - `docs/dashboard-ui/cosmetic-authoring-spec.md`
+
+## 9 March 2026 Update - Shop Radar and Product Merchandising
+
+- `ShopItem` modeli iki yeni merchandising alani tasir:
+  - `badgeText`
+  - `isFeatured`
+- Admin `shop-items` ekraninda artik:
+  - `sortOrder`
+  - `isFeatured`
+  - `badgeText`
+  alanlari birlikte yonetilir.
+- Sag profil sidebar icinde `Quick Equip` altina `Shop Radar` rail'i eklendi.
+- `Shop Radar` secim mantigi:
+  - once kullanicinin sahip olmadigi `featured` urunler
+  - featured havuz bos ise magazadaki aktif urunlerden fallback secim
+  - rail icindeki sira client tarafinda tek seferlik karistirilir
+- Rail otomatik kayar, hover ile durur ve kart tiklamasi kullaniciyi dogrudan `Shop` sekmesine tasir.
+- Shop kartlari artik `badgeText` rozetlerini ve featured vurgu stilini render eder.
+
+## 9 March 2026 Update - Nonce Hydration Mismatch Fix
+
+- `src/app/layout.tsx` icindeki eski inline hydration-warning suppression script'i kaldirildi.
+- Layout nonce akisi korunur; `next-themes` icin nonce aktarimi devam eder.
+- Boylece nonce attribute farkindan kaynaklanan hydration mismatch yuzeyi ortadan kaldirildi.

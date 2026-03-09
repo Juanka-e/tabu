@@ -9,15 +9,29 @@ import {
 } from "../src/lib/store/mock-catalog";
 
 const itemCodes = new Set<string>();
+const itemSortOrders = new Set<number>();
 for (const item of mockShopItems) {
     assert.equal(itemCodes.has(item.code), false, `Duplicate shop item code: ${item.code}`);
     itemCodes.add(item.code);
+    assert.equal(itemSortOrders.has(item.sortOrder), false, `Duplicate shop item sortOrder: ${item.sortOrder}`);
+    itemSortOrders.add(item.sortOrder);
+    assert.equal(item.sortOrder >= 0, true, `Invalid sortOrder for ${item.code}`);
+
+    if (item.badgeText !== null) {
+        assert.equal(item.badgeText.length <= 24, true, `badgeText too long for ${item.code}`);
+    }
 
     if (item.renderMode === "image") {
         const assetPath = path.join(process.cwd(), "public", item.imageUrl.replace(/^\//, ""));
         assert.equal(fs.existsSync(assetPath), true, `Missing asset for ${item.code}: ${assetPath}`);
     }
 }
+
+assert.equal(
+    mockShopItems.some((item) => item.isFeatured),
+    true,
+    "At least one featured shop item is expected for dashboard discovery rail"
+);
 
 const bundleCodes = new Set<string>();
 for (const bundle of mockBundles) {

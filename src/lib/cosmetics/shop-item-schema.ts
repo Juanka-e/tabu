@@ -95,6 +95,8 @@ const shopItemBaseSchema = z.object({
     imageUrl: safeImageUrlSchema.default(""),
     templateKey: z.string().trim().max(80).optional().nullable(),
     templateConfig: safeTemplateConfigSchema.optional().nullable(),
+    badgeText: z.string().trim().max(24).optional().nullable(),
+    isFeatured: z.boolean().default(false),
     isActive: z.boolean().default(true),
     sortOrder: z.number().int().min(0).max(10_000).default(0),
 });
@@ -172,6 +174,8 @@ export function toPrismaShopItemCreateData(input: ShopItemWriteInput): Prisma.Sh
         ...input,
         templateKey: input.templateKey ?? null,
         templateConfig: input.templateConfig ?? Prisma.JsonNull,
+        badgeText: input.badgeText ?? null,
+        isFeatured: input.isFeatured,
     };
 }
 
@@ -188,6 +192,8 @@ export function toPrismaShopItemUpdateData(input: ShopItemUpdateInput): Prisma.S
         ...(input.templateConfig !== undefined
             ? { templateConfig: input.templateConfig ?? Prisma.JsonNull }
             : {}),
+        ...(input.badgeText !== undefined ? { badgeText: input.badgeText ?? null } : {}),
+        ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
     };

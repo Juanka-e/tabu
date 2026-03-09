@@ -327,3 +327,22 @@ Reference:
 - Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
 - Add CSP report collection / monitoring if runtime violation visibility is required.
 - Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
+
+### Completed in the March 9 shop-radar slice
+- Added `badgeText` and `isFeatured` merchandising fields to `ShopItem`.
+- Propagated the new fields through economy/store view types, Prisma selects, and seed data.
+- Upgraded `/admin/shop-items` so admins can control:
+  - catalog order (`sortOrder`)
+  - sidebar spotlight inclusion (`isFeatured`)
+  - visible product badge copy (`badgeText`)
+- Added `Shop Radar` to the dashboard profile sidebar as an auto-sliding discovery rail fed by featured items.
+- Updated shop item cards to render admin-defined badges and featured styling.
+- Removed the old inline hydration-warning suppression script from `src/app/layout.tsx` to eliminate nonce-driven hydration mismatch noise while keeping CSP nonce flow intact.
+- Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:catalog`, `npm run test:csp`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
+- Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
