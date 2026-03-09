@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ShopItemType } from "@prisma/client";
-import { listStoreItems } from "@/lib/economy";
+import { getStoreCatalog } from "@/lib/economy";
 import { getSessionUser } from "@/lib/session";
 
 const querySchema = z.object({
@@ -17,6 +17,10 @@ export async function GET(req: Request) {
   }
 
   const sessionUser = await getSessionUser();
-  const items = await listStoreItems(parsed.data.type, sessionUser?.id);
+  const catalog = await getStoreCatalog(sessionUser?.id);
+  const items = parsed.data.type
+    ? catalog.items.filter((item) => item.type === parsed.data.type)
+    : catalog.items;
+
   return NextResponse.json({ items });
 }

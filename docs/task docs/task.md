@@ -163,8 +163,23 @@ Reference:
 - [x] Add idempotent local seed flow for mock catalog (`npm run seed:catalog`)
 - [x] Add mock catalog smoke test (`npm run test:catalog`)
 - [x] Normalize coin icon design across mock HTML prototype files
+- [x] Connect bundle / discount / coupon logic to live store pricing and checkout
+- [x] Add typed store catalog and bundle purchase APIs
+- [x] Add coupon preview flow for store checkout
+- [x] Keep middleware auth edge-safe while preserving login-only store access
+- [x] Standardize real UI coin components with a single badge/mark design
 
 ### Phase 12 Update (March 9, 2026 - Mock Catalog)
 - [x] Local mock catalog now seeds into DB with assets and promotions
 - [x] Mock/prototype coin icon language is unified under a single `coin-mark` visual
 - [x] Verification completed: `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Live Store Pricing)
+- [x] `GET /api/store/catalog` now returns typed item + bundle pricing
+- [x] `POST /api/store/purchase` supports optional coupon validation
+- [x] `POST /api/store/bundles/purchase` added for bundle checkout
+- [x] `POST /api/store/coupons/preview` added for checkout preview
+- [x] Dashboard shop and `/store` page now share the same live catalog UI
+- [x] Guest flow remains unchanged; cosmetics and checkout stay login-gated
+- [x] Middleware build issue fixed by moving shared auth config out of Prisma-bound auth module
+- [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:catalog`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

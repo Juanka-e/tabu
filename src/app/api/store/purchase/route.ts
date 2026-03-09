@@ -5,6 +5,7 @@ import { purchaseStoreItem } from "@/lib/economy";
 
 const purchaseSchema = z.object({
   shopItemId: z.number().int().positive(),
+  couponCode: z.string().trim().min(1).max(80).optional(),
 });
 
 export async function POST(req: Request) {
@@ -15,15 +16,18 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { shopItemId } = purchaseSchema.parse(body);
+    const { shopItemId, couponCode } = purchaseSchema.parse(body);
 
-    const result = await purchaseStoreItem(sessionUser.id, shopItemId);
+    const result = await purchaseStoreItem(sessionUser.id, shopItemId, couponCode);
     if (!result.ok) {
       if (result.code === "not_found") {
         return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
       }
       if (result.code === "already_owned") {
         return NextResponse.json({ error: "Urun zaten sahiplenilmis." }, { status: 409 });
+      }
+      if (result.code === "invalid_coupon") {
+        return NextResponse.json({ error: "Kupon gecersiz veya bu urun ile kullanilamaz." }, { status: 409 });
       }
       return NextResponse.json({ error: "Yetersiz coin." }, { status: 409 });
     }
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
       item: result.item,
       awardedItems: [result.item],
       coinBalance: result.coinBalance,
+      finalPriceCoin: result.finalPriceCoin,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

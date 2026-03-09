@@ -1,12 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, ShopItemType } from "@prisma/client";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
+import {
+    normalizeCouponCode,
+    resolveCatalogPricing,
+    resolveCouponPricing,
+} from "@/lib/store/pricing";
 import type {
+    CatalogBundleView,
+    CatalogStoreItemView,
+    CouponPreviewResponse,
     DashboardDataResponse,
     EquippedSlots,
     InventoryItemView,
     PlayerAppearanceSnapshot,
     StoreItemView,
+    StoreCatalogResponse,
     TemplateConfig,
     UserInventoryProfile,
     UserInventoryResponse,
@@ -291,57 +300,110 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
     };
 }
 
-export async function listStoreItems(type?: ShopItemType, userId?: number): Promise<StoreItemView[]> {
-    const loadItemsPromise = prisma.shopItem.findMany({
-        where: {
-            isActive: true,
-            ...(type ? { type } : {}),
-        },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    });
+type StoreCatalogItemRecord = Prisma.ShopItemGetPayload<{
+    select: {
+        id: true;
+        code: true;
+        name: true;
+        type: true;
+        rarity: true;
+        renderMode: true;
+        priceCoin: true;
+        imageUrl: true;
+        templateKey: true;
+        templateConfig: true;
+        isActive: true;
+        sortOrder: true;
+        createdAt: true;
+    };
+}>;
 
-    if (!userId) {
-        const items = await loadItemsPromise;
-        return items.map((item) => ({
-            id: item.id,
-            code: item.code,
-            name: item.name,
-            type: item.type,
-            rarity: item.rarity,
-            renderMode: item.renderMode,
-            priceCoin: item.priceCoin,
-            imageUrl: item.imageUrl,
-            templateKey: item.templateKey,
-            templateConfig: normalizeTemplateConfig(item.templateConfig),
-            isActive: item.isActive,
-            sortOrder: item.sortOrder,
-            owned: false,
-            equipped: false,
-        }));
+type StoreCatalogBundleRecord = Prisma.ShopBundleGetPayload<{
+    include: {
+        items: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }];
+            include: {
+                shopItem: {
+                    select: {
+                        id: true;
+                        code: true;
+                        name: true;
+                        type: true;
+                        rarity: true;
+                    };
+                };
+            };
+        };
+    };
+}>;
+
+type DiscountRecord = Prisma.DiscountCampaignGetPayload<{
+    select: {
+        id: true;
+        code: true;
+        name: true;
+        description: true;
+        targetType: true;
+        discountType: true;
+        percentageOff: true;
+        fixedCoinOff: true;
+        shopItemId: true;
+        bundleId: true;
+        startsAt: true;
+        endsAt: true;
+        isActive: true;
+        stackableWithCoupon: true;
+    };
+}>;
+
+type CouponRecord = Prisma.CouponCodeGetPayload<{
+    select: {
+        id: true;
+        code: true;
+        name: true;
+        description: true;
+        targetType: true;
+        discountType: true;
+        percentageOff: true;
+        fixedCoinOff: true;
+        shopItemId: true;
+        bundleId: true;
+        usageLimit: true;
+        usedCount: true;
+        startsAt: true;
+        endsAt: true;
+        isActive: true;
+    };
+}>;
+
+type PurchaseItemResult =
+    | { ok: true; item: StoreCatalogItemRecord; coinBalance: number; finalPriceCoin: number }
+    | { ok: false; code: "not_found" | "already_owned" | "insufficient_balance" | "invalid_coupon" };
+
+type PurchaseBundleResult =
+    | {
+        ok: true;
+        bundle: StoreCatalogBundleRecord;
+        awardedItems: StoreCatalogItemRecord[];
+        coinBalance: number;
+        finalPriceCoin: number;
     }
+    | {
+        ok: false;
+        code:
+        | "not_found"
+        | "already_owned"
+        | "contains_owned_items"
+        | "insufficient_balance"
+        | "invalid_coupon";
+    };
 
-    await ensureUserCore(userId);
-    const [items, profile, inventory] = await Promise.all([
-        loadItemsPromise,
-        prisma.userProfile.findUnique({
-            where: { userId },
-            select: {
-                avatarItemId: true,
-                frameItemId: true,
-                cardBackItemId: true,
-                cardFaceItemId: true,
-            },
-        }),
-        prisma.inventoryItem.findMany({
-            where: { userId },
-            select: { shopItemId: true },
-        }),
-    ]);
-
-    const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
-    const equippedSlots = getEquippedSlots(profile);
-
-    return items.map((item) => ({
+function mapStoreItemView(
+    item: StoreCatalogItemRecord,
+    ownedIds: Set<number>,
+    equippedSlots: EquippedSlots
+): StoreItemView {
+    return {
         id: item.id,
         code: item.code,
         name: item.name,
@@ -356,10 +418,348 @@ export async function listStoreItems(type?: ShopItemType, userId?: number): Prom
         sortOrder: item.sortOrder,
         owned: ownedIds.has(item.id),
         equipped: isEquipped(item.id, item.type, equippedSlots),
-    }));
+    };
 }
 
-export async function purchaseStoreItem(userId: number, shopItemId: number) {
+function mapCatalogItemView(
+    item: StoreCatalogItemRecord,
+    ownedIds: Set<number>,
+    equippedSlots: EquippedSlots,
+    discounts: DiscountRecord[],
+    now: Date
+): CatalogStoreItemView {
+    const baseView = mapStoreItemView(item, ownedIds, equippedSlots);
+
+    return {
+        ...baseView,
+        pricing: resolveCatalogPricing(
+            item.priceCoin,
+            { kind: "shop_item", targetId: item.id },
+            discounts,
+            now
+        ),
+    };
+}
+
+function mapCatalogBundleView(
+    bundle: StoreCatalogBundleRecord,
+    ownedIds: Set<number>,
+    discounts: DiscountRecord[],
+    now: Date
+): CatalogBundleView {
+    const ownedItemCount = bundle.items.filter((entry) => ownedIds.has(entry.shopItemId)).length;
+
+    return {
+        id: bundle.id,
+        code: bundle.code,
+        name: bundle.name,
+        description: bundle.description,
+        priceCoin: bundle.priceCoin,
+        isActive: bundle.isActive,
+        sortOrder: bundle.sortOrder,
+        createdAt: bundle.createdAt.toISOString(),
+        ownedItemCount,
+        fullyOwned: ownedItemCount === bundle.items.length && bundle.items.length > 0,
+        pricing: resolveCatalogPricing(
+            bundle.priceCoin,
+            { kind: "bundle", targetId: bundle.id },
+            discounts,
+            now
+        ),
+        items: bundle.items.map((entry) => ({
+            id: entry.id,
+            shopItemId: entry.shopItemId,
+            sortOrder: entry.sortOrder,
+            itemCode: entry.shopItem.code,
+            itemName: entry.shopItem.name,
+            itemType: entry.shopItem.type,
+            itemRarity: entry.shopItem.rarity,
+        })),
+    };
+}
+
+async function loadStoreContext(userId?: number) {
+    if (userId) {
+        await ensureUserCore(userId);
+    }
+
+    const [
+        items,
+        bundles,
+        discounts,
+        wallet,
+        profile,
+        inventory,
+    ] = await Promise.all([
+        prisma.shopItem.findMany({
+            where: { isActive: true },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                type: true,
+                rarity: true,
+                renderMode: true,
+                priceCoin: true,
+                imageUrl: true,
+                templateKey: true,
+                templateConfig: true,
+                isActive: true,
+                sortOrder: true,
+                createdAt: true,
+            },
+        }),
+        prisma.shopBundle.findMany({
+            where: { isActive: true },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            include: {
+                items: {
+                    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                    include: {
+                        shopItem: {
+                            select: {
+                                id: true,
+                                code: true,
+                                name: true,
+                                type: true,
+                                rarity: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+        prisma.discountCampaign.findMany({
+            where: { isActive: true },
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                description: true,
+                targetType: true,
+                discountType: true,
+                percentageOff: true,
+                fixedCoinOff: true,
+                shopItemId: true,
+                bundleId: true,
+                startsAt: true,
+                endsAt: true,
+                isActive: true,
+                stackableWithCoupon: true,
+            },
+        }),
+        userId
+            ? prisma.wallet.findUnique({ where: { userId } })
+            : Promise.resolve(null),
+        userId
+            ? prisma.userProfile.findUnique({
+                where: { userId },
+                select: {
+                    avatarItemId: true,
+                    frameItemId: true,
+                    cardBackItemId: true,
+                    cardFaceItemId: true,
+                },
+            })
+            : Promise.resolve(null),
+        userId
+            ? prisma.inventoryItem.findMany({
+                where: { userId },
+                select: { shopItemId: true },
+            })
+            : Promise.resolve([]),
+    ]);
+
+    return {
+        items,
+        bundles,
+        discounts,
+        wallet,
+        profile,
+        inventory,
+    };
+}
+
+async function loadCouponRecord(
+    tx: Prisma.TransactionClient,
+    couponCode: string | undefined
+): Promise<CouponRecord | null> {
+    if (!couponCode) {
+        return null;
+    }
+
+    return tx.couponCode.findUnique({
+        where: { code: normalizeCouponCode(couponCode) },
+        select: {
+            id: true,
+            code: true,
+            name: true,
+            description: true,
+            targetType: true,
+            discountType: true,
+            percentageOff: true,
+            fixedCoinOff: true,
+            shopItemId: true,
+            bundleId: true,
+            usageLimit: true,
+            usedCount: true,
+            startsAt: true,
+            endsAt: true,
+            isActive: true,
+        },
+    });
+}
+
+export async function listStoreItems(type?: ShopItemType, userId?: number): Promise<StoreItemView[]> {
+    const catalog = await getStoreCatalog(userId);
+    const items = type
+        ? catalog.items.filter((item) => item.type === type)
+        : catalog.items;
+
+    return items.map((item) => {
+        const { pricing, ...itemView } = item;
+        void pricing;
+        return itemView;
+    });
+}
+
+export async function getStoreCatalog(userId?: number): Promise<StoreCatalogResponse> {
+    const { items, bundles, discounts, wallet, profile, inventory } = await loadStoreContext(userId);
+    const now = new Date();
+    const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
+    const equippedSlots = getEquippedSlots(profile);
+
+    return {
+        coinBalance: wallet?.coinBalance ?? 0,
+        items: items.map((item) => mapCatalogItemView(item, ownedIds, equippedSlots, discounts, now)),
+        bundles: bundles.map((bundle) => mapCatalogBundleView(bundle, ownedIds, discounts, now)),
+    };
+}
+
+export async function previewCouponForTarget(
+    userId: number,
+    targetKind: "shop_item" | "bundle",
+    targetId: number,
+    couponCode: string
+): Promise<CouponPreviewResponse> {
+    await ensureUserCore(userId);
+
+    const normalizedCode = normalizeCouponCode(couponCode);
+    if (!normalizedCode) {
+        return {
+            valid: false,
+            reason: "Kupon kodu bos olamaz.",
+            targetKind,
+            targetId,
+            pricing: null,
+            coupon: null,
+        };
+    }
+
+    const now = new Date();
+    const [discounts, coupon, item, bundle] = await Promise.all([
+        prisma.discountCampaign.findMany({
+            where: { isActive: true },
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                description: true,
+                targetType: true,
+                discountType: true,
+                percentageOff: true,
+                fixedCoinOff: true,
+                shopItemId: true,
+                bundleId: true,
+                startsAt: true,
+                endsAt: true,
+                isActive: true,
+                stackableWithCoupon: true,
+            },
+        }),
+        prisma.couponCode.findUnique({
+            where: { code: normalizedCode },
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                description: true,
+                targetType: true,
+                discountType: true,
+                percentageOff: true,
+                fixedCoinOff: true,
+                shopItemId: true,
+                bundleId: true,
+                usageLimit: true,
+                usedCount: true,
+                startsAt: true,
+                endsAt: true,
+                isActive: true,
+            },
+        }),
+        targetKind === "shop_item"
+            ? prisma.shopItem.findUnique({
+                where: { id: targetId },
+                select: { id: true, priceCoin: true, isActive: true },
+            })
+            : Promise.resolve(null),
+        targetKind === "bundle"
+            ? prisma.shopBundle.findUnique({
+                where: { id: targetId },
+                select: { id: true, priceCoin: true, isActive: true },
+            })
+            : Promise.resolve(null),
+    ]);
+
+    const basePriceCoin = targetKind === "shop_item" ? item?.priceCoin : bundle?.priceCoin;
+    const isActiveTarget = targetKind === "shop_item" ? item?.isActive : bundle?.isActive;
+
+    if (!basePriceCoin || !isActiveTarget) {
+        return {
+            valid: false,
+            reason: "Hedef urun bulunamadi.",
+            targetKind,
+            targetId,
+            pricing: null,
+            coupon: null,
+        };
+    }
+
+    const basePricing = resolveCatalogPricing(
+        basePriceCoin,
+        { kind: targetKind, targetId },
+        discounts,
+        now
+    );
+    const couponResult = resolveCouponPricing(basePricing, { kind: targetKind, targetId }, coupon, now);
+
+    if (!couponResult.ok) {
+        return {
+            valid: false,
+            reason: couponResult.reason,
+            targetKind,
+            targetId,
+            pricing: basePricing,
+            coupon: null,
+        };
+    }
+
+    return {
+        valid: true,
+        reason: null,
+        targetKind,
+        targetId,
+        pricing: couponResult.pricing,
+        coupon: couponResult.coupon,
+    };
+}
+
+export async function purchaseStoreItem(
+    userId: number,
+    shopItemId: number,
+    couponCode?: string
+): Promise<PurchaseItemResult> {
     return prisma.$transaction(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
@@ -372,29 +772,86 @@ export async function purchaseStoreItem(userId: number, shopItemId: number) {
             create: { userId },
         });
 
-        const [item, wallet, owned] = await Promise.all([
-            tx.shopItem.findUnique({ where: { id: shopItemId } }),
+        const now = new Date();
+        const normalizedCouponCode = couponCode ? normalizeCouponCode(couponCode) : "";
+
+        const [item, wallet, owned, discounts, coupon] = await Promise.all([
+            tx.shopItem.findUnique({
+                where: { id: shopItemId },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    type: true,
+                    rarity: true,
+                    renderMode: true,
+                    priceCoin: true,
+                    imageUrl: true,
+                    templateKey: true,
+                    templateConfig: true,
+                    isActive: true,
+                    sortOrder: true,
+                    createdAt: true,
+                },
+            }),
             tx.wallet.findUnique({ where: { userId } }),
             tx.inventoryItem.findUnique({
                 where: {
                     userId_shopItemId: { userId, shopItemId },
                 },
             }),
+            tx.discountCampaign.findMany({
+                where: { isActive: true },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    targetType: true,
+                    discountType: true,
+                    percentageOff: true,
+                    fixedCoinOff: true,
+                    shopItemId: true,
+                    bundleId: true,
+                    startsAt: true,
+                    endsAt: true,
+                    isActive: true,
+                    stackableWithCoupon: true,
+                },
+            }),
+            loadCouponRecord(tx, normalizedCouponCode || undefined),
         ]);
 
         if (!item || !item.isActive) {
-            return { ok: false as const, code: "not_found" as const };
+            return { ok: false, code: "not_found" };
         }
         if (owned) {
-            return { ok: false as const, code: "already_owned" as const };
+            return { ok: false, code: "already_owned" };
         }
-        if (!wallet || wallet.coinBalance < item.priceCoin) {
-            return { ok: false as const, code: "insufficient_balance" as const };
+
+        const catalogPricing = resolveCatalogPricing(
+            item.priceCoin,
+            { kind: "shop_item", targetId: item.id },
+            discounts,
+            now
+        );
+
+        const resolvedPricing = normalizedCouponCode
+            ? resolveCouponPricing(catalogPricing, { kind: "shop_item", targetId: item.id }, coupon, now)
+            : null;
+
+        if (resolvedPricing && !resolvedPricing.ok) {
+            return { ok: false, code: "invalid_coupon" };
+        }
+
+        const finalPriceCoin = resolvedPricing?.ok ? resolvedPricing.pricing.finalPriceCoin : catalogPricing.finalPriceCoin;
+        if (!wallet || wallet.coinBalance < finalPriceCoin) {
+            return { ok: false, code: "insufficient_balance" };
         }
 
         await tx.wallet.update({
             where: { userId },
-            data: { coinBalance: { decrement: item.priceCoin } },
+            data: { coinBalance: { decrement: finalPriceCoin } },
         });
 
         await tx.inventoryItem.create({
@@ -409,16 +866,180 @@ export async function purchaseStoreItem(userId: number, shopItemId: number) {
             data: {
                 userId,
                 shopItemId,
-                priceCoin: item.priceCoin,
+                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
+                priceCoin: finalPriceCoin,
+                listPriceCoin: item.priceCoin,
+                discountCoin: item.priceCoin - finalPriceCoin,
                 status: "completed",
             },
         });
 
+        if (resolvedPricing?.ok && coupon) {
+            await tx.couponCode.update({
+                where: { id: coupon.id },
+                data: { usedCount: { increment: 1 } },
+            });
+        }
+
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
-            ok: true as const,
+            ok: true,
             item,
             coinBalance: updatedWallet?.coinBalance ?? 0,
+            finalPriceCoin,
+        };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+}
+
+export async function purchaseStoreBundle(
+    userId: number,
+    bundleId: number,
+    couponCode?: string
+): Promise<PurchaseBundleResult> {
+    return prisma.$transaction(async (tx) => {
+        await tx.wallet.upsert({
+            where: { userId },
+            update: {},
+            create: { userId, coinBalance: 0 },
+        });
+        await tx.userProfile.upsert({
+            where: { userId },
+            update: {},
+            create: { userId },
+        });
+
+        const now = new Date();
+        const normalizedCouponCode = couponCode ? normalizeCouponCode(couponCode) : "";
+
+        const [bundle, wallet, inventory, discounts, coupon] = await Promise.all([
+            tx.shopBundle.findUnique({
+                where: { id: bundleId },
+                include: {
+                    items: {
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        include: {
+                            shopItem: {
+                                select: {
+                                    id: true,
+                                    code: true,
+                                    name: true,
+                                    type: true,
+                                    rarity: true,
+                                    renderMode: true,
+                                    priceCoin: true,
+                                    imageUrl: true,
+                                    templateKey: true,
+                                    templateConfig: true,
+                                    isActive: true,
+                                    sortOrder: true,
+                                    createdAt: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            tx.wallet.findUnique({ where: { userId } }),
+            tx.inventoryItem.findMany({
+                where: { userId },
+                select: { shopItemId: true },
+            }),
+            tx.discountCampaign.findMany({
+                where: { isActive: true },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    targetType: true,
+                    discountType: true,
+                    percentageOff: true,
+                    fixedCoinOff: true,
+                    shopItemId: true,
+                    bundleId: true,
+                    startsAt: true,
+                    endsAt: true,
+                    isActive: true,
+                    stackableWithCoupon: true,
+                },
+            }),
+            loadCouponRecord(tx, normalizedCouponCode || undefined),
+        ]);
+
+        if (!bundle || !bundle.isActive) {
+            return { ok: false, code: "not_found" };
+        }
+
+        const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
+        const awardedEntries = bundle.items.filter((entry) => !ownedIds.has(entry.shopItemId));
+
+        if (awardedEntries.length === 0) {
+            return { ok: false, code: "already_owned" };
+        }
+
+        if (awardedEntries.length !== bundle.items.length) {
+            return { ok: false, code: "contains_owned_items" };
+        }
+
+        const catalogPricing = resolveCatalogPricing(
+            bundle.priceCoin,
+            { kind: "bundle", targetId: bundle.id },
+            discounts,
+            now
+        );
+
+        const resolvedPricing = normalizedCouponCode
+            ? resolveCouponPricing(catalogPricing, { kind: "bundle", targetId: bundle.id }, coupon, now)
+            : null;
+
+        if (resolvedPricing && !resolvedPricing.ok) {
+            return { ok: false, code: "invalid_coupon" };
+        }
+
+        const finalPriceCoin = resolvedPricing?.ok ? resolvedPricing.pricing.finalPriceCoin : catalogPricing.finalPriceCoin;
+        if (!wallet || wallet.coinBalance < finalPriceCoin) {
+            return { ok: false, code: "insufficient_balance" };
+        }
+
+        await tx.wallet.update({
+            where: { userId },
+            data: { coinBalance: { decrement: finalPriceCoin } },
+        });
+
+        await tx.inventoryItem.createMany({
+            data: awardedEntries.map((entry) => ({
+                userId,
+                shopItemId: entry.shopItemId,
+                source: "purchase",
+            })),
+        });
+
+        await tx.purchase.create({
+            data: {
+                userId,
+                bundleId: bundle.id,
+                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
+                priceCoin: finalPriceCoin,
+                listPriceCoin: bundle.priceCoin,
+                discountCoin: bundle.priceCoin - finalPriceCoin,
+                status: "completed",
+            },
+        });
+
+        if (resolvedPricing?.ok && coupon) {
+            await tx.couponCode.update({
+                where: { id: coupon.id },
+                data: { usedCount: { increment: 1 } },
+            });
+        }
+
+        const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
+        return {
+            ok: true,
+            bundle,
+            awardedItems: awardedEntries.map((entry) => entry.shopItem),
+            coinBalance: updatedWallet?.coinBalance ?? 0,
+            finalPriceCoin,
         };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }

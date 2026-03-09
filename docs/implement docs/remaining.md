@@ -232,5 +232,14 @@ Reference:
 - Verification passed: `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
 
 ### Remaining
-- Connect seeded bundles / discounts / coupons to live store pricing and checkout.
-- Expose promotion data to store/dashboard UI where needed.
+- Extend bundle handling for partial-ownership upgrade pricing if that product rule is desired later.
+- Add coupon redemption history / analytics view if per-user tracking is needed later.
+- Expose richer promotion surfacing (countdown, featured rail, campaign targeting copy) where needed.
+
+### Completed in the March 9 live-pricing slice
+- Connected seeded bundles / discounts / coupons to live store pricing and checkout.
+- Added `GET /api/store/catalog`, `POST /api/store/bundles/purchase`, and `POST /api/store/coupons/preview`.
+- Refactored dashboard shop and `/store` page onto the same live catalog component.
+- Standardized real UI coin visuals with a shared badge/mark component.
+- Split auth config so middleware remains edge-safe and Prisma is not bundled into middleware.
+- Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:catalog`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.

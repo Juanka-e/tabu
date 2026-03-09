@@ -478,3 +478,55 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Store Pricing, Bundle Checkout ve Kupon Preview (9 March 2026)
+
+### Tamamlananlar
+- Yeni typed katalog cevabi eklendi: `GET /api/store/catalog`.
+- Store item fiyatlari artik aktif campaign'lere gore server tarafinda hesaplanip UI'a `pricing` alani ile gidiyor.
+- Bundle satin alma endpoint'i eklendi: `POST /api/store/bundles/purchase`.
+- Kupon onizleme endpoint'i eklendi: `POST /api/store/coupons/preview`.
+- Item satin alma endpoint'i `couponCode` kabul edecek sekilde genislendi.
+- Standalone `/store` sayfasi ve in-game dashboard shop ayni `ShopContent` akisini kullanacak sekilde refactor edildi.
+
+### Fiyatlama mantigi
+- Aktif indirim kampanyalari icinden hedefe uyan en iyi tek campaign seciliyor.
+- Campaign ile kupon birlikte sadece `stackableWithCoupon = true` ise kullaniliyor.
+- Kupon indirimi campaign sonrasi fiyat uzerinden hesaplanıyor.
+- Bundle satin almada kullanicinin bundle icindeki tum urunlere sahip olmamasi gerekiyor.
+- Kullanici bundle icindeki urunlerden bir kismina zaten sahipse satin alma bloklaniyor; bu kasitli bir guard.
+
+### Satin alma kaydi
+- `Purchase` modeli genislendi:
+  - `bundleId`
+  - `couponCodeId`
+  - `listPriceCoin`
+  - `discountCoin`
+- Tekil item satin almalari da artik efektif indirimli fiyat + liste fiyati ile kayit altina alinabiliyor.
+
+### UI notlari
+- Dashboard shop mevcut tasarim dilini koruyarak canli fiyat, bundle kartlari ve kupon alani kazandi.
+- Coin gostergeleri icin ortak `CoinBadge` / `CoinMark` component'i eklendi.
+- Boylesiyle mock HTML coin standardi kod tarafindaki gercek UI ile de hizalandi.
+
+### Misafir akisi garantisi
+- Misafir girisi bozulmadi.
+- `/store` ve `/api/store/*` akisi halen login gerektiriyor.
+- Kozmetik satin alma, kupon kullanimi ve bundle islemleri sadece session kullanicisi icin aktif.
+
+### Security ve CI
+- Middleware tarafinda auth config edge-safe olacak sekilde ayrildi; Prisma artik middleware bundle'ina tasinmiyor.
+- Bu sayede Next.js build yeniden yesil duruma getirildi.
+- Kupon gecerliligi, aktiflik penceresi, kullanim limiti ve hedef uyumu server tarafinda dogrulaniyor.
+- Bundle satin alma transaction icinde yurutuluyor; cuzdan dusumu ve inventory yazimi atomik kaldi.
+
+### Bu Turdaki Dogrulama
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:store-pricing`
+- `npm run test:catalog`
+- `npm run test:promotions`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

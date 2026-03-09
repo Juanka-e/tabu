@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { sharedAuthConfig } from "@/lib/auth-shared";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(sharedAuthConfig);
 
 function isAuthed(req: { auth?: { user?: { id?: string } } | null }): boolean {
     return Boolean(req.auth?.user?.id);

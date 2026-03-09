@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/lib/session";
+import { previewCouponForTarget } from "@/lib/economy";
+
+const previewSchema = z.object({
+    targetKind: z.enum(["shop_item", "bundle"]),
+    targetId: z.number().int().positive(),
+    couponCode: z.string().trim().min(1).max(80),
+});
+
+export async function POST(req: Request) {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
+    }
+
+    try {
+        const body = await req.json();
+        const { targetKind, targetId, couponCode } = previewSchema.parse(body);
+        const result = await previewCouponForTarget(sessionUser.id, targetKind, targetId, couponCode);
+
+        return NextResponse.json(result, { status: result.valid ? 200 : 409 });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });
+        }
+
+        return NextResponse.json({ error: "Kupon dogrulanamadi." }, { status: 500 });
+    }
+}

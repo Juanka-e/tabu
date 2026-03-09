@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
-import { Coins, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { CoinMark } from "@/components/ui/coin-badge";
 import type { DashboardDataResponse, InventoryItemView, UserInventoryResponse } from "@/types/economy";
 import type { DashboardTab } from "./dashboard-nav";
 
@@ -108,7 +109,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                             </div>
                             <div className="text-lg font-black text-slate-800 dark:text-white flex items-center justify-center gap-1">
                                 {profile?.coinBalance ?? 0}
-                                <Coins size={14} className="text-amber-500" />
+                                <CoinMark className="h-5 w-5 ring-0 shadow-none" iconClassName="h-3 w-3" />
                             </div>
                         </div>
                     </div>

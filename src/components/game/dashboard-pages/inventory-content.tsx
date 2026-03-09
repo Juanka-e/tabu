@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
-import { Coins, PackageOpen } from "lucide-react";
+import { PackageOpen } from "lucide-react";
+import { CoinBadge } from "@/components/ui/coin-badge";
 import type {
     EquippedSlots,
     InventoryItemView,
@@ -166,14 +167,7 @@ export function InventoryContent() {
                         Owned cosmetics, equipped slots and quick previews.
                     </p>
                 </div>
-                <div className="bg-white/40 dark:bg-slate-800/40 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm border border-slate-200/50 dark:border-slate-700/30 backdrop-blur-sm">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-b from-yellow-300 to-yellow-600 flex items-center justify-center border border-yellow-600/30 shadow-inner">
-                        <Coins size={12} className="text-yellow-900" />
-                    </div>
-                    <span className="text-slate-700 dark:text-slate-200">
-                        {coinBalance.toLocaleString()}
-                    </span>
-                </div>
+                <CoinBadge value={coinBalance} className="rounded-full px-4 py-2" valueClassName="text-base" />
             </header>
 
             <div className="flex gap-2 mb-6 border-b border-slate-200/50 dark:border-slate-700/50 pb-1 flex-shrink-0 overflow-x-auto">

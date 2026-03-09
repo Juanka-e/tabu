@@ -140,6 +140,7 @@ model ShopBundle {
   items             ShopBundleItem[]
   discountCampaigns DiscountCampaign[]
   couponCodes       CouponCode[]
+  purchases         Purchase[]
 
   @@map("shop_bundles")
 }
@@ -205,6 +206,7 @@ model CouponCode {
 
   shopItem ShopItem?   @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
   bundle   ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  purchases Purchase[]
 
   @@index([targetType, isActive])
   @@map("coupon_codes")
@@ -226,17 +228,25 @@ model InventoryItem {
 }
 
 model Purchase {
-  id         Int            @id @default(autoincrement())
-  userId     Int            @map("user_id")
-  shopItemId Int            @map("shop_item_id")
-  priceCoin  Int            @map("price_coin")
-  status     PurchaseStatus @default(completed)
-  createdAt  DateTime       @default(now()) @map("created_at")
+  id           Int            @id @default(autoincrement())
+  userId       Int            @map("user_id")
+  shopItemId   Int?           @map("shop_item_id")
+  bundleId     Int?           @map("bundle_id")
+  couponCodeId Int?           @map("coupon_code_id")
+  priceCoin    Int            @map("price_coin")
+  listPriceCoin Int?          @map("list_price_coin")
+  discountCoin Int            @default(0) @map("discount_coin")
+  status       PurchaseStatus @default(completed)
+  createdAt    DateTime       @default(now()) @map("created_at")
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem   ShopItem?  @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+  bundle     ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  couponCode CouponCode? @relation(fields: [couponCodeId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([bundleId])
+  @@index([couponCodeId])
   @@map("purchases")
 }
 

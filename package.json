@@ -11,6 +11,7 @@
     "seed:catalog": "tsx scripts/seed-store-catalog.ts",
     "test:catalog": "tsx scripts/test-mock-catalog.ts",
     "test:promotions": "tsx scripts/test-promotion-schema.ts",
+    "test:store-pricing": "tsx scripts/test-store-pricing.ts",
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
     "test:card-back": "tsx scripts/test-card-back-theme.ts",
     "test:frame-theme": "tsx scripts/test-frame-theme.ts",

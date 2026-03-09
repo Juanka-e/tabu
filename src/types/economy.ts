@@ -31,6 +31,27 @@ export interface StoreItemView {
     equipped: boolean;
 }
 
+export interface PromotionSummaryView {
+    code: string;
+    name: string;
+    description: string | null;
+    discountType: PromotionDiscountType;
+    percentageOff: number | null;
+    fixedCoinOff: number | null;
+    stackableWithCoupon: boolean;
+}
+
+export interface StorePriceView {
+    basePriceCoin: number;
+    discountCoin: number;
+    finalPriceCoin: number;
+    appliedPromotion: PromotionSummaryView | null;
+}
+
+export interface CatalogStoreItemView extends StoreItemView {
+    pricing: StorePriceView;
+}
+
 export interface InventoryItemView {
     inventoryItemId: number;
     shopItemId: number;
@@ -115,6 +136,12 @@ export interface ShopBundleView {
     items: ShopBundleItemView[];
 }
 
+export interface CatalogBundleView extends ShopBundleView {
+    ownedItemCount: number;
+    fullyOwned: boolean;
+    pricing: StorePriceView;
+}
+
 export interface DiscountCampaignView {
     id: number;
     code: string;
@@ -150,4 +177,28 @@ export interface CouponCodeView {
     endsAt: string | null;
     isActive: boolean;
     createdAt: string;
+}
+
+export interface CouponPreviewView {
+    code: string;
+    name: string;
+    description: string | null;
+    discountType: PromotionDiscountType;
+    percentageOff: number | null;
+    fixedCoinOff: number | null;
+}
+
+export interface CouponPreviewResponse {
+    valid: boolean;
+    reason: string | null;
+    targetKind: "shop_item" | "bundle";
+    targetId: number;
+    pricing: StorePriceView | null;
+    coupon: CouponPreviewView | null;
+}
+
+export interface StoreCatalogResponse {
+    coinBalance: number;
+    items: CatalogStoreItemView[];
+    bundles: CatalogBundleView[];
 }

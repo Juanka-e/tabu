@@ -292,3 +292,14 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Added idempotent seed command: `npm run seed:catalog`.
 - Added smoke coverage for mock catalog integrity: `npm run test:catalog`.
 - Normalized coin icons across `scripts/design-prototypes/*` and `scripts/stitichdesign/*` to a single `coin-mark` style.
+
+## 9 March 2026 Update - Live Store Pricing
+
+- Added a typed catalog route: `GET /api/store/catalog`.
+- Added bundle checkout: `POST /api/store/bundles/purchase`.
+- Added coupon preview: `POST /api/store/coupons/preview`.
+- Store item pricing now resolves active discount campaigns server-side before reaching the UI.
+- Dashboard shop and full `/store` page now share the same live catalog component.
+- Coin presentation in the real UI is standardized with `CoinBadge` / `CoinMark`.
+- Guest gameplay remains unchanged; cosmetics and store checkout stay gated behind login.
+- Middleware auth config was split into an edge-safe shared config so Prisma is no longer bundled into middleware and `npm run build` is green again.
