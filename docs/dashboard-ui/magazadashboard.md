@@ -333,7 +333,7 @@ Bu planda netlestirilen ana kararlar:
 - `avatar` urunleri icin template modu bilerek kapali tutuldu.
 
 ### Oyun tarafi
-- Room sayfasi giris yapan kullanicinin `card_face` item'ini `/api/user/me` uzerinden okuyor.
+- Ilk slice'ta room sayfasi giris yapan kullanicinin `card_face` item'ini `/api/user/me` uzerinden okuyordu.
 - Secili `card_face` icin guvenli resolver calisiyor:
   - destekli renkler yalnizca hex formatinda
   - destekli texture anahtarlari whitelist ile sinirli
@@ -393,14 +393,12 @@ Bu planda netlestirilen ana kararlar:
 - `scripts/test-card-back-theme.ts` smoke testi ve `npm run test:card-back` komutu eklendi.
 
 ### Misafir Akisi Garantisi
-- Misafir kullanicida `card_back` yuklenmiyor.
-- Kozmetik fetch'i sadece `session.user.id` varsa calisiyor.
-- Render tarafinda da `cardBackTheme` ve `cardFaceTheme` session yoksa zorla `null` maskeleniyor.
-- Bu nedenle misafir girisi ve kayitsiz oyun akisinda davranis degisikligi yok.
+- Ilk rollout'ta misafir kullanicida `card_back` yuklenmiyordu.
+- Bu davranis sonradan narrator-broadcast modeline gecmeden once geciciydi.
 
 ### Guvenlik ve Mantik
-- Kozmetik verisi halen `/api/user/me` uzerinden geliyor; bu route login gerektiriyor.
-- `card_back` sadece oyuncunun kendi client'inda gosteriliyor; rakibe veya tahmin bilgisine ek veri sizdirmiyor.
+- Ilk rollout'ta kozmetik verisi `/api/user/me` uzerinden geliyordu; bu route login gerektiriyordu.
+- Sonraki narrator-broadcast slice'inda bu local fetch kaldirildi ve kart temalari socket payload'i ile server-resolved sekilde yayildi.
 - Image/template varyantlari whitelist/sanitize kurallari ile resolve ediliyor.
 
 ### Bu Turdaki Dogrulama
@@ -923,17 +921,17 @@ Bu planda netlestirilen ana kararlar:
 ## Card Face / Card Back Behavior (9 March 2026)
 
 ### Current behavior
-- `card_face` su anda aktif oyunda sadece karti gercekten goren kullanicinin client'inda uygulanir.
+- `card_face` ve `card_back` artik aktif turun anlaticisi baz alinarak socket payload'i ile tum client'lara yayilir.
 - Bu nedenle:
-  - anlatici karti goruyorsa kendi kusandigi `card_face` temasini gorur
-  - gozetmen kendi ekraninda kart goruyorsa kendi client temasini gorur
-  - guest oyuncular varsayilan kart gorunumuyle kalir
-- `card_back` su anda asil olarak `transition-screen` yuzeyinde kullanilir.
-- Tahminci ekranindaki `Tahmin Et!` kutusu bir card-back renderer degildir; bu ayrik bir gameplay placeholder kartidir.
+  - anlatici login ise equip ettigi `card_face` karti goren herkeste ayni tema olarak gorunur
+  - anlatici login ise equip ettigi `card_back` transition ekraninda ve tahminci/izleyici placeholder panelinde gorunur
+  - guest oyuncular kendi kozmetiklerini kullanamaz ama login oyuncunun kuşandigi aktif kart temasini gorur
+- Tahminci ekranindaki `Tahmin Et!` kutusu artik narrator `card_back` dilini kullanabilen temali placeholder paneldir.
 
 ### Neden boyle
-- Mevcut implementasyon oyuncunun kendi cosmetic deneyimini aktif eder ama baskasinin cosmetic secimini oyun snapshot'ina tasimaz.
-- Bu yaklasim dusuk riskliydi; once ekonomi ve equip akisi stabil hale getirildi.
+- Kozmetik equip ve satin alma hakki halen sadece login kullanicidadir.
+- Gorunum verisi ise narrator bazli server-resolved payload ile yayinlandigi icin guest kullaniciya yeni bir equip/satin alma yetkisi acilmaz.
+- Bu model, urun degerini gorunur kilar ama auth sinirlarini bozmaz.
 
 ### Su an satin alinan kartta renk mantigi
 - Default kartlarda kategori rengi `card.categoryColor` ile header'a uygulanir.
@@ -950,7 +948,35 @@ Bu planda netlestirilen ana kararlar:
   - cosmetic layer: border, texture, glow, frame, footer, overlay uygular
 - Boylece satin alinan kart temasi karti premium hissettirir ama gameplay okunurlugunu bozmaz.
 
-### Sonraki iyilestirme secenegi
-- Eger istersek bir sonraki slice'ta `card_face` yayilimini narrator-owned hale getirebiliriz:
-  - aktif turun anlaticisinin equip ettigi `card_face` tum karti goren client'lara gider
-  - tahminci placeholder kutusu da ayri bir `guess-panel theme` ile `card_back` diline baglanabilir
+## Narrator Card Theme Broadcast (9 March 2026)
+
+### Tamamlananlar
+- `card_face` ve `card_back` local `/api/user/me` fetch'inden cikarildi.
+- Room server artik anlaticinin equip ettigi kart kozmetiklerini DB'den okur, server tarafinda resolve eder ve socket payload'ina ekler.
+- `yeniTurBilgisi` payload'i:
+  - `cardFaceTheme`
+  - `cardBackTheme`
+  alanlarini tasir.
+- `turGecisiBaslat` payload'i:
+  - `cardBackTheme`
+  alanini tasir.
+- `ActiveGame` artik narrator kart temasini herkes icin tutarli sekilde kullanir:
+  - anlatici ve gozetmen `card_face` ile `GameCard` gorur
+  - tahminci ve izleyici `card_back` diliyle temalanmis placeholder panel gorur
+
+### Misafir politikasi
+- Misafir kullanici:
+  - kozmetik satin alamaz
+  - kozmetik equip edemez
+  - ama login oyuncunun aktif tur kozmetigini gorur
+- Boylece auth siniri korunur, vitrin etkisi ise oyunda gorunur kalir.
+
+### Test ve dogrulama
+- Yeni smoke test: `npm run test:room-card-themes`
+- Bu slice'ta gecen kontroller:
+  - `npm run test:room-card-themes`
+  - `npm run test:card-face`
+  - `npm run test:card-back`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`

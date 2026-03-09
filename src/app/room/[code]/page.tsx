@@ -11,9 +11,8 @@ import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
 import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
-import { resolveCardFaceTheme, type ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
-import { resolveCardBackTheme, type ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
-import type { UserInventoryResponse } from "@/types/economy";
+import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
+import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -183,11 +182,13 @@ export default function RoomPage() {
 
         socket.on("oyunBasladi", () => {
             setView(GameView.TRANSITION);
+            setCardFaceTheme(null);
         });
 
         socket.on("turGecisiBaslat", (data: TransitionData) => {
             setView(GameView.TRANSITION);
             setTransition(data);
+            setCardBackTheme(data.cardBackTheme);
         });
 
         socket.on("turGecisDurumGuncelle", (data: { oyunDurduruldu: boolean; kalanSure: number }) => {
@@ -201,6 +202,8 @@ export default function RoomPage() {
             setCard(data.kart);
             setNarratorName(data.anlaticiAd);
             setInspectorName(data.gozetmenAd);
+            setCardFaceTheme(data.cardFaceTheme);
+            setCardBackTheme(data.cardBackTheme);
             setView(GameView.PLAYING);
         });
 
@@ -242,6 +245,8 @@ export default function RoomPage() {
             setCard(null);
             setGameOverData(null);
             setTransition(null);
+            setCardFaceTheme(null);
+            setCardBackTheme(null);
         });
 
         socket.on("odadanAtildin", () => {
@@ -260,69 +265,6 @@ export default function RoomPage() {
         };
     }, [roomCode, router, session?.user?.id, showUsernamePrompt]);
 
-    useEffect(() => {
-        if (!session?.user?.id) {
-            return;
-        }
-
-        const controller = new AbortController();
-
-        const loadEquippedCosmetics = async () => {
-            try {
-                const response = await fetch("/api/user/me", {
-                    cache: "no-store",
-                    signal: controller.signal,
-                });
-                if (!response.ok) {
-                    return;
-                }
-
-                const payload = (await response.json()) as UserInventoryResponse;
-                const equippedCardFace =
-                    payload.items.find((item) => item.type === "card_face" && item.equipped) ?? null;
-                const equippedCardBack =
-                    payload.items.find((item) => item.type === "card_back" && item.equipped) ?? null;
-
-                setCardFaceTheme(
-                    equippedCardFace
-                        ? resolveCardFaceTheme({
-                            renderMode: equippedCardFace.renderMode,
-                            imageUrl: equippedCardFace.imageUrl,
-                            templateKey: equippedCardFace.templateKey,
-                            templateConfig: equippedCardFace.templateConfig,
-                            rarity: equippedCardFace.rarity,
-                        })
-                        : null
-                );
-                setCardBackTheme(
-                    equippedCardBack
-                        ? resolveCardBackTheme({
-                            renderMode: equippedCardBack.renderMode,
-                            imageUrl: equippedCardBack.imageUrl,
-                            templateKey: equippedCardBack.templateKey,
-                            templateConfig: equippedCardBack.templateConfig,
-                            rarity: equippedCardBack.rarity,
-                        })
-                        : null
-                );
-            } catch (error) {
-                if (error instanceof DOMException && error.name === "AbortError") {
-                    return;
-                }
-
-                // Keep default cosmetics when they cannot be loaded.
-                setCardFaceTheme(null);
-                setCardBackTheme(null);
-            }
-        };
-
-        void loadEquippedCosmetics();
-
-        return () => {
-            controller.abort();
-        };
-    }, [session?.user?.id]);
-
     // ─── Actions ─────────────────────────────────────────────────
 
     const emit = useCallback(
@@ -333,8 +275,6 @@ export default function RoomPage() {
     );
 
     const isHost = myPlayerId && creatorPlayerId ? myPlayerId === creatorPlayerId : false;
-    const effectiveCardFaceTheme = session?.user?.id ? cardFaceTheme : null;
-    const effectiveCardBackTheme = session?.user?.id ? cardBackTheme : null;
 
     const handleStartGame = useCallback(() => {
         emit("oyunBaslatİsteği", {
@@ -355,7 +295,7 @@ export default function RoomPage() {
 
     const renderGameContent = () => {
         if (view === GameView.TRANSITION && transition) {
-            return <TransitionScreen transition={transition} cardBackTheme={effectiveCardBackTheme} />;
+            return <TransitionScreen transition={transition} cardBackTheme={cardBackTheme} />;
         }
 
         if (view === GameView.PLAYING) {
@@ -368,7 +308,8 @@ export default function RoomPage() {
                     inspectorName={inspectorName}
                     isHost={isHost as boolean}
                     settings={settings}
-                    cardFaceTheme={effectiveCardFaceTheme}
+                    cardFaceTheme={cardFaceTheme}
+                    cardBackTheme={cardBackTheme}
                     onWordAction={handleWordAction}
                     onPauseResume={() => emit("oyunKontrolİsteği")}
                     onResetGame={() => emit("oyunuSifirlaİsteği")}
@@ -577,6 +518,7 @@ export default function RoomPage() {
         </>
     );
 }
+
 
 
 

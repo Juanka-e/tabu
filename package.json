@@ -18,6 +18,7 @@
     "test:admin-guards": "tsx scripts/test-admin-route-guards.ts",
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
     "test:card-back": "tsx scripts/test-card-back-theme.ts",
+    "test:room-card-themes": "tsx scripts/test-room-card-themes.ts",
     "test:frame-theme": "tsx scripts/test-frame-theme.ts",
     "test:template-config": "tsx scripts/test-template-config.ts",
     "test:player-identity": "tsx scripts/test-player-identity.ts",

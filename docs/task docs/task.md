@@ -306,3 +306,11 @@ Reference:
 - [x] Re-review store purchase / equip / coupon flow for client-side coin bypass risk
 - [x] Document current `card_face` / `card_back` behavior and the recommended next rendering model
 - [x] Verification completed: `npm run lint`, `npm run build`
+
+### Phase 12 Update (March 9, 2026 - Narrator Card Theme Broadcast)
+- [x] Remove room-local `/api/user/me` cosmetic fetch from active gameplay
+- [x] Resolve narrator `card_face` / `card_back` on the server and send them through socket turn payloads
+- [x] Let guest players see authenticated narrator cosmetics without allowing guest equip or purchase
+- [x] Apply narrator `card_face` to `GameCard` and narrator `card_back` to transition + guesser/observer placeholder panels
+- [x] Add smoke test: `npm run test:room-card-themes`
+- [x] Verification completed: `npm run test:room-card-themes`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`

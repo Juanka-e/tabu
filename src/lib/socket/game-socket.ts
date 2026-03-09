@@ -1,7 +1,8 @@
 import { Server, Socket } from "socket.io";
 import { z } from "zod";
 import { getToken } from "next-auth/jwt";
-import { getPlayerAppearanceSnapshot } from "@/lib/economy";
+import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
+import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
@@ -333,6 +334,8 @@ export function setupGameSocket(io: Server): void {
                 ] || opponentPlayers[0]
                 : null;
 
+        const narratorCardThemes = await hydrateNarratorCardThemes(narrator.userId);
+
         room.oyunDurumu.kalanGecisSuresi = 10;
         persistRoom(room);
 
@@ -343,6 +346,7 @@ export function setupGameSocket(io: Server): void {
                 : null,
             kalanSure: room.oyunDurumu.kalanGecisSuresi,
             creatorId: room.creatorId,
+            cardBackTheme: narratorCardThemes.cardBackTheme,
         });
 
         room.zamanlayici = setInterval(() => {
@@ -368,7 +372,7 @@ export function setupGameSocket(io: Server): void {
                     if (narratorStillOnline) {
                         currentRoom.oyunDurumu.gecisEkraninda = false;
                         persistRoom(currentRoom);
-                        startTurn(roomCode, currentRoom, narrator, inspector);
+                        startTurn(roomCode, currentRoom, narrator, inspector, narratorCardThemes);
                     } else {
                         startNewRound(roomCode);
                     }
@@ -381,7 +385,8 @@ export function setupGameSocket(io: Server): void {
         roomCode: string,
         room: RoomData | undefined,
         narrator: PlayerData,
-        inspector: PlayerData | null
+        inspector: PlayerData | null,
+        narratorCardThemes: RoomCardThemePayload
     ): Promise<void> {
         const currentRoom = room || getRoom(roomCode);
         if (!currentRoom || !narrator) return;
@@ -407,7 +412,7 @@ export function setupGameSocket(io: Server): void {
             currentRoom.oyunDurumu.aktifKart = card;
             persistRoom(currentRoom);
 
-            broadcastTurnInfo(currentRoom, narrator, inspector, card);
+            broadcastTurnInfo(currentRoom, narrator, inspector, card, narratorCardThemes);
             startTimer(currentRoom.odaKodu);
         } catch (error) {
             console.error("Failed to get next word", error);
@@ -424,7 +429,8 @@ export function setupGameSocket(io: Server): void {
         room: RoomData,
         narrator: PlayerData,
         inspector: PlayerData | null,
-        card: unknown
+        card: unknown,
+        narratorCardThemes: RoomCardThemePayload
     ): void {
         room.oyuncular.forEach((player) => {
             if (!player.online) return;
@@ -456,6 +462,8 @@ export function setupGameSocket(io: Server): void {
                 kart: shouldSeeCard ? card : null,
                 anlaticiAd: narrator.ad,
                 gozetmenAd: inspector ? inspector.ad : "-",
+                cardFaceTheme: narratorCardThemes.cardFaceTheme,
+                cardBackTheme: narratorCardThemes.cardBackTheme,
             });
         });
     }
@@ -1320,6 +1328,20 @@ async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
 
     const userId = Number(token?.sub);
     return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+async function hydrateNarratorCardThemes(userId: number | null): Promise<RoomCardThemePayload> {
+    if (!userId) {
+        return createEmptyRoomCardThemes();
+    }
+
+    try {
+        const snapshot = await getPlayerCardCosmeticsSnapshot(userId);
+        return resolveRoomCardThemes(snapshot);
+    } catch (error) {
+        console.error("Narrator card cosmetics could not be loaded", error);
+        return createEmptyRoomCardThemes();
+    }
 }
 
 async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {

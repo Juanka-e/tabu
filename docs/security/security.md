@@ -999,3 +999,15 @@ Critical Findings
   - session theft / admin account compromise
   - future business-logic regressions in socket/store flows
   - lack of centralized persistent rate limiting for scaled deployments
+
+## Review Update (9 March 2026 - Narrator Cosmetic Broadcast)
+
+### Security posture
+- Narrator card cosmetics are now broadcast from the server, not fetched from the active client's own `/api/user/me` state.
+- This does not widen purchase/equip permissions:
+  - guests still cannot buy cosmetics
+  - guests still cannot equip cosmetics
+  - guests can only see the authenticated narrator's already-authorized equipped card theme
+- Practical result:
+  - product visibility increases in-room
+  - auth and economy boundaries remain unchanged
