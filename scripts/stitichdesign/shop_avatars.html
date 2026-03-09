@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -113,6 +113,33 @@
         .glow-legendary:hover {
             box-shadow: 0 0 25px rgba(234, 179, 8, 0.4);
         }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans h-screen overflow-hidden relative selection:bg-primary selection:text-white">
@@ -163,7 +190,7 @@
 <div class="flex items-center gap-4">
 <div class="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-xl border border-amber-200 dark:border-amber-700/30 flex items-center gap-3 shadow-sm group cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
 <div class="w-8 h-8 rounded-full bg-gradient-to-b from-yellow-300 to-yellow-600 shadow-inner flex items-center justify-center ring-2 ring-yellow-100 dark:ring-yellow-800/50">
-<span class="material-icons-round text-yellow-50 text-lg drop-shadow-md">monetization_on</span>
+<span class="coin-mark" aria-hidden="true"></span>
 </div>
 <div class="flex flex-col">
 <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 tracking-wider">Gold Coins</span>
@@ -216,7 +243,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Basic Recruit</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">100 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">100 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Buy</button>
 </div>
 </div>
@@ -231,7 +258,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Aqua Marine</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">450 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">450 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">Buy</button>
 </div>
 </div>
@@ -247,7 +274,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Neon Ghost</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,200 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,200 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">Buy</button>
 </div>
 </div>
@@ -263,7 +290,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Royal Knight</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">2,500 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">2,500 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg shadow-amber-500/30">Buy</button>
 </div>
 </div>
@@ -278,7 +305,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Storm Born</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">500 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">500 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">Buy</button>
 </div>
 </div>
@@ -293,7 +320,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Nature Spirit</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">150 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">150 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Buy</button>
 </div>
 </div>
@@ -308,7 +335,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Mind Weaver</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,350 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">1,350 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">Buy</button>
 </div>
 </div>
@@ -323,7 +350,7 @@
 </div>
 <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">Judge of Souls</h4>
 <div class="flex items-center justify-between mt-2">
-<span class="text-xs font-black text-amber-500 flex items-center gap-1">3,000 <span class="material-icons-round text-[10px]">monetization_on</span></span>
+<span class="text-xs font-black text-amber-500 flex items-center gap-1">3,000 <span class="coin-mark" aria-hidden="true"></span></span>
 <button class="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg shadow-amber-500/30">Buy</button>
 </div>
 </div>

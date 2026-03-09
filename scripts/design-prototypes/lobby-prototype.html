@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -36,7 +36,7 @@
             overflow-x: hidden;
         }
 
-        /* ─── Ambient Blobs ─── */
+        /* â”€â”€â”€ Ambient Blobs â”€â”€â”€ */
         .ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .ambient .blob {
             position: absolute; border-radius: 50%; filter: blur(100px); opacity: .12;
@@ -50,7 +50,7 @@
             66% { transform: translate(-20px,20px) scale(.95); }
         }
 
-        /* ─── Top Bar ─── */
+        /* â”€â”€â”€ Top Bar â”€â”€â”€ */
         .top-bar {
             position: fixed; top: 0; left: 0; right: 0; z-index: 50;
             display: flex; align-items: center; justify-content: space-between;
@@ -68,7 +68,7 @@
         }
         .top-bar .nav { display: flex; align-items: center; gap: 8px; }
 
-        /* ─── Buttons ─── */
+        /* â”€â”€â”€ Buttons â”€â”€â”€ */
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 8px 16px; border-radius: 10px; border: none;
@@ -95,7 +95,7 @@
         }
         .btn-secondary:hover { background: var(--bg-card-hover); border-color: var(--purple-500); }
 
-        /* ─── User Badge (logged-in) ─── */
+        /* â”€â”€â”€ User Badge (logged-in) â”€â”€â”€ */
         .user-badge {
             display: flex; align-items: center; gap: 10px;
             padding: 6px 12px 6px 6px;
@@ -117,10 +117,10 @@
         }
         .user-badge .coin-icon { font-size: .65rem; }
 
-        /* ─── Page Container ─── */
+        /* â”€â”€â”€ Page Container â”€â”€â”€ */
         .page { position: relative; z-index: 1; padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 40px; }
 
-        /* ─── View Toggle ─── */
+        /* â”€â”€â”€ View Toggle â”€â”€â”€ */
         .view-toggle {
             display: flex; gap: 4px; padding: 4px; border-radius: 12px;
             background: var(--bg-card); border: 1px solid var(--border);
@@ -137,7 +137,7 @@
             color: #fff; box-shadow: 0 2px 12px rgba(99,102,241,.3);
         }
 
-        /* ─── Card ─── */
+        /* â”€â”€â”€ Card â”€â”€â”€ */
         .lobby-card {
             width: 100%; max-width: 440px;
             background: rgba(17,24,39,.8);
@@ -169,7 +169,7 @@
 
         .card-body { padding: 16px 32px 32px; }
 
-        /* ─── Form Elements ─── */
+        /* â”€â”€â”€ Form Elements â”€â”€â”€ */
         .field { margin-bottom: 16px; }
         .field-label {
             display: flex; align-items: center; gap: 6px;
@@ -206,7 +206,7 @@
         .row .input { flex: 1; }
         .row .btn { white-space: nowrap; padding: 0 20px; height: 48px; }
 
-        /* ─── Logged-in Extras ─── */
+        /* â”€â”€â”€ Logged-in Extras â”€â”€â”€ */
         .logged-in-extras {
             margin-top: 20px; padding-top: 16px;
             border-top: 1px solid rgba(255,255,255,.05);
@@ -237,7 +237,7 @@
         .ql-store .ql-icon { background: rgba(245,158,11,.15); }
         .ql-profile .ql-icon { background: rgba(16,185,129,.15); }
 
-        /* ─── Room Stats (logged-in lobby) ─── */
+        /* â”€â”€â”€ Room Stats (logged-in lobby) â”€â”€â”€ */
         .room-stats {
             display: flex; gap: 8px; margin-top: 12px;
         }
@@ -249,13 +249,13 @@
         .stat-chip .stat-val { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); }
         .stat-chip .stat-lbl { font-size: .65rem; color: var(--text-muted); margin-top: 2px; }
 
-        /* ─── Footer ─── */
+        /* â”€â”€â”€ Footer â”€â”€â”€ */
         .footer { text-align: center; margin-top: 24px; font-size: .75rem; color: var(--text-muted); }
 
-        /* ─── Hidden ─── */
+        /* â”€â”€â”€ Hidden â”€â”€â”€ */
         .hidden { display: none !important; }
 
-        /* ─── Section Banner ─── */
+        /* â”€â”€â”€ Section Banner â”€â”€â”€ */
         .section-banner {
             text-align: center; margin-bottom: 24px;
             padding: 10px 20px; border-radius: 12px;
@@ -264,12 +264,12 @@
             letter-spacing: .5px;
         }
 
-        /* ─── Scrollbar ─── */
+        /* â”€â”€â”€ Scrollbar â”€â”€â”€ */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-        /* ─── Cosmetic Preview ─── */
+        /* â”€â”€â”€ Cosmetic Preview â”€â”€â”€ */
         .cosmetic-preview {
             display: flex; align-items: center; gap: 10px;
             padding: 10px 14px; border-radius: 12px;
@@ -299,6 +299,33 @@
             .card-body { padding: 16px 20px 24px; }
             .top-bar { padding: 10px 16px; }
         }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
     </style>
 </head>
 <body>
@@ -309,64 +336,64 @@
     <div class="blob blob-3"></div>
 </div>
 
-<!-- ═══════════════ TOP BAR — GUEST ═══════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOP BAR â€” GUEST â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="top-bar" id="topbar-guest">
     <div class="logo">TABU</div>
     <div class="nav">
-        <button class="btn btn-ghost" title="Duyurular">📢</button>
-        <button class="btn btn-ghost" onclick="switchView('login')">Giriş Yap</button>
-        <button class="btn btn-outline" onclick="switchView('login')">Kayıt Ol</button>
-        <button class="btn btn-ghost" title="Tema">🌙</button>
+        <button class="btn btn-ghost" title="Duyurular">ğŸ“¢</button>
+        <button class="btn btn-ghost" onclick="switchView('login')">GiriÅŸ Yap</button>
+        <button class="btn btn-outline" onclick="switchView('login')">KayÄ±t Ol</button>
+        <button class="btn btn-ghost" title="Tema">ğŸŒ™</button>
     </div>
 </div>
 
-<!-- ═══════════════ TOP BAR — LOGGED IN ═══════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOP BAR â€” LOGGED IN â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="top-bar hidden" id="topbar-user">
     <div class="logo">TABU</div>
     <div class="nav">
-        <button class="btn btn-ghost" title="Duyurular">📢</button>
+        <button class="btn btn-ghost" title="Duyurular">ğŸ“¢</button>
         <div class="user-badge">
             <div class="avatar">EP</div>
             <div class="info">
                 <div class="name">Erdal</div>
-                <div class="coins"><span class="coin-icon">🪙</span> 2,450</div>
+                <div class="coins"><span class="coin-mark" aria-hidden="true"></span> 2,450</div>
             </div>
         </div>
-        <button class="btn btn-ghost" title="Tema">🌙</button>
+        <button class="btn btn-ghost" title="Tema">ğŸŒ™</button>
     </div>
 </div>
 
-<!-- ═══════════════ PAGE ═══════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="page">
 
     <!-- View Toggle -->
     <div class="view-toggle">
-        <button class="active" id="toggle-guest" onclick="switchView('guest')">👤 Misafir Görünüm</button>
-        <button id="toggle-user" onclick="switchView('user')">🔐 Giriş Yapan</button>
+        <button class="active" id="toggle-guest" onclick="switchView('guest')">ğŸ‘¤ Misafir GÃ¶rÃ¼nÃ¼m</button>
+        <button id="toggle-user" onclick="switchView('user')">ğŸ” GiriÅŸ Yapan</button>
     </div>
 
-    <!-- ─── GUEST LOBBY ─── -->
+    <!-- â”€â”€â”€ GUEST LOBBY â”€â”€â”€ -->
     <div id="view-guest">
-        <div class="section-banner">🎮 Misafir olarak oyna — hesap gerekmez!</div>
+        <div class="section-banner">ğŸ® Misafir olarak oyna â€” hesap gerekmez!</div>
         <div class="lobby-card">
             <div class="card-header">
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/></svg>
                 </div>
                 <div class="card-title">TABU</div>
-                <div class="card-subtitle">Online Sözcük Tahmin Oyunu</div>
+                <div class="card-subtitle">Online SÃ¶zcÃ¼k Tahmin Oyunu</div>
             </div>
             <div class="card-body">
                 <div class="field">
                     <div class="field-label">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        Kullanıcı Adı
+                        KullanÄ±cÄ± AdÄ±
                     </div>
-                    <input class="input" placeholder="Adınızı girin..." value="Misafir_42">
+                    <input class="input" placeholder="AdÄ±nÄ±zÄ± girin..." value="Misafir_42">
                 </div>
 
                 <button class="btn btn-primary" style="width:100%;height:48px;font-size:.95rem;border-radius:12px;justify-content:center;">
-                    ➕ Yeni Oda Oluştur
+                    â• Yeni Oda OluÅŸtur
                 </button>
 
                 <div class="separator"><span>veya</span></div>
@@ -378,24 +405,24 @@
                     </div>
                     <div class="row">
                         <input class="input input-code" placeholder="ABC123" maxlength="6">
-                        <button class="btn btn-secondary">Katıl</button>
+                        <button class="btn btn-secondary">KatÄ±l</button>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="footer">Tabu Online — Arkadaşlarınla eğlenceli vakit geçir!</div>
+        <div class="footer">Tabu Online â€” ArkadaÅŸlarÄ±nla eÄŸlenceli vakit geÃ§ir!</div>
     </div>
 
-    <!-- ─── LOGGED-IN LOBBY ─── -->
+    <!-- â”€â”€â”€ LOGGED-IN LOBBY â”€â”€â”€ -->
     <div id="view-user" class="hidden">
-        <div class="section-banner">✨ Hoş geldin Erdal — Kozmetiklerin aktif, coin kazanmaya devam et!</div>
+        <div class="section-banner">âœ¨ HoÅŸ geldin Erdal â€” Kozmetiklerin aktif, coin kazanmaya devam et!</div>
         <div class="lobby-card">
             <div class="card-header">
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/></svg>
                 </div>
                 <div class="card-title">TABU</div>
-                <div class="card-subtitle">Online Sözcük Tahmin Oyunu</div>
+                <div class="card-subtitle">Online SÃ¶zcÃ¼k Tahmin Oyunu</div>
             </div>
             <div class="card-body">
                 <!-- Cosmetic Preview -->
@@ -403,7 +430,7 @@
                     <div class="cosmetic-avatar">E</div>
                     <div class="cosmetic-info">
                         <div class="cosmetic-name">Erdal</div>
-                        <div class="cosmetic-detail">Altın Çerçeve aktif • Epic Avatar</div>
+                        <div class="cosmetic-detail">AltÄ±n Ã‡erÃ§eve aktif â€¢ Epic Avatar</div>
                     </div>
                     <div class="cosmetic-badge">LVL 12</div>
                 </div>
@@ -412,14 +439,14 @@
                     <div class="field">
                         <div class="field-label">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                            Kullanıcı Adı
+                            KullanÄ±cÄ± AdÄ±
                         </div>
                         <input class="input" value="Erdal" style="opacity:.7" readonly>
                     </div>
                 </div>
 
                 <button class="btn btn-primary" style="width:100%;height:48px;font-size:.95rem;border-radius:12px;justify-content:center;">
-                    ➕ Yeni Oda Oluştur
+                    â• Yeni Oda OluÅŸtur
                 </button>
 
                 <div class="separator"><span>veya</span></div>
@@ -431,24 +458,24 @@
                     </div>
                     <div class="row">
                         <input class="input input-code" placeholder="ABC123" maxlength="6">
-                        <button class="btn btn-secondary">Katıl</button>
+                        <button class="btn btn-secondary">KatÄ±l</button>
                     </div>
                 </div>
 
                 <!-- Logged-in Quick Links -->
                 <div class="logged-in-extras">
-                    <div class="extras-label">Hızlı Erişim</div>
+                    <div class="extras-label">HÄ±zlÄ± EriÅŸim</div>
                     <div class="quick-links">
                         <a class="quick-link ql-dashboard" href="#">
-                            <div class="ql-icon">📊</div>
+                            <div class="ql-icon">ğŸ“Š</div>
                             <div class="ql-text">Dashboard</div>
                         </a>
                         <a class="quick-link ql-store" href="#">
-                            <div class="ql-icon">🛍️</div>
-                            <div class="ql-text">Mağaza</div>
+                            <div class="ql-icon">ğŸ›ï¸</div>
+                            <div class="ql-text">MaÄŸaza</div>
                         </a>
                         <a class="quick-link ql-profile" href="#">
-                            <div class="ql-icon">👤</div>
+                            <div class="ql-icon">ğŸ‘¤</div>
                             <div class="ql-text">Profil</div>
                         </a>
                     </div>
@@ -457,7 +484,7 @@
                 <!-- Mini Stats -->
                 <div class="room-stats">
                     <div class="stat-chip">
-                        <div class="stat-val">🪙 2,450</div>
+                        <div class="stat-val"><span class="coin-mark" aria-hidden="true"></span> 2,450</div>
                         <div class="stat-lbl">Coin</div>
                     </div>
                     <div class="stat-chip">
@@ -466,12 +493,12 @@
                     </div>
                     <div class="stat-chip">
                         <div class="stat-val">47</div>
-                        <div class="stat-lbl">Maç</div>
+                        <div class="stat-lbl">MaÃ§</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="footer">Tabu Online — Kozmetiklerini kusan, maça hazırlan!</div>
+        <div class="footer">Tabu Online â€” Kozmetiklerini kusan, maÃ§a hazÄ±rlan!</div>
     </div>
 
 </div>

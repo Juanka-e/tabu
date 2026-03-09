@@ -285,3 +285,10 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Added typed admin APIs for promotions under `/api/admin/promotions/*`.
 - Added server-side admin-session enforcement inside promotion routes and existing shop-item routes.
 - Promotion data is defined but not yet applied to checkout pricing; this keeps the rollout low-risk.
+
+## 9 March 2026 Update - Mock Catalog and Coin Icon Consistency
+
+- Added a single-source mock catalog definition under `src/lib/store/mock-catalog.ts`.
+- Added idempotent seed command: `npm run seed:catalog`.
+- Added smoke coverage for mock catalog integrity: `npm run test:catalog`.
+- Normalized coin icons across `scripts/design-prototypes/*` and `scripts/stitichdesign/*` to a single `coin-mark` style.

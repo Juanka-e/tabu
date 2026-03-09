@@ -448,3 +448,33 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Mock Catalog Seed ve Coin Ikon Standardi (9 March 2026)
+
+### Mock catalog
+- `src/lib/store/mock-catalog.ts` eklendi; shop item, bundle, discount ve coupon mock verileri tek yerde toplandi.
+- `scripts/seed-store-catalog.ts` eklendi; katalog verisi Prisma CLI `db execute` ile idempotent olarak local DB'ye yaziliyor.
+- `scripts/test-mock-catalog.ts` eklendi; kod tekilligi, bundle referanslari ve image asset dosyalari dogrulaniyor.
+- Yeni komutlar:
+  - `npm run seed:catalog`
+  - `npm run test:catalog`
+
+### Eklenen local mock asset'ler
+- `/public/cosmetics/mock/avatars/pulse-fox.svg`
+- `/public/cosmetics/mock/avatars/neon-owl.svg`
+- `/public/cosmetics/mock/frames/arctic-gate.svg`
+- `/public/cosmetics/mock/card-backs/ember-vault.svg`
+- `/public/cosmetics/mock/card-faces/ember-glow.svg`
+
+### Mock UI coin ikon standardi
+- `scripts/design-prototypes/*` ve `scripts/stitichdesign/*` altindaki HTML mock dosyalarinda coin ikonlari tek `coin-mark` sinifina normalize edildi.
+- Emoji, material icon ve custom coin gorunumleri kaldirildi; artik tum mock tasarimlarda ayni coin isareti kullaniliyor.
+- Bu degisiklik sadece mock/prototype HTML dosyalarini etkiler; oyun ici gercek UI akisinda davranis degisikligi yaratmaz.
+
+### Bu Turdaki Dogrulama
+- `npm run test:catalog`
+- `npm run seed:catalog`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

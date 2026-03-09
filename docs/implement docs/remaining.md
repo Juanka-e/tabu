@@ -223,3 +223,14 @@ Reference:
 - Connect bundle / discount / coupon logic to store pricing and checkout.
 - Seed production-shaped mock cosmetics, bundles, campaigns, and coupon data.
 - Add coupon redemption UX in dashboard/store.
+
+### Completed in the March 9 mock-catalog slice
+- Added production-shaped mock catalog definitions for cosmetics, bundles, discounts, and coupons.
+- Added idempotent local seed flow: `npm run seed:catalog`.
+- Added mock catalog smoke test: `npm run test:catalog`.
+- Unified coin icon design across mock HTML prototype files.
+- Verification passed: `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Connect seeded bundles / discounts / coupons to live store pricing and checkout.
+- Expose promotion data to store/dashboard UI where needed.

@@ -159,3 +159,12 @@ Reference:
 - [x] `/api/admin/promotions/*` CRUD routes added
 - [x] Promotion rollout kept checkout-safe; pricing application is intentionally deferred to next slice
 - [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+- [x] Add production-shaped mock catalog definitions for cosmetics, bundles, discounts, and coupons
+- [x] Add idempotent local seed flow for mock catalog (`npm run seed:catalog`)
+- [x] Add mock catalog smoke test (`npm run test:catalog`)
+- [x] Normalize coin icon design across mock HTML prototype files
+
+### Phase 12 Update (March 9, 2026 - Mock Catalog)
+- [x] Local mock catalog now seeds into DB with assets and promotions
+- [x] Mock/prototype coin icon language is unified under a single `coin-mark` visual
+- [x] Verification completed: `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
