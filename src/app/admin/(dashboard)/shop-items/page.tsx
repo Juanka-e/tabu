@@ -5,6 +5,7 @@ import Image, { type ImageLoaderProps } from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CosmeticLivePreview } from "@/components/admin/cosmetic-live-preview";
+import { ShopOrderBoard } from "@/components/admin/shop-order-board";
 import {
     Edit2,
     FileJson2,
@@ -19,6 +20,9 @@ import {
     X,
 } from "lucide-react";
 import type { TemplateConfig } from "@/types/economy";
+import {
+    ADMIN_RARITY_BADGE_CLASS,
+} from "@/lib/store/shop-admin";
 
 type ItemType = "avatar" | "frame" | "card_back" | "card_face";
 type Rarity = "common" | "rare" | "epic" | "legendary";
@@ -58,13 +62,6 @@ interface ShopItemFormState {
     isActive: boolean;
     sortOrder: number;
 }
-
-const rarityColors: Record<Rarity, string> = {
-    common: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
-    rare: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    epic: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    legendary: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-};
 
 const typeLabels: Record<ItemType, string> = {
     avatar: "Avatar",
@@ -262,6 +259,7 @@ export default function ShopItemsPage() {
     const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
     const [form, setForm] = useState<ShopItemFormState>(emptyItem);
     const [saving, setSaving] = useState(false);
+    const [reorderSaving, setReorderSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
 
     const loadItems = useCallback(async () => {
@@ -303,6 +301,38 @@ export default function ShopItemsPage() {
             return true;
         });
     }, [filterRarity, filterType, items, search]);
+
+    const handleReorder = async (
+        updates: Array<{ id: number; sortOrder: number }>
+    ) => {
+        const nextSortMap = new Map(
+            updates.map((entry) => [entry.id, entry.sortOrder] as const)
+        );
+
+        setItems((current) =>
+            current.map((item) => ({
+                ...item,
+                sortOrder: nextSortMap.get(item.id) ?? item.sortOrder,
+            }))
+        );
+        setReorderSaving(true);
+
+        try {
+            const response = await fetch("/api/admin/shop-items/reorder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates }),
+            });
+
+            if (!response.ok) {
+                await loadItems();
+            }
+        } catch {
+            await loadItems();
+        } finally {
+            setReorderSaving(false);
+        }
+    };
 
     const openCreate = () => {
         setEditingItem(null);
@@ -475,6 +505,8 @@ export default function ShopItemsPage() {
                 </Button>
             </div>
 
+            <ShopOrderBoard items={items} saving={reorderSaving} onReorder={(updates) => void handleReorder(updates)} />
+
             <Card className="border-border/50">
                 <CardContent className="p-4 flex flex-wrap gap-3 items-center">
                     <div className="relative flex-1 min-w-[200px]">
@@ -542,7 +574,7 @@ export default function ShopItemsPage() {
                                 </tr>
                             )}
                             {filteredItems.map((item) => (
-                                <tr key={item.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${!item.isActive ? "opacity-50" : ""}`}>
+                                <tr key={item.id} className={`border-b border-border/50 transition-colors hover:bg-muted/20 ${!item.isActive ? "opacity-50" : ""}`}>
                                     <td className="p-3">
                                         {item.imageUrl ? (
                                             <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={40} height={40} className="w-10 h-10 rounded-lg object-cover border border-border" />
@@ -566,7 +598,7 @@ export default function ShopItemsPage() {
                                     <td className="p-3 text-muted-foreground">{typeLabels[item.type]}</td>
                                     <td className="p-3 text-muted-foreground font-medium uppercase text-xs">{item.renderMode}</td>
                                     <td className="p-3">
-                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${rarityColors[item.rarity]}`}>{item.rarity}</span>
+                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${ADMIN_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span>
                                     </td>
                                     <td className="p-3 text-center">
                                         <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${item.isFeatured ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" : "bg-muted text-muted-foreground"}`}>

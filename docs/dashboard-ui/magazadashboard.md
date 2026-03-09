@@ -831,3 +831,54 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Drag-and-Drop Siralama ve Rarity-First Vitrin (9 March 2026)
+
+### Siralama araci
+- `/admin/shop-items` ekranina `Catalog Order` adli ayri bir drag-and-drop panel eklendi.
+- Bu panel:
+  - sadece aktif urunleri listeler
+  - mevcut `sortOrder` sirasina gore yuklenir
+  - surukle-birak sonrasi toplu update gonderir
+- Yeni endpoint:
+  - `/api/admin/shop-items/reorder`
+- Bu endpoint:
+  - admin auth ister
+  - zod ile update listesini validate eder
+  - transaction ile `sortOrder` yazar
+  - audit log uretir
+
+### Rarity-first karari
+- `season` mantigi bu asamada bilerek eklenmedi.
+- Sebep:
+  - baslangicta merchandising mantigini sade tutmak
+  - oyuncuya once net bir rarity dili vermek
+  - admin paneli gereksiz metadata ile sisirmemek
+- Bugunku yon:
+  - `common`
+  - `rare`
+  - `epic`
+  - `legendary`
+  renk, glow, badge ve buton diliyle ayristirilir.
+
+### Shop UI etkisi
+- Shop item kartlari artik rarity'ye gore:
+  - border
+  - arka plan gradienti
+  - ust strip rengi
+  - rarity badge tonu
+  - satin alma butonu
+  farklilastirir.
+- Bundle kartlarindaki item chip'leri de item rarity'sini gosterir.
+- Boylece featured ve badge text disinda rarity de karar verici bir gorsel sinyal olur.
+
+### Admin UI etkisi
+- Drag siralama kartlari rarity tonunu admin tarafinda da korur.
+- Admin, urunu sadece text tablo olarak degil merchandising objesi olarak gorur.
+
+### Bu Turdaki Dogrulama
+- `npm run test:shop-order`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

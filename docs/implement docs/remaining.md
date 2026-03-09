@@ -373,6 +373,30 @@ Reference:
 - Add CSP report collection / monitoring if runtime violation visibility is required.
 - Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
 
+### Completed in the March 9 shop-order-and-rarity slice
+- Added `/api/admin/shop-items/reorder` with:
+  - route-level admin auth
+  - zod validation
+  - transactional sort updates
+  - audit log write
+- Added a dedicated drag-and-drop `Catalog Order` panel to `/admin/shop-items`.
+- Kept reorder isolated from table search/filter state to reduce accidental sort bugs.
+- Added shared rarity presentation helpers for:
+  - admin order cards
+  - shop item cards
+  - buy buttons
+  - rarity badges
+- Upgraded store cards and bundle item chips to a stronger rarity-first visual language.
+- Explicitly chose a rarity-first rollout over adding `season` metadata at this stage.
+- Added smoke test: `npm run test:shop-order`
+- Verification completed: `npm run test:shop-order`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Consider a later `season` merchandising layer only after rarity and featured ordering prove stable in production.
+
 ### Completed in the March 9 admin-preview slice
 - Added a live cosmetic preview panel to `/admin/shop-items`.
 - The modal now shows:

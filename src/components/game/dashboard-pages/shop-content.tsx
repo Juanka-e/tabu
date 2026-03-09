@@ -6,11 +6,19 @@ import { useSession } from "next-auth/react";
 import {
     BadgePercent,
     Frame,
+    Gem,
     ShoppingBag,
     TicketPercent,
     UserCircle,
 } from "lucide-react";
 import { CoinBadge, CoinMark } from "@/components/ui/coin-badge";
+import {
+    SHOP_RARITY_BADGE_CLASS,
+    SHOP_RARITY_BUY_BUTTON_CLASS,
+    SHOP_RARITY_CARD_CLASS,
+    SHOP_RARITY_HALO_CLASS,
+    SHOP_RARITY_TOP_STRIP_CLASS,
+} from "@/lib/store/shop-admin";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
@@ -34,27 +42,6 @@ const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[
     { id: "card_back", icon: ShoppingBag, label: "Card Backs" },
     { id: "card_face", icon: ShoppingBag, label: "Card Faces" },
 ];
-
-const rarityBadgeColor = {
-    common: "bg-slate-500/90",
-    rare: "bg-blue-500/90",
-    epic: "bg-purple-600/90",
-    legendary: "bg-amber-500/90",
-} as const;
-
-const rarityGlow = {
-    common: "",
-    rare: "hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]",
-    epic: "hover:shadow-[0_0_20px_rgba(168,85,247,0.4)]",
-    legendary: "hover:shadow-[0_0_25px_rgba(234,179,8,0.4)]",
-} as const;
-
-const rarityBuyBtn = {
-    common: "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600",
-    rare: "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20",
-    epic: "bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/20",
-    legendary: "bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 shadow-lg shadow-amber-500/30",
-} as const;
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -285,6 +272,17 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
                         Cosmetics only. Guest flow stays untouched, purchases require login.
                     </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {(["common", "rare", "epic", "legendary"] as const).map((rarity) => (
+                            <div
+                                key={rarity}
+                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_CARD_CLASS[rarity]}`}
+                            >
+                                <Gem size={12} />
+                                {rarity}
+                            </div>
+                        ))}
+                    </div>
                     {activeOffers.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2">
                             {activeOffers.map((offer) => (
@@ -447,15 +445,16 @@ function ShopItemCard({
         ? item.equipped
             ? "bg-blue-500 text-white cursor-default"
             : "bg-green-500 text-white cursor-default"
-        : rarityBuyBtn[item.rarity];
+        : SHOP_RARITY_BUY_BUTTON_CLASS[item.rarity];
 
     return (
         <div
-            className={`group relative rounded-2xl border p-4 transition-all hover:-translate-y-1 hover:bg-white/60 dark:bg-slate-800/40 dark:hover:bg-slate-800/60 ${item.isFeatured
+            className={`group relative rounded-[26px] border p-4 transition-all hover:-translate-y-1 hover:bg-white/60 dark:hover:bg-slate-800/60 ${item.isFeatured
                 ? "border-fuchsia-200/80 bg-gradient-to-b from-white/70 to-fuchsia-50/50 dark:border-fuchsia-900/50 dark:from-slate-800/70 dark:to-fuchsia-950/20"
-                : "border-white/40 bg-white/40 dark:border-slate-700/40"
-                } ${rarityGlow[item.rarity]}`}
+                : SHOP_RARITY_CARD_CLASS[item.rarity]
+                } ${SHOP_RARITY_HALO_CLASS[item.rarity]}`}
         >
+            <div className={`absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80 ${SHOP_RARITY_TOP_STRIP_CLASS[item.rarity]}`} />
             <div className="relative mb-3 aspect-square overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700/50">
                 {item.badgeText ? (
                     <div className="absolute left-2 top-2 z-10">
@@ -466,7 +465,7 @@ function ShopItemCard({
                 ) : null}
                 <div className="absolute right-2 top-2 z-10">
                     <span
-                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm backdrop-blur-sm ${rarityBadgeColor[item.rarity]}`}
+                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase shadow-sm backdrop-blur-sm ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}
                     >
                         {item.rarity}
                     </span>
@@ -554,7 +553,7 @@ function BundleCard({
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
 
     return (
-        <article className="rounded-3xl border border-slate-200/70 bg-white/60 p-5 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/40">
+        <article className="rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white/80 via-slate-50/80 to-white/70 p-5 shadow-sm dark:border-slate-700/50 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-950/60">
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white dark:bg-slate-100 dark:text-slate-900">
@@ -579,7 +578,7 @@ function BundleCard({
                 {bundle.items.map((item) => (
                     <div
                         key={item.id}
-                        className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300"
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}
                     >
                         {item.itemName}
                     </div>

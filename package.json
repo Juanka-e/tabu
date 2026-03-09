@@ -12,6 +12,7 @@
     "test:catalog": "tsx scripts/test-mock-catalog.ts",
     "test:promotions": "tsx scripts/test-promotion-schema.ts",
     "test:shop-items": "tsx scripts/test-shop-item-schema.ts",
+    "test:shop-order": "tsx scripts/test-shop-order.ts",
     "test:store-pricing": "tsx scripts/test-store-pricing.ts",
     "test:announcement-security": "tsx scripts/test-announcement-security.ts",
     "test:admin-guards": "tsx scripts/test-admin-route-guards.ts",

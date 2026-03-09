@@ -436,3 +436,23 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Full-page dashboard sol nav `play` butonu artik `Oyna` etiketiyle birlikte gorunur.
 - Yeni smoke test eklendi:
   - `npm run test:shop-items`
+
+## 9 March 2026 Update - Drag Sort and Rarity-First Store Visuals
+
+- `/admin/shop-items` ekranina ayri bir `Catalog Order` drag-and-drop paneli eklendi.
+- Bu panel:
+  - yalnizca aktif urunleri listeler
+  - `sortOrder` degerini surukle-birak ile toplu gunceller
+  - yeni backend route'u kullanir: `/api/admin/shop-items/reorder`
+- Reorder islemi audit log'a yazilir.
+- Shop UI ikinci turunda rarity dili guclendirildi:
+  - `common`
+  - `rare`
+  - `epic`
+  - `legendary`
+  her biri ayri border, badge, glow ve buy-button dili tasir.
+- Bundle kartlarindaki item chip'leri de rarity rengine gore stillenir.
+- Bu turda `season` merchandising mantigi bilerek eklenmedi.
+- Karar: ilk asamada sistem daha sade tutulacak; once rarity dili sabitlenecek, gerekirse sonra season katmani eklenecek.
+- Yeni smoke test eklendi:
+  - `npm run test:shop-order`

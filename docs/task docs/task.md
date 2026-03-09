@@ -276,3 +276,13 @@ Reference:
 - [x] Add `Oyna` label to the full-page dashboard play action
 - [x] Add smoke test: `npm run test:shop-items`
 - [x] Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Shop Order and Rarity Visuals)
+- [x] Add `/api/admin/shop-items/reorder` for transactional bulk sort updates
+- [x] Add a dedicated drag-and-drop `Catalog Order` panel to `/admin/shop-items`
+- [x] Audit log admin-driven catalog reorder mutations
+- [x] Add shared rarity presentation helpers for admin and store surfaces
+- [x] Strengthen store card rarity visuals for `common`, `rare`, `epic`, and `legendary`
+- [x] Keep the rollout rarity-first; defer `season` merchandising metadata for later
+- [x] Add smoke test: `npm run test:shop-order`
+- [x] Verification completed: `npm run test:shop-order`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
