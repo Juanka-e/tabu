@@ -12,6 +12,7 @@ import {
     LogOut,
     Gamepad2,
     ShoppingBag,
+    TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +22,7 @@ const navItems = [
     { href: "/admin/words", icon: BookOpen, label: "Kelimeler" },
     { href: "/admin/categories", icon: FolderTree, label: "Kategoriler" },
     { href: "/admin/shop-items", icon: ShoppingBag, label: "Kozmetikler" },
+    { href: "/admin/promotions", icon: TicketPercent, label: "Promosyonlar" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
     { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yükleme" },
 ];

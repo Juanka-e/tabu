@@ -148,3 +148,14 @@ Reference:
 - [x] Transition screen now renders equipped `card_back` themes for logged-in users
 - [x] Guest flow remains unchanged; cosmetics stay gated behind login
 - [x] Verification completed: `npm run test:card-back`, `npm run test:card-face`, `npm run test:frame-theme`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+- [x] Add bundle schema and admin management
+- [x] Add discount campaign schema and admin management
+- [x] Add coupon code schema and admin management
+- [x] Add defense-in-depth admin session checks inside promotion and shop-item admin APIs
+- [x] Add smoke test coverage for promotion validators (`npm run test:promotions`)
+
+### Phase 12 Update (March 9, 2026 - Promotions)
+- [x] `/admin/promotions` added for bundle, discount, and coupon management
+- [x] `/api/admin/promotions/*` CRUD routes added
+- [x] Promotion rollout kept checkout-safe; pricing application is intentionally deferred to next slice
+- [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

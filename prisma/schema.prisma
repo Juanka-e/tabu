@@ -37,6 +37,17 @@ enum PurchaseStatus {
   reverted
 }
 
+enum PromotionTargetType {
+  global
+  shop_item
+  bundle
+}
+
+enum PromotionDiscountType {
+  percentage
+  fixed_coin
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -104,12 +115,99 @@ model ShopItem {
 
   inventoryItems     InventoryItem[]
   purchases          Purchase[]
+  bundleEntries      ShopBundleItem[]
+  discountCampaigns  DiscountCampaign[]
+  couponCodes        CouponCode[]
   equippedByAvatar   UserProfile[] @relation("ProfileAvatar")
   equippedByFrame    UserProfile[] @relation("ProfileFrame")
   equippedByCardBack UserProfile[] @relation("ProfileCardBack")
   equippedByCardFace UserProfile[] @relation("ProfileCardFace")
 
   @@map("shop_items")
+}
+
+model ShopBundle {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(120)
+  description String?  @db.VarChar(300)
+  priceCoin   Int      @map("price_coin")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items             ShopBundleItem[]
+  discountCampaigns DiscountCampaign[]
+  couponCodes       CouponCode[]
+
+  @@map("shop_bundles")
+}
+
+model ShopBundleItem {
+  id         Int      @id @default(autoincrement())
+  bundleId   Int      @map("bundle_id")
+  shopItemId Int      @map("shop_item_id")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  bundle   ShopBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  shopItem ShopItem   @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, shopItemId])
+  @@index([bundleId, sortOrder])
+  @@map("shop_bundle_items")
+}
+
+model DiscountCampaign {
+  id               Int                   @id @default(autoincrement())
+  code             String                @unique @db.VarChar(80)
+  name             String                @db.VarChar(120)
+  description      String?               @db.VarChar(300)
+  targetType       PromotionTargetType   @default(global) @map("target_type")
+  discountType     PromotionDiscountType @map("discount_type")
+  percentageOff    Int?                  @map("percentage_off")
+  fixedCoinOff     Int?                  @map("fixed_coin_off")
+  shopItemId       Int?                  @map("shop_item_id")
+  bundleId         Int?                  @map("bundle_id")
+  startsAt         DateTime?             @map("starts_at")
+  endsAt           DateTime?             @map("ends_at")
+  isActive         Boolean               @default(true) @map("is_active")
+  stackableWithCoupon Boolean            @default(false) @map("stackable_with_coupon")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  shopItem ShopItem?   @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+  bundle   ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, isActive])
+  @@map("discount_campaigns")
+}
+
+model CouponCode {
+  id               Int                   @id @default(autoincrement())
+  code             String                @unique @db.VarChar(80)
+  name             String                @db.VarChar(120)
+  description      String?               @db.VarChar(300)
+  targetType       PromotionTargetType   @default(global) @map("target_type")
+  discountType     PromotionDiscountType @map("discount_type")
+  percentageOff    Int?                  @map("percentage_off")
+  fixedCoinOff     Int?                  @map("fixed_coin_off")
+  shopItemId       Int?                  @map("shop_item_id")
+  bundleId         Int?                  @map("bundle_id")
+  usageLimit       Int?                  @map("usage_limit")
+  usedCount        Int                   @default(0) @map("used_count")
+  startsAt         DateTime?             @map("starts_at")
+  endsAt           DateTime?             @map("ends_at")
+  isActive         Boolean               @default(true) @map("is_active")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  shopItem ShopItem?   @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+  bundle   ShopBundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, isActive])
+  @@map("coupon_codes")
 }
 
 model InventoryItem {

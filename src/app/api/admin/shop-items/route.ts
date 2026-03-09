@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { ShopItemType, ItemRarity } from "@prisma/client";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 import { shopItemWriteSchema, toPrismaShopItemCreateData } from "@/lib/cosmetics/shop-item-schema";
 
 export const dynamic = "force-dynamic";
 
 // GET — List all shop items (admin view, includes inactive)
 export async function GET(request: NextRequest) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") as ShopItemType | null;
     const rarity = searchParams.get("rarity") as ItemRarity | null;
@@ -35,6 +41,11 @@ export async function GET(request: NextRequest) {
 
 // POST — Create a new shop item
 export async function POST(request: NextRequest) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const body = await request.json();
         const data = toPrismaShopItemCreateData(shopItemWriteSchema.parse(body));

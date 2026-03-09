@@ -210,3 +210,16 @@ Reference:
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.
 - Extend `card_back` beyond transition to other non-sensitive preview surfaces if desired.
+
+### Completed in the March 9 promotions slice
+- Added bundle schema and admin CRUD.
+- Added discount campaign schema and admin CRUD.
+- Added coupon code schema and admin CRUD.
+- Added server-side admin-session checks to promotion routes and shop-item admin routes.
+- Added smoke test: `npm run test:promotions`.
+- Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Connect bundle / discount / coupon logic to store pricing and checkout.
+- Seed production-shaped mock cosmetics, bundles, campaigns, and coupon data.
+- Add coupon redemption UX in dashboard/store.

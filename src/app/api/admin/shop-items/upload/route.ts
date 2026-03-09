@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,11 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 
 export async function POST(request: NextRequest) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File | null;
@@ -32,9 +38,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const ext = file.name.split(".").pop() || "png";
+        const normalizedCategory = category.replace(/[^a-z0-9-_]/gi, "").slice(0, 40) || "general";
+        const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
         const fileName = `${randomUUID()}.${ext}`;
-        const uploadDir = path.join(process.cwd(), "public", "cosmetics", category);
+        const uploadDir = path.join(process.cwd(), "public", "cosmetics", normalizedCategory);
 
         await mkdir(uploadDir, { recursive: true });
 
@@ -44,7 +51,7 @@ export async function POST(request: NextRequest) {
 
         await writeFile(filePath, buffer);
 
-        const publicUrl = `/cosmetics/${category}/${fileName}`;
+        const publicUrl = `/cosmetics/${normalizedCategory}/${fileName}`;
 
         return NextResponse.json({ url: publicUrl, fileName });
     } catch (error) {

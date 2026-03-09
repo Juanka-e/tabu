@@ -278,3 +278,10 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Equipped `card_back` cosmetics render only for authenticated users and only on their own transition screen.
 - Guest users keep the default transition UI with no cosmetic fetch.
 - Added smoke coverage: `npm run test:card-back`.
+
+## 9 March 2026 Update - Admin Promotions Surface
+
+- Added `/admin/promotions` for bundle, discount campaign, and coupon management.
+- Added typed admin APIs for promotions under `/api/admin/promotions/*`.
+- Added server-side admin-session enforcement inside promotion routes and existing shop-item routes.
+- Promotion data is defined but not yet applied to checkout pricing; this keeps the rollout low-risk.

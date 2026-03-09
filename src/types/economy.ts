@@ -4,6 +4,8 @@ export type InventoryItemSource = "purchase" | "grant" | "migration";
 export type StoreItemRenderMode = "image" | "template";
 export type TemplateConfigValue = string | number | boolean;
 export type TemplateConfig = Record<string, TemplateConfigValue>;
+export type PromotionTargetType = "global" | "shop_item" | "bundle";
+export type PromotionDiscountType = "percentage" | "fixed_coin";
 
 export interface EquippedSlots {
     avatarItemId: number | null;
@@ -89,4 +91,63 @@ export interface PlayerAppearanceSnapshot {
     avatarImageUrl: string | null;
     frameImageUrl: string | null;
     frameAccentColor: string | null;
+}
+
+export interface ShopBundleItemView {
+    id: number;
+    shopItemId: number;
+    sortOrder: number;
+    itemCode: string;
+    itemName: string;
+    itemType: StoreItemType;
+    itemRarity: StoreItemRarity;
+}
+
+export interface ShopBundleView {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+    priceCoin: number;
+    isActive: boolean;
+    sortOrder: number;
+    createdAt: string;
+    items: ShopBundleItemView[];
+}
+
+export interface DiscountCampaignView {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+    targetType: PromotionTargetType;
+    discountType: PromotionDiscountType;
+    percentageOff: number | null;
+    fixedCoinOff: number | null;
+    shopItemId: number | null;
+    bundleId: number | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    isActive: boolean;
+    stackableWithCoupon: boolean;
+    createdAt: string;
+}
+
+export interface CouponCodeView {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+    targetType: PromotionTargetType;
+    discountType: PromotionDiscountType;
+    percentageOff: number | null;
+    fixedCoinOff: number | null;
+    shopItemId: number | null;
+    bundleId: number | null;
+    usageLimit: number | null;
+    usedCount: number;
+    startsAt: string | null;
+    endsAt: string | null;
+    isActive: boolean;
+    createdAt: string;
 }

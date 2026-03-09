@@ -411,3 +411,40 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Bundle, Indirim ve Kupon Yonetimi (9 March 2026)
+
+### Veri modeli
+- `ShopBundle` ve `ShopBundleItem` eklendi.
+- `DiscountCampaign` eklendi.
+- `CouponCode` eklendi.
+- Yeni enumlar: `PromotionTargetType`, `PromotionDiscountType`.
+
+### Admin katmani
+- Yeni admin sayfasi: `/admin/promotions`.
+- Yeni admin API rotalari:
+  - `GET/POST /api/admin/promotions/bundles`
+  - `GET/PUT/DELETE /api/admin/promotions/bundles/[id]`
+  - `GET/POST /api/admin/promotions/discounts`
+  - `GET/PUT/DELETE /api/admin/promotions/discounts/[id]`
+  - `GET/POST /api/admin/promotions/coupons`
+  - `GET/PUT/DELETE /api/admin/promotions/coupons/[id]`
+
+### Guvenlik
+- Yeni promosyon route'lari `requireAdminSession()` ile server tarafinda admin role dogruluyor.
+- Mevcut `shop-items` admin route'larina da ayni koruma eklendi.
+- Upload route'unda `category` ve dosya uzantisi sanitize edildi.
+
+### Mantik siniri
+- Bu slice tanimlama ve yonetim altyapisini kurar.
+- Fiyat hesaplama ve checkout'ta bundle/discount/coupon uygulama akisi sonraki slice'ta baglanacak.
+- Misafir girisi ve oyun akisi etkilenmedi.
+
+### Bu Turdaki Dogrulama
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:promotions`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`
