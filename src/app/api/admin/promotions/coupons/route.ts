@@ -6,6 +6,7 @@ import {
     couponCodeWriteSchema,
     toPrismaCouponCodeCreateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,19 @@ export async function POST(request: NextRequest) {
         const parsed = couponCodeWriteSchema.parse(body);
         const coupon = await prisma.couponCode.create({
             data: toPrismaCouponCodeCreateData(parsed),
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.coupon.create",
+            resourceType: "coupon_code",
+            resourceId: coupon.id,
+            summary: `Created coupon ${coupon.code}`,
+            metadata: {
+                code: coupon.code,
+                targetType: coupon.targetType,
+                usageLimit: coupon.usageLimit,
+            },
+            request,
         });
 
         return NextResponse.json(coupon, { status: 201 });

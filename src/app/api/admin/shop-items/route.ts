@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ShopItemType, ItemRarity } from "@prisma/client";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { shopItemWriteSchema, toPrismaShopItemCreateData } from "@/lib/cosmetics/shop-item-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,19 @@ export async function POST(request: NextRequest) {
         const data = toPrismaShopItemCreateData(shopItemWriteSchema.parse(body));
 
         const item = await prisma.shopItem.create({ data });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.shop-item.create",
+            resourceType: "shop_item",
+            resourceId: item.id,
+            summary: `Created shop item ${item.code}`,
+            metadata: {
+                code: item.code,
+                type: item.type,
+                priceCoin: item.priceCoin,
+            },
+            request,
+        });
         return NextResponse.json(item, { status: 201 });
     } catch (error) {
         if (error instanceof z.ZodError) {

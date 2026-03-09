@@ -3,6 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,19 @@ export async function POST(request: NextRequest) {
 
         const filePath = path.join(uploadDir, fileName);
         await writeFile(filePath, buffer);
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.shop-item.upload",
+            resourceType: "asset",
+            resourceId: fileName,
+            summary: `Uploaded cosmetic asset ${fileName}`,
+            metadata: {
+                category: normalizedCategory,
+                mimeType: file.type,
+                size: file.size,
+            },
+            request,
+        });
 
         return NextResponse.json({
             url: `/cosmetics/${normalizedCategory}/${fileName}`,

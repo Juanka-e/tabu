@@ -61,8 +61,29 @@ model User {
   purchases    Purchase[]
   matchResults MatchResult[]
   guestLinks   GuestProgress[]
+  auditLogs    AuditLog[]   @relation("AuditActor")
 
   @@map("users")
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actorUserId Int?     @map("actor_user_id")
+  actorRole   String   @map("actor_role") @db.VarChar(20)
+  action      String   @db.VarChar(80)
+  resourceType String  @map("resource_type") @db.VarChar(80)
+  resourceId  String?  @map("resource_id") @db.VarChar(120)
+  ipAddress   String?  @map("ip_address") @db.VarChar(64)
+  userAgent   String?  @map("user_agent") @db.VarChar(255)
+  summary     String?  @db.VarChar(255)
+  metadata    Json?    @db.Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([resourceType, createdAt])
+  @@map("audit_logs")
 }
 
 model UserProfile {

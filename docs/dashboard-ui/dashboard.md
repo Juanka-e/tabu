@@ -319,3 +319,17 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - The server always emits the effective identity back to the client through `kimlikAta`.
 - Sidebar and room-admin behaviors still use `playerId` in UI state, but that value is now server-issued and not trusted from client input.
 - Match reward finalization now uses authenticated room participation instead of a client-submitted `playerId`.
+
+## 9 March 2026 Update - Auditability
+
+- Sensitive dashboard-linked mutations now produce audit records in the backend.
+- Admin-side actions logged:
+  - announcement create / update / delete
+  - shop item create / update / delete / upload
+  - bundle / discount / coupon create / update / delete
+- Player-side actions logged:
+  - profile update
+  - item purchase
+  - bundle purchase
+  - match reward finalize
+- Audit storage is intentionally backend-only for now; there is no dashboard UI surface for browsing logs yet.

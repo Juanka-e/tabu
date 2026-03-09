@@ -9,6 +9,7 @@ import {
   consumeRequestRateLimit,
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
@@ -89,6 +90,20 @@ export async function POST(req: Request) {
 
       const wallet = await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
       return { created, wallet };
+    });
+
+    await writeAuditLog({
+      actor: sessionUser,
+      action: "game.match.finalize",
+      resourceType: "match_result",
+      resourceId: result.created.id,
+      summary: `Finalized match reward for room ${room.odaKodu}`,
+      metadata: {
+        roomCode: room.odaKodu,
+        won,
+        coinEarned,
+      },
+      request: req,
     });
 
     return NextResponse.json({

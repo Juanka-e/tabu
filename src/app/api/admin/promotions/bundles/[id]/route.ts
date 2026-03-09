@@ -6,6 +6,7 @@ import {
     bundleUpdateSchema,
     toPrismaBundleUpdateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,21 @@ export async function PUT(
                 },
             });
         });
+        if (bundle) {
+            await writeAuditLog({
+                actor: adminSession,
+                action: "admin.bundle.update",
+                resourceType: "shop_bundle",
+                resourceId: bundle.id,
+                summary: `Updated bundle ${bundle.code}`,
+                metadata: {
+                    isActive: bundle.isActive,
+                    priceCoin: bundle.priceCoin,
+                    itemCount: bundle.items.length,
+                },
+                request,
+            });
+        }
 
         return NextResponse.json(bundle);
     } catch (error) {
@@ -118,7 +134,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -136,6 +152,14 @@ export async function DELETE(
         await prisma.shopBundle.update({
             where: { id: bundleId },
             data: { isActive: false },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.bundle.delete",
+            resourceType: "shop_bundle",
+            resourceId: bundleId,
+            summary: `Disabled bundle ${bundleId}`,
+            request,
         });
 
         return NextResponse.json({ success: true });

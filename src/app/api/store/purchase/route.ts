@@ -7,6 +7,7 @@ import {
   consumeRequestRateLimit,
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 const purchaseSchema = z.object({
   shopItemId: z.number().int().positive(),
@@ -52,6 +53,19 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({ error: "Yetersiz coin." }, { status: 409 });
     }
+
+    await writeAuditLog({
+      actor: sessionUser,
+      action: "store.purchase.item",
+      resourceType: "shop_item",
+      resourceId: result.item.id,
+      summary: `Purchased shop item ${result.item.code}`,
+      metadata: {
+        code: result.item.code,
+        finalPriceCoin: result.finalPriceCoin,
+      },
+      request: req,
+    });
 
     return NextResponse.json({
       item: result.item,

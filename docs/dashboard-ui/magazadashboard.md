@@ -577,3 +577,50 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Audit Logging ve Islem Izlenebilirligi (9 March 2026)
+
+### Tamamlananlar
+- Guvenlik ve ekonomi acisindan kritik mutation endpoint'leri icin kalici audit kaydi eklendi.
+- Yeni `AuditLog` modeli su alanlari tutuyor:
+  - actor user id
+  - actor role
+  - action
+  - resource type / resource id
+  - ip address
+  - user agent
+  - summary
+  - primitive metadata
+- Ortak helper: `src/lib/security/audit-log.ts`
+
+### Loglanan admin islemleri
+- announcement create / update / delete
+- shop item create / update / delete
+- cosmetic asset upload
+- bundle create / update / delete
+- discount create / update / delete
+- coupon create / update / delete
+
+### Loglanan kullanici ve ekonomi islemleri
+- profile update
+- item purchase
+- bundle purchase
+- match reward finalize
+
+### Guvenlik mantigi
+- Metadata sadece primitive alanlar ve primitive array'ler ile sinirlandi.
+- Serbest nested obje veya potansiyel hassas payload dump'i audit kaydina alinmiyor.
+- Bu katman misafir akisina ve login zorunluluguna dokunmadan izlenebilirlik ekler.
+
+### Bu Turdaki Dogrulama
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:audit-log`
+- `npm run test:player-identity`
+- `npm run test:request-security`
+- `npm run test:store-pricing`
+- `npm run test:promotions`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

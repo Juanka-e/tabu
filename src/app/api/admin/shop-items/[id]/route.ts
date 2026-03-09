@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { shopItemUpdateSchema, toPrismaShopItemUpdateData } from "@/lib/cosmetics/shop-item-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,19 @@ export async function PUT(
             where: { id: parseInt(id) },
             data,
         });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.shop-item.update",
+            resourceType: "shop_item",
+            resourceId: item.id,
+            summary: `Updated shop item ${item.code}`,
+            metadata: {
+                code: item.code,
+                isActive: item.isActive,
+                priceCoin: item.priceCoin,
+            },
+            request,
+        });
 
         return NextResponse.json(item);
     } catch (error) {
@@ -74,7 +88,7 @@ export async function PUT(
 
 // DELETE — Soft delete (set isActive=false)
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -84,9 +98,18 @@ export async function DELETE(
 
     try {
         const { id } = await params;
+        const itemId = parseInt(id);
         await prisma.shopItem.update({
-            where: { id: parseInt(id) },
+            where: { id: itemId },
             data: { isActive: false },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.shop-item.delete",
+            resourceType: "shop_item",
+            resourceId: itemId,
+            summary: `Soft deleted shop item ${itemId}`,
+            request,
         });
         return NextResponse.json({ success: true });
     } catch (error) {

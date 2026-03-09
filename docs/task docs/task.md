@@ -213,3 +213,12 @@ Reference:
 - [x] Add socket origin validation
 - [x] Add smoke tests: `npm run test:player-identity`, `npm run test:request-security`
 - [x] Verification completed: `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Audit Logging)
+- [x] Add `AuditLog` Prisma model for security-sensitive mutation traces
+- [x] Add shared `writeAuditLog()` helper with request IP / user-agent capture
+- [x] Log admin mutations for announcements, shop items, uploads, bundles, discounts, and coupons
+- [x] Log user/economy mutations for profile update, item purchase, bundle purchase, and match finalize
+- [x] Keep stored audit metadata bounded to primitive values / primitive arrays only
+- [x] Add smoke test: `npm run test:audit-log`
+- [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:audit-log`, `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

@@ -6,6 +6,7 @@ import {
     bundleWriteSchema,
     toPrismaBundleCreateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,19 @@ export async function POST(request: NextRequest) {
                     },
                 },
             },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.bundle.create",
+            resourceType: "shop_bundle",
+            resourceId: bundle.id,
+            summary: `Created bundle ${bundle.code}`,
+            metadata: {
+                code: bundle.code,
+                priceCoin: bundle.priceCoin,
+                itemCount: bundle.items.length,
+            },
+            request,
         });
 
         return NextResponse.json(bundle, { status: 201 });

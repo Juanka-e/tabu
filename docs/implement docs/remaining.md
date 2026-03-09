@@ -288,3 +288,16 @@ Reference:
 - Add nonce-based CSP if inline scripts are kept.
 - Add security audit logging for admin/store/economy mutations.
 - Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+
+### Completed in the March 9 audit-log slice
+- Added `AuditLog` Prisma model for sensitive mutation traces.
+- Added shared `writeAuditLog()` helper with bounded primitive metadata normalization.
+- Logged admin mutations for announcements, shop items, uploads, bundles, discounts, and coupons.
+- Logged user/economy mutations for profile updates, item purchases, bundle purchases, and match reward finalization.
+- Added smoke test: `npm run test:audit-log`.
+- Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:audit-log`, `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add nonce-based CSP if inline scripts are kept.
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.

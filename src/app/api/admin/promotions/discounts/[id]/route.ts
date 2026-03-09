@@ -6,6 +6,7 @@ import {
     discountCampaignUpdateSchema,
     toPrismaDiscountCampaignUpdateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,19 @@ export async function PUT(
             where: { id: discountId },
             data: toPrismaDiscountCampaignUpdateData(parsed),
         });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.discount.update",
+            resourceType: "discount_campaign",
+            resourceId: discount.id,
+            summary: `Updated discount ${discount.code}`,
+            metadata: {
+                isActive: discount.isActive,
+                usageLimit: discount.usageLimit,
+                usedCount: discount.usedCount,
+            },
+            request,
+        });
 
         return NextResponse.json({
             ...discount,
@@ -80,7 +94,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -98,6 +112,14 @@ export async function DELETE(
         await prisma.discountCampaign.update({
             where: { id: discountId },
             data: { isActive: false },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.discount.delete",
+            resourceType: "discount_campaign",
+            resourceId: discountId,
+            summary: `Disabled discount ${discountId}`,
+            request,
         });
 
         return NextResponse.json({ success: true });

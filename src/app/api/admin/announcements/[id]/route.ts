@@ -7,6 +7,7 @@ import {
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,18 @@ export async function PUT(
             where: { id: parseInt(id) },
             data,
         });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.announcement.update",
+            resourceType: "announcement",
+            resourceId: announcement.id,
+            summary: `Updated announcement ${announcement.title}`,
+            metadata: {
+                isVisible: announcement.isVisible,
+                isPinned: announcement.isPinned,
+            },
+            request,
+        });
 
         return NextResponse.json(announcement);
     } catch (error) {
@@ -72,7 +85,7 @@ export async function PUT(
 
 // DELETE
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -82,7 +95,16 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        await prisma.announcement.delete({ where: { id: parseInt(id) } });
+        const deletedId = parseInt(id);
+        await prisma.announcement.delete({ where: { id: deletedId } });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.announcement.delete",
+            resourceType: "announcement",
+            resourceId: deletedId,
+            summary: `Deleted announcement ${deletedId}`,
+            request,
+        });
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Failed to delete announcement:", error);

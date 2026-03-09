@@ -7,6 +7,7 @@ import {
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,19 @@ export async function POST(request: NextRequest) {
                 mediaUrl: sanitizedMedia.mediaUrl,
                 mediaType: sanitizedMedia.mediaType,
             },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.announcement.create",
+            resourceType: "announcement",
+            resourceId: announcement.id,
+            summary: `Created announcement ${announcement.title}`,
+            metadata: {
+                type: announcement.type,
+                isVisible: announcement.isVisible,
+                isPinned: announcement.isPinned,
+            },
+            request,
         });
         return NextResponse.json(announcement, { status: 201 });
     } catch (error) {

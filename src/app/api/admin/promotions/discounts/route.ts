@@ -6,6 +6,7 @@ import {
     discountCampaignWriteSchema,
     toPrismaDiscountCampaignCreateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,19 @@ export async function POST(request: NextRequest) {
         const parsed = discountCampaignWriteSchema.parse(body);
         const discount = await prisma.discountCampaign.create({
             data: toPrismaDiscountCampaignCreateData(parsed),
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.discount.create",
+            resourceType: "discount_campaign",
+            resourceId: discount.id,
+            summary: `Created discount ${discount.code}`,
+            metadata: {
+                code: discount.code,
+                targetType: discount.targetType,
+                usageLimit: discount.usageLimit,
+            },
+            request,
         });
 
         return NextResponse.json({

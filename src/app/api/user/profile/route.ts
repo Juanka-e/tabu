@@ -8,6 +8,7 @@ import {
   consumeRequestRateLimit,
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
@@ -51,6 +52,19 @@ export async function PATCH(req: Request) {
         cardBackItem: true,
         cardFaceItem: true,
       },
+    });
+
+    await writeAuditLog({
+      actor: sessionUser,
+      action: "user.profile.update",
+      resourceType: "user_profile",
+      resourceId: sessionUser.id,
+      summary: `Updated user profile ${sessionUser.id}`,
+      metadata: {
+        hasDisplayName: updated.displayName !== null,
+        hasBio: updated.bio !== null,
+      },
+      request: req,
     });
 
     return NextResponse.json({ profile: updated });

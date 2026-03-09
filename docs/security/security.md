@@ -848,3 +848,45 @@ Critical Findings
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Remediation Status (9 March 2026 - Audit Logging)
+
+### Fixed in current code
+- Added a new `AuditLog` persistence model for security-sensitive mutations:
+  - actor user id / role
+  - action name
+  - resource type / resource id
+  - request IP and user-agent
+  - short summary
+  - bounded primitive metadata payload
+- Added a shared audit helper at `src/lib/security/audit-log.ts`.
+- Added audit writes for admin mutations:
+  - announcements create / update / delete
+  - shop items create / update / delete / upload
+  - promotion bundles create / update / delete
+  - promotion discounts create / update / delete
+  - promotion coupons create / update / delete
+- Added audit writes for user/economy-sensitive mutations:
+  - profile update
+  - item purchase
+  - bundle purchase
+  - match finalize reward claim
+- Audit metadata is normalized to primitive / primitive-array values only; arbitrary nested objects are not stored.
+
+### Remaining after this slice
+- No nonce-based CSP yet
+- No dedicated admin audit-log viewer UI yet
+- Guest identity continuity is still browser-session scoped, not server-persisted across browser restarts
+
+### Verification
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:audit-log`
+- `npm run test:player-identity`
+- `npm run test:request-security`
+- `npm run test:store-pricing`
+- `npm run test:promotions`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

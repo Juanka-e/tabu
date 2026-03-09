@@ -6,6 +6,7 @@ import {
     couponCodeUpdateSchema,
     toPrismaCouponCodeUpdateData,
 } from "@/lib/promotions/promotion-schema";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,19 @@ export async function PUT(
             where: { id: couponId },
             data: toPrismaCouponCodeUpdateData(parsed),
         });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.coupon.update",
+            resourceType: "coupon_code",
+            resourceId: coupon.id,
+            summary: `Updated coupon ${coupon.code}`,
+            metadata: {
+                isActive: coupon.isActive,
+                usageLimit: coupon.usageLimit,
+                usedCount: coupon.usedCount,
+            },
+            request,
+        });
 
         return NextResponse.json(coupon);
     } catch (error) {
@@ -70,7 +84,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -88,6 +102,14 @@ export async function DELETE(
         await prisma.couponCode.update({
             where: { id: couponId },
             data: { isActive: false },
+        });
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.coupon.delete",
+            resourceType: "coupon_code",
+            resourceId: couponId,
+            summary: `Disabled coupon ${couponId}`,
+            request,
         });
 
         return NextResponse.json({ success: true });
