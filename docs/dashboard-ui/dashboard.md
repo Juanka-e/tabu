@@ -385,3 +385,13 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - `src/app/layout.tsx` icindeki eski inline hydration-warning suppression script'i kaldirildi.
 - Layout nonce akisi korunur; `next-themes` icin nonce aktarimi devam eder.
 - Boylece nonce attribute farkindan kaynaklanan hydration mismatch yuzeyi ortadan kaldirildi.
+
+## 9 March 2026 Update - Dashboard Route Alignment
+
+- `/dashboard` rotasi eski bagimsiz UI'yi render etmeyi birakti.
+- Login sonrasi kanonik hedef artik `/` oldu; bu sayfa yeni full-page dashboard shell'ini gosterir.
+- `/dashboard` korunur ama authenticated durumda dogrudan `/` adresine yonlenir.
+- Boylece:
+  - full-page dashboard
+  - in-game overlay dashboard
+  ayni tasarim dilinde kalir ve eski dashboard sayfasi yanlislikla gorunmez.

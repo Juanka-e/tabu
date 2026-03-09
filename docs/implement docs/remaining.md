@@ -346,3 +346,17 @@ Reference:
 - Add CSP report collection / monitoring if runtime violation visibility is required.
 - Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
 - Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
+
+### Completed in the March 9 dashboard-route slice
+- Removed the old standalone `/dashboard` experience from the active authenticated flow.
+- Login now defaults to `/`, where the shared full-page dashboard shell lives.
+- `/dashboard` remains as a compatibility entry point but redirects authenticated traffic to `/`.
+- Added category filtering controls to `/admin/words`, using the existing `categoryId` API filter.
+- Verification passed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
+- Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
