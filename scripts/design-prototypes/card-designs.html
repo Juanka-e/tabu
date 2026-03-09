@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,10 +12,10 @@
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
-        
+
         /* Flip Interaction */
         .group:hover .group-hover\:rotate-y-180 { transform: rotateY(180deg); }
-        
+
         /* Custom Animations */
         @keyframes shine {
             0% { background-position: 0% 50%; }
@@ -31,7 +31,7 @@
             0% { --angle: 0deg; }
             100% { --angle: 360deg; }
         }
-        
+
         /* Holographic Effect */
         .holo-bg {
             background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.1) 100%),
@@ -41,6 +41,33 @@
         }
         .holo-bg:hover {
             background-position: 0 0, 100% 100%;
+        }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
         }
     </style>
     <script>
@@ -69,8 +96,8 @@
     <header class="max-w-7xl mx-auto mb-12 text-center">
         <h1 class="text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">TABU KART TASARIMLARI</h1>
         <p class="text-slate-500 max-w-2xl mx-auto">
-            Geliştirilebilir, temalanabilir ve özelleştirilebilir kart prototipleri. 
-            Kartların üzerine gelerek arka yüzlerini görebilirsiniz.
+            GeliÅŸtirilebilir, temalanabilir ve Ã¶zelleÅŸtirilebilir kart prototipleri.
+            KartlarÄ±n Ã¼zerine gelerek arka yÃ¼zlerini gÃ¶rebilirsiniz.
         </p>
     </header>
 
@@ -78,18 +105,18 @@
     <section class="max-w-7xl mx-auto mb-20">
         <h2 class="text-2xl font-bold mb-8 flex items-center gap-2">
             <span class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-            Ana Tasarım Varyasyonları
+            Ana TasarÄ±m VaryasyonlarÄ±
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            
+
             <!-- VARIANT 1: MINIMAL CLEAN -->
             <div class="flex flex-col gap-4">
                 <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V1: Minimal Clean</div>
                 <!-- Card Container -->
                 <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
                     <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 shadow-xl rounded-2xl">
-                        
+
                         <!-- FRONT -->
                         <div class="absolute inset-0 backface-hidden bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col">
                             <!-- Header -->
@@ -103,7 +130,7 @@
                             <!-- Content -->
                             <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3">
                                 <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> KALECİ
+                                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> KALECÄ°
                                 </div>
                                 <div class="w-full py-3 px-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-600 font-semibold text-center hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors flex items-center justify-center gap-2">
                                     <span class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span> GOL
@@ -142,10 +169,10 @@
                 <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V2: Modern Glass</div>
                 <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
                     <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-2xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)]">
-                        
+
                         <!-- FRONT -->
                         <div class="absolute inset-0 backface-hidden bg-white rounded-2xl overflow-hidden flex flex-col border-2 border-transparent bg-clip-padding" style="background-image: linear-gradient(white, white), linear-gradient(135deg, #6366f1, #a855f7, #ec4899); background-origin: border-box; background-clip: content-box, border-box;">
-                            
+
                             <!-- Header -->
                             <div class="pt-8 pb-4 px-6 text-center relative">
                                 <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-purple-50 to-transparent -z-10"></div>
@@ -164,13 +191,13 @@
                                 <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
                                     <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
                                     <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
-                                        İSPANYA
+                                        Ä°SPANYA
                                     </div>
                                 </div>
                                 <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
                                     <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
                                     <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
-                                        KÜBİZM
+                                        KÃœBÄ°ZM
                                     </div>
                                 </div>
                                 <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
@@ -182,7 +209,7 @@
                                 <div class="group/item relative overflow-hidden rounded-xl bg-slate-50 p-0.5">
                                     <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
                                     <div class="relative bg-white rounded-[10px] py-3 text-center font-bold text-slate-700 group-hover/item:text-slate-900 transition-colors">
-                                        FIRÇA
+                                        FIRÃ‡A
                                     </div>
                                 </div>
                             </div>
@@ -192,7 +219,7 @@
                         <div class="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl overflow-hidden flex flex-col items-center justify-center relative">
                             <!-- Animated Gradient Background -->
                             <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 animate-shine"></div>
-                            
+
                             <!-- Glass Panel -->
                             <div class="relative z-10 w-full h-full flex flex-col items-center justify-center bg-white/10 backdrop-blur-md p-8 border border-white/20">
                                 <div class="w-20 h-20 rounded-full border-2 border-white/50 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(255,255,255,0.3)]">
@@ -213,25 +240,25 @@
                 <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V3: Dark Neon</div>
                 <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
                     <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-2xl shadow-2xl bg-slate-900">
-                        
+
                         <!-- FRONT -->
                         <div class="absolute inset-0 backface-hidden bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 flex flex-col">
                             <!-- Neon Header -->
                             <div class="h-24 bg-slate-800 flex items-center justify-center relative border-b border-cyan-500/30">
                                 <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent shadow-[0_0_10px_#06b6d4]"></div>
-                                <h3 class="text-cyan-400 text-3xl font-display font-black tracking-widest drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">İNTERNET</h3>
+                                <h3 class="text-cyan-400 text-3xl font-display font-black tracking-widest drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">Ä°NTERNET</h3>
                             </div>
-                            
+
                             <!-- Content -->
                             <div class="flex-1 p-6 flex flex-col justify-center gap-3">
                                 <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
-                                    [ AĞ ]
+                                    [ AÄ ]
                                 </div>
                                 <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
-                                    [ BİLGİSAYAR ]
+                                    [ BÄ°LGÄ°SAYAR ]
                                 </div>
                                 <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
-                                    [ BAĞLANTI ]
+                                    [ BAÄLANTI ]
                                 </div>
                                 <div class="w-full py-3 px-4 bg-slate-800/50 rounded border border-slate-700 text-slate-300 font-mono text-center hover:bg-slate-800 hover:border-red-500/50 hover:text-red-400 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-300">
                                     [ WEB ]
@@ -246,7 +273,7 @@
                         <div class="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden border border-slate-700">
                             <!-- Cyber Grid -->
                             <div class="absolute inset-0" style="background-image: linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px); background-size: 20px 20px;"></div>
-                            
+
                             <div class="relative z-10 p-8 border-2 border-cyan-500/50 rounded-lg bg-slate-900/80 backdrop-blur">
                                 <h2 class="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] tracking-tighter">TABU</h2>
                                 <div class="h-1 w-full bg-cyan-500 mt-2 shadow-[0_0_10px_#06b6d4]"></div>
@@ -261,30 +288,30 @@
                 <div class="text-center font-semibold text-slate-500 text-sm tracking-widest uppercase">V4: Bold Organic</div>
                 <div class="group h-[420px] w-full perspective-1000 cursor-pointer">
                     <div class="relative h-full w-full transition-all duration-500 transform-style-3d group-hover:rotate-y-180 rounded-[32px] shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] bg-[#FFD23F]">
-                        
+
                         <!-- FRONT -->
                         <div class="absolute inset-0 backface-hidden bg-[#FEF9E6] rounded-[32px] overflow-hidden border-4 border-black flex flex-col">
                             <!-- Header -->
                             <div class="bg-[#FFD23F] h-28 flex items-center justify-center border-b-4 border-black relative">
                                 <div class="absolute -right-4 -top-4 bg-white border-4 border-black w-16 h-16 rounded-full"></div>
-                                <h3 class="text-black text-3xl font-black tracking-tight transform -rotate-2 relative z-10">PİZZA</h3>
+                                <h3 class="text-black text-3xl font-black tracking-tight transform -rotate-2 relative z-10">PÄ°ZZA</h3>
                             </div>
                             <!-- Content -->
                             <div class="flex-1 p-6 flex flex-col justify-center items-center gap-3">
                                 <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center relative group-hover/list:text-[#FF4785]">
-                                    İTALYA
+                                    Ä°TALYA
                                 </div>
                                 <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
                                     HAMUR
                                 </div>
                                 <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
-                                    PEYNİR
+                                    PEYNÄ°R
                                 </div>
                                 <div class="w-full py-2 font-bold text-lg text-black border-b-2 border-dashed border-gray-300 text-center">
                                     SUCUK
                                 </div>
                                 <div class="w-full py-2 font-bold text-lg text-black text-center">
-                                    DİLİM
+                                    DÄ°LÄ°M
                                 </div>
                             </div>
                         </div>
@@ -293,7 +320,7 @@
                         <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#FF4785] rounded-[32px] border-4 border-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
                             <!-- Dots Pattern -->
                             <div class="absolute inset-0" style="background-image: radial-gradient(black 2px, transparent 2px); background-size: 20px 20px; opacity: 0.1;"></div>
-                            
+
                             <div class="bg-white border-4 border-black px-8 py-4 transform rotate-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                 <h2 class="text-4xl font-black text-black tracking-tighter">TABU</h2>
                             </div>
@@ -309,28 +336,28 @@
     <section class="max-w-7xl mx-auto">
         <h2 class="text-2xl font-bold mb-8 flex items-center gap-2">
             <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-            Mağaza & Özelleştirme Örnekleri (Skin System)
+            MaÄŸaza & Ã–zelleÅŸtirme Ã–rnekleri (Skin System)
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+
             <!-- SKIN: GOLDEN FRAME -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-800">Altın Çerçeve Efekti</h3>
+                    <h3 class="font-bold text-slate-800">AltÄ±n Ã‡erÃ§eve Efekti</h3>
                     <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">500 Coin</span>
                 </div>
-                
+
                 <div class="relative h-64 w-48 mx-auto bg-white rounded-lg shadow-lg flex flex-col items-center justify-center overflow-hidden">
                     <!-- The Effect Layer -->
                     <div class="absolute inset-0 border-[6px] border-yellow-400 rounded-lg z-20 pointer-events-none" style="box-shadow: inset 0 0 20px rgba(250, 204, 21, 0.5), 0 0 15px rgba(250, 204, 21, 0.4);"></div>
                     <div class="absolute inset-0 bg-gradient-to-tr from-yellow-100/0 via-yellow-200/30 to-yellow-100/0 animate-pulse z-10"></div>
-                    
+
                     <!-- Base Card Content -->
                     <div class="text-center">
                         <div class="bg-slate-800 text-white px-4 py-2 mb-4 w-full text-sm font-bold">ALTIN</div>
                         <div class="text-xs text-slate-400 space-y-2">
-                            <div>DEĞERLİ</div>
+                            <div>DEÄERLÄ°</div>
                             <div>MADEN</div>
                             <div>SARI</div>
                         </div>
@@ -341,16 +368,16 @@
             <!-- SKIN: HOLOGRAPHIC BACK -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-800">Holografik Arka Yüz</h3>
+                    <h3 class="font-bold text-slate-800">Holografik Arka YÃ¼z</h3>
                     <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-bold">1000 Coin</span>
                 </div>
-                
+
                 <div class="relative h-64 w-48 mx-auto rounded-lg shadow-lg flex flex-col items-center justify-center overflow-hidden bg-slate-900 group cursor-pointer">
                     <!-- Holo Effect -->
                     <div class="absolute inset-0 bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                     <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent w-[200%] h-full translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 transform skew-x-12"></div>
-                    
+
                     <h2 class="relative z-10 text-white font-black text-2xl tracking-widest drop-shadow-md">TABU</h2>
                     <div class="absolute bottom-4 text-[10px] text-white/70 tracking-[0.3em] z-10">HOLO EDITION</div>
                 </div>
@@ -362,12 +389,12 @@
                     <h3 class="font-bold text-slate-800">Alev Efekti</h3>
                     <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">750 Coin</span>
                 </div>
-                
+
                 <div class="relative h-64 w-48 mx-auto bg-slate-900 rounded-lg shadow-lg flex flex-col items-center justify-center">
                     <!-- Fire Border -->
                     <div class="absolute -inset-1 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 rounded-lg blur opacity-75 animate-pulse"></div>
                     <div class="relative h-full w-full bg-slate-900 rounded-lg flex flex-col items-center justify-center p-4">
-                         <div class="text-orange-500 font-bold text-xl mb-2">ATEŞ</div>
+                         <div class="text-orange-500 font-bold text-xl mb-2">ATEÅ</div>
                          <div class="text-slate-500 text-xs">YANMAK</div>
                          <div class="text-slate-500 text-xs mt-1">SICAK</div>
                     </div>
@@ -378,7 +405,7 @@
     </section>
 
     <footer class="max-w-7xl mx-auto mt-20 text-center text-slate-400 text-sm">
-        <p>Gemini CLI Generated Prototype • 2026</p>
+        <p>Gemini CLI Generated Prototype â€¢ 2026</p>
     </footer>
 
 </body>

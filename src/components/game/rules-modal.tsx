@@ -8,7 +8,6 @@ import {
     User,
     Eye,
     Gamepad2,
-    Timer,
     Hash,
     Trophy,
     Sparkles,

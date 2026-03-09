@@ -1,5 +1,4 @@
-
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -22,21 +21,27 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
 
+        const callbackUrl =
+            typeof window !== "undefined"
+                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/dashboard"
+                : "/dashboard";
+
         try {
             const res = await signIn("credentials", {
                 username,
                 password,
+                portal: "user",
                 redirect: false,
             });
 
             if (res?.error) {
-                setError("Giriş başarısız. Kullanıcı adı veya şifre hatalı.");
+                setError("Giris basarisiz. Kullanici adi veya sifre hatali.");
             } else {
-                router.push("/");
+                router.push(callbackUrl);
                 router.refresh();
             }
-        } catch (err) {
-            setError("Bir hata oluştu.");
+        } catch {
+            setError("Bir hata olustu.");
         } finally {
             setLoading(false);
         }
@@ -48,45 +53,23 @@ export default function LoginPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
                         <LogIn className="w-6 h-6 text-primary" />
-                        Giriş Yap
+                        Giris Yap
                     </CardTitle>
-                    <CardDescription>
-                        Tabu hesabınıza giriş yapın
-                    </CardDescription>
+                    <CardDescription>Hesabinla giris yapip profil ve magazayi ac.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <Input
-                                type="text"
-                                placeholder="Kullanıcı Adı"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Input
-                                type="password"
-                                placeholder="Şifre"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        {error && (
-                            <div className="text-sm text-red-500 font-medium">
-                                {error}
-                            </div>
-                        )}
+                        <Input type="text" placeholder="Kullanici Adi" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                        <Input type="password" placeholder="Sifre" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        {error && <div className="text-sm text-red-500 font-medium">{error}</div>}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+                            {loading ? "Giris yapiliyor..." : "Giris Yap"}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Hesabın yok mu? <Link href="/register" className="text-primary hover:underline">Kayıt Ol</Link>
+                        Hesabin yok mu? <Link href="/register" className="text-primary hover:underline">Kayit Ol</Link>
                     </p>
                 </CardFooter>
             </Card>

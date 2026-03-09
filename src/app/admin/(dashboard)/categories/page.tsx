@@ -264,9 +264,6 @@ export default function AdminCategoriesPage() {
     // Expanded groups
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-    // Deleting
-    const [deleting, setDeleting] = useState<number | null>(null);
-
     // DnD sensors
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -403,7 +400,6 @@ export default function AdminCategoriesPage() {
 
     const handleDelete = async (id: number) => {
         if (!confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) return;
-        setDeleting(id);
         try {
             await fetch(`/api/admin/categories/${id}`, {
                 method: "DELETE",
@@ -411,8 +407,6 @@ export default function AdminCategoriesPage() {
             fetchCategories();
         } catch {
             /* ignore */
-        } finally {
-            setDeleting(null);
         }
     };
 

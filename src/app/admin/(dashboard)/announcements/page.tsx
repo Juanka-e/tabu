@@ -11,11 +11,8 @@ import {
     X,
     Loader2,
     Bell,
-    Rocket,
     Star,
-    Clock,
     Tag,
-    ChevronDown,
     Pin,
     PinOff,
 } from "lucide-react";

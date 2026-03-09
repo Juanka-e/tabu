@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcryptjs from "bcryptjs";
 import { z } from "zod";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır."),
@@ -11,6 +16,19 @@ const registerSchema = z.object({
 
 export async function POST(req: Request) {
     try {
+        const rateLimit = consumeRequestRateLimit({
+            bucket: "auth-register",
+            key: `ip:${getRequestIp(req)}`,
+            windowMs: 10 * 60_000,
+            maxRequests: 5,
+        });
+        if (!rateLimit.allowed) {
+            return NextResponse.json(
+                { error: "Cok fazla kayit denemesi yaptiniz. Daha sonra tekrar deneyin." },
+                { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
         const body = await req.json();
         const { username, password } = registerSchema.parse(body);
 
@@ -32,6 +50,12 @@ export async function POST(req: Request) {
                 username,
                 password: hashedPassword,
                 role: "user",
+                wallet: {
+                    create: { coinBalance: 0 },
+                },
+                profile: {
+                    create: {},
+                },
             },
         });
 

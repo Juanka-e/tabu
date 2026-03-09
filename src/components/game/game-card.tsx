@@ -1,10 +1,18 @@
 "use client";
 
-import { Feather, Target, Flame, X } from "lucide-react";
+import Image, { type ImageLoaderProps } from "next/image";
+import { Feather, Flame, Target, X } from "lucide-react";
+import {
+    buildCosmeticPatternStyle,
+    getCosmeticMotionClass,
+    getCosmeticMotionStyle,
+} from "@/lib/cosmetics/effects";
+import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { CardData, Difficulty } from "@/types/game";
 
 interface GameCardProps {
     card: CardData;
+    theme?: ResolvedCardFaceTheme | null;
 }
 
 const difficultyConfig: Record<
@@ -32,50 +40,106 @@ const difficultyConfig: Record<
     },
 };
 
-export function GameCard({ card }: GameCardProps) {
+const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
+
+export function GameCard({ card, theme }: GameCardProps) {
     const config = difficultyConfig[card.difficulty] || difficultyConfig[2];
     const Icon = config.icon;
+    const motionClass = theme ? getCosmeticMotionClass(theme.motionPreset) : "";
+    const motionStyle = theme ? getCosmeticMotionStyle(theme.motionSpeedMs) : undefined;
+    const patternStyle = theme
+        ? buildCosmeticPatternStyle({
+            pattern: theme.pattern,
+            primaryColor: theme.borderColor,
+            secondaryColor: theme.secondaryColor,
+            scale: theme.patternScale,
+            opacity: theme.patternOpacity,
+        })
+        : undefined;
 
-    // If category color exists, it overrides the difficulty bg color
-    const headerClass = card.categoryColor ? "" : config.bg;
+    const headerClass = card.categoryColor || theme ? "" : config.bg;
     const headerStyle = card.categoryColor
         ? { backgroundColor: card.categoryColor }
-        : {};
+        : theme
+            ? { backgroundColor: theme.accentColor }
+            : {};
 
     return (
         <div className="w-full max-w-[320px] sm:max-w-[360px] mx-auto my-6">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border-4 border-white dark:border-slate-700 ring-1 ring-gray-200 dark:ring-slate-900">
-                {/* Header Section — Solid Color with Main Word */}
+            <div
+                className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border-4 ring-1 dark:ring-slate-900 relative"
+                style={
+                    theme
+                        ? {
+                            borderColor: theme.borderColor,
+                            boxShadow: `0 20px 45px -25px ${theme.accentColor}, 0 0 ${theme.glowBlur}px -10px ${theme.glowColor}${Math.round(theme.glowOpacity * 255)
+                                .toString(16)
+                                .padStart(2, "0")}`,
+                        }
+                        : undefined
+                }
+            >
                 <div
                     className={`relative py-8 px-6 flex flex-col items-center justify-center text-center ${headerClass}`}
                     style={headerStyle}
                 >
-                    {/* Difficulty Icon (Top Right) */}
-                    <div className="absolute top-4 right-4" title={`Zorluk: ${config.label}`}>
+                    {theme?.overlayImageUrl && (
+                        <Image
+                            loader={passthroughImageLoader}
+                            unoptimized
+                            src={theme.overlayImageUrl}
+                            alt=""
+                            aria-hidden="true"
+                            fill
+                            className="object-cover pointer-events-none"
+                            style={{ opacity: theme.overlayOpacity }}
+                        />
+                    )}
+                    {theme && patternStyle && (
+                        <div
+                            className={`absolute inset-0 pointer-events-none ${motionClass}`}
+                            aria-hidden="true"
+                            style={{ ...patternStyle, ...motionStyle }}
+                        />
+                    )}
+                    {theme && (
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            aria-hidden="true"
+                            style={{
+                                background: `radial-gradient(circle at top left, ${theme.borderColor}33, transparent 38%), radial-gradient(circle at bottom right, ${theme.accentColor}22, transparent 42%)`,
+                            }}
+                        />
+                    )}
+
+                    <div className="absolute top-4 right-4 z-10" title={`Zorluk: ${config.label}`}>
                         <Icon size={20} className="text-white opacity-80" />
                     </div>
 
-                    {/* Main Word */}
-                    <h2 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-md">
+                    <h2
+                        className="relative z-10 text-4xl font-black uppercase tracking-wider drop-shadow-md"
+                        style={{ color: theme?.wordColor ?? "#ffffff" }}
+                    >
                         {card.word}
                     </h2>
 
-                    {/* Subtle underline */}
-                    <div className="mt-4 w-16 h-1 bg-white/40 rounded-full" />
+                    <div
+                        className="relative z-10 mt-4 w-16 h-1 rounded-full"
+                        style={{ backgroundColor: theme?.borderColor ?? "rgba(255,255,255,0.4)" }}
+                    />
                 </div>
 
-                {/* Body Section — Forbidden Words */}
-                <div className="bg-white dark:bg-slate-800 px-8 py-8">
+                <div className="px-8 py-8" style={{ backgroundColor: theme?.surfaceColor ?? undefined }}>
                     <div className="space-y-4">
                         {card.taboo.map((word, index) => (
-                            <div
-                                key={index}
-                                className="flex items-center gap-3 group"
-                            >
-                                <span className="text-red-500 dark:text-red-400 font-bold select-none">
+                            <div key={index} className="flex items-center gap-3 group">
+                                <span className="font-bold select-none" style={{ color: theme?.tabooColor ?? undefined }}>
                                     <X size={18} strokeWidth={3} />
                                 </span>
-                                <span className="text-xl font-semibold text-slate-800 dark:text-slate-200 tracking-tight uppercase">
+                                <span
+                                    className="text-xl font-semibold tracking-tight uppercase"
+                                    style={{ color: theme?.wordColor ? `${theme.wordColor}DD` : undefined }}
+                                >
                                     {word}
                                 </span>
                             </div>
@@ -83,8 +147,7 @@ export function GameCard({ card }: GameCardProps) {
                     </div>
                 </div>
 
-                {/* Footer Decoration */}
-                <div className="h-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700" />
+                <div className="h-4 border-t dark:border-slate-700" style={{ backgroundColor: theme?.footerColor ?? undefined }} />
             </div>
         </div>
     );

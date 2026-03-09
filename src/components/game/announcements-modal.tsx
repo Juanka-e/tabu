@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
     Megaphone,
-    Bell,
     ChevronDown,
     X,
     Rocket,
@@ -37,24 +37,22 @@ export function AnnouncementsModal({
 }: AnnouncementsModalProps) {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"updates" | "announcements">(
         "updates"
     );
 
     useEffect(() => {
-        if (isOpen) {
-            setLoading(true);
-            fetch("/api/announcements/visible")
-                .then((res) => res.json())
-                .then((data) => {
-                    setAnnouncements(data);
-                    setLoading(false);
-                })
-                .catch(() => {
-                    setLoading(false);
-                });
-        }
+        if (!isOpen) return;
+        fetch("/api/announcements/visible")
+            .then((res) => res.json())
+            .then((data) => {
+                setAnnouncements(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -210,20 +208,23 @@ export function AnnouncementsModal({
                                                 <div className="relative pt-[56.25%]">
                                                     <iframe
                                                         className="absolute inset-0 w-full h-full"
-                                                        src={item.mediaUrl.replace(
-                                                            "watch?v=",
-                                                            "embed/"
-                                                        )}
+                                                        src={item.mediaUrl}
                                                         title="Content Video"
                                                         frameBorder="0"
                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        loading="lazy"
+                                                        referrerPolicy="strict-origin-when-cross-origin"
+                                                        sandbox="allow-scripts allow-same-origin allow-presentation"
                                                         allowFullScreen
                                                     ></iframe>
                                                 </div>
                                             ) : (
-                                                <img
+                                                <Image
                                                     src={item.mediaUrl}
                                                     alt={item.title}
+                                                    width={1200}
+                                                    height={675}
+                                                    unoptimized
                                                     className="w-full h-auto max-h-[200px] sm:max-h-[300px] object-cover"
                                                 />
                                             )}
