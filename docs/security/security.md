@@ -890,3 +890,39 @@ Critical Findings
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Remediation Status (9 March 2026 - Nonce CSP and Proxy Migration)
+
+### Fixed in current code
+- Replaced deprecated `src/middleware.ts` with `src/proxy.ts` for Next.js 16 compatibility.
+- Added nonce-based CSP generation in `src/lib/security/content-security-policy.ts`.
+- HTML page requests now receive:
+  - per-request nonce
+  - `Content-Security-Policy` response header
+  - `x-nonce` request/response header bridge for server rendering
+- Root layout now reads `x-nonce` and applies it to:
+  - the inline hydration-warning suppression script
+  - the `next-themes` theme bootstrap script
+- CSP currently enforces:
+  - nonce-based `script-src`
+  - `script-src-attr 'none'`
+  - `object-src 'none'`
+  - `frame-ancestors 'none'`
+  - restricted YouTube-only `frame-src`
+  - bounded `connect-src`, `img-src`, `font-src`, and `media-src`
+- The earlier Next.js build warning about `middleware` deprecation is now gone.
+
+### Remaining after this slice
+- No admin audit-log viewer/filter UI yet
+- Guest identity continuity is still browser-session scoped, not server-persisted across browser restarts
+- CSP reporting endpoint / report ingestion is not implemented yet
+
+### Verification
+- `npm run test:csp`
+- `npm run test:request-security`
+- `npm run test:player-identity`
+- `npm run test:audit-log`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

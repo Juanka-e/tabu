@@ -20,6 +20,7 @@
     "test:player-identity": "tsx scripts/test-player-identity.ts",
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
+    "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio"

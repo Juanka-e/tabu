@@ -301,3 +301,15 @@ Reference:
 - Add nonce-based CSP if inline scripts are kept.
 - Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
 - Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+
+### Completed in the March 9 CSP slice
+- Replaced deprecated `src/middleware.ts` with `src/proxy.ts`.
+- Added nonce-based CSP generation and per-request nonce propagation.
+- Root layout now applies nonce to the inline hydration guard script and the `next-themes` bootstrap script.
+- Added smoke test: `npm run test:csp`.
+- Verification passed: `npm run test:csp`, `npm run test:request-security`, `npm run test:player-identity`, `npm run test:audit-log`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.

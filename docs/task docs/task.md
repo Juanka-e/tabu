@@ -222,3 +222,11 @@ Reference:
 - [x] Keep stored audit metadata bounded to primitive values / primitive arrays only
 - [x] Add smoke test: `npm run test:audit-log`
 - [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:audit-log`, `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - CSP and Proxy)
+- [x] Replace deprecated `src/middleware.ts` with `src/proxy.ts`
+- [x] Add nonce-based CSP generation for HTML page requests
+- [x] Pass request nonce into the root layout via `x-nonce`
+- [x] Apply nonce to the inline hydration guard script and `next-themes` bootstrap script
+- [x] Add smoke test: `npm run test:csp`
+- [x] Verification completed: `npm run test:csp`, `npm run test:request-security`, `npm run test:player-identity`, `npm run test:audit-log`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

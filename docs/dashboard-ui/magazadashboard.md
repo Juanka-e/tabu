@@ -624,3 +624,28 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Proxy ve Nonce CSP Hardening (9 March 2026)
+
+### Tamamlananlar
+- Next.js 16 uyumlulugu icin edge guard katmani `src/proxy.ts` dosyasina tasindi.
+- `src/middleware.ts` kaldirildi; build warning temizlendi.
+- HTML page request'lerinde artik per-request nonce uretiliyor.
+- Root layout nonce degerini `x-nonce` header'i ile okuyup iki kritik inline script yuzeyine uyguluyor:
+  - hydration warning suppression script
+  - `next-themes` theme bootstrap script
+
+### Guvenlik etkisi
+- Sayfa uzerindeki script calistirma yuzeyi nonce tabanli CSP ile sinirlandi.
+- Announcement sanitization'a ek olarak, olasi residual HTML injection durumunda nonced olmayan script'ler bloklanir.
+- YouTube iframe yuzeyi CSP `frame-src` ile sinirlandi.
+
+### Bu Turdaki Dogrulama
+- `npm run test:csp`
+- `npm run test:request-security`
+- `npm run test:player-identity`
+- `npm run test:audit-log`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

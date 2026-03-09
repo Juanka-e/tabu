@@ -333,3 +333,12 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - bundle purchase
   - match reward finalize
 - Audit storage is intentionally backend-only for now; there is no dashboard UI surface for browsing logs yet.
+
+## 9 March 2026 Update - CSP and Proxy
+
+- Edge guard layer now lives in `src/proxy.ts`; the deprecated `src/middleware.ts` file was removed.
+- Dashboard-linked pages now receive a per-request CSP nonce.
+- Root layout applies that nonce to:
+  - the inline hydration-warning suppression script
+  - the `next-themes` theme bootstrap script
+- This reduces the blast radius of any residual HTML injection by blocking non-nonced script execution on pages.
