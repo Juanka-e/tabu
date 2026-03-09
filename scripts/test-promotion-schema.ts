@@ -29,6 +29,7 @@ const invalidDiscount = discountCampaignWriteSchema.safeParse({
     fixedCoinOff: null,
     shopItemId: null,
     bundleId: null,
+    usageLimit: null,
     startsAt: null,
     endsAt: null,
     isActive: true,
@@ -36,6 +37,25 @@ const invalidDiscount = discountCampaignWriteSchema.safeParse({
 });
 
 assert.equal(invalidDiscount.success, false);
+
+const discountWithLimit = discountCampaignWriteSchema.safeParse({
+    code: "launch_limit",
+    name: "Launch Limit",
+    description: "Limited bundle launch discount",
+    targetType: "bundle",
+    discountType: "percentage",
+    percentageOff: 20,
+    fixedCoinOff: null,
+    shopItemId: null,
+    bundleId: 3,
+    usageLimit: 250,
+    startsAt: "2026-03-09T10:00:00.000Z",
+    endsAt: "2026-03-19T10:00:00.000Z",
+    isActive: true,
+    stackableWithCoupon: false,
+});
+
+assert.equal(discountWithLimit.success, true);
 
 const couponResult = couponCodeWriteSchema.safeParse({
     code: "spring25",

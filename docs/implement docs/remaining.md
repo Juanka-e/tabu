@@ -256,6 +256,20 @@ Reference:
 ### Remaining
 - Replace client-controlled `playerId` with server-controlled room identity.
 - Remove reward finalization dependency on client-supplied `playerId`.
-- Make coupon `usageLimit` enforcement atomic under concurrent requests.
 - Add HTTP rate limiting for register/store/coupon endpoints.
 - Add nonce-based CSP if inline scripts are kept.
+
+### Completed in the March 9 promotion-limit slice
+- Discount campaigns now support `usageLimit` and `usedCount`.
+- Admin promotions UI now manages quantity limits for discounts as well as coupons.
+- Store pricing now ignores exhausted discount campaigns.
+- Checkout now reserves both discount-campaign and coupon usage atomically in the transaction.
+- Mock catalog seed now writes campaign usage limits.
+- Verification passed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Replace client-controlled `playerId` with server-controlled room identity.
+- Remove reward finalization dependency on client-supplied `playerId`.
+- Add HTTP rate limiting for register/store/coupon endpoints.
+- Add nonce-based CSP if inline scripts are kept.
+- Decide whether bundle partial-ownership upgrade pricing is a product requirement.

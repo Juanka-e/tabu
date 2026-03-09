@@ -530,3 +530,34 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Promotion Usage Limits ve Atomic Reservation (9 March 2026)
+
+### Tamamlananlar
+- `DiscountCampaign` modeli artik `usageLimit` ve `usedCount` alanlarini tasiyor.
+- Admin panelde hem indirim kampanyasi hem kupon icin kullanim limiti tanimlanabiliyor.
+- `/admin/promotions` ekraninda kullanilan adet ve limit birlikte gosteriliyor.
+- Seed edilen mock kampanyalar da artik limitli olarak olusturuluyor.
+
+### Checkout davranisi
+- Store pricing resolver, limiti dolan kampanyalari kullanilabilir teklif olarak saymiyor.
+- Item ve bundle satin alma transaction'larinda secilen kampanya ve kupon kullanimi atomik olarak reserve ediliyor.
+- Reserve basarisiz olursa satin alma `promotion_unavailable` veya `invalid_coupon` ile geri donuyor.
+- Boylesiyle ayni anda gelen isteklerde limit asinimi engelleniyor.
+
+### Guvenlik etkisi
+- Onceki `coupon usageLimit race` acigi kapatildi.
+- Indirim kampanyalari icin de ayni concurrency korumasi eklendi.
+- Misafir akisi degismedi; promosyon kullanimi halen login zorunlu store akisinda kaldi.
+
+### Bu Turdaki Dogrulama
+- `npx prisma db push`
+- `npx prisma generate --no-engine`
+- `npm run test:store-pricing`
+- `npm run test:promotions`
+- `npm run test:catalog`
+- `npm run seed:catalog`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

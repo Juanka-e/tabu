@@ -29,6 +29,9 @@ export async function POST(req: Request) {
       if (result.code === "invalid_coupon") {
         return NextResponse.json({ error: "Kupon gecersiz veya bu urun ile kullanilamaz." }, { status: 409 });
       }
+      if (result.code === "promotion_unavailable") {
+        return NextResponse.json({ error: "Indirim kampanyasi limiti doldu. Fiyatlari yenileyip tekrar dene." }, { status: 409 });
+      }
       return NextResponse.json({ error: "Yetersiz coin." }, { status: 409 });
     }
 

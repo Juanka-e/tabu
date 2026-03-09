@@ -193,3 +193,12 @@ Reference:
 - [x] Add baseline response security headers in `next.config.ts`
 - [x] Add smoke tests: `npm run test:admin-guards`, `npm run test:announcement-security`
 - [x] Verification completed: `npm run test:admin-guards`, `npm run test:announcement-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Promotion Limits)
+- [x] Add `usageLimit` / `usedCount` support to discount campaigns
+- [x] Expose discount quantity limit management in `/admin/promotions`
+- [x] Show live usage counters for discounts and coupons in the admin panel
+- [x] Ignore exhausted campaigns in store pricing resolution
+- [x] Reserve campaign and coupon usage atomically during item and bundle checkout
+- [x] Update mock seed data and smoke tests for promotion limits
+- [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

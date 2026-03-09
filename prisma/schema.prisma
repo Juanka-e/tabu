@@ -171,6 +171,8 @@ model DiscountCampaign {
   fixedCoinOff     Int?                  @map("fixed_coin_off")
   shopItemId       Int?                  @map("shop_item_id")
   bundleId         Int?                  @map("bundle_id")
+  usageLimit       Int?                  @map("usage_limit")
+  usedCount        Int                   @default(0) @map("used_count")
   startsAt         DateTime?             @map("starts_at")
   endsAt           DateTime?             @map("ends_at")
   isActive         Boolean               @default(true) @map("is_active")

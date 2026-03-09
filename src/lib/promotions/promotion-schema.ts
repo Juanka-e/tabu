@@ -31,13 +31,10 @@ const promotionBaseSchema = z.object({
     fixedCoinOff: z.number().int().min(1).max(1_000_000).optional().nullable(),
     shopItemId: optionalForeignKeySchema,
     bundleId: optionalForeignKeySchema,
+    usageLimit: z.number().int().min(1).max(1_000_000).optional().nullable(),
     startsAt: optionalDateSchema,
     endsAt: optionalDateSchema,
     isActive: z.boolean().default(true),
-});
-
-const couponExtrasSchema = z.object({
-    usageLimit: z.number().int().min(1).max(1_000_000).optional().nullable(),
 });
 
 const bundleItemSchema = z.object({
@@ -190,13 +187,13 @@ export const discountCampaignUpdateSchema = promotionBaseSchema.partial().extend
     validateDateWindow(value, context);
 });
 
-export const couponCodeWriteSchema = promotionBaseSchema.merge(couponExtrasSchema).superRefine((value, context) => {
+export const couponCodeWriteSchema = promotionBaseSchema.superRefine((value, context) => {
     validatePromotionTarget(value, context);
     validateDiscountShape(value, context);
     validateDateWindow(value, context);
 });
 
-export const couponCodeUpdateSchema = promotionBaseSchema.partial().merge(couponExtrasSchema.partial()).superRefine((value, context) => {
+export const couponCodeUpdateSchema = promotionBaseSchema.partial().superRefine((value, context) => {
     if (value.targetType) {
         validatePromotionTarget(value, context);
     }
@@ -258,6 +255,7 @@ export function toPrismaDiscountCampaignCreateData(
         discountType: input.discountType,
         percentageOff: input.percentageOff ?? null,
         fixedCoinOff: input.fixedCoinOff ?? null,
+        usageLimit: input.usageLimit ?? null,
         startsAt: parseDateOrNull(input.startsAt),
         endsAt: parseDateOrNull(input.endsAt),
         isActive: input.isActive,
@@ -278,6 +276,7 @@ export function toPrismaDiscountCampaignUpdateData(
         ...(input.discountType !== undefined ? { discountType: input.discountType } : {}),
         ...(input.percentageOff !== undefined ? { percentageOff: input.percentageOff ?? null } : {}),
         ...(input.fixedCoinOff !== undefined ? { fixedCoinOff: input.fixedCoinOff ?? null } : {}),
+        ...(input.usageLimit !== undefined ? { usageLimit: input.usageLimit ?? null } : {}),
         ...(input.startsAt !== undefined ? { startsAt: parseDateOrNull(input.startsAt) } : {}),
         ...(input.endsAt !== undefined ? { endsAt: parseDateOrNull(input.endsAt) } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),

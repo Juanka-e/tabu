@@ -6,6 +6,7 @@ import type {
 } from "@/types/economy";
 
 interface TimedPromotionRecord {
+    id: number;
     code: string;
     name: string;
     description: string | null;
@@ -22,6 +23,8 @@ interface TimedPromotionRecord {
 
 interface DiscountRecord extends TimedPromotionRecord {
     stackableWithCoupon: boolean;
+    usageLimit: number | null;
+    usedCount: number;
 }
 
 interface CouponRecord extends TimedPromotionRecord {
@@ -92,6 +95,7 @@ function calculateDiscountAmount(
 
 function toPromotionSummary(discount: DiscountRecord): PromotionSummaryView {
     return {
+        id: discount.id,
         code: discount.code,
         name: discount.name,
         description: discount.description,
@@ -99,6 +103,8 @@ function toPromotionSummary(discount: DiscountRecord): PromotionSummaryView {
         percentageOff: discount.percentageOff,
         fixedCoinOff: discount.fixedCoinOff,
         stackableWithCoupon: discount.stackableWithCoupon,
+        usageLimit: discount.usageLimit,
+        usedCount: discount.usedCount,
     };
 }
 
@@ -120,7 +126,12 @@ export function resolveCatalogPricing(
     now: Date
 ): StorePriceView {
     const applicableDiscounts = discounts.filter(
-        (discount) => discount.isActive && isWithinWindow(discount.startsAt, discount.endsAt, now) && matchesTarget(discount, target)
+        (discount) => (
+            discount.isActive &&
+            isWithinWindow(discount.startsAt, discount.endsAt, now) &&
+            matchesTarget(discount, target) &&
+            (discount.usageLimit === null || discount.usedCount < discount.usageLimit)
+        )
     );
 
     let bestDiscount: DiscountRecord | null = null;

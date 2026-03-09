@@ -303,3 +303,11 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Coin presentation in the real UI is standardized with `CoinBadge` / `CoinMark`.
 - Guest gameplay remains unchanged; cosmetics and store checkout stay gated behind login.
 - Middleware auth config was split into an edge-safe shared config so Prisma is no longer bundled into middleware and `npm run build` is green again.
+
+## 9 March 2026 Update - Promotion Usage Limits
+
+- Discount campaigns now support admin-defined usage limits, not only coupons.
+- `/admin/promotions` shows `usedCount / usageLimit` for both discounts and coupons.
+- Store pricing ignores exhausted campaigns before rendering prices.
+- Item and bundle checkout now reserve both campaign usage and coupon usage atomically inside the purchase transaction.
+- If a campaign limit is consumed by another request first, the API returns a refreshable conflict instead of overselling the promotion.

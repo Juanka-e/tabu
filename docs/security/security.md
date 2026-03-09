@@ -787,7 +787,6 @@ Critical Findings
 ### Still open after this remediation slice
 - Client-controlled `playerId` in socket room join flow
 - Reward claim coupling to client-provided `playerId`
-- Coupon `usageLimit` race condition under concurrent checkout
 - Missing HTTP rate limiting on register / store / coupon preview endpoints
 - No full CSP yet; current hardening is header-level but not nonce-based script control
 
@@ -795,3 +794,24 @@ Critical Findings
 - Original admin API finding is now fully remediated with route-level guards.
 - Original XSS risk around admin-generated rich content has been reduced materially, but a future CSP would still improve blast-radius control.
 - Original socket identity and match-finalize concerns remain the top unresolved items.
+
+## Remediation Status (9 March 2026 - Promotion Limits)
+
+### Fixed in current code
+- Discount campaigns now have the same quantity-control surface as coupons:
+  - `usageLimit`
+  - `usedCount`
+- Admin can define campaign limits from `/admin/promotions`.
+- Store pricing now excludes exhausted campaigns before checkout.
+- Item and bundle checkout now reserve promotion usage atomically with `updateMany` guards inside the transaction.
+- Coupon usage reservation was also moved to the same atomic pattern, closing the previously reported race.
+
+### Still open after this slice
+- Client-controlled `playerId` in socket room join flow
+- Reward claim coupling to client-provided `playerId`
+- Missing HTTP rate limiting on register / store / coupon preview endpoints
+- No nonce-based CSP yet
+
+### Security review note
+- This slice closes the promotion oversubscription class for both discount campaigns and coupons.
+- It does not change guest gameplay or authentication boundaries; store and cosmetics remain login-gated.

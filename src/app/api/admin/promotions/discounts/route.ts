@@ -42,7 +42,12 @@ export async function POST(request: NextRequest) {
             data: toPrismaDiscountCampaignCreateData(parsed),
         });
 
-        return NextResponse.json(discount, { status: 201 });
+        return NextResponse.json({
+            ...discount,
+            startsAt: discount.startsAt?.toISOString() ?? null,
+            endsAt: discount.endsAt?.toISOString() ?? null,
+            createdAt: discount.createdAt.toISOString(),
+        }, { status: 201 });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });

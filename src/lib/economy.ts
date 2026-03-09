@@ -349,6 +349,8 @@ type DiscountRecord = Prisma.DiscountCampaignGetPayload<{
         fixedCoinOff: true;
         shopItemId: true;
         bundleId: true;
+        usageLimit: true;
+        usedCount: true;
         startsAt: true;
         endsAt: true;
         isActive: true;
@@ -378,7 +380,7 @@ type CouponRecord = Prisma.CouponCodeGetPayload<{
 
 type PurchaseItemResult =
     | { ok: true; item: StoreCatalogItemRecord; coinBalance: number; finalPriceCoin: number }
-    | { ok: false; code: "not_found" | "already_owned" | "insufficient_balance" | "invalid_coupon" };
+    | { ok: false; code: "not_found" | "already_owned" | "insufficient_balance" | "invalid_coupon" | "promotion_unavailable" };
 
 type PurchaseBundleResult =
     | {
@@ -395,7 +397,8 @@ type PurchaseBundleResult =
         | "already_owned"
         | "contains_owned_items"
         | "insufficient_balance"
-        | "invalid_coupon";
+        | "invalid_coupon"
+        | "promotion_unavailable";
     };
 
 function mapStoreItemView(
@@ -543,6 +546,8 @@ async function loadStoreContext(userId?: number) {
                 fixedCoinOff: true,
                 shopItemId: true,
                 bundleId: true,
+                usageLimit: true,
+                usedCount: true,
                 startsAt: true,
                 endsAt: true,
                 isActive: true,
@@ -611,6 +616,56 @@ async function loadCouponRecord(
     });
 }
 
+async function reserveDiscountCampaignUsage(
+    tx: Prisma.TransactionClient,
+    promotionId: number
+): Promise<boolean> {
+    const result = await tx.discountCampaign.updateMany({
+        where: {
+            id: promotionId,
+            OR: [
+                { usageLimit: null },
+                {
+                    AND: [
+                        { usageLimit: { not: null } },
+                        { usedCount: { lt: tx.discountCampaign.fields.usageLimit } },
+                    ],
+                },
+            ],
+        },
+        data: {
+            usedCount: { increment: 1 },
+        },
+    });
+
+    return result.count === 1;
+}
+
+async function reserveCouponUsage(
+    tx: Prisma.TransactionClient,
+    couponId: number
+): Promise<boolean> {
+    const result = await tx.couponCode.updateMany({
+        where: {
+            id: couponId,
+            OR: [
+                { usageLimit: null },
+                {
+                    AND: [
+                        { usageLimit: { not: null } },
+                        { usedCount: { lt: tx.couponCode.fields.usageLimit } },
+                    ],
+                },
+            ],
+        },
+        data: {
+            usedCount: { increment: 1 },
+        },
+    });
+
+    return result.count === 1;
+}
+
 export async function listStoreItems(type?: ShopItemType, userId?: number): Promise<StoreItemView[]> {
     const catalog = await getStoreCatalog(userId);
     const items = type
@@ -672,6 +727,8 @@ export async function previewCouponForTarget(
                 fixedCoinOff: true,
                 shopItemId: true,
                 bundleId: true,
+                usageLimit: true,
+                usedCount: true,
                 startsAt: true,
                 endsAt: true,
                 isActive: true,
@@ -813,6 +870,8 @@ export async function purchaseStoreItem(
                     fixedCoinOff: true,
                     shopItemId: true,
                     bundleId: true,
+                    usageLimit: true,
+                    usedCount: true,
                     startsAt: true,
                     endsAt: true,
                     isActive: true,
@@ -849,6 +908,20 @@ export async function purchaseStoreItem(
             return { ok: false, code: "insufficient_balance" };
         }
 
+        if (catalogPricing.appliedPromotion) {
+            const reservedPromotion = await reserveDiscountCampaignUsage(tx, catalogPricing.appliedPromotion.id);
+            if (!reservedPromotion) {
+                return { ok: false, code: "promotion_unavailable" };
+            }
+        }
+
+        if (resolvedPricing?.ok && coupon) {
+            const reservedCoupon = await reserveCouponUsage(tx, coupon.id);
+            if (!reservedCoupon) {
+                return { ok: false, code: "invalid_coupon" };
+            }
+        }
+
         await tx.wallet.update({
             where: { userId },
             data: { coinBalance: { decrement: finalPriceCoin } },
@@ -873,13 +946,6 @@ export async function purchaseStoreItem(
                 status: "completed",
             },
         });
-
-        if (resolvedPricing?.ok && coupon) {
-            await tx.couponCode.update({
-                where: { id: coupon.id },
-                data: { usedCount: { increment: 1 } },
-            });
-        }
 
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
@@ -957,6 +1023,8 @@ export async function purchaseStoreBundle(
                     fixedCoinOff: true,
                     shopItemId: true,
                     bundleId: true,
+                    usageLimit: true,
+                    usedCount: true,
                     startsAt: true,
                     endsAt: true,
                     isActive: true,
@@ -1001,6 +1069,20 @@ export async function purchaseStoreBundle(
             return { ok: false, code: "insufficient_balance" };
         }
 
+        if (catalogPricing.appliedPromotion) {
+            const reservedPromotion = await reserveDiscountCampaignUsage(tx, catalogPricing.appliedPromotion.id);
+            if (!reservedPromotion) {
+                return { ok: false, code: "promotion_unavailable" };
+            }
+        }
+
+        if (resolvedPricing?.ok && coupon) {
+            const reservedCoupon = await reserveCouponUsage(tx, coupon.id);
+            if (!reservedCoupon) {
+                return { ok: false, code: "invalid_coupon" };
+            }
+        }
+
         await tx.wallet.update({
             where: { userId },
             data: { coinBalance: { decrement: finalPriceCoin } },
@@ -1025,13 +1107,6 @@ export async function purchaseStoreBundle(
                 status: "completed",
             },
         });
-
-        if (resolvedPricing?.ok && coupon) {
-            await tx.couponCode.update({
-                where: { id: coupon.id },
-                data: { usedCount: { increment: 1 } },
-            });
-        }
 
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {

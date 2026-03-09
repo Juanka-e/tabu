@@ -32,6 +32,7 @@ export interface StoreItemView {
 }
 
 export interface PromotionSummaryView {
+    id: number;
     code: string;
     name: string;
     description: string | null;
@@ -39,6 +40,8 @@ export interface PromotionSummaryView {
     percentageOff: number | null;
     fixedCoinOff: number | null;
     stackableWithCoupon: boolean;
+    usageLimit: number | null;
+    usedCount: number;
 }
 
 export interface StorePriceView {
@@ -153,6 +156,8 @@ export interface DiscountCampaignView {
     fixedCoinOff: number | null;
     shopItemId: number | null;
     bundleId: number | null;
+    usageLimit: number | null;
+    usedCount: number;
     startsAt: string | null;
     endsAt: string | null;
     isActive: boolean;

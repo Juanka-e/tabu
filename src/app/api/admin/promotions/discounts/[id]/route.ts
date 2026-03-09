@@ -32,7 +32,12 @@ export async function GET(
         return NextResponse.json({ error: "Indirim bulunamadi." }, { status: 404 });
     }
 
-    return NextResponse.json(discount);
+    return NextResponse.json({
+        ...discount,
+        startsAt: discount.startsAt?.toISOString() ?? null,
+        endsAt: discount.endsAt?.toISOString() ?? null,
+        createdAt: discount.createdAt.toISOString(),
+    });
 }
 
 export async function PUT(
@@ -58,7 +63,12 @@ export async function PUT(
             data: toPrismaDiscountCampaignUpdateData(parsed),
         });
 
-        return NextResponse.json(discount);
+        return NextResponse.json({
+            ...discount,
+            startsAt: discount.startsAt?.toISOString() ?? null,
+            endsAt: discount.endsAt?.toISOString() ?? null,
+            createdAt: discount.createdAt.toISOString(),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });

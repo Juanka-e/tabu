@@ -15,6 +15,8 @@ const itemDiscount = {
     fixedCoinOff: 60,
     shopItemId: 42,
     bundleId: null,
+    usageLimit: 3,
+    usedCount: 1,
     startsAt: new Date("2026-03-09T00:00:00.000Z"),
     endsAt: new Date("2026-03-19T00:00:00.000Z"),
     isActive: true,
@@ -25,6 +27,7 @@ const basePricing = resolveCatalogPricing(340, { kind: "shop_item", targetId: 42
 assert.equal(basePricing.basePriceCoin, 340);
 assert.equal(basePricing.discountCoin, 60);
 assert.equal(basePricing.finalPriceCoin, 280);
+assert.equal(basePricing.appliedPromotion?.id, 1);
 assert.equal(basePricing.appliedPromotion?.code, "item_launch");
 
 const stackableCoupon = {
@@ -72,5 +75,19 @@ assert.equal(blockedCoupon.ok, false);
 if (!blockedCoupon.ok) {
     assert.match(blockedCoupon.reason, /birlestirilemez/i);
 }
+
+const exhaustedDiscountPricing = resolveCatalogPricing(500, { kind: "shop_item", targetId: 42 }, [
+    {
+        ...itemDiscount,
+        id: 2,
+        code: "exhausted_discount",
+        usageLimit: 1,
+        usedCount: 1,
+        fixedCoinOff: 120,
+    },
+], now);
+
+assert.equal(exhaustedDiscountPricing.discountCoin, 0);
+assert.equal(exhaustedDiscountPricing.appliedPromotion, null);
 
 console.log("store pricing smoke test passed");

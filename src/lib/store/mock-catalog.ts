@@ -40,6 +40,7 @@ export interface MockDiscountSeed {
     percentageOff: number | null;
     fixedCoinOff: number | null;
     targetCode: string | null;
+    usageLimit: number | null;
     startsAt: string | null;
     endsAt: string | null;
     isActive: boolean;
@@ -215,6 +216,7 @@ export const mockDiscountCampaigns: MockDiscountSeed[] = [
         percentageOff: 15,
         fixedCoinOff: null,
         targetCode: "bundle_starter_showcase",
+        usageLimit: 250,
         startsAt: "2026-03-09T00:00:00.000Z",
         endsAt: "2026-03-23T00:00:00.000Z",
         isActive: true,
@@ -229,6 +231,7 @@ export const mockDiscountCampaigns: MockDiscountSeed[] = [
         percentageOff: null,
         fixedCoinOff: 60,
         targetCode: "avatar_neon_owl",
+        usageLimit: 120,
         startsAt: "2026-03-09T00:00:00.000Z",
         endsAt: "2026-03-16T00:00:00.000Z",
         isActive: true,

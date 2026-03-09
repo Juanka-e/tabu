@@ -40,6 +40,7 @@ interface DiscountFormState {
     fixedCoinOff: string;
     shopItemId: string;
     bundleId: string;
+    usageLimit: string;
     startsAt: string;
     endsAt: string;
     isActive: boolean;
@@ -82,6 +83,7 @@ const emptyDiscountForm: DiscountFormState = {
     fixedCoinOff: "",
     shopItemId: "",
     bundleId: "",
+    usageLimit: "",
     startsAt: "",
     endsAt: "",
     isActive: true,
@@ -322,6 +324,7 @@ export default function PromotionsPage() {
                 fixedCoinOff: discountForm.discountType === "fixed_coin" ? toNullableInt(discountForm.fixedCoinOff) : null,
                 shopItemId: discountForm.targetType === "shop_item" ? toNullableInt(discountForm.shopItemId) : null,
                 bundleId: discountForm.targetType === "bundle" ? toNullableInt(discountForm.bundleId) : null,
+                usageLimit: toNullableInt(discountForm.usageLimit),
                 startsAt: toIsoDateTime(discountForm.startsAt),
                 endsAt: toIsoDateTime(discountForm.endsAt),
                 isActive: discountForm.isActive,
@@ -453,12 +456,13 @@ export default function PromotionsPage() {
                                         <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{discount.name}</h3><PromotionTypeBadge label={discount.targetType} /></div>
                                         <p className="font-mono text-xs text-muted-foreground">{discount.code}</p>
                                         <p className="mt-2 text-sm text-muted-foreground">{discount.discountType === "percentage" ? `%${discount.percentageOff} indirim` : `${discount.fixedCoinOff} coin indirim`}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">Kullanim: {discount.usedCount}{discount.usageLimit ? ` / ${discount.usageLimit}` : ""}</p>
                                     </div>
-                                    <div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button><Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button></div>
+                                    <div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", usageLimit: discount.usageLimit ? String(discount.usageLimit) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button><Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button></div>
                                 </div>
                             </div>
                         ))}
-                        <PromotionForm title={editingDiscountId ? "Indirim Duzenle" : "Yeni Indirim"} code={discountForm.code} name={discountForm.name} description={discountForm.description} targetType={discountForm.targetType} discountType={discountForm.discountType} percentageOff={discountForm.percentageOff} fixedCoinOff={discountForm.fixedCoinOff} shopItemId={discountForm.shopItemId} bundleId={discountForm.bundleId} startsAt={discountForm.startsAt} endsAt={discountForm.endsAt} isActive={discountForm.isActive} itemOptions={itemOptions} bundleOptions={bundleOptions} extraContent={<label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={discountForm.stackableWithCoupon} onChange={(event) => setDiscountForm((current) => ({ ...current, stackableWithCoupon: event.target.checked }))} />Kupon ile birikebilir</label>} onChange={(patch) => setDiscountForm((current) => ({ ...current, ...patch } as DiscountFormState))} onSubmit={() => void saveDiscount()} onCancel={editingDiscountId ? () => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); } : undefined} saving={saving} />
+                        <PromotionForm title={editingDiscountId ? "Indirim Duzenle" : "Yeni Indirim"} code={discountForm.code} name={discountForm.name} description={discountForm.description} targetType={discountForm.targetType} discountType={discountForm.discountType} percentageOff={discountForm.percentageOff} fixedCoinOff={discountForm.fixedCoinOff} shopItemId={discountForm.shopItemId} bundleId={discountForm.bundleId} startsAt={discountForm.startsAt} endsAt={discountForm.endsAt} isActive={discountForm.isActive} itemOptions={itemOptions} bundleOptions={bundleOptions} extraContent={<><input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Kullanim Limiti" type="number" value={discountForm.usageLimit} onChange={(event) => setDiscountForm((current) => ({ ...current, usageLimit: event.target.value }))} /><label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={discountForm.stackableWithCoupon} onChange={(event) => setDiscountForm((current) => ({ ...current, stackableWithCoupon: event.target.checked }))} />Kupon ile birikebilir</label></>} onChange={(patch) => setDiscountForm((current) => ({ ...current, ...patch } as DiscountFormState))} onSubmit={() => void saveDiscount()} onCancel={editingDiscountId ? () => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); } : undefined} saving={saving} />
                     </CardContent>
                 </Card>
             </div>
