@@ -411,3 +411,28 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Preview, image ve template kozmetikleri kaydetmeden once gormeyi saglar.
 - `frame`, `card_face` ve `card_back` preview'lari oyun tarafindaki ayni theme resolver mantigini kullanir.
 - Ayrica preview icinde mini bir `shop card snapshot` da bulunur; boylece rozet, rarity ve featured vurgu ayni modal icinde gorulebilir.
+
+## 9 March 2026 Update - Admin Promotion Stability and Dashboard Copy
+
+- Admin promosyon ve shop-item route'larindaki runtime enum bagimliligi kaldirildi.
+- `z.nativeEnum(@prisma/client)` kullanimlari local typed sabitlerle degistirildi:
+  - `STORE_ITEM_TYPES`
+  - `STORE_ITEM_RARITIES`
+  - `STORE_ITEM_RENDER_MODES`
+  - `PROMOTION_TARGET_TYPES`
+  - `PROMOTION_DISCOUNT_TYPES`
+- Bu degisiklik su yuzeylerdeki `Cannot convert undefined or null to object` hatasini kapatir:
+  - `/api/admin/promotions/bundles`
+  - `/api/admin/promotions/discounts`
+  - `/api/admin/promotions/coupons`
+  - `/api/admin/shop-items`
+  - dolayli olarak `pricing` import zinciri uzerinden `/api/user/me`
+- `/admin/promotions` ekrani artik tek generic form yerine ayri editor bloklari kullanir:
+  - bundle editor
+  - discount campaign editor
+  - coupon editor
+- Hedef secimi, indirim tipi, kullanim limiti ve zaman penceresi alanlari daha gorev-odakli hale getirildi.
+- Dashboard sag panel bos durum metni artik oyuncuya admin odakli mesaj gostermiyor.
+- Full-page dashboard sol nav `play` butonu artik `Oyna` etiketiyle birlikte gorunur.
+- Yeni smoke test eklendi:
+  - `npm run test:shop-items`

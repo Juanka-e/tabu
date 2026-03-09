@@ -266,3 +266,13 @@ Reference:
 - [x] Add a mini shop-card snapshot so `badgeText`, rarity, and featured emphasis are visible before save
 - [x] Surface invalid template JSON in the preview panel without requiring a save roundtrip
 - [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Admin Promotion Stability)
+- [x] Remove runtime Prisma enum dependence from promotion and shop-item validation
+- [x] Replace `z.nativeEnum(@prisma/client)` usages with local typed constant arrays
+- [x] Restore working admin fetch/create/update flows for bundles, discounts, coupons, and shop items
+- [x] Update `/admin/promotions` to use separate bundle, discount, and coupon editor surfaces
+- [x] Replace admin-facing empty-state copy in dashboard `Shop Radar` with player-safe messaging
+- [x] Add `Oyna` label to the full-page dashboard play action
+- [x] Add smoke test: `npm run test:shop-items`
+- [x] Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

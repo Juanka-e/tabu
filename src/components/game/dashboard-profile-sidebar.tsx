@@ -218,7 +218,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                                 Shop Radar
                             </h3>
                             <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                Spotlight urunler magaza sirasindan secilip burada akar.
+                                Onerilen urunler magaza sirasina gore burada doner.
                             </p>
                         </div>
                         <button
@@ -237,7 +237,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                             onClick={() => onTabChange("shop")}
                             className="w-full rounded-2xl border border-dashed border-slate-300/70 bg-white/40 px-4 py-4 text-left text-xs font-medium text-slate-500 transition hover:bg-white/60 dark:border-slate-700/70 dark:bg-slate-900/30 dark:text-slate-400 dark:hover:bg-slate-900/50"
                         >
-                            Spotlight urunu secmedin. Admin panelden featured urunleri belirleyebilirsin.
+                            Su anda gosterilecek urun bulunmuyor. Yeni koleksiyonlar geldiginde burada gorunur.
                         </button>
                     ) : (
                         <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/80 to-slate-100/70 px-3 py-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">

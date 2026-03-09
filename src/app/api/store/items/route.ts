@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ShopItemType } from "@prisma/client";
 import { getStoreCatalog } from "@/lib/economy";
 import { getSessionUser } from "@/lib/session";
+import { STORE_ITEM_TYPES } from "@/types/economy";
 
 const querySchema = z.object({
-  type: z.nativeEnum(ShopItemType).optional(),
+  type: z.enum(STORE_ITEM_TYPES).optional(),
 });
 
 export async function GET(req: Request) {

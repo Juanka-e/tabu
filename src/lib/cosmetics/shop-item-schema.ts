@@ -1,6 +1,13 @@
-import { CosmeticRenderMode, ItemRarity, Prisma, ShopItemType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import type { TemplateConfig, TemplateConfigScalar, TemplateConfigValue } from "@/types/economy";
+import {
+    STORE_ITEM_RARITIES,
+    STORE_ITEM_RENDER_MODES,
+    STORE_ITEM_TYPES,
+    type TemplateConfig,
+    type TemplateConfigScalar,
+    type TemplateConfigValue,
+} from "@/types/economy";
 
 const safeImageUrlSchema = z
     .string()
@@ -87,10 +94,10 @@ const shopItemBaseSchema = z.object({
         .min(1)
         .max(80)
         .regex(/^[a-z0-9_-]+$/i, "Code can only contain letters, numbers, dash and underscore."),
-    type: z.nativeEnum(ShopItemType),
+    type: z.enum(STORE_ITEM_TYPES),
     name: z.string().trim().min(1).max(120),
-    rarity: z.nativeEnum(ItemRarity).default("common"),
-    renderMode: z.nativeEnum(CosmeticRenderMode).default("image"),
+    rarity: z.enum(STORE_ITEM_RARITIES).default("common"),
+    renderMode: z.enum(STORE_ITEM_RENDER_MODES).default("image"),
     priceCoin: z.number().int().min(0).max(1_000_000),
     imageUrl: safeImageUrlSchema.default(""),
     templateKey: z.string().trim().max(80).optional().nullable(),

@@ -1,7 +1,8 @@
-import { PromotionDiscountType, PromotionTargetType } from "@prisma/client";
 import type {
     CouponPreviewView,
+    PromotionDiscountType,
     PromotionSummaryView,
+    PromotionTargetType,
     StorePriceView,
 } from "@/types/economy";
 
@@ -63,11 +64,11 @@ function matchesTarget(
     promotion: TimedPromotionRecord,
     target: PromotionTargetContext
 ): boolean {
-    if (promotion.targetType === PromotionTargetType.global) {
+    if (promotion.targetType === "global") {
         return true;
     }
 
-    if (promotion.targetType === PromotionTargetType.shop_item) {
+    if (promotion.targetType === "shop_item") {
         return target.kind === "shop_item" && promotion.shopItemId === target.targetId;
     }
 
@@ -84,7 +85,7 @@ function calculateDiscountAmount(
         return 0;
     }
 
-    if (discountType === PromotionDiscountType.percentage) {
+    if (discountType === "percentage") {
         const percentage = Math.max(0, Math.min(percentageOff ?? 0, 100));
         return Math.min(priceCoin, Math.round((priceCoin * percentage) / 100));
     }

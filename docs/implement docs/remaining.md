@@ -347,6 +347,32 @@ Reference:
 - Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
 - Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
 
+### Completed in the March 9 admin-promotion-stability slice
+- Replaced runtime Prisma enum usage in admin validators and store query parsing with local typed constant arrays.
+- Removed the `z.nativeEnum(@prisma/client)` dependency from:
+  - promotion schemas
+  - shop-item schemas
+  - store item filter parsing
+  - admin shop-item filter parsing
+  - pricing resolver comparisons
+- Restored working admin data loading and mutation paths for:
+  - bundles
+  - discount campaigns
+  - coupon codes
+  - shop items
+- Reworked `/admin/promotions` into separate task-focused editors for bundle, discount, and coupon flows.
+- Updated dashboard copy:
+  - generic empty-state text for `Shop Radar`
+  - visible `Oyna` label under the play icon in the full-page dashboard nav
+- Added smoke test: `npm run test:shop-items`
+- Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Remaining
+- Add an admin-facing audit log viewer/filter UI if operational review is needed from the panel.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.
+- Add CSP report collection / monitoring if runtime violation visibility is required.
+- Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
+
 ### Completed in the March 9 admin-preview slice
 - Added a live cosmetic preview panel to `/admin/shop-items`.
 - The modal now shows:

@@ -785,3 +785,49 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Admin Promosyon Stabilizasyonu ve Dashboard Kopya Duzenlemesi (9 March 2026)
+
+### Runtime hata nedeni
+- Admin promosyon ve shop-item route'lari bir noktada `@prisma/client` enum'larini runtime degeri olarak yuklemeye calisiyordu.
+- `z.nativeEnum(...)` ile yapilan bu baglilik dev/build sirasinda su tip hatalara yol aciyordu:
+  - `Cannot convert undefined or null to object`
+- Kapanan bozuk endpointler:
+  - `/api/admin/promotions/bundles`
+  - `/api/admin/promotions/discounts`
+  - `/api/admin/promotions/coupons`
+  - `/api/admin/shop-items`
+
+### Uygulanan cozum
+- Runtime enum bagimliligi local typed constant setlerine tasindi.
+- `promotion-schema.ts`, `shop-item-schema.ts`, `store/items route`, `admin shop-items route` ve `pricing.ts` buna gore guncellendi.
+- Boylece:
+  - admin sayfalari yeniden veri cekebilir hale geldi
+  - promosyon create/update akisi tekrar calisir duruma geldi
+  - pricing import zinciri daha stabil oldu
+
+### Admin form duzeni
+- Promosyon ekraninda artik ayri editor bloklari var:
+  - `BundleEditor`
+  - `DiscountEditor`
+  - `CouponEditor`
+- Her editor su mantikla tasarlandi:
+  - hedef secimi kendi blokunda
+  - indirim tipi kendi blokunda
+  - limit / takvim kendi blokunda
+  - coupon stacking sadece discount editorunde
+- Bu ayrim, adminin yanlis payload gonderme riskini azaltir.
+
+### Dashboard kopya duzenlemeleri
+- Sag profil sidebar'daki bos radar mesaji admin odakli icerikten cikarildi.
+- Yeni metin oyuncuya yonelik notr bir bos durum kopyasi kullanir.
+- Full-page dashboard `play` butonuna `Oyna` etiketi eklendi.
+
+### Bu Turdaki Dogrulama
+- `npm run test:promotions`
+- `npm run test:shop-items`
+- `npm run test:store-pricing`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

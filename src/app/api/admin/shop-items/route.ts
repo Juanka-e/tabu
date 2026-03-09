@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { ShopItemType, ItemRarity } from "@prisma/client";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { shopItemWriteSchema, toPrismaShopItemCreateData } from "@/lib/cosmetics/shop-item-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { STORE_ITEM_RARITIES, STORE_ITEM_TYPES } from "@/types/economy";
 
 export const dynamic = "force-dynamic";
+
+const shopItemFilterSchema = z.object({
+    type: z.enum(STORE_ITEM_TYPES).optional(),
+    rarity: z.enum(STORE_ITEM_RARITIES).optional(),
+    active: z.enum(["true", "false"]).optional(),
+});
 
 // GET — List all shop items (admin view, includes inactive)
 export async function GET(request: NextRequest) {
@@ -16,9 +22,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type") as ShopItemType | null;
-    const rarity = searchParams.get("rarity") as ItemRarity | null;
-    const activeOnly = searchParams.get("active") === "true";
+    const parsedFilters = shopItemFilterSchema.safeParse({
+        type: searchParams.get("type") || undefined,
+        rarity: searchParams.get("rarity") || undefined,
+        active: searchParams.get("active") || undefined,
+    });
+
+    if (!parsedFilters.success) {
+        return NextResponse.json({ error: "Gecersiz filtre." }, { status: 422 });
+    }
+
+    const { type, rarity, active } = parsedFilters.data;
+    const activeOnly = active === "true";
 
     const items = await prisma.shopItem.findMany({
         where: {

@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +62,10 @@ interface CouponFormState {
     endsAt: string;
     isActive: boolean;
 }
+
+const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
+const sectionClassName = "space-y-3 rounded-2xl border border-border/80 bg-background/80 p-4";
+const helperClassName = "text-xs text-muted-foreground";
 
 const emptyBundleForm: BundleFormState = {
     code: "",
@@ -126,7 +130,8 @@ function toIsoDateTime(value: string): string | null {
 }
 
 function toNullableInt(value: string): number | null {
-    return value ? Number.parseInt(value, 10) : null;
+    const trimmed = value.trim();
+    return trimmed ? Number.parseInt(trimmed, 10) : null;
 }
 
 function PromotionTypeBadge({ label }: { label: string }) {
@@ -137,107 +142,451 @@ function PromotionTypeBadge({ label }: { label: string }) {
     );
 }
 
-interface PromotionFormProps {
-    title: string;
-    code: string;
-    name: string;
-    description: string;
-    targetType: PromotionTargetType;
-    discountType: PromotionDiscountType;
-    percentageOff: string;
-    fixedCoinOff: string;
-    shopItemId: string;
-    bundleId: string;
-    startsAt: string;
-    endsAt: string;
-    isActive: boolean;
-    itemOptions: ItemOption[];
-    bundleOptions: Array<{ id: number; name: string; code: string }>;
-    extraContent?: ReactNode;
-    onChange: (patch: Record<string, string | boolean>) => void;
-    onSubmit: () => void;
-    onCancel?: () => void;
-    saving: boolean;
+function FieldLabel({ label, helper }: { label: string; helper?: string }) {
+    return (
+        <div className="space-y-1">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+            {helper ? <div className={helperClassName}>{helper}</div> : null}
+        </div>
+    );
 }
 
-function PromotionForm({
-    title,
-    code,
-    name,
+function ToggleField({
+    checked,
+    label,
     description,
+    onChange,
+}: {
+    checked: boolean;
+    label: string;
+    description: string;
+    onChange: (checked: boolean) => void;
+}) {
+    return (
+        <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground">
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => onChange(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span className="space-y-1">
+                <span className="block font-semibold">{label}</span>
+                <span className={helperClassName}>{description}</span>
+            </span>
+        </label>
+    );
+}
+function TargetScopeFields({
     targetType,
-    discountType,
-    percentageOff,
-    fixedCoinOff,
     shopItemId,
     bundleId,
-    startsAt,
-    endsAt,
-    isActive,
     itemOptions,
     bundleOptions,
-    extraContent,
-    onChange,
-    onSubmit,
-    onCancel,
-    saving,
-}: PromotionFormProps) {
+    onTargetTypeChange,
+    onShopItemChange,
+    onBundleChange,
+}: {
+    targetType: PromotionTargetType;
+    shopItemId: string;
+    bundleId: string;
+    itemOptions: ItemOption[];
+    bundleOptions: Array<{ id: number; name: string; code: string }>;
+    onTargetTypeChange: (value: PromotionTargetType) => void;
+    onShopItemChange: (value: string) => void;
+    onBundleChange: (value: string) => void;
+}) {
     return (
-        <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
-            <h3 className="font-semibold text-foreground">{title}</h3>
-            <div className="grid gap-3 md:grid-cols-2">
-                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Kod" value={code} onChange={(event) => onChange({ code: event.target.value })} />
-                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Isim" value={name} onChange={(event) => onChange({ name: event.target.value })} />
-                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" placeholder="Aciklama" value={description} onChange={(event) => onChange({ description: event.target.value })} />
-                <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={targetType} onChange={(event) => onChange({ targetType: event.target.value, shopItemId: "", bundleId: "" })}>
-                    <option value="global">Global</option>
-                    <option value="shop_item">Shop Item</option>
-                    <option value="bundle">Bundle</option>
-                </select>
-                <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={discountType} onChange={(event) => onChange({ discountType: event.target.value, percentageOff: "", fixedCoinOff: "" })}>
-                    <option value="percentage">Yuzde</option>
-                    <option value="fixed_coin">Sabit Coin</option>
-                </select>
-                {discountType === "percentage" ? (
-                    <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="number" placeholder="Yuzde" value={percentageOff} onChange={(event) => onChange({ percentageOff: event.target.value })} />
-                ) : (
-                    <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="number" placeholder="Coin Indirimi" value={fixedCoinOff} onChange={(event) => onChange({ fixedCoinOff: event.target.value })} />
-                )}
-                {targetType === "shop_item" && (
-                    <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={shopItemId} onChange={(event) => onChange({ shopItemId: event.target.value })}>
+        <div className={sectionClassName}>
+            <FieldLabel
+                label="Hedef"
+                helper="Promosyonun tum katalogda mi, tek urunde mi yoksa bir bundle uzerinde mi calisacagini sec."
+            />
+            <div className="grid gap-3 md:grid-cols-3">
+                <button
+                    type="button"
+                    onClick={() => onTargetTypeChange("global")}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "global" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
+                >
+                    <div className="font-semibold text-foreground">Global</div>
+                    <div className={helperClassName}>Tum urun ve bundlelara acik.</div>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onTargetTypeChange("shop_item")}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "shop_item" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
+                >
+                    <div className="font-semibold text-foreground">Tek Urun</div>
+                    <div className={helperClassName}>Sadece secili shop item icin gecerli.</div>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onTargetTypeChange("bundle")}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "bundle" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
+                >
+                    <div className="font-semibold text-foreground">Bundle</div>
+                    <div className={helperClassName}>Sadece secilen bundle fiyatina uygulanir.</div>
+                </button>
+            </div>
+            {targetType === "shop_item" ? (
+                <div className="space-y-2">
+                    <FieldLabel label="Hedef Urun" helper="Kampanyanin baglanacagi shop item." />
+                    <select className={inputClassName} value={shopItemId} onChange={(event) => onShopItemChange(event.target.value)}>
                         <option value="">Urun sec</option>
                         {itemOptions.map((option) => (
                             <option key={option.id} value={option.id}>{option.name} ({option.type})</option>
                         ))}
                     </select>
-                )}
-                {targetType === "bundle" && (
-                    <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={bundleId} onChange={(event) => onChange({ bundleId: event.target.value })}>
+                </div>
+            ) : null}
+            {targetType === "bundle" ? (
+                <div className="space-y-2">
+                    <FieldLabel label="Hedef Bundle" helper="Kampanyanin baglanacagi bundle." />
+                    <select className={inputClassName} value={bundleId} onChange={(event) => onBundleChange(event.target.value)}>
                         <option value="">Bundle sec</option>
                         {bundleOptions.map((option) => (
                             <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
                         ))}
                     </select>
-                )}
-                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="datetime-local" value={startsAt} onChange={(event) => onChange({ startsAt: event.target.value })} />
-                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="datetime-local" value={endsAt} onChange={(event) => onChange({ endsAt: event.target.value })} />
-                {extraContent}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+function DiscountValueFields({
+    discountType,
+    percentageOff,
+    fixedCoinOff,
+    onDiscountTypeChange,
+    onPercentageChange,
+    onFixedCoinChange,
+}: {
+    discountType: PromotionDiscountType;
+    percentageOff: string;
+    fixedCoinOff: string;
+    onDiscountTypeChange: (value: PromotionDiscountType) => void;
+    onPercentageChange: (value: string) => void;
+    onFixedCoinChange: (value: string) => void;
+}) {
+    return (
+        <div className={sectionClassName}>
+            <FieldLabel label="Indirim Tipi" helper="Yuzde veya sabit coin indirimi sec. Alanlar secime gore degisir." />
+            <div className="grid gap-3 md:grid-cols-2">
+                <button
+                    type="button"
+                    onClick={() => onDiscountTypeChange("percentage")}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "percentage" ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:border-emerald-300"}`}
+                >
+                    <div className="font-semibold text-foreground">Yuzde</div>
+                    <div className={helperClassName}>Oransal indirim uygular.</div>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onDiscountTypeChange("fixed_coin")}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "fixed_coin" ? "border-amber-500 bg-amber-500/10" : "border-border bg-background hover:border-amber-300"}`}
+                >
+                    <div className="font-semibold text-foreground">Sabit Coin</div>
+                    <div className={helperClassName}>Fiyattan dogrudan coin dusurur.</div>
+                </button>
             </div>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={isActive} onChange={(event) => onChange({ isActive: event.target.checked })} />Aktif</label>
+            {discountType === "percentage" ? (
+                <div className="space-y-2">
+                    <FieldLabel label="Yuzde Orani" helper="1 ile 100 arasinda tam sayi." />
+                    <input className={inputClassName} type="number" min="1" max="100" value={percentageOff} onChange={(event) => onPercentageChange(event.target.value)} />
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    <FieldLabel label="Coin Indirimi" helper="Sepetten dusulecek sabit coin miktari." />
+                    <input className={inputClassName} type="number" min="1" value={fixedCoinOff} onChange={(event) => onFixedCoinChange(event.target.value)} />
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ScheduleFields({
+    usageLimit,
+    startsAt,
+    endsAt,
+    isActive,
+    onUsageLimitChange,
+    onStartsAtChange,
+    onEndsAtChange,
+    onIsActiveChange,
+}: {
+    usageLimit: string;
+    startsAt: string;
+    endsAt: string;
+    isActive: boolean;
+    onUsageLimitChange: (value: string) => void;
+    onStartsAtChange: (value: string) => void;
+    onEndsAtChange: (value: string) => void;
+    onIsActiveChange: (value: boolean) => void;
+}) {
+    return (
+        <div className={sectionClassName}>
+            <FieldLabel label="Takvim ve Limit" helper="Promosyonun ne zaman aktif olacagini ve kac kez kullanilabilecegini belirler." />
+            <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                    <FieldLabel label="Kullanim Limiti" helper="Bos birakilirsa limitsiz." />
+                    <input className={inputClassName} type="number" min="1" value={usageLimit} onChange={(event) => onUsageLimitChange(event.target.value)} placeholder="Orn. 500" />
+                </div>
+                <div className="space-y-2">
+                    <FieldLabel label="Baslangic" helper="Bos ise hemen aktif olabilir." />
+                    <input className={inputClassName} type="datetime-local" value={startsAt} onChange={(event) => onStartsAtChange(event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <FieldLabel label="Bitis" helper="Bos ise manuel kapatilana kadar acik kalir." />
+                    <input className={inputClassName} type="datetime-local" value={endsAt} onChange={(event) => onEndsAtChange(event.target.value)} />
+                </div>
+            </div>
+            <ToggleField
+                checked={isActive}
+                label="Aktif"
+                description="Pasif promosyon liste icinde kalsa da checkout tarafinda kullanilmaz."
+                onChange={onIsActiveChange}
+            />
+        </div>
+    );
+}
+function BundleEditor({
+    form,
+    itemOptions,
+    editing,
+    saving,
+    onChange,
+    onItemChange,
+    onAddItem,
+    onRemoveItem,
+    onSubmit,
+    onCancel,
+}: {
+    form: BundleFormState;
+    itemOptions: ItemOption[];
+    editing: boolean;
+    saving: boolean;
+    onChange: (patch: Partial<BundleFormState>) => void;
+    onItemChange: (index: number, patch: Partial<BundleItemFormRow>) => void;
+    onAddItem: () => void;
+    onRemoveItem: (index: number) => void;
+    onSubmit: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Bundle duzenle" : "Yeni bundle"}</h3>
+                    <p className={helperClassName}>Fiyat, sira ve bundle icerigini tek yerden tanimla.</p>
+                </div>
+                <PromotionTypeBadge label="bundle" />
+            </div>
+            <div className={sectionClassName}>
+                <FieldLabel label="Kimlik" helper="Kod checkout ve seed tarafinda tekil anahtar olarak kullanilir." />
+                <div className="grid gap-3 md:grid-cols-2">
+                    <input className={inputClassName} placeholder="Kod" value={form.code} onChange={(event) => onChange({ code: event.target.value })} />
+                    <input className={inputClassName} placeholder="Isim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
+                </div>
+                <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Aciklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
+            </div>
+            <div className={sectionClassName}>
+                <FieldLabel label="Magaza Ayarlari" helper="Bundle fiyatini ve vitrindeki sirasini belirler." />
+                <div className="grid gap-3 md:grid-cols-2">
+                    <input className={inputClassName} type="number" min="0" placeholder="Fiyat" value={form.priceCoin} onChange={(event) => onChange({ priceCoin: event.target.value })} />
+                    <input className={inputClassName} type="number" min="0" placeholder="Sira" value={form.sortOrder} onChange={(event) => onChange({ sortOrder: event.target.value })} />
+                </div>
+                <ToggleField
+                    checked={form.isActive}
+                    label="Aktif"
+                    description="Pasif bundle store katalogunda gizli kalir ama admin listesinde gorunur."
+                    onChange={(value) => onChange({ isActive: value })}
+                />
+            </div>
+            <div className={sectionClassName}>
+                <div className="flex items-start justify-between gap-4">
+                    <FieldLabel label="Bundle Icerigi" helper="Urun tekrar etmemeli. Siralama bundle detayinda gorunen sira olur." />
+                    <Button type="button" variant="outline" size="sm" onClick={onAddItem}>Satir ekle</Button>
+                </div>
+                <div className="space-y-3">
+                    {form.items.map((item, index) => (
+                        <div key={`bundle-item-${index}`} className="grid gap-3 md:grid-cols-[1fr_120px_44px]">
+                            <select className={inputClassName} value={item.shopItemId} onChange={(event) => onItemChange(index, { shopItemId: event.target.value })}>
+                                <option value="">Urun sec</option>
+                                {itemOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.name} ({option.type})</option>
+                                ))}
+                            </select>
+                            <input className={inputClassName} type="number" min="0" value={item.sortOrder} onChange={(event) => onItemChange(index, { sortOrder: event.target.value })} />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(index)} disabled={form.items.length === 1}><Trash2 size={14} /></Button>
+                        </div>
+                    ))}
+                </div>
+            </div>
             <div className="flex gap-2">
-                <Button onClick={onSubmit} disabled={saving}>Kaydet</Button>
-                {onCancel && <Button variant="outline" onClick={onCancel}>Iptal</Button>}
+                <Button onClick={onSubmit} disabled={saving}>{editing ? "Guncelle" : "Olustur"}</Button>
+                {editing ? <Button variant="outline" onClick={onCancel}>Iptal</Button> : null}
             </div>
         </div>
     );
 }
 
+function DiscountEditor({
+    form,
+    itemOptions,
+    bundleOptions,
+    editing,
+    saving,
+    onChange,
+    onSubmit,
+    onCancel,
+}: {
+    form: DiscountFormState;
+    itemOptions: ItemOption[];
+    bundleOptions: Array<{ id: number; name: string; code: string }>;
+    editing: boolean;
+    saving: boolean;
+    onChange: (patch: Partial<DiscountFormState>) => void;
+    onSubmit: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Indirim duzenle" : "Yeni indirim kampanyasi"}</h3>
+                    <p className={helperClassName}>Checkout fiyatina otomatik uygulanan kampanya. Kuponsuz da calisir.</p>
+                </div>
+                <PromotionTypeBadge label="campaign" />
+            </div>
+            <div className={sectionClassName}>
+                <FieldLabel label="Kampanya Kimligi" helper="Kod tekil olmalidir. Admin listesinde ve audit logda gorunur." />
+                <div className="grid gap-3 md:grid-cols-2">
+                    <input className={inputClassName} placeholder="Kod" value={form.code} onChange={(event) => onChange({ code: event.target.value })} />
+                    <input className={inputClassName} placeholder="Isim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
+                </div>
+                <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Aciklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
+            </div>
+            <TargetScopeFields
+                targetType={form.targetType}
+                shopItemId={form.shopItemId}
+                bundleId={form.bundleId}
+                itemOptions={itemOptions}
+                bundleOptions={bundleOptions}
+                onTargetTypeChange={(value) => onChange({ targetType: value, shopItemId: "", bundleId: "" })}
+                onShopItemChange={(value) => onChange({ shopItemId: value })}
+                onBundleChange={(value) => onChange({ bundleId: value })}
+            />
+            <DiscountValueFields
+                discountType={form.discountType}
+                percentageOff={form.percentageOff}
+                fixedCoinOff={form.fixedCoinOff}
+                onDiscountTypeChange={(value) => onChange({ discountType: value, percentageOff: value === "percentage" ? form.percentageOff || "10" : "", fixedCoinOff: value === "fixed_coin" ? form.fixedCoinOff || "25" : "" })}
+                onPercentageChange={(value) => onChange({ percentageOff: value })}
+                onFixedCoinChange={(value) => onChange({ fixedCoinOff: value })}
+            />
+            <ScheduleFields
+                usageLimit={form.usageLimit}
+                startsAt={form.startsAt}
+                endsAt={form.endsAt}
+                isActive={form.isActive}
+                onUsageLimitChange={(value) => onChange({ usageLimit: value })}
+                onStartsAtChange={(value) => onChange({ startsAt: value })}
+                onEndsAtChange={(value) => onChange({ endsAt: value })}
+                onIsActiveChange={(value) => onChange({ isActive: value })}
+            />
+            <ToggleField
+                checked={form.stackableWithCoupon}
+                label="Kupon ile birikebilir"
+                description="Ayni checkout icinde bu kampanya ustune ek kupon indirimi uygulanabilsin."
+                onChange={(value) => onChange({ stackableWithCoupon: value })}
+            />
+            <div className="flex gap-2">
+                <Button onClick={onSubmit} disabled={saving}>{editing ? "Guncelle" : "Olustur"}</Button>
+                {editing ? <Button variant="outline" onClick={onCancel}>Iptal</Button> : null}
+            </div>
+        </div>
+    );
+}
+
+function CouponEditor({
+    form,
+    itemOptions,
+    bundleOptions,
+    editing,
+    saving,
+    onChange,
+    onSubmit,
+    onCancel,
+}: {
+    form: CouponFormState;
+    itemOptions: ItemOption[];
+    bundleOptions: Array<{ id: number; name: string; code: string }>;
+    editing: boolean;
+    saving: boolean;
+    onChange: (patch: Partial<CouponFormState>) => void;
+    onSubmit: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Kupon duzenle" : "Yeni kupon"}</h3>
+                    <p className={helperClassName}>Oyuncunun elle girdigi kod. Global veya hedefli olabilir.</p>
+                </div>
+                <PromotionTypeBadge label="coupon" />
+            </div>
+            <div className={sectionClassName}>
+                <FieldLabel label="Kupon Kimligi" helper="Kod oyuncuya gorunur. Buyuk kucuk harf normalize edilir ama okunabilir format kullan." />
+                <div className="grid gap-3 md:grid-cols-2">
+                    <input className={`${inputClassName} font-mono uppercase`} placeholder="SPRING25" value={form.code} onChange={(event) => onChange({ code: event.target.value.toUpperCase() })} />
+                    <input className={inputClassName} placeholder="Isim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
+                </div>
+                <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Aciklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
+            </div>
+            <TargetScopeFields
+                targetType={form.targetType}
+                shopItemId={form.shopItemId}
+                bundleId={form.bundleId}
+                itemOptions={itemOptions}
+                bundleOptions={bundleOptions}
+                onTargetTypeChange={(value) => onChange({ targetType: value, shopItemId: "", bundleId: "" })}
+                onShopItemChange={(value) => onChange({ shopItemId: value })}
+                onBundleChange={(value) => onChange({ bundleId: value })}
+            />
+            <DiscountValueFields
+                discountType={form.discountType}
+                percentageOff={form.percentageOff}
+                fixedCoinOff={form.fixedCoinOff}
+                onDiscountTypeChange={(value) => onChange({ discountType: value, percentageOff: value === "percentage" ? form.percentageOff || "10" : "", fixedCoinOff: value === "fixed_coin" ? form.fixedCoinOff || "25" : "" })}
+                onPercentageChange={(value) => onChange({ percentageOff: value })}
+                onFixedCoinChange={(value) => onChange({ fixedCoinOff: value })}
+            />
+            <ScheduleFields
+                usageLimit={form.usageLimit}
+                startsAt={form.startsAt}
+                endsAt={form.endsAt}
+                isActive={form.isActive}
+                onUsageLimitChange={(value) => onChange({ usageLimit: value })}
+                onStartsAtChange={(value) => onChange({ startsAt: value })}
+                onEndsAtChange={(value) => onChange({ endsAt: value })}
+                onIsActiveChange={(value) => onChange({ isActive: value })}
+            />
+            <div className="flex gap-2">
+                <Button onClick={onSubmit} disabled={saving}>{editing ? "Guncelle" : "Olustur"}</Button>
+                {editing ? <Button variant="outline" onClick={onCancel}>Iptal</Button> : null}
+            </div>
+        </div>
+    );
+}
 export default function PromotionsPage() {
     const [itemOptions, setItemOptions] = useState<ItemOption[]>([]);
     const [bundles, setBundles] = useState<ShopBundleView[]>([]);
     const [discounts, setDiscounts] = useState<DiscountCampaignView[]>([]);
     const [coupons, setCoupons] = useState<CouponCodeView[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [editingBundleId, setEditingBundleId] = useState<number | null>(null);
     const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
@@ -246,8 +595,14 @@ export default function PromotionsPage() {
     const [discountForm, setDiscountForm] = useState<DiscountFormState>(emptyDiscountForm);
     const [couponForm, setCouponForm] = useState<CouponFormState>(emptyCouponForm);
 
+    const bundleOptions = useMemo(
+        () => bundles.map((bundle) => ({ id: bundle.id, name: bundle.name, code: bundle.code })),
+        [bundles]
+    );
+
     const loadAll = useCallback(async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const [itemsResponse, bundlesResponse, discountsResponse, couponsResponse] = await Promise.all([
                 fetch("/api/admin/shop-items?active=true", { cache: "no-store" }),
@@ -255,21 +610,25 @@ export default function PromotionsPage() {
                 fetch("/api/admin/promotions/discounts", { cache: "no-store" }),
                 fetch("/api/admin/promotions/coupons", { cache: "no-store" }),
             ]);
+
             if (!itemsResponse.ok || !bundlesResponse.ok || !discountsResponse.ok || !couponsResponse.ok) {
+                setLoadError("Admin promosyon verileri yuklenemedi.");
                 return;
             }
+
             const [itemsPayload, bundlesPayload, discountsPayload, couponsPayload] = await Promise.all([
                 itemsResponse.json() as Promise<StoreItemView[]>,
                 bundlesResponse.json() as Promise<ShopBundleView[]>,
                 discountsResponse.json() as Promise<DiscountCampaignView[]>,
                 couponsResponse.json() as Promise<CouponCodeView[]>,
             ]);
+
             setItemOptions(itemsPayload.map((item) => ({ id: item.id, code: item.code, name: item.name, type: item.type })));
             setBundles(bundlesPayload);
             setDiscounts(discountsPayload);
             setCoupons(couponsPayload);
         } catch {
-            // Keep current state on failure.
+            setLoadError("Admin promosyon verileri yuklenemedi.");
         } finally {
             setLoading(false);
         }
@@ -278,8 +637,6 @@ export default function PromotionsPage() {
     useEffect(() => {
         void loadAll();
     }, [loadAll]);
-
-    const bundleOptions = useMemo(() => bundles.map((bundle) => ({ id: bundle.id, name: bundle.name, code: bundle.code })), [bundles]);
 
     const saveBundle = async () => {
         setSaving(true);
@@ -291,7 +648,10 @@ export default function PromotionsPage() {
                 priceCoin: Number.parseInt(bundleForm.priceCoin, 10),
                 isActive: bundleForm.isActive,
                 sortOrder: Number.parseInt(bundleForm.sortOrder, 10),
-                items: bundleForm.items.filter((item) => item.shopItemId).map((item) => ({ shopItemId: Number.parseInt(item.shopItemId, 10), sortOrder: Number.parseInt(item.sortOrder, 10) })),
+                items: bundleForm.items.map((item) => ({
+                    shopItemId: Number.parseInt(item.shopItemId, 10),
+                    sortOrder: Number.parseInt(item.sortOrder, 10),
+                })),
             };
             const response = await fetch(editingBundleId ? `/api/admin/promotions/bundles/${editingBundleId}` : "/api/admin/promotions/bundles", {
                 method: editingBundleId ? "PUT" : "POST",
@@ -390,14 +750,16 @@ export default function PromotionsPage() {
             await loadAll();
         }
     };
-
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-foreground">Promosyonlar</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Bundle, indirim kampanyasi ve kupon kodlarini tek yerden yonetin.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Bundle, otomatik kampanya ve kupon akislarini ayri editor bloklariyla yonetin.</p>
             </div>
-            {loading && <Card><CardContent className="p-6 text-sm text-muted-foreground">Yukleniyor...</CardContent></Card>}
+
+            {loading ? <Card><CardContent className="p-6 text-sm text-muted-foreground">Yukleniyor...</CardContent></Card> : null}
+            {loadError ? <Card><CardContent className="p-6 text-sm text-red-500">{loadError}</CardContent></Card> : null}
+
             <div className="grid gap-6 xl:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -409,7 +771,7 @@ export default function PromotionsPage() {
                             <div key={bundle.id} className="rounded-2xl border border-border p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{bundle.name}</h3><PromotionTypeBadge label={bundle.isActive ? "Aktif" : "Pasif"} /></div>
+                                        <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{bundle.name}</h3><PromotionTypeBadge label={bundle.isActive ? "aktif" : "pasif"} /></div>
                                         <p className="font-mono text-xs text-muted-foreground">{bundle.code}</p>
                                         <p className="mt-2 text-sm text-muted-foreground">{bundle.description || "Aciklama yok."}</p>
                                         <p className="mt-2 text-sm font-medium text-foreground">{bundle.priceCoin.toLocaleString()} coin</p>
@@ -422,32 +784,26 @@ export default function PromotionsPage() {
                                 <div className="mt-3 flex flex-wrap gap-2">{bundle.items.map((item) => <span key={item.id} className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">{item.itemName} ({item.itemType})</span>)}</div>
                             </div>
                         ))}
-                        <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
-                            <h3 className="font-semibold text-foreground">{editingBundleId ? "Bundle Duzenle" : "Yeni Bundle"}</h3>
-                            <div className="grid gap-3 md:grid-cols-2">
-                                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Kod" value={bundleForm.code} onChange={(event) => setBundleForm((current) => ({ ...current, code: event.target.value }))} />
-                                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Isim" value={bundleForm.name} onChange={(event) => setBundleForm((current) => ({ ...current, name: event.target.value }))} />
-                                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" placeholder="Aciklama" value={bundleForm.description} onChange={(event) => setBundleForm((current) => ({ ...current, description: event.target.value }))} />
-                                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="number" placeholder="Fiyat" value={bundleForm.priceCoin} onChange={(event) => setBundleForm((current) => ({ ...current, priceCoin: event.target.value }))} />
-                                <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="number" placeholder="Sira" value={bundleForm.sortOrder} onChange={(event) => setBundleForm((current) => ({ ...current, sortOrder: event.target.value }))} />
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between"><p className="text-sm font-medium text-foreground">Bundle Icerigi</p><Button type="button" variant="outline" size="sm" onClick={() => setBundleForm((current) => ({ ...current, items: [...current.items, { shopItemId: "", sortOrder: String(current.items.length) }] }))}>Satir Ekle</Button></div>
-                                {bundleForm.items.map((item, index) => (
-                                    <div key={`${index}-${item.shopItemId}`} className="grid gap-2 md:grid-cols-[1fr_110px_44px]">
-                                        <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={item.shopItemId} onChange={(event) => setBundleForm((current) => ({ ...current, items: current.items.map((entry, entryIndex) => entryIndex === index ? { ...entry, shopItemId: event.target.value } : entry) }))}><option value="">Urun sec</option>{itemOptions.map((option) => <option key={option.id} value={option.id}>{option.name} ({option.type})</option>)}</select>
-                                        <input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" type="number" placeholder="Sira" value={item.sortOrder} onChange={(event) => setBundleForm((current) => ({ ...current, items: current.items.map((entry, entryIndex) => entryIndex === index ? { ...entry, sortOrder: event.target.value } : entry) }))} />
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => setBundleForm((current) => ({ ...current, items: current.items.filter((_, entryIndex) => entryIndex !== index) }))} disabled={bundleForm.items.length === 1}><Trash2 size={14} /></Button>
-                                    </div>
-                                ))}
-                            </div>
-                            <label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={bundleForm.isActive} onChange={(event) => setBundleForm((current) => ({ ...current, isActive: event.target.checked }))} />Aktif</label>
-                            <div className="flex gap-2"><Button onClick={() => void saveBundle()} disabled={saving}>{editingBundleId ? "Guncelle" : "Olustur"}</Button>{editingBundleId && <Button variant="outline" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }}>Iptal</Button>}</div>
-                        </div>
+                        <BundleEditor
+                            form={bundleForm}
+                            itemOptions={itemOptions}
+                            editing={editingBundleId !== null}
+                            saving={saving}
+                            onChange={(patch) => setBundleForm((current) => ({ ...current, ...patch }))}
+                            onItemChange={(index, patch) => setBundleForm((current) => ({ ...current, items: current.items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) }))}
+                            onAddItem={() => setBundleForm((current) => ({ ...current, items: [...current.items, { shopItemId: "", sortOrder: String(current.items.length) }] }))}
+                            onRemoveItem={(index) => setBundleForm((current) => ({ ...current, items: current.items.filter((_, itemIndex) => itemIndex !== index) }))}
+                            onSubmit={() => void saveBundle()}
+                            onCancel={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }}
+                        />
                     </CardContent>
                 </Card>
+
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Indirim Kampanyalari</CardTitle><Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button></CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Indirim Kampanyalari</CardTitle>
+                        <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                    </CardHeader>
                     <CardContent className="space-y-4">
                         {discounts.map((discount) => (
                             <div key={discount.id} className="rounded-2xl border border-border p-4">
@@ -458,16 +814,32 @@ export default function PromotionsPage() {
                                         <p className="mt-2 text-sm text-muted-foreground">{discount.discountType === "percentage" ? `%${discount.percentageOff} indirim` : `${discount.fixedCoinOff} coin indirim`}</p>
                                         <p className="mt-1 text-xs text-muted-foreground">Kullanim: {discount.usedCount}{discount.usageLimit ? ` / ${discount.usageLimit}` : ""}</p>
                                     </div>
-                                    <div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", usageLimit: discount.usageLimit ? String(discount.usageLimit) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button><Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button></div>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", usageLimit: discount.usageLimit ? String(discount.usageLimit) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
-                        <PromotionForm title={editingDiscountId ? "Indirim Duzenle" : "Yeni Indirim"} code={discountForm.code} name={discountForm.name} description={discountForm.description} targetType={discountForm.targetType} discountType={discountForm.discountType} percentageOff={discountForm.percentageOff} fixedCoinOff={discountForm.fixedCoinOff} shopItemId={discountForm.shopItemId} bundleId={discountForm.bundleId} startsAt={discountForm.startsAt} endsAt={discountForm.endsAt} isActive={discountForm.isActive} itemOptions={itemOptions} bundleOptions={bundleOptions} extraContent={<><input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Kullanim Limiti" type="number" value={discountForm.usageLimit} onChange={(event) => setDiscountForm((current) => ({ ...current, usageLimit: event.target.value }))} /><label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={discountForm.stackableWithCoupon} onChange={(event) => setDiscountForm((current) => ({ ...current, stackableWithCoupon: event.target.checked }))} />Kupon ile birikebilir</label></>} onChange={(patch) => setDiscountForm((current) => ({ ...current, ...patch } as DiscountFormState))} onSubmit={() => void saveDiscount()} onCancel={editingDiscountId ? () => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); } : undefined} saving={saving} />
+                        <DiscountEditor
+                            form={discountForm}
+                            itemOptions={itemOptions}
+                            bundleOptions={bundleOptions}
+                            editing={editingDiscountId !== null}
+                            saving={saving}
+                            onChange={(patch) => setDiscountForm((current) => ({ ...current, ...patch }))}
+                            onSubmit={() => void saveDiscount()}
+                            onCancel={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }}
+                        />
                     </CardContent>
                 </Card>
             </div>
+
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Kupon Kodlari</CardTitle><Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Kupon Kodlari</CardTitle>
+                    <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                </CardHeader>
                 <CardContent className="space-y-4">
                     {coupons.map((coupon) => (
                         <div key={coupon.id} className="rounded-2xl border border-border p-4">
@@ -478,11 +850,23 @@ export default function PromotionsPage() {
                                     <p className="mt-2 text-sm text-muted-foreground">{coupon.discountType === "percentage" ? `%${coupon.percentageOff} indirim` : `${coupon.fixedCoinOff} coin indirim`}</p>
                                     <p className="mt-1 text-xs text-muted-foreground">Kullanim: {coupon.usedCount}{coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}</p>
                                 </div>
-                                <div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditingCouponId(coupon.id); setCouponForm({ code: coupon.code, name: coupon.name, description: coupon.description ?? "", targetType: coupon.targetType, discountType: coupon.discountType, percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "", fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "", shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "", bundleId: coupon.bundleId ? String(coupon.bundleId) : "", usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "", startsAt: toDateTimeLocal(coupon.startsAt), endsAt: toDateTimeLocal(coupon.endsAt), isActive: coupon.isActive }); }}><Edit2 size={14} /></Button><Button variant="ghost" size="icon" onClick={() => void deactivateEntry("coupons", coupon.id)}><Trash2 size={14} /></Button></div>
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => { setEditingCouponId(coupon.id); setCouponForm({ code: coupon.code, name: coupon.name, description: coupon.description ?? "", targetType: coupon.targetType, discountType: coupon.discountType, percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "", fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "", shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "", bundleId: coupon.bundleId ? String(coupon.bundleId) : "", usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "", startsAt: toDateTimeLocal(coupon.startsAt), endsAt: toDateTimeLocal(coupon.endsAt), isActive: coupon.isActive }); }}><Edit2 size={14} /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("coupons", coupon.id)}><Trash2 size={14} /></Button>
+                                </div>
                             </div>
                         </div>
                     ))}
-                    <PromotionForm title={editingCouponId ? "Kupon Duzenle" : "Yeni Kupon"} code={couponForm.code} name={couponForm.name} description={couponForm.description} targetType={couponForm.targetType} discountType={couponForm.discountType} percentageOff={couponForm.percentageOff} fixedCoinOff={couponForm.fixedCoinOff} shopItemId={couponForm.shopItemId} bundleId={couponForm.bundleId} startsAt={couponForm.startsAt} endsAt={couponForm.endsAt} isActive={couponForm.isActive} itemOptions={itemOptions} bundleOptions={bundleOptions} extraContent={<input className="rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Kullanim Limiti" type="number" value={couponForm.usageLimit} onChange={(event) => setCouponForm((current) => ({ ...current, usageLimit: event.target.value }))} />} onChange={(patch) => setCouponForm((current) => ({ ...current, ...patch } as CouponFormState))} onSubmit={() => void saveCoupon()} onCancel={editingCouponId ? () => { setEditingCouponId(null); setCouponForm(emptyCouponForm); } : undefined} saving={saving} />
+                    <CouponEditor
+                        form={couponForm}
+                        itemOptions={itemOptions}
+                        bundleOptions={bundleOptions}
+                        editing={editingCouponId !== null}
+                        saving={saving}
+                        onChange={(patch) => setCouponForm((current) => ({ ...current, ...patch }))}
+                        onSubmit={() => void saveCoupon()}
+                        onCancel={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }}
+                    />
                 </CardContent>
             </Card>
         </div>

@@ -1,7 +1,14 @@
-export type StoreItemType = "avatar" | "frame" | "card_back" | "card_face";
-export type StoreItemRarity = "common" | "rare" | "epic" | "legendary";
-export type InventoryItemSource = "purchase" | "grant" | "migration";
-export type StoreItemRenderMode = "image" | "template";
+export const STORE_ITEM_TYPES = ["avatar", "frame", "card_back", "card_face"] as const;
+export const STORE_ITEM_RARITIES = ["common", "rare", "epic", "legendary"] as const;
+export const INVENTORY_ITEM_SOURCES = ["purchase", "grant", "migration"] as const;
+export const STORE_ITEM_RENDER_MODES = ["image", "template"] as const;
+export const PROMOTION_TARGET_TYPES = ["global", "shop_item", "bundle"] as const;
+export const PROMOTION_DISCOUNT_TYPES = ["percentage", "fixed_coin"] as const;
+
+export type StoreItemType = (typeof STORE_ITEM_TYPES)[number];
+export type StoreItemRarity = (typeof STORE_ITEM_RARITIES)[number];
+export type InventoryItemSource = (typeof INVENTORY_ITEM_SOURCES)[number];
+export type StoreItemRenderMode = (typeof STORE_ITEM_RENDER_MODES)[number];
 export type TemplateConfigScalar = string | number | boolean | null;
 export type TemplateConfigArray = TemplateConfigScalar[];
 export interface TemplateConfigObject {
@@ -19,8 +26,8 @@ export type CosmeticPattern =
     | "noise";
 export type CosmeticMotionPreset = "none" | "pulse" | "drift" | "shimmer";
 export type CosmeticFrameStyle = "solid" | "double" | "ornate";
-export type PromotionTargetType = "global" | "shop_item" | "bundle";
-export type PromotionDiscountType = "percentage" | "fixed_coin";
+export type PromotionTargetType = (typeof PROMOTION_TARGET_TYPES)[number];
+export type PromotionDiscountType = (typeof PROMOTION_DISCOUNT_TYPES)[number];
 
 export interface EquippedSlots {
     avatarItemId: number | null;

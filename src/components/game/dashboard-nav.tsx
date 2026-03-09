@@ -32,12 +32,15 @@ export function DashboardNav({ activeTab, onTabChange, showPlayTab }: DashboardN
                 {showPlayTab ? (
                     <button
                         onClick={() => onTabChange("play")}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all ${activeTab === "play"
+                        className={`flex w-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center shadow-lg transition-all ${activeTab === "play"
                                 ? "bg-gradient-to-tr from-purple-500 to-blue-600 text-white scale-110 ring-2 ring-purple-400/40"
                                 : "bg-gradient-to-tr from-purple-500 to-blue-600 text-white hover:scale-105"
                             }`}
                     >
                         <Play size={20} className="ml-0.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em]">
+                            Oyna
+                        </span>
                     </button>
                 ) : (
                     <div className="w-10 h-10 bg-gradient-to-tr from-red-500 to-blue-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">
@@ -87,7 +90,7 @@ export function DashboardNavMobile({
     showPlayTab,
 }: DashboardNavProps) {
     const allItems = showPlayTab
-        ? [{ id: "play" as DashboardTab, icon: Play, label: "Play" }, ...navItems]
+        ? [{ id: "play" as DashboardTab, icon: Play, label: "Oyna" }, ...navItems]
         : navItems;
 
     return (

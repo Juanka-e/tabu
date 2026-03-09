@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma, ShopItemType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
 import {
@@ -15,6 +15,7 @@ import type {
     EquippedSlots,
     InventoryItemView,
     PlayerAppearanceSnapshot,
+    StoreItemType,
     StoreItemView,
     StoreCatalogResponse,
     UserInventoryProfile,
@@ -194,7 +195,7 @@ function getEquippedSlots(profile: {
     };
 }
 
-function isEquipped(shopItemId: number, itemType: ShopItemType, equippedSlots: EquippedSlots): boolean {
+function isEquipped(shopItemId: number, itemType: StoreItemType, equippedSlots: EquippedSlots): boolean {
     if (itemType === "avatar") return equippedSlots.avatarItemId === shopItemId;
     if (itemType === "frame") return equippedSlots.frameItemId === shopItemId;
     if (itemType === "card_back") return equippedSlots.cardBackItemId === shopItemId;
@@ -678,7 +679,7 @@ async function reserveCouponUsage(
     return result.count === 1;
 }
 
-export async function listStoreItems(type?: ShopItemType, userId?: number): Promise<StoreItemView[]> {
+export async function listStoreItems(type?: StoreItemType, userId?: number): Promise<StoreItemView[]> {
     const catalog = await getStoreCatalog(userId);
     const items = type
         ? catalog.items.filter((item) => item.type === type)

@@ -1,9 +1,11 @@
-import {
-    Prisma,
-    PromotionDiscountType,
-    PromotionTargetType,
-} from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import {
+    PROMOTION_DISCOUNT_TYPES,
+    PROMOTION_TARGET_TYPES,
+    type PromotionDiscountType,
+    type PromotionTargetType,
+} from "@/types/economy";
 
 const codeSchema = z
     .string()
@@ -25,8 +27,8 @@ const promotionBaseSchema = z.object({
     code: codeSchema,
     name: z.string().trim().min(1).max(120),
     description: optionalTextSchema,
-    targetType: z.nativeEnum(PromotionTargetType),
-    discountType: z.nativeEnum(PromotionDiscountType),
+    targetType: z.enum(PROMOTION_TARGET_TYPES),
+    discountType: z.enum(PROMOTION_DISCOUNT_TYPES),
     percentageOff: z.number().int().min(1).max(100).optional().nullable(),
     fixedCoinOff: z.number().int().min(1).max(1_000_000).optional().nullable(),
     shopItemId: optionalForeignKeySchema,
