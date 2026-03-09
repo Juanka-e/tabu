@@ -671,7 +671,7 @@ export function setupGameSocket(io: Server): void {
         }
         // ── Room Join / Create ──
         socket.on(
-            "odaİsteği",
+            "room:request",
             async (rawPayload: unknown) => {
                 const parsed = OdaIstegiSchema.safeParse(rawPayload);
                 if (!parsed.success) {

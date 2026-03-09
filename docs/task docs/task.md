@@ -293,3 +293,9 @@ Reference:
 - [x] Update admin shop-item filter queries to use Prisma-safe enum values
 - [x] Extend smoke tests to validate mapper output against Prisma enums
 - [x] Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Room Create Regression Fix)
+- [x] Allow guest sockets through the custom server handshake instead of rejecting unauthenticated connections
+- [x] Fix the room create/join request contract so public home, authenticated dashboard, and room reconnect all use the same socket event
+- [x] Standardize room create/join onto ASCII event name `room:request` to avoid future encoding mismatches
+- [x] Verification completed: `npm run lint`, `npm run build`

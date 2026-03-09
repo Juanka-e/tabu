@@ -141,7 +141,7 @@ export default function RoomPage() {
         socket.on("connect", () => {
             setIsConnected(true);
             if (socket.id) setSocketId(socket.id);
-            socket.emit("odaİsteği", {
+            socket.emit("room:request", {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
                 ...(guestToken ? { guestToken } : {}),
