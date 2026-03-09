@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { purchaseStoreItem } from "@/lib/economy";
+import {
+  buildRateLimitHeaders,
+  consumeRequestRateLimit,
+  getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const purchaseSchema = z.object({
   shopItemId: z.number().int().positive(),
@@ -15,6 +20,19 @@ export async function POST(req: Request) {
   }
 
   try {
+    const rateLimit = consumeRequestRateLimit({
+      bucket: "store-item-purchase",
+      key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+      windowMs: 5 * 60_000,
+      maxRequests: 25,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Cok fazla satin alma denemesi yaptin. Biraz bekleyip tekrar dene." },
+        { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+      );
+    }
+
     const body = await req.json();
     const { shopItemId, couponCode } = purchaseSchema.parse(body);
 

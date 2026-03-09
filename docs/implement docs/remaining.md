@@ -273,3 +273,18 @@ Reference:
 - Add HTTP rate limiting for register/store/coupon endpoints.
 - Add nonce-based CSP if inline scripts are kept.
 - Decide whether bundle partial-ownership upgrade pricing is a product requirement.
+
+### Completed in the March 9 identity-hardening slice
+- Replaced client-provided room identity with server-controlled identity resolution.
+- Added signed guest-token flow for guest continuity without trusting localStorage `playerId`.
+- Removed client `playerId` dependency from match finalization and verified participants by authenticated `userId`.
+- Added state-changing same-origin checks in middleware.
+- Added HTTP rate limiting for register, finalize, purchase, equip, profile update, and coupon preview endpoints.
+- Added socket origin validation.
+- Added smoke tests: `npm run test:player-identity`, `npm run test:request-security`.
+- Verification passed: `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Add nonce-based CSP if inline scripts are kept.
+- Add security audit logging for admin/store/economy mutations.
+- Consider server-persisted guest session continuity if guest resume across browser restarts becomes a product requirement.

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { equipStoreItem } from "@/lib/economy";
+import {
+  buildRateLimitHeaders,
+  consumeRequestRateLimit,
+  getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const equipSchema = z.object({
   shopItemId: z.number().int().positive(),
@@ -14,6 +19,19 @@ export async function POST(req: Request) {
   }
 
   try {
+    const rateLimit = consumeRequestRateLimit({
+      bucket: "store-equip",
+      key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+      windowMs: 60_000,
+      maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Cok fazla kusanma istegi gonderdin. Biraz bekleyip tekrar dene." },
+        { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+      );
+    }
+
     const body = await req.json();
     const { shopItemId } = equipSchema.parse(body);
 

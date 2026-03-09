@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { purchaseStoreBundle } from "@/lib/economy";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const purchaseBundleSchema = z.object({
     bundleId: z.number().int().positive(),
@@ -15,6 +20,19 @@ export async function POST(req: Request) {
     }
 
     try {
+        const rateLimit = consumeRequestRateLimit({
+            bucket: "store-bundle-purchase",
+            key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+            windowMs: 5 * 60_000,
+            maxRequests: 20,
+        });
+        if (!rateLimit.allowed) {
+            return NextResponse.json(
+                { error: "Cok fazla bundle satin alma denemesi yaptin. Biraz bekleyip tekrar dene." },
+                { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
         const body = await req.json();
         const { bundleId, couponCode } = purchaseBundleSchema.parse(body);
 

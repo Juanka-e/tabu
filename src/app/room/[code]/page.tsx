@@ -32,6 +32,11 @@ import { ActiveGame } from "./_components/active-game";
 import { GameOverScreen } from "./_components/game-over-screen";
 import { UsernamePrompt } from "./_components/username-prompt";
 
+interface SocketIdentityPayload {
+    playerId: string;
+    guestToken: string | null;
+}
+
 export default function RoomPage() {
     const params = useParams();
     const router = useRouter();
@@ -46,7 +51,7 @@ export default function RoomPage() {
     const [socketId, setSocketId] = useState("");
     const [myPlayerId, setMyPlayerId] = useState(() => {
         if (typeof window !== "undefined") {
-            return localStorage.getItem("tabu_playerId") || "";
+            return window.sessionStorage.getItem("tabu_playerId") || "";
         }
         return "";
     });
@@ -122,8 +127,9 @@ export default function RoomPage() {
         if (showUsernamePrompt) return;
 
         const username = localStorage.getItem("tabu_username") || "Oyuncu";
-        const playerId = localStorage.getItem("tabu_playerId") || undefined;
-        const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
+        const guestToken = session?.user?.id
+            ? undefined
+            : window.sessionStorage.getItem("tabu_guestToken") || undefined;
 
         const socket = io({
             path: "/api/socketio",
@@ -138,16 +144,20 @@ export default function RoomPage() {
             socket.emit("odaİsteği", {
                 kullaniciAdi: username,
                 odaKodu: roomCode,
-                playerId,
-                ...(Number.isInteger(authUserId) ? { authUserId } : {}),
+                ...(guestToken ? { guestToken } : {}),
             });
         });
 
         socket.on("disconnect", () => setIsConnected(false));
 
-        socket.on("kimlikAta", (newPlayerId: string) => {
-            localStorage.setItem("tabu_playerId", newPlayerId);
-            setMyPlayerId(newPlayerId);
+        socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
+            window.sessionStorage.setItem("tabu_playerId", playerId);
+            if (assignedGuestToken) {
+                window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
+            } else {
+                window.sessionStorage.removeItem("tabu_guestToken");
+            }
+            setMyPlayerId(playerId);
         });
 
         socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
@@ -207,8 +217,7 @@ export default function RoomPage() {
             setView(GameView.GAME_OVER);
             setGameOverData(data);
 
-            const currentPlayerId = localStorage.getItem("tabu_playerId");
-            if (!session?.user?.id || !currentPlayerId) return;
+            if (!session?.user?.id) return;
             if (rewardClaimedRoomsRef.current.has(roomCode)) return;
 
             rewardClaimedRoomsRef.current.add(roomCode);
@@ -217,7 +226,6 @@ export default function RoomPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     roomCode,
-                    playerId: currentPlayerId,
                 }),
             }).catch(() => {
                 rewardClaimedRoomsRef.current.delete(roomCode);
@@ -570,3 +578,8 @@ export default function RoomPage() {
         </>
     );
 }
+
+
+
+
+

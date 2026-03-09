@@ -311,3 +311,11 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - Store pricing ignores exhausted campaigns before rendering prices.
 - Item and bundle checkout now reserve both campaign usage and coupon usage atomically inside the purchase transaction.
 - If a campaign limit is consumed by another request first, the API returns a refreshable conflict instead of overselling the promotion.
+
+## 9 March 2026 Update - Secure Room Identity
+
+- Home page and room page no longer send client-owned `playerId` values to the socket server.
+- Guests now carry a signed `guestToken` in `sessionStorage`; authenticated users rely on session-derived identity only.
+- The server always emits the effective identity back to the client through `kimlikAta`.
+- Sidebar and room-admin behaviors still use `playerId` in UI state, but that value is now server-issued and not trusted from client input.
+- Match reward finalization now uses authenticated room participation instead of a client-submitted `playerId`.

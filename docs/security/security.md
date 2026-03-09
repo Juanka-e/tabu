@@ -815,3 +815,36 @@ Critical Findings
 ### Security review note
 - This slice closes the promotion oversubscription class for both discount campaigns and coupons.
 - It does not change guest gameplay or authentication boundaries; store and cosmetics remain login-gated.
+
+## Remediation Status (9 March 2026 - Identity and Rate Limits)
+
+### Fixed in current code
+- Socket room join no longer accepts client-provided `playerId`.
+- Authenticated players now receive a server-controlled identity in the form `user:{userId}`.
+- Guest players now receive a signed guest token and server-controlled identity in the form `guest:{guestId}`.
+- `match/finalize` no longer accepts `playerId` from the client; it verifies participation directly from the authenticated `userId` in the room snapshot.
+- Added HTTP rate limiting for:
+  - `POST /api/auth/register`
+  - `POST /api/game/match/finalize`
+  - `POST /api/store/purchase`
+  - `POST /api/store/bundles/purchase`
+  - `POST /api/store/coupons/preview`
+  - `POST /api/store/equip`
+  - `PATCH /api/user/profile`
+- Added same-origin enforcement for state-changing matched API routes in middleware.
+- Added socket origin validation on connection.
+
+### Remaining after this slice
+- No nonce-based CSP yet
+- No centralized audit log for security-sensitive mutations
+- Guest identity is now signed, but still browser-session scoped rather than persisted server-side
+
+### Verification
+- `npm run test:player-identity`
+- `npm run test:request-security`
+- `npm run test:store-pricing`
+- `npm run test:promotions`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+- `npm audit --omit=dev`

@@ -4,10 +4,14 @@ import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { LOSS_REWARD, WIN_REWARD, ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
+import {
+  buildRateLimitHeaders,
+  consumeRequestRateLimit,
+  getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
-  playerId: z.string().uuid(),
 });
 
 export async function POST(req: Request) {
@@ -17,8 +21,21 @@ export async function POST(req: Request) {
   }
 
   try {
+    const rateLimit = consumeRequestRateLimit({
+      bucket: "match-finalize",
+      key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+      windowMs: 60_000,
+      maxRequests: 6,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Cok fazla odul denemesi yaptin. Biraz bekleyip tekrar dene." },
+        { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+      );
+    }
+
     const body = await req.json();
-    const { roomCode, playerId } = finalizeSchema.parse(body);
+    const { roomCode } = finalizeSchema.parse(body);
 
     const existing = await prisma.matchResult.findUnique({
       where: { roomCode_userId: { roomCode: roomCode.toUpperCase(), userId: sessionUser.id } },
@@ -39,9 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Mac henuz tamamlanmadi." }, { status: 409 });
     }
 
-    const participant = room.oyuncular.find(
-      (p) => p.playerId === playerId && p.userId === sessionUser.id
-    );
+    const participant = room.oyuncular.find((p) => p.userId === sessionUser.id);
     if (!participant) {
       return NextResponse.json({ error: "Oyuncu dogrulanamadi." }, { status: 403 });
     }
@@ -57,7 +72,7 @@ export async function POST(req: Request) {
         data: {
           roomCode: room.odaKodu,
           userId: sessionUser.id,
-          playerId,
+          playerId: participant.playerId,
           team: participant.takim,
           won,
           scoreA: room.skor.A,

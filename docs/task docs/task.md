@@ -202,3 +202,14 @@ Reference:
 - [x] Reserve campaign and coupon usage atomically during item and bundle checkout
 - [x] Update mock seed data and smoke tests for promotion limits
 - [x] Verification completed: `npx prisma db push`, `npx prisma generate --no-engine`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run test:catalog`, `npm run seed:catalog`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Identity Hardening)
+- [x] Stop trusting client-provided `playerId` during socket room join
+- [x] Add signed guest-token based guest identity flow
+- [x] Bind authenticated room identity to server-verified `userId`
+- [x] Remove client `playerId` dependency from `/api/game/match/finalize`
+- [x] Add middleware same-origin enforcement for state-changing matched APIs
+- [x] Add HTTP rate limits to register, finalize, purchase, equip, coupon preview, and profile update flows
+- [x] Add socket origin validation
+- [x] Add smoke tests: `npm run test:player-identity`, `npm run test:request-security`
+- [x] Verification completed: `npm run test:player-identity`, `npm run test:request-security`, `npm run test:store-pricing`, `npm run test:promotions`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

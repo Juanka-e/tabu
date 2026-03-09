@@ -531,6 +531,22 @@ Bu planda netlestirilen ana kararlar:
 - `npm run build`
 - `npm audit --omit=dev`
 
+## Security Hardening - Identity and Request Guards (9 March 2026)
+
+### Tamamlananlar
+- Oyun odasi socket akisinda client `playerId` guveni kaldirildi.
+- Misafir kullanici icin imzali `guestToken` kullaniliyor; token `sessionStorage` tarafinda tutuluyor.
+- Giris yapan kullanici icin oda kimligi dogrudan server-side `userId` temelli uretiliyor.
+- Match reward finalize artik body'den `playerId` almiyor; odadaki auth katilimci `userId` ile dogrulaniyor.
+- Middleware, state-changing API isteklerinde same-origin kontrolu uyguluyor.
+- Register/store/profile/finalize akislarinda HTTP rate limiting aktif.
+
+### Misafir akisi etkisi
+- Misafir girisi bozulmadi.
+- Misafir oyuncu hala oda olusturup katilabiliyor.
+- Misafir kimligi artik localStorage UUID yerine server-imzali guest token ile devam ediyor.
+- Kozmetik ve store kisitlari degismedi; bu alanlar halen login gerektiriyor.
+
 ## Promotion Usage Limits ve Atomic Reservation (9 March 2026)
 
 ### Tamamlananlar

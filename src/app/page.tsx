@@ -24,6 +24,11 @@ import { useSession, signOut } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 
+interface SocketIdentityPayload {
+  playerId: string;
+  guestToken: string | null;
+}
+
 export default function HomePage() {
   const [username, setUsername] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -51,8 +56,9 @@ export default function HomePage() {
     setIsConnecting(true);
     setError("");
 
-    const storedPlayerId = localStorage.getItem("tabu_playerId") || undefined;
-    const authUserId = session?.user?.id ? Number(session.user.id) : undefined;
+    const guestToken = isLoggedIn
+      ? undefined
+      : window.sessionStorage.getItem("tabu_guestToken") || undefined;
 
     const socket: Socket = io({
       path: "/api/socketio",
@@ -63,13 +69,17 @@ export default function HomePage() {
       socket.emit("odaİsteği", {
         kullaniciAdi: currentUsername,
         odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
-        playerId: storedPlayerId,
-        ...(Number.isInteger(authUserId) ? { authUserId } : {}),
+        ...(guestToken ? { guestToken } : {}),
       });
     });
 
-    socket.on("kimlikAta", (newPlayerId: string) => {
-      localStorage.setItem("tabu_playerId", newPlayerId);
+    socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
+      window.sessionStorage.setItem("tabu_playerId", playerId);
+      if (assignedGuestToken) {
+        window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
+      } else {
+        window.sessionStorage.removeItem("tabu_guestToken");
+      }
     });
 
     socket.on("lobiGuncelle", (data: { odaKodu: string }) => {

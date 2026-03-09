@@ -1,8 +1,8 @@
 import { Server, Socket } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot } from "@/lib/economy";
+import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
 import type { PlayerCosmetics } from "@/types/game";
@@ -190,8 +190,7 @@ function shuffleArray<T>(array: T[]): T[] {
 const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
-    playerId: z.string().uuid().optional(),
-    authUserId: z.number().int().positive().optional(),
+    guestToken: z.string().min(20).max(512).optional(),
 });
 
 const KategoriAyarlariSchema = z.object({
@@ -665,6 +664,11 @@ export function setupGameSocket(io: Server): void {
     // ─── Connection Handler ────────────────────────────────────
 
     io.on("connection", (socket: Socket) => {
+        if (!isTrustedSocketOrigin(socket)) {
+            socket.emit("hata", "Gecersiz baglanti origin'i.");
+            socket.disconnect(true);
+            return;
+        }
         // ── Room Join / Create ──
         socket.on(
             "odaİsteği",
@@ -674,7 +678,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, playerId, authUserId } = parsed.data;
+                const { kullaniciAdi, odaKodu, guestToken } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -705,22 +709,11 @@ export function setupGameSocket(io: Server): void {
                     const socketAuthUserId = await getSocketAuthUserId(socket);
                     const effectiveAuthUserId = socketAuthUserId ?? null;
 
-                    if (authUserId && authUserId !== effectiveAuthUserId) {
-                        console.warn("Ignored mismatched client authUserId for socket join", {
-                            socketId: socket.id,
-                            claimedUserId: authUserId,
-                            verifiedUserId: effectiveAuthUserId,
-                        });
-                    }
-
-                    // Determine effective player ID once
-                    // If client sent an ID, use it. Otherwise generate new one.
-                    let effectivePlayerId = playerId;
-                    let isNewId = false;
-                    if (!effectivePlayerId) {
-                        effectivePlayerId = uuidv4();
-                        isNewId = true;
-                    }
+                    const identity = resolveSocketPlayerIdentity(
+                        effectiveAuthUserId,
+                        guestToken
+                    );
+                    const effectivePlayerId = identity.playerId;
 
                     const requestedCode = odaKodu
                         ? String(odaKodu).toUpperCase()
@@ -737,7 +730,7 @@ export function setupGameSocket(io: Server): void {
                         room = {
                             odaKodu: targetCode,
                             creatorId: socket.id,
-                            creatorPlayerId: effectivePlayerId, // Use effective ID
+                            creatorPlayerId: effectivePlayerId,
                             oyuncular: [],
                             ayarlar: { sure: 60, mod: "tur", deger: 2 },
                             gecerliKategoriIdleri: [],
@@ -814,12 +807,12 @@ export function setupGameSocket(io: Server): void {
                         };
                         await hydratePlayerCosmetics(yeniOyuncu);
                         room.oyuncular.push(yeniOyuncu);
-
-                        // Only emit if we generated a new ID
-                        if (isNewId) {
-                            socket.emit("kimlikAta", effectivePlayerId);
-                        }
                     }
+
+                    socket.emit("kimlikAta", {
+                        playerId: effectivePlayerId,
+                        guestToken: identity.guestToken,
+                    });
 
                     persistRoom(room);
                     socket.join(targetCode!);
@@ -1285,6 +1278,28 @@ function isSecureSocketHandshake(socket: Socket): boolean {
     }
 
     return process.env.NODE_ENV === "production";
+}
+
+function isTrustedSocketOrigin(socket: Socket): boolean {
+    const origin = socket.handshake.headers.origin;
+    if (typeof origin !== "string") {
+        return process.env.NODE_ENV !== "production";
+    }
+
+    const hostHeader =
+        socket.handshake.headers["x-forwarded-host"] ??
+        socket.handshake.headers.host;
+    const normalizedHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+    if (!normalizedHost) {
+        return process.env.NODE_ENV !== "production";
+    }
+
+    try {
+        const originUrl = new URL(origin);
+        return originUrl.host === normalizedHost;
+    } catch {
+        return false;
+    }
 }
 
 async function getSocketAuthUserId(socket: Socket): Promise<number | null> {

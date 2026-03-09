@@ -3,6 +3,11 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";
+import {
+  buildRateLimitHeaders,
+  consumeRequestRateLimit,
+  getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
@@ -16,6 +21,19 @@ export async function PATCH(req: Request) {
   }
 
   try {
+    const rateLimit = consumeRequestRateLimit({
+      bucket: "user-profile-update",
+      key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+      windowMs: 60_000,
+      maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Cok fazla profil guncelleme istegi gonderdin. Biraz bekleyip tekrar dene." },
+        { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+      );
+    }
+
     const body = await req.json();
     const parsed = profileSchema.parse(body);
 
