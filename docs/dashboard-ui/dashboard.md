@@ -389,9 +389,16 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 ## 9 March 2026 Update - Dashboard Route Alignment
 
 - `/dashboard` rotasi eski bagimsiz UI'yi render etmeyi birakti.
-- Login sonrasi kanonik hedef artik `/` oldu; bu sayfa yeni full-page dashboard shell'ini gosterir.
-- `/dashboard` korunur ama authenticated durumda dogrudan `/` adresine yonlenir.
-- Boylece:
-  - full-page dashboard
-  - in-game overlay dashboard
-  ayni tasarim dilinde kalir ve eski dashboard sayfasi yanlislikla gorunmez.
+- Bu karar sonraki dilimde tekrar gozden gecirildi ve kanonik authenticated route olarak `/dashboard` secildi.
+
+## 9 March 2026 Update - Canonical Dashboard Route
+
+- Login sonrasi varsayilan hedef yeniden `/dashboard` yapildi.
+- `/dashboard` artik eski UI degil, shared full-page dashboard shell'ini render eder.
+- `/` artik guest-first giris yuzeyi olarak davranir.
+- Session aciksa `/` client tarafinda `/dashboard` adresine yonlenir.
+- Legacy route temizligi:
+  - `/profile` -> `/dashboard?tab=settings`
+  - `/store` -> `/dashboard?tab=shop`
+- Boylece authenticated uygulama yuzeyi tek bir shell altinda toplandi.
+- Bu yapi, public root ile authenticated dashboard alanini daha net ayirdigi icin tercih edildi.

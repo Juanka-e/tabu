@@ -253,8 +253,9 @@ Reference:
 
 ### Phase 12 Update (March 9, 2026 - Dashboard Route and Admin Word Filter)
 - [x] Remove the legacy standalone `/dashboard` UI from the runtime path
-- [x] Make login default callback target `/` so authenticated users land on the new full-page dashboard shell
-- [x] Keep `/dashboard` as a compatibility route that redirects to `/`
+- [x] Restore `/dashboard` as the canonical authenticated full-page dashboard route
+- [x] Redirect authenticated `/` traffic to `/dashboard`
+- [x] Convert legacy `/profile` and `/store` routes into dashboard-tab redirects
 - [x] Add category filtering UI to `/admin/words`
 - [x] Reuse existing `categoryId` admin API filtering support from the words endpoint
 - [x] Verification completed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

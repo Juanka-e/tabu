@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
@@ -10,14 +10,16 @@ interface UserNavProps {
 }
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/profile", label: "Profil" },
-  { href: "/store", label: "Magaza" },
+  { href: "/dashboard", label: "Dashboard", matches: (pathname: string, tab: string | null) => pathname === "/dashboard" && (!tab || tab === "dash") },
+  { href: "/dashboard?tab=settings", label: "Profil", matches: (pathname: string, tab: string | null) => pathname === "/dashboard" && tab === "settings" },
+  { href: "/dashboard?tab=shop", label: "Magaza", matches: (pathname: string, tab: string | null) => pathname === "/dashboard" && tab === "shop" },
 ];
 
 export function UserNav({ username }: UserNavProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const activeTab = searchParams.get("tab");
 
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/60 dark:border-zinc-800/70 bg-white/80 dark:bg-zinc-950/70 backdrop-blur">
@@ -26,7 +28,7 @@ export function UserNav({ username }: UserNavProps) {
           <Link href="/" className="font-black tracking-tight text-lg">TABU</Link>
           <nav className="flex items-center gap-2">
             {navItems.map((item) => {
-              const active = pathname === item.href;
+              const active = item.matches(pathname, activeTab);
               return (
                 <Link
                   key={item.href}

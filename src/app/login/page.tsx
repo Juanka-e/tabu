@@ -23,8 +23,8 @@ export default function LoginPage() {
 
         const callbackUrl =
             typeof window !== "undefined"
-                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/"
-                : "/";
+                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/dashboard"
+                : "/dashboard";
 
         try {
             const res = await signIn("credentials", {

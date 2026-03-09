@@ -349,8 +349,9 @@ Reference:
 
 ### Completed in the March 9 dashboard-route slice
 - Removed the old standalone `/dashboard` experience from the active authenticated flow.
-- Login now defaults to `/`, where the shared full-page dashboard shell lives.
-- `/dashboard` remains as a compatibility entry point but redirects authenticated traffic to `/`.
+- Promoted `/dashboard` to the canonical authenticated full-page dashboard route.
+- Authenticated `/` traffic now redirects to `/dashboard`, so the public root stays guest-first.
+- Legacy `/profile` and `/store` routes now redirect into dashboard tabs instead of rendering stale standalone pages.
 - Added category filtering controls to `/admin/words`, using the existing `categoryId` API filter.
 - Verification passed: `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
 
