@@ -1022,3 +1022,5 @@ Critical Findings
   - `npm run lint`
   - `npx tsc --noEmit`
   - `npm run build`
+- Enforced a single active primary inspector on the opponent side per turn.
+- Added a server-side `tabu` authorization guard so non-primary opponent players cannot mutate score even if they emit socket events manually.

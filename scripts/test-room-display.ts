@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+    canUseTabuAction,
     getActiveNarratorTeam,
     isCardViewerRole,
     ROOM_ROLE_GUESSER,
@@ -16,6 +17,11 @@ assert.equal(isCardViewerRole(ROOM_ROLE_GUESSER), false);
 assert.equal(shouldShowGuessPanel(ROOM_ROLE_GUESSER), true);
 assert.equal(shouldShowGuessPanel(ROOM_ROLE_SPECTATOR), true);
 assert.equal(shouldShowGuessPanel(ROOM_ROLE_NARRATOR), false);
+
+assert.equal(canUseTabuAction(ROOM_ROLE_NARRATOR, false), true);
+assert.equal(canUseTabuAction(ROOM_ROLE_INSPECTOR, true), true);
+assert.equal(canUseTabuAction(ROOM_ROLE_INSPECTOR, false), false);
+assert.equal(canUseTabuAction(ROOM_ROLE_GUESSER, false), false);
 
 assert.equal(
     getActiveNarratorTeam({
@@ -34,6 +40,7 @@ assert.equal(
             ad: "Erdal",
             takim: "A",
         },
+        gozetmen: null,
         aktifKart: null,
         altinSkorAktif: false,
     }),
@@ -52,6 +59,7 @@ assert.equal(
         skor: { A: 0, B: 0 },
         anlatacakTakim: "A",
         anlatici: null,
+        gozetmen: null,
         aktifKart: null,
         altinSkorAktif: false,
     }),

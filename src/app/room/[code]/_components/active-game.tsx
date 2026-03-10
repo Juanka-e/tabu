@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image, { type ImageLoaderProps } from "next/image";
 import { ArrowRight, Check, Pause, Play, RotateCcw, Sparkles, X } from "lucide-react";
@@ -11,6 +11,7 @@ import {
     getCosmeticMotionStyle,
 } from "@/lib/cosmetics/effects";
 import {
+    canUseTabuAction,
     getActiveNarratorTeam,
     isCardViewerRole,
     ROOM_ROLE_INSPECTOR,
@@ -25,6 +26,7 @@ interface ActiveGameProps {
     gameState: GameState | null;
     card: CardData | null;
     myRole: string;
+    isPrimaryInspector: boolean;
     narratorName: string;
     inspectorName: string;
     isHost: boolean;
@@ -37,17 +39,18 @@ interface ActiveGameProps {
 }
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
-const MODERATOR_LABEL = "G\u00f6zetmen";
+const MODERATOR_LABEL = "Gözetmen";
 const GUESS_PROMPT_TITLE = "Tahmin Et";
 const GUESS_PROMPT_DESCRIPTION = "kelimeyi anlatıyor. Doğru cevabı bulmaya çalış.";
-const GAME_PAUSED_LABEL = "Oyun duraklat\u0131ld\u0131";
-const RETURN_TO_LOBBY_LABEL = "Lobiye D\u00f6n";
-const CORRECT_LABEL = "DO\u011eRU";
+const GAME_PAUSED_LABEL = "Oyun duraklatıldı";
+const RETURN_TO_LOBBY_LABEL = "Lobiye Dön";
+const CORRECT_LABEL = "DOĞRU";
 
 export function ActiveGame({
     gameState,
     card,
     myRole,
+    isPrimaryInspector,
     narratorName,
     inspectorName,
     isHost,
@@ -64,6 +67,7 @@ export function ActiveGame({
         : 100;
     const showGuessPanel = shouldShowGuessPanel(myRole);
     const canSeeCard = isCardViewerRole(myRole);
+    const canSubmitTabu = canUseTabuAction(myRole, isPrimaryInspector);
     const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
     const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
     const cardBackPatternStyle = cardBackTheme
@@ -108,8 +112,7 @@ export function ActiveGame({
                         </div>
                         <div className="w-full h-2.5 bg-gray-200 dark:bg-slate-700 rounded-full mt-1 overflow-hidden shadow-inner">
                             <div
-                                className={`h-full transition-all duration-1000 ease-linear ${activeNarratorTeam === "A" ? "bg-red-500" : "bg-blue-500"
-                                    }`}
+                                className={`h-full transition-all duration-1000 ease-linear ${activeNarratorTeam === "A" ? "bg-red-500" : "bg-blue-500"}`}
                                 style={{ width: `${timerPercent}%` }}
                             />
                         </div>
@@ -261,18 +264,20 @@ export function ActiveGame({
                             <span className="text-sm">{CORRECT_LABEL}</span>
                         </button>
 
-                        <button
-                            onClick={() => onWordAction("tabu")}
-                            className="bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-xl shadow-md font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
-                        >
-                            <X size={24} className="mb-1" />
-                            <span className="text-sm">TABU</span>
-                        </button>
+                        {canSubmitTabu && (
+                            <button
+                                onClick={() => onWordAction("tabu")}
+                                className="bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-xl shadow-md font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+                            >
+                                <X size={24} className="mb-1" />
+                                <span className="text-sm">TABU</span>
+                            </button>
+                        )}
 
                         <button
                             onClick={() => onWordAction("pas")}
                             disabled={(gameState?.kalanPasHakki ?? 0) <= 0}
-                            className="bg-amber-400 hover:bg-amber-500 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:text-gray-400 text-white py-4 rounded-xl shadow-md font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+                            className={`bg-amber-400 hover:bg-amber-500 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:text-gray-400 text-white py-4 rounded-xl shadow-md font-bold flex flex-col items-center justify-center transition-transform active:scale-95 ${canSubmitTabu ? "" : "col-span-2"}`}
                         >
                             <ArrowRight size={24} className="mb-1" />
                             <span className="text-sm">PAS ({gameState?.kalanPasHakki ?? 0})</span>
@@ -281,7 +286,7 @@ export function ActiveGame({
                 </div>
             )}
 
-            {myRole === ROOM_ROLE_INSPECTOR && (
+            {myRole === ROOM_ROLE_INSPECTOR && isPrimaryInspector && (
                 <div className="mt-auto pt-6">
                     <div className="w-full max-w-md mx-auto">
                         <button

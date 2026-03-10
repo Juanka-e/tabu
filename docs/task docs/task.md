@@ -324,3 +324,6 @@ Reference:
 - [x] Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
 
 - Follow-up fix: `useSyncExternalStore` bootstrap snapshot was changed from object to primitive string sentinel to prevent the React `getSnapshot should be cached` infinite-loop warning on room entry.
+- Follow-up fix: active turn now has exactly one primary inspector on the opponent side.
+- Non-primary opponent players no longer receive inspector authority or the `TABU` action in UI.
+- Server-side `oyunVerisi` guard now also enforces `tabu` authority to narrator or the single active primary inspector only.

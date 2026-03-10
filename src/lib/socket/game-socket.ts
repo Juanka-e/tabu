@@ -47,6 +47,7 @@ interface GameStateData {
     takimA_anlaticiIndex: number;
     takimB_anlaticiIndex: number;
     anlatici: NarratorInfo | null;
+    gozetmen: NarratorInfo | null;
     aktifKart: unknown;
     altinSkorAktif: boolean;
     kalanGecisSuresi?: number;
@@ -166,6 +167,7 @@ function createInitialGameState(): GameStateData {
         takimA_anlaticiIndex: -1,
         takimB_anlaticiIndex: -1,
         anlatici: null,
+        gozetmen: null,
         aktifKart: null,
         altinSkorAktif: false,
     };
@@ -400,6 +402,14 @@ export function setupGameSocket(io: Server): void {
             ad: narrator.ad,
             takim: narrator.takim!,
         };
+        currentRoom.oyunDurumu.gozetmen = inspector
+            ? {
+                id: inspector.id,
+                playerId: inspector.playerId,
+                ad: inspector.ad,
+                takim: inspector.takim!,
+            }
+            : null;
         currentRoom.oyunDurumu.kalanPasHakki = 3;
 
         try {
@@ -451,7 +461,7 @@ export function setupGameSocket(io: Server): void {
                 rol = "Gözetmen";
                 isPrimaryGozetmen = true;
             } else if (player.takim !== narrator.takim) {
-                rol = "Gözetmen";
+                rol = "Tahminci";
             }
 
             const shouldSeeCard = rol === "Anlatıcı" || rol === "Gözetmen";
@@ -527,13 +537,13 @@ export function setupGameSocket(io: Server): void {
         const player = room.oyuncular.find((p) => p.id === socket.id);
         if (!player) return;
 
-        // Tabu can only be pressed by opponent or narrator
-        if (
-            action === "tabu" &&
-            narrator.takim === player.takim &&
-            narrator.id !== player.id
-        )
-            return;
+        const activeInspector = room.oyunDurumu.gozetmen;
+
+        if (action === "tabu") {
+            const isNarrator = narrator.id === player.id;
+            const isPrimaryInspector = activeInspector?.id === player.id;
+            if (!isNarrator && !isPrimaryInspector) return;
+        }
 
         // Dogru and pas can only be pressed by narrator
         if (

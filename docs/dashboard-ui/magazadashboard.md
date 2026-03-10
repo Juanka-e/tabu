@@ -1010,3 +1010,11 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 
+
+### Single Inspector Enforcement (10 March 2026)
+- The opponent side now has exactly one active primary inspector per turn.
+- Only that primary inspector can use the `TABU` action.
+- Other opponent players fall back to non-inspector gameplay visibility and cannot mutate round state.
+- This was fixed in both places:
+  - client UI button visibility
+  - server-side `oyunVerisi` authorization guard

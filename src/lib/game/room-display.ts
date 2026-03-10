@@ -17,6 +17,10 @@ export function shouldShowGuessPanel(role: string): boolean {
     return role === ROOM_ROLE_GUESSER || role === ROOM_ROLE_SPECTATOR;
 }
 
+export function canUseTabuAction(role: string, isPrimaryInspector: boolean): boolean {
+    return role === ROOM_ROLE_NARRATOR || (role === ROOM_ROLE_INSPECTOR && isPrimaryInspector);
+}
+
 export function getActiveNarratorTeam(gameState: GameState | null): "A" | "B" {
     if (gameState?.anlatici?.takim === "A" || gameState?.anlatici?.takim === "B") {
         return gameState.anlatici.takim;

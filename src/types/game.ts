@@ -95,6 +95,12 @@ export interface GameState {
         ad: string;
         takim: "A" | "B";
     } | null;
+    gozetmen: {
+        id: string;
+        playerId: string;
+        ad: string;
+        takim: "A" | "B";
+    } | null;
     aktifKart: CardData | null;
     altinSkorAktif: boolean;
     creatorId?: string;

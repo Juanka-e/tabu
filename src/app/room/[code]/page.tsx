@@ -95,6 +95,7 @@ export default function RoomPage() {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [card, setCard] = useState<CardData | null>(null);
     const [myRole, setMyRole] = useState(ROOM_ROLE_GUESSER);
+    const [isPrimaryInspector, setIsPrimaryInspector] = useState(false);
     const [narratorName, setNarratorName] = useState("");
     const [inspectorName, setInspectorName] = useState("");
     const [cardFaceTheme, setCardFaceTheme] = useState<ResolvedCardFaceTheme | null>(null);
@@ -208,11 +209,13 @@ export default function RoomPage() {
 
         socket.on("oyunBasladi", () => {
             setView(GameView.TRANSITION);
+            setIsPrimaryInspector(false);
             setCardFaceTheme(null);
         });
 
         socket.on("turGecisiBaslat", (data: TransitionData) => {
             setView(GameView.TRANSITION);
+            setIsPrimaryInspector(false);
             setTransition(data);
             setCardBackTheme(data.cardBackTheme);
         });
@@ -225,6 +228,7 @@ export default function RoomPage() {
 
         socket.on("yeniTurBilgisi", (data: TurnInfo) => {
             setMyRole(data.rol);
+            setIsPrimaryInspector(data.isPrimaryGozetmen);
             setCard(data.kart);
             setNarratorName(data.anlaticiAd);
             setInspectorName(data.gozetmenAd);
@@ -269,6 +273,7 @@ export default function RoomPage() {
             setView(GameView.LOBBY);
             setGameState(null);
             setCard(null);
+            setIsPrimaryInspector(false);
             setGameOverData(null);
             setTransition(null);
             setCardFaceTheme(null);
@@ -331,6 +336,7 @@ export default function RoomPage() {
                     gameState={gameState}
                     card={card}
                     myRole={myRole}
+                    isPrimaryInspector={isPrimaryInspector}
                     narratorName={narratorName}
                     inspectorName={inspectorName}
                     isHost={isHost as boolean}
