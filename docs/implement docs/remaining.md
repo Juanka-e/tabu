@@ -196,7 +196,6 @@ Reference:
 - Verification passed: `npm run test:frame-theme`, `npm run test:card-face`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
 
 ### Remaining
-- Reflect `card_back` in preview / transition flows.
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.
 
@@ -209,7 +208,18 @@ Reference:
 ### Remaining
 - Add bundle, discount, and coupon data models plus admin CRUD.
 - Seed production-shaped mock cosmetics, promotions, and coupon data.
-- Extend `card_back` beyond transition to other non-sensitive preview surfaces if desired.
+
+### Completed in the March 9 narrator-card-broadcast slice
+- Active gameplay no longer loads card cosmetics with a local `/api/user/me` fetch.
+- Server now resolves the authenticated narrator's equipped `card_face` and `card_back` and sends them through socket turn payloads.
+- Guest players still cannot equip or purchase cosmetics, but they now see the authenticated narrator's active card themes during transition and play.
+- `card_back` is now reflected beyond transition in the guesser / observer placeholder panel.
+- Added smoke test: `npm run test:room-card-themes`.
+- Verification passed: `npm run test:room-card-themes`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Remaining
+- Add bundle, discount, and coupon data models plus admin CRUD.
+- Seed production-shaped mock cosmetics, promotions, and coupon data.
 
 ### Completed in the March 9 promotions slice
 - Added bundle schema and admin CRUD.
@@ -444,3 +454,11 @@ Reference:
 - Add CSP report collection / monitoring if runtime violation visibility is required.
 - Build a visual in-admin cosmetic preview canvas if non-technical content authoring becomes frequent.
 - Add drag-and-drop or bulk reorder tooling if manual `sortOrder` edits become a bottleneck.
+
+### Completed in the March 10 room-ui-stability slice
+- Replaced room username bootstrap state mutations with a client snapshot pattern so SSR and the first client render match.
+- Removed the guest room hydration mismatch that rendered the full room shell on the server and `UsernamePrompt` on first client paint.
+- Added shared room display constants for narrator / inspector / guesser / spectator role checks.
+- Fixed active narrator team derivation so timer, narrator badge, and inspector badge colors track the real active team.
+- Cleaned room prompt and guess-panel Turkish strings and added smoke test: `npm run test:room-display`.
+- Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.

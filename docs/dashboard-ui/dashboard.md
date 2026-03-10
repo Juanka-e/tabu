@@ -258,7 +258,7 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 - `card_face` tipi aktif edildi.
 - `ShopItem` icin `renderMode`, `templateKey`, `templateConfig` alanlari eklendi.
 - `/admin/shop-items` artik image/template ayrimini yonetebiliyor.
-- `GameCard` temasi, login kullanicinin equip ettigi `card_face` urununden resolve ediliyor.
+- `GameCard` temasi artik aktif turun authenticated anlatıcısının equip ettigi `card_face` urununden resolve edilip tum ilgili client'lara socket ile yayiliyor.
 - Security:
   - admin ve store/user API korumasi `src/middleware.ts` uzerinden devam ediyor
   - shop item create/update validator'lari artik ortak zod schema uzerinden calisiyor
@@ -275,8 +275,8 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
 ## 9 March 2026 Update - Card Back in Transition
 
 - `TransitionScreen` now accepts an optional `cardBackTheme`.
-- Equipped `card_back` cosmetics render only for authenticated users and only on their own transition screen.
-- Guest users keep the default transition UI with no cosmetic fetch.
+- Equipped `card_back` cosmetics artik authenticated anlatıcının aktif tur temasi olarak tum client'lara yayinlanir.
+- Guest users still cannot equip cosmetics, but they can see the narrator's active `card_back` on transition and guess panels.
 - Added smoke coverage: `npm run test:card-back`.
 
 ## 9 March 2026 Update - Admin Promotions Surface

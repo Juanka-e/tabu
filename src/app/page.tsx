@@ -65,7 +65,7 @@ export default function HomePage() {
     });
 
     socket.on("connect", () => {
-      socket.emit("odaİsteği", {
+      socket.emit("room:request", {
         kullaniciAdi: currentUsername,
         odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
         ...(guestToken ? { guestToken } : {}),
