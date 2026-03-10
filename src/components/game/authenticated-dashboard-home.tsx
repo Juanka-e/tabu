@@ -70,7 +70,7 @@ export function AuthenticatedDashboardHome({
     });
 
     socket.on("connect", () => {
-      socket.emit("odaIsteği", {
+      socket.emit("room:request", {
         kullaniciAdi: currentUsername,
         odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
       });

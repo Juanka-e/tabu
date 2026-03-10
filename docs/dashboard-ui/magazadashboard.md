@@ -1,4 +1,4 @@
-﻿# Magaza + Dashboard Altyapi Notlari
+# Magaza + Dashboard Altyapi Notlari
 
 ## Hedef
 - Misafir girisi korunur.
@@ -333,7 +333,7 @@ Bu planda netlestirilen ana kararlar:
 - `avatar` urunleri icin template modu bilerek kapali tutuldu.
 
 ### Oyun tarafi
-- Room sayfasi giris yapan kullanicinin `card_face` item'ini `/api/user/me` uzerinden okuyor.
+- Ilk slice'ta room sayfasi giris yapan kullanicinin `card_face` item'ini `/api/user/me` uzerinden okuyordu.
 - Secili `card_face` icin guvenli resolver calisiyor:
   - destekli renkler yalnizca hex formatinda
   - destekli texture anahtarlari whitelist ile sinirli
@@ -393,14 +393,12 @@ Bu planda netlestirilen ana kararlar:
 - `scripts/test-card-back-theme.ts` smoke testi ve `npm run test:card-back` komutu eklendi.
 
 ### Misafir Akisi Garantisi
-- Misafir kullanicida `card_back` yuklenmiyor.
-- Kozmetik fetch'i sadece `session.user.id` varsa calisiyor.
-- Render tarafinda da `cardBackTheme` ve `cardFaceTheme` session yoksa zorla `null` maskeleniyor.
-- Bu nedenle misafir girisi ve kayitsiz oyun akisinda davranis degisikligi yok.
+- Ilk rollout'ta misafir kullanicida `card_back` yuklenmiyordu.
+- Bu davranis sonradan narrator-broadcast modeline gecmeden once geciciydi.
 
 ### Guvenlik ve Mantik
-- Kozmetik verisi halen `/api/user/me` uzerinden geliyor; bu route login gerektiriyor.
-- `card_back` sadece oyuncunun kendi client'inda gosteriliyor; rakibe veya tahmin bilgisine ek veri sizdirmiyor.
+- Ilk rollout'ta kozmetik verisi `/api/user/me` uzerinden geliyordu; bu route login gerektiriyordu.
+- Sonraki narrator-broadcast slice'inda bu local fetch kaldirildi ve kart temalari socket payload'i ile server-resolved sekilde yayildi.
 - Image/template varyantlari whitelist/sanitize kurallari ile resolve ediliyor.
 
 ### Bu Turdaki Dogrulama
@@ -919,3 +917,104 @@ Bu planda netlestirilen ana kararlar:
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm audit --omit=dev`
+
+## Card Face / Card Back Behavior (9 March 2026)
+
+### Current behavior
+- `card_face` ve `card_back` artik aktif turun anlaticisi baz alinarak socket payload'i ile tum client'lara yayilir.
+- Bu nedenle:
+  - anlatici login ise equip ettigi `card_face` karti goren herkeste ayni tema olarak gorunur
+  - anlatici login ise equip ettigi `card_back` transition ekraninda ve tahminci/izleyici placeholder panelinde gorunur
+  - guest oyuncular kendi kozmetiklerini kullanamaz ama login oyuncunun kuşandigi aktif kart temasini gorur
+- Tahminci ekranindaki `Tahmin Et!` kutusu artik narrator `card_back` dilini kullanabilen temali placeholder paneldir.
+
+### Neden boyle
+- Kozmetik equip ve satin alma hakki halen sadece login kullanicidadir.
+- Gorunum verisi ise narrator bazli server-resolved payload ile yayinlandigi icin guest kullaniciya yeni bir equip/satin alma yetkisi acilmaz.
+- Bu model, urun degerini gorunur kilar ama auth sinirlarini bozmaz.
+
+### Su an satin alinan kartta renk mantigi
+- Default kartlarda kategori rengi `card.categoryColor` ile header'a uygulanir.
+- Eger `card_face` equip edildiyse:
+  - kart temasi border, glow, pattern, footer, word/taboo renklerini degistirir
+  - kategori rengi varsa header'da hala kategori rengi onceliklidir
+- Yani bugunku model:
+  - kategori rengi = gameplay bilgisi
+  - cosmetic tema = premium stil katmani
+
+### Onerilen kalici yol
+- `card_face` icin iki katmanli sistem daha dogru:
+  - gameplay layer: kategori/difficulty sinyali korunur
+  - cosmetic layer: border, texture, glow, frame, footer, overlay uygular
+- Boylece satin alinan kart temasi karti premium hissettirir ama gameplay okunurlugunu bozmaz.
+
+## Narrator Card Theme Broadcast (9 March 2026)
+
+### Tamamlananlar
+- `card_face` ve `card_back` local `/api/user/me` fetch'inden cikarildi.
+- Room server artik anlaticinin equip ettigi kart kozmetiklerini DB'den okur, server tarafinda resolve eder ve socket payload'ina ekler.
+- `yeniTurBilgisi` payload'i:
+  - `cardFaceTheme`
+  - `cardBackTheme`
+  alanlarini tasir.
+- `turGecisiBaslat` payload'i:
+  - `cardBackTheme`
+  alanini tasir.
+- `ActiveGame` artik narrator kart temasini herkes icin tutarli sekilde kullanir:
+  - anlatici ve gozetmen `card_face` ile `GameCard` gorur
+  - tahminci ve izleyici `card_back` diliyle temalanmis placeholder panel gorur
+
+### Misafir politikasi
+- Misafir kullanici:
+  - kozmetik satin alamaz
+  - kozmetik equip edemez
+  - ama login oyuncunun aktif tur kozmetigini gorur
+- Boylece auth siniri korunur, vitrin etkisi ise oyunda gorunur kalir.
+
+### Test ve dogrulama
+- Yeni smoke test: `npm run test:room-card-themes`
+- Bu slice'ta gecen kontroller:
+  - `npm run test:room-card-themes`
+  - `npm run test:card-face`
+  - `npm run test:card-back`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+
+## Room UI Stability (10 March 2026)
+
+### Fixed in this slice
+- Room username bootstrap now uses a client snapshot pattern so the server and first client render start from the same null state.
+- Guest join no longer hydrates from full room layout into `UsernamePrompt`; the prompt appears only after client readiness is established.
+- Room role labels are now normalized through shared constants:
+  - `Anlatici`
+  - `Gozetmen`
+  - `Tahminci`
+  - `İzleyici`
+- Active narrator team color now comes from `gameState.anlatici.takim` first, so:
+  - narrator and inspector colors stay aligned with the real active team
+  - timer number and timer bar use the real active narrator team color
+- Guess panel copy and username prompt copy were rewritten in clean UTF-8-safe source files.
+
+### Expected gameplay behavior after the fix
+- Login narrator equips `card_face` and `card_back`.
+- All clients in the room, including guests, can see those narrator cosmetics.
+- Guests still cannot purchase or equip cosmetics.
+- Narrator and inspector see the front card.
+- Guesser and spectator see the narrator-themed back/placeholder panel.
+
+### Verification
+- `npm run test:room-display`
+- `npm run test:room-card-themes`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+
+
+### Single Inspector Enforcement (10 March 2026)
+- The opponent side now has exactly one active primary inspector per turn.
+- Only that primary inspector can use the `TABU` action.
+- Other opponent players fall back to non-inspector gameplay visibility and cannot mutate round state.
+- This was fixed in both places:
+  - client UI button visibility
+  - server-side `oyunVerisi` authorization guard

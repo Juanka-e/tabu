@@ -1,5 +1,8 @@
 // ─── Game State Enums ──────────────────────────────────────────
 
+import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
+import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
+
 export enum GameView {
     LOGIN = "LOGIN",
     LOBBY = "LOBBY",
@@ -92,6 +95,12 @@ export interface GameState {
         ad: string;
         takim: "A" | "B";
     } | null;
+    gozetmen: {
+        id: string;
+        playerId: string;
+        ad: string;
+        takim: "A" | "B";
+    } | null;
     aktifKart: CardData | null;
     altinSkorAktif: boolean;
     creatorId?: string;
@@ -105,6 +114,7 @@ export interface TransitionData {
     gozetmen: { ad: string; takim: string } | null;
     kalanSure: number;
     creatorId: string;
+    cardBackTheme: ResolvedCardBackTheme | null;
 }
 
 export interface TurnInfo {
@@ -113,6 +123,8 @@ export interface TurnInfo {
     kart: CardData | null;
     anlaticiAd: string;
     gozetmenAd: string;
+    cardFaceTheme: ResolvedCardFaceTheme | null;
+    cardBackTheme: ResolvedCardBackTheme | null;
 }
 
 export interface GameOverData {

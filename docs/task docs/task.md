@@ -48,23 +48,23 @@
 - [x] Paused Overlay with blur effect and play/pause button
 
 ## Phase 6: Socket.IO Integration
-- [x] Port game socket logic (gameSocket.js) to TypeScript — `game-socket.ts`
-- [x] Port word service to Prisma-backed — `word-service.ts`
-- [x] Port category service with caching — `category-service.ts`
-- [x] Room metrics module — `room-metrics.ts`
-- [x] Custom server with Socket.IO integration — `server.ts`
+- [x] Port game socket logic (gameSocket.js) to TypeScript â€” `game-socket.ts`
+- [x] Port word service to Prisma-backed â€” `word-service.ts`
+- [x] Port category service with caching â€” `category-service.ts`
+- [x] Room metrics module â€” `room-metrics.ts`
+- [x] Custom server with Socket.IO integration â€” `server.ts`
 - [x] Frontend socket connection in room page
 
 ## Phase 7: Build & Compatibility Fixes
-- [x] Fix word-service field name mismatch (snake_case → camelCase to match CardData)
-- [x] Fix GameView enum import (type-only → value import for runtime usage)
+- [x] Fix word-service field name mismatch (snake_case â†’ camelCase to match CardData)
+- [x] Fix GameView enum import (type-only â†’ value import for runtime usage)
 - [x] Add SEO metadata (OpenGraph, Twitter cards) to root and room layouts
-- [x] Verify build passes (`next build` → Exit code: 0 ✅)
+- [x] Verify build passes (`next build` â†’ Exit code: 0 âœ…)
 
 ## Phase 8: Remaining Tasks
 - [x] Admin panel CRUD UI pages (words, categories, announcements)
 - [x] Bulk CSV word upload feature
-- [ ] Test full game flow (create room → play → game over)
+- [ ] Test full game flow (create room â†’ play â†’ game over)
 - [ ] Test admin panel CRUD operations
 - [ ] Test responsive design (mobile/desktop)
 - [ ] i18n (multi-language support)
@@ -293,3 +293,37 @@ Reference:
 - [x] Update admin shop-item filter queries to use Prisma-safe enum values
 - [x] Extend smoke tests to validate mapper output against Prisma enums
 - [x] Verification completed: `npm run test:promotions`, `npm run test:shop-items`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 12 Update (March 9, 2026 - Room Create Regression Fix)
+- [x] Allow guest sockets through the custom server handshake instead of rejecting unauthenticated connections
+- [x] Fix the room create/join request contract so public home, authenticated dashboard, and room reconnect all use the same socket event
+- [x] Standardize room create/join onto ASCII event name `room:request` to avoid future encoding mismatches
+- [x] Verification completed: `npm run lint`, `npm run build`
+
+### Phase 12 Update (March 9, 2026 - Room Hydration and Security Review)
+- [x] Fix room page theme-toggle hydration mismatch by switching to dual-icon CSS visibility instead of server/client conditional icon JSX
+- [x] Re-review admin panel route protection and direct admin API exposure
+- [x] Re-review store purchase / equip / coupon flow for client-side coin bypass risk
+- [x] Document current `card_face` / `card_back` behavior and the recommended next rendering model
+- [x] Verification completed: `npm run lint`, `npm run build`
+
+### Phase 12 Update (March 9, 2026 - Narrator Card Theme Broadcast)
+- [x] Remove room-local `/api/user/me` cosmetic fetch from active gameplay
+- [x] Resolve narrator `card_face` / `card_back` on the server and send them through socket turn payloads
+- [x] Let guest players see authenticated narrator cosmetics without allowing guest equip or purchase
+- [x] Apply narrator `card_face` to `GameCard` and narrator `card_back` to transition + guesser/observer placeholder panels
+- [x] Add smoke test: `npm run test:room-card-themes`
+- [x] Verification completed: `npm run test:room-card-themes`, `npm run test:card-face`, `npm run test:card-back`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+### Phase 12 Update (March 10, 2026 - Room UI Stability and Guest Join Hydration)
+- [x] Replace room username bootstrap state mutation-in-effect with a client snapshot pattern to keep SSR and first client render aligned
+- [x] Remove guest room hydration mismatch where `UsernamePrompt` replaced the already-rendered room layout during hydration
+- [x] Normalize room role labels through shared constants for `Anlatici`, `Gozetmen`, `Tahminci`, and `İzleyici`
+- [x] Fix active narrator team derivation so timer color and narrator/inspector colors match the real active team
+- [x] Clean up room prompt / guess panel Turkish text and add smoke test: `npm run test:room-display`
+- [x] Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+- Follow-up fix: `useSyncExternalStore` bootstrap snapshot was changed from object to primitive string sentinel to prevent the React `getSnapshot should be cached` infinite-loop warning on room entry.
+- Follow-up fix: active turn now has exactly one primary inspector on the opponent side.
+- Non-primary opponent players no longer receive inspector authority or the `TABU` action in UI.
+- Server-side `oyunVerisi` guard now also enforces `tabu` authority to narrator or the single active primary inspector only.

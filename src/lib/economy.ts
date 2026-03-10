@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
 import {
@@ -37,6 +38,19 @@ type AppearanceProfileRecord = {
         templateKey: string | null;
         templateConfig: Prisma.JsonValue | null;
     } | null;
+};
+
+type EquippedCardThemeItemRecord = {
+    imageUrl: string;
+    rarity: "common" | "rare" | "epic" | "legendary";
+    renderMode: "image" | "template";
+    templateKey: string | null;
+    templateConfig: Prisma.JsonValue | null;
+};
+
+type CardCosmeticsProfileRecord = {
+    cardBackItem: EquippedCardThemeItemRecord | null;
+    cardFaceItem: EquippedCardThemeItemRecord | null;
 };
 
 export async function ensureUserCore(userId: number) {
@@ -181,6 +195,36 @@ export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<M
     return profileMap;
 }
 
+export async function getPlayerCardCosmeticsSnapshot(userId: number): Promise<RoomCardCosmeticsSnapshot> {
+    await ensureUserCore(userId);
+
+    const profile = await prisma.userProfile.findUnique({
+        where: { userId },
+        select: {
+            cardBackItem: {
+                select: {
+                    imageUrl: true,
+                    rarity: true,
+                    renderMode: true,
+                    templateKey: true,
+                    templateConfig: true,
+                },
+            },
+            cardFaceItem: {
+                select: {
+                    imageUrl: true,
+                    rarity: true,
+                    renderMode: true,
+                    templateKey: true,
+                    templateConfig: true,
+                },
+            },
+        },
+    });
+
+    return profile ? mapPlayerCardCosmeticsSnapshot(profile) : createEmptyPlayerCardCosmeticsSnapshot();
+}
+
 function getEquippedSlots(profile: {
     avatarItemId: number | null;
     frameItemId: number | null;
@@ -222,6 +266,13 @@ function createEmptyAppearanceSnapshot(): PlayerAppearanceSnapshot {
     };
 }
 
+function createEmptyPlayerCardCosmeticsSnapshot(): RoomCardCosmeticsSnapshot {
+    return {
+        cardFace: null,
+        cardBack: null,
+    };
+}
+
 function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAppearanceSnapshot {
     const frameTheme = profile.frameItem
         ? resolveFrameTheme({
@@ -249,6 +300,29 @@ function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAp
         frameRadius: frameTheme?.radius ?? null,
         frameMotionPreset: frameTheme?.motionPreset ?? null,
         frameMotionSpeedMs: frameTheme?.motionSpeedMs ?? null,
+    };
+}
+
+function mapPlayerCardCosmeticsSnapshot(profile: CardCosmeticsProfileRecord): RoomCardCosmeticsSnapshot {
+    return {
+        cardFace: profile.cardFaceItem
+            ? {
+                renderMode: profile.cardFaceItem.renderMode,
+                imageUrl: profile.cardFaceItem.imageUrl,
+                templateKey: profile.cardFaceItem.templateKey,
+                templateConfig: normalizeTemplateConfig(profile.cardFaceItem.templateConfig),
+                rarity: profile.cardFaceItem.rarity,
+            }
+            : null,
+        cardBack: profile.cardBackItem
+            ? {
+                renderMode: profile.cardBackItem.renderMode,
+                imageUrl: profile.cardBackItem.imageUrl,
+                templateKey: profile.cardBackItem.templateKey,
+                templateConfig: normalizeTemplateConfig(profile.cardBackItem.templateConfig),
+                rarity: profile.cardBackItem.rarity,
+            }
+            : null,
     };
 }
 
