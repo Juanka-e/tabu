@@ -37,10 +37,7 @@ interface SocketIdentityPayload {
     guestToken: string | null;
 }
 
-interface RoomClientBootstrap {
-    ready: boolean;
-    storedUsername: string;
-}
+const ROOM_CLIENT_BOOTSTRAP_PENDING = "__room_client_bootstrap_pending__";
 
 function subscribeRoomClientBootstrap(onStoreChange: () => void): () => void {
     if (typeof window === "undefined") {
@@ -51,22 +48,16 @@ function subscribeRoomClientBootstrap(onStoreChange: () => void): () => void {
     return () => window.removeEventListener("storage", onStoreChange);
 }
 
-function getRoomClientBootstrapSnapshot(): RoomClientBootstrap {
+function getRoomClientBootstrapSnapshot(): string {
     if (typeof window === "undefined") {
-        return { ready: false, storedUsername: "" };
+        return ROOM_CLIENT_BOOTSTRAP_PENDING;
     }
 
-    return {
-        ready: true,
-        storedUsername: window.localStorage.getItem("tabu_username") || "",
-    };
+    return window.localStorage.getItem("tabu_username") || "";
 }
 
-function getRoomClientBootstrapServerSnapshot(): RoomClientBootstrap {
-    return {
-        ready: false,
-        storedUsername: "",
-    };
+function getRoomClientBootstrapServerSnapshot(): string {
+    return ROOM_CLIENT_BOOTSTRAP_PENDING;
 }
 
 export default function RoomPage() {
@@ -125,16 +116,16 @@ export default function RoomPage() {
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [showDashboard, setShowDashboard] = useState(false);
     const [hasConfirmedUsername, setHasConfirmedUsername] = useState(false);
-    const roomClientBootstrap = useSyncExternalStore(
+    const storedUsername = useSyncExternalStore(
         subscribeRoomClientBootstrap,
         getRoomClientBootstrapSnapshot,
         getRoomClientBootstrapServerSnapshot
     );
-    const isRoomClientReady = roomClientBootstrap.ready;
+    const isRoomClientReady = storedUsername !== ROOM_CLIENT_BOOTSTRAP_PENDING;
     const showUsernamePrompt =
         isRoomClientReady &&
         !hasConfirmedUsername &&
-        roomClientBootstrap.storedUsername.trim().length === 0;
+        storedUsername.trim().length === 0;
 
     // Responsive check
     useEffect(() => {
@@ -160,7 +151,7 @@ export default function RoomPage() {
     useEffect(() => {
         if (!isRoomClientReady || showUsernamePrompt) return;
 
-        const username = roomClientBootstrap.storedUsername || "Oyuncu";
+        const username = storedUsername || "Oyuncu";
         const guestToken = session?.user?.id
             ? undefined
             : window.sessionStorage.getItem("tabu_guestToken") || undefined;
@@ -299,7 +290,7 @@ export default function RoomPage() {
         return () => {
             socket.disconnect();
         };
-    }, [isRoomClientReady, roomClientBootstrap.storedUsername, roomCode, router, session?.user?.id, showUsernamePrompt]);
+    }, [isRoomClientReady, roomCode, router, session?.user?.id, showUsernamePrompt, storedUsername]);
 
     // Actions
 

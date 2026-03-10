@@ -323,3 +323,4 @@ Reference:
 - [x] Clean up room prompt / guess panel Turkish text and add smoke test: `npm run test:room-display`
 - [x] Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
 
+- Follow-up fix: `useSyncExternalStore` bootstrap snapshot was changed from object to primitive string sentinel to prevent the React `getSnapshot should be cached` infinite-loop warning on room entry.
