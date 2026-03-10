@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type ImageLoaderProps } from "next/image";
-import { Check, X, ArrowRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Pause, Play, RotateCcw, Sparkles, X } from "lucide-react";
 import { GameCard } from "@/components/game/game-card";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
@@ -10,6 +10,15 @@ import {
     getCosmeticMotionClass,
     getCosmeticMotionStyle,
 } from "@/lib/cosmetics/effects";
+import {
+    getActiveNarratorTeam,
+    isCardViewerRole,
+    ROOM_ROLE_INSPECTOR,
+    ROOM_ROLE_NARRATOR,
+    shouldShowGuessPanel,
+    TEAM_A_LABEL,
+    TEAM_B_LABEL,
+} from "@/lib/game/room-display";
 import type { CardData, GameState } from "@/types/game";
 
 interface ActiveGameProps {
@@ -28,6 +37,12 @@ interface ActiveGameProps {
 }
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
+const MODERATOR_LABEL = "G\u00f6zetmen";
+const GUESS_PROMPT_TITLE = "Tahmin Et";
+const GUESS_PROMPT_DESCRIPTION = "kelimeyi anlatıyor. Doğru cevabı bulmaya çalış.";
+const GAME_PAUSED_LABEL = "Oyun duraklat\u0131ld\u0131";
+const RETURN_TO_LOBBY_LABEL = "Lobiye D\u00f6n";
+const CORRECT_LABEL = "DO\u011eRU";
 
 export function ActiveGame({
     gameState,
@@ -43,11 +58,12 @@ export function ActiveGame({
     onPauseResume,
     onResetGame,
 }: ActiveGameProps) {
-    const activeTeam = gameState?.anlatacakTakim || "A";
+    const activeNarratorTeam = getActiveNarratorTeam(gameState);
     const timerPercent = gameState
         ? (gameState.kalanZaman / (gameState.toplamSure || settings.sure || 60)) * 100
         : 100;
-    const shouldShowGuessPanel = myRole === "Tahminci" || myRole === "Ä°zleyici";
+    const showGuessPanel = shouldShowGuessPanel(myRole);
+    const canSeeCard = isCardViewerRole(myRole);
     const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
     const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
     const cardBackPatternStyle = cardBackTheme
@@ -59,6 +75,14 @@ export function ActiveGame({
             opacity: cardBackTheme.patternOpacity,
         })
         : undefined;
+    const narratorColorClass =
+        activeNarratorTeam === "A"
+            ? "text-red-600 dark:text-red-400"
+            : "text-blue-600 dark:text-blue-400";
+    const inspectorColorClass =
+        activeNarratorTeam === "A"
+            ? "text-blue-600 dark:text-blue-400"
+            : "text-red-600 dark:text-red-400";
 
     return (
         <div className="flex-1 flex flex-col p-4 sm:p-6 max-w-5xl mx-auto w-full">
@@ -69,13 +93,13 @@ export function ActiveGame({
                             {gameState?.skor.A ?? 0}
                         </div>
                         <div className="text-[10px] sm:text-xs text-red-500/80 font-bold uppercase tracking-wider mt-1">
-                            TakÄ±m A
+                            {TEAM_A_LABEL}
                         </div>
                     </div>
 
                     <div className="flex flex-col items-center justify-center w-32 relative">
                         <div
-                            className={`text-4xl font-black font-mono transition-colors ${activeTeam === "A"
+                            className={`text-4xl font-black font-mono transition-colors ${activeNarratorTeam === "A"
                                 ? "text-red-600 dark:text-red-500"
                                 : "text-blue-600 dark:text-blue-500"
                                 }`}
@@ -84,7 +108,7 @@ export function ActiveGame({
                         </div>
                         <div className="w-full h-2.5 bg-gray-200 dark:bg-slate-700 rounded-full mt-1 overflow-hidden shadow-inner">
                             <div
-                                className={`h-full transition-all duration-1000 ease-linear ${activeTeam === "A" ? "bg-red-500" : "bg-blue-500"
+                                className={`h-full transition-all duration-1000 ease-linear ${activeNarratorTeam === "A" ? "bg-red-500" : "bg-blue-500"
                                     }`}
                                 style={{ width: `${timerPercent}%` }}
                             />
@@ -96,7 +120,7 @@ export function ActiveGame({
                             {gameState?.skor.B ?? 0}
                         </div>
                         <div className="text-[10px] sm:text-xs text-blue-500/80 font-bold uppercase tracking-wider mt-1">
-                            TakÄ±m B
+                            {TEAM_B_LABEL}
                         </div>
                     </div>
                 </div>
@@ -107,26 +131,16 @@ export function ActiveGame({
                             <span className="text-gray-400 uppercase tracking-widest text-[10px]">
                                 Anlatan
                             </span>
-                            <span
-                                className={`${activeTeam === "A"
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-blue-600 dark:text-blue-400"
-                                    } font-bold`}
-                            >
+                            <span className={`${narratorColorClass} font-bold`}>
                                 {narratorName}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-full shadow-sm border border-gray-200 dark:border-slate-700">
                             <span className="text-gray-400 uppercase tracking-widest text-[10px]">
-                                GÃ¶zetmen
+                                {MODERATOR_LABEL}
                             </span>
-                            <span
-                                className={`${activeTeam === "A"
-                                    ? "text-blue-600 dark:text-blue-400"
-                                    : "text-red-600 dark:text-red-400"
-                                    } font-bold`}
-                            >
+                            <span className={`${inspectorColorClass} font-bold`}>
                                 {inspectorName}
                             </span>
                         </div>
@@ -150,13 +164,13 @@ export function ActiveGame({
             </div>
 
             <div className="flex-1 flex items-center justify-center relative min-h-[350px]">
-                {card && (myRole === "AnlatÄ±cÄ±" || myRole === "GÃ¶zetmen") && (
+                {card && canSeeCard && (
                     <div className="w-full flex justify-center animate-fade-in">
                         <GameCard card={card} theme={cardFaceTheme} />
                     </div>
                 )}
 
-                {shouldShowGuessPanel && (
+                {showGuessPanel && (
                     cardBackTheme ? (
                         <div className="w-full max-w-[320px] sm:max-w-[360px] animate-fade-in">
                             <div
@@ -211,13 +225,13 @@ export function ActiveGame({
                                             className="text-3xl font-black uppercase tracking-[0.18em]"
                                             style={{ color: cardBackTheme.titleColor }}
                                         >
-                                            Tahmin Et
+                                            {GUESS_PROMPT_TITLE}
                                         </h3>
                                         <p
                                             className="text-sm font-semibold"
                                             style={{ color: cardBackTheme.detailColor }}
                                         >
-                                            {narratorName} kelimeyi anlatıyor. Doğru cevabı bulmaya çalış.
+                                            {`${narratorName} ${GUESS_PROMPT_DESCRIPTION}`}
                                         </p>
                                     </div>
                                 </div>
@@ -226,17 +240,17 @@ export function ActiveGame({
                     ) : (
                         <div className="text-center p-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 max-w-sm animate-fade-in">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
-                                Tahmin Et!
+                                {`${GUESS_PROMPT_TITLE}!`}
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400">
-                                {narratorName} kelimeyi anlatıyor. Doğru cevabı bulmaya çalış.
+                                {`${narratorName} ${GUESS_PROMPT_DESCRIPTION}`}
                             </p>
                         </div>
                     )
                 )}
             </div>
 
-            {myRole === "AnlatÄ±cÄ±" && (
+            {myRole === ROOM_ROLE_NARRATOR && (
                 <div className="mt-auto pt-6">
                     <div className="w-full max-w-md mx-auto grid grid-cols-3 gap-3">
                         <button
@@ -244,7 +258,7 @@ export function ActiveGame({
                             className="bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl shadow-md font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
                         >
                             <Check size={24} className="mb-1" />
-                            <span className="text-sm">DOÄRU</span>
+                            <span className="text-sm">{CORRECT_LABEL}</span>
                         </button>
 
                         <button
@@ -267,7 +281,7 @@ export function ActiveGame({
                 </div>
             )}
 
-            {myRole === "GÃ¶zetmen" && (
+            {myRole === ROOM_ROLE_INSPECTOR && (
                 <div className="mt-auto pt-6">
                     <div className="w-full max-w-md mx-auto">
                         <button
@@ -293,7 +307,7 @@ export function ActiveGame({
                         onClick={onResetGame}
                         className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 transition-all active:scale-95"
                     >
-                        <RotateCcw size={18} /> Lobiye DÃ¶n
+                        <RotateCcw size={18} /> {RETURN_TO_LOBBY_LABEL}
                     </button>
                 </div>
             )}
@@ -312,7 +326,7 @@ export function ActiveGame({
                             <div className="w-20 h-20 bg-gray-400 dark:bg-slate-600 text-white rounded-full flex items-center justify-center shadow-2xl mx-auto">
                                 <Pause size={32} />
                             </div>
-                            <p className="text-sm text-gray-500 font-medium">Oyun duraklatÄ±ldÄ±</p>
+                            <p className="text-sm text-gray-500 font-medium">{GAME_PAUSED_LABEL}</p>
                         </div>
                     )}
                 </div>

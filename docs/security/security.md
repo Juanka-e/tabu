@@ -1011,3 +1011,14 @@ Critical Findings
 - Practical result:
   - product visibility increases in-room
   - auth and economy boundaries remain unchanged
+
+## Dependency Hardening (10 March 2026)
+
+### DOMPurify advisory closure
+- `npm audit --omit=dev` room-ui-stability slice during review found a moderate advisory for `dompurify`.
+- The dependency tree was updated to a patched `dompurify` release (`^3.3.2`).
+- Post-update verification:
+  - `npm audit --omit=dev` -> `0 vulnerabilities`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`

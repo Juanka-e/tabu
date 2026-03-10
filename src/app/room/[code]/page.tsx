@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useTransition } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
@@ -13,6 +13,7 @@ import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react"
 import { useTheme } from "next-themes";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
+import { ROOM_ROLE_GUESSER } from "@/lib/game/room-display";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -25,7 +26,7 @@ import type {
     CategoryItem,
 } from "@/types/game";
 
-// ─── Sub-components ────────────────────────────────────────────────
+// Sub-components
 import { TransitionScreen } from "./_components/transition-screen";
 import { ActiveGame } from "./_components/active-game";
 import { GameOverScreen } from "./_components/game-over-screen";
@@ -34,6 +35,38 @@ import { UsernamePrompt } from "./_components/username-prompt";
 interface SocketIdentityPayload {
     playerId: string;
     guestToken: string | null;
+}
+
+interface RoomClientBootstrap {
+    ready: boolean;
+    storedUsername: string;
+}
+
+function subscribeRoomClientBootstrap(onStoreChange: () => void): () => void {
+    if (typeof window === "undefined") {
+        return () => undefined;
+    }
+
+    window.addEventListener("storage", onStoreChange);
+    return () => window.removeEventListener("storage", onStoreChange);
+}
+
+function getRoomClientBootstrapSnapshot(): RoomClientBootstrap {
+    if (typeof window === "undefined") {
+        return { ready: false, storedUsername: "" };
+    }
+
+    return {
+        ready: true,
+        storedUsername: window.localStorage.getItem("tabu_username") || "",
+    };
+}
+
+function getRoomClientBootstrapServerSnapshot(): RoomClientBootstrap {
+    return {
+        ready: false,
+        storedUsername: "",
+    };
 }
 
 export default function RoomPage() {
@@ -48,12 +81,7 @@ export default function RoomPage() {
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [socketId, setSocketId] = useState("");
-    const [myPlayerId, setMyPlayerId] = useState(() => {
-        if (typeof window !== "undefined") {
-            return window.sessionStorage.getItem("tabu_playerId") || "";
-        }
-        return "";
-    });
+    const [myPlayerId, setMyPlayerId] = useState("");
     const rewardClaimedRoomsRef = useRef<Set<string>>(new Set());
 
     // Room state
@@ -75,7 +103,7 @@ export default function RoomPage() {
     // Game state
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [card, setCard] = useState<CardData | null>(null);
-    const [myRole, setMyRole] = useState("Tahminci");
+    const [myRole, setMyRole] = useState(ROOM_ROLE_GUESSER);
     const [narratorName, setNarratorName] = useState("");
     const [inspectorName, setInspectorName] = useState("");
     const [cardFaceTheme, setCardFaceTheme] = useState<ResolvedCardFaceTheme | null>(null);
@@ -96,10 +124,17 @@ export default function RoomPage() {
     const [showRules, setShowRules] = useState(false);
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [showDashboard, setShowDashboard] = useState(false);
-    const [showUsernamePrompt, setShowUsernamePrompt] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return !localStorage.getItem("tabu_username");
-    });
+    const [hasConfirmedUsername, setHasConfirmedUsername] = useState(false);
+    const roomClientBootstrap = useSyncExternalStore(
+        subscribeRoomClientBootstrap,
+        getRoomClientBootstrapSnapshot,
+        getRoomClientBootstrapServerSnapshot
+    );
+    const isRoomClientReady = roomClientBootstrap.ready;
+    const showUsernamePrompt =
+        isRoomClientReady &&
+        !hasConfirmedUsername &&
+        roomClientBootstrap.storedUsername.trim().length === 0;
 
     // Responsive check
     useEffect(() => {
@@ -123,9 +158,9 @@ export default function RoomPage() {
 
     // Connect socket (only when username is set)
     useEffect(() => {
-        if (showUsernamePrompt) return;
+        if (!isRoomClientReady || showUsernamePrompt) return;
 
-        const username = localStorage.getItem("tabu_username") || "Oyuncu";
+        const username = roomClientBootstrap.storedUsername || "Oyuncu";
         const guestToken = session?.user?.id
             ? undefined
             : window.sessionStorage.getItem("tabu_guestToken") || undefined;
@@ -255,7 +290,8 @@ export default function RoomPage() {
 
         socket.on("hata", (msg: string) => {
             console.error("Socket error:", msg);
-            if (msg.includes("bulunamadı") || msg.includes("found")) {
+            const normalizedMessage = msg.toLocaleLowerCase("tr-TR");
+            if (normalizedMessage.includes("bulunamad") || normalizedMessage.includes("found")) {
                 router.push("/");
             }
         });
@@ -263,9 +299,9 @@ export default function RoomPage() {
         return () => {
             socket.disconnect();
         };
-    }, [roomCode, router, session?.user?.id, showUsernamePrompt]);
+    }, [isRoomClientReady, roomClientBootstrap.storedUsername, roomCode, router, session?.user?.id, showUsernamePrompt]);
 
-    // ─── Actions ─────────────────────────────────────────────────
+    // Actions
 
     const emit = useCallback(
         (event: string, data?: unknown) => {
@@ -291,7 +327,7 @@ export default function RoomPage() {
         [emit]
     );
 
-    // ─── Render ──────────────────────────────────────────────────
+    // Render
 
     const renderGameContent = () => {
         if (view === GameView.TRANSITION && transition) {
@@ -373,6 +409,10 @@ export default function RoomPage() {
         );
     };
 
+    if (!isRoomClientReady) {
+        return null;
+    }
+
     return (
         <>
             {/* Username Prompt */}
@@ -380,7 +420,7 @@ export default function RoomPage() {
                 <UsernamePrompt
                     onConfirm={(username) => {
                         localStorage.setItem("tabu_username", username);
-                        setShowUsernamePrompt(false);
+                        setHasConfirmedUsername(true);
                     }}
                 />
             )}
@@ -518,6 +558,8 @@ export default function RoomPage() {
         </>
     );
 }
+
+
 
 
 

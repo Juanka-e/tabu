@@ -1,4 +1,4 @@
-﻿# Magaza + Dashboard Altyapi Notlari
+# Magaza + Dashboard Altyapi Notlari
 
 ## Hedef
 - Misafir girisi korunur.
@@ -980,3 +980,33 @@ Bu planda netlestirilen ana kararlar:
   - `npm run lint`
   - `npx tsc --noEmit`
   - `npm run build`
+
+## Room UI Stability (10 March 2026)
+
+### Fixed in this slice
+- Room username bootstrap now uses a client snapshot pattern so the server and first client render start from the same null state.
+- Guest join no longer hydrates from full room layout into `UsernamePrompt`; the prompt appears only after client readiness is established.
+- Room role labels are now normalized through shared constants:
+  - `Anlatici`
+  - `Gozetmen`
+  - `Tahminci`
+  - `İzleyici`
+- Active narrator team color now comes from `gameState.anlatici.takim` first, so:
+  - narrator and inspector colors stay aligned with the real active team
+  - timer number and timer bar use the real active narrator team color
+- Guess panel copy and username prompt copy were rewritten in clean UTF-8-safe source files.
+
+### Expected gameplay behavior after the fix
+- Login narrator equips `card_face` and `card_back`.
+- All clients in the room, including guests, can see those narrator cosmetics.
+- Guests still cannot purchase or equip cosmetics.
+- Narrator and inspector see the front card.
+- Guesser and spectator see the narrator-themed back/placeholder panel.
+
+### Verification
+- `npm run test:room-display`
+- `npm run test:room-card-themes`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+
