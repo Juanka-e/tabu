@@ -1,10 +1,17 @@
+
 import { io } from "socket.io-client";
 
 const SERVER_URL = "http://127.0.0.1:3000";
 const PATH = "/api/socketio";
 
-interface OyuncuData { ad: string; }
-interface LobiData { odaKodu: string; oyuncular: OyuncuData[]; }
+interface LobbyPlayer {
+    ad: string;
+}
+
+interface LobbyPayload {
+    odaKodu: string;
+    oyuncular: LobbyPlayer[];
+}
 
 async function testRoomJoin() {
     console.log("--- Starting Room Join Reproduction ---");
@@ -20,7 +27,7 @@ async function testRoomJoin() {
             creator.emit("odaİsteği", { kullaniciAdi: "Admin" });
         });
 
-        creator.on("lobiGuncelle", (data: LobiData) => {
+        creator.on("lobiGuncelle", (data: LobbyPayload) => {
             if (!roomCode) {
                 roomCode = data.odaKodu;
                 console.log("Room Created:", roomCode);
@@ -44,11 +51,11 @@ async function testRoomJoin() {
             joiner.emit("odaİsteği", { kullaniciAdi: "Joiner", odaKodu: roomCode });
         });
 
-        joiner.on("lobiGuncelle", (data: LobiData) => {
+        joiner.on("lobiGuncelle", (data: LobbyPayload) => {
             if (data.odaKodu === roomCode) {
                 console.log("SUCCESS: Joiner joined room", roomCode);
                 // Check players
-                const names = data.oyuncular.map((p: OyuncuData) => p.ad);
+                const names = data.oyuncular.map((p) => p.ad);
                 console.log("Players:", names);
                 if (names.includes("Joiner")) {
                     resolve();

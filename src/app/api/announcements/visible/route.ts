@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+    sanitizeAnnouncementContent,
+    sanitizeAnnouncementMedia,
+    toAnnouncementMediaType,
+} from "@/lib/security/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +28,25 @@ export async function GET() {
         });
 
         // Map to snake_case for frontend compatibility
-        const mapped = announcements.map((a) => ({
-            id: a.id,
-            title: a.title,
-            content: a.content,
-            type: a.type,
-            created_at: a.createdAt.toISOString(),
-            isPinned: a.isPinned,
-            version: a.version,
-            tags: a.tags,
-            mediaUrl: a.mediaUrl,
-            mediaType: a.mediaType,
-        }));
+        const mapped = announcements.map((announcement) => {
+            const sanitizedMedia = sanitizeAnnouncementMedia(
+                announcement.mediaUrl,
+                toAnnouncementMediaType(announcement.mediaType)
+            );
+
+            return {
+                id: announcement.id,
+                title: announcement.title,
+                content: sanitizeAnnouncementContent(announcement.content),
+                type: announcement.type,
+                created_at: announcement.createdAt.toISOString(),
+                isPinned: announcement.isPinned,
+                version: announcement.version,
+                tags: announcement.tags,
+                mediaUrl: sanitizedMedia.mediaUrl,
+                mediaType: sanitizedMedia.mediaType,
+            };
+        });
 
         return NextResponse.json(mapped);
     } catch (error) {

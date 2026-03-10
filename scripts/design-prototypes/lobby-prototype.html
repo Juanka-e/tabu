@@ -1,0 +1,519 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TABU - Lobby Prototipi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2338;
+            --bg-input: #1e293b;
+            --border: #1e293b;
+            --border-focus: #6366f1;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --purple-500: #8b5cf6;
+            --purple-600: #7c3aed;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --emerald-500: #10b981;
+            --amber-500: #f59e0b;
+            --pink-500: #ec4899;
+            --cyan-400: #22d3ee;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* â”€â”€â”€ Ambient Blobs â”€â”€â”€ */
+        .ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .ambient .blob {
+            position: absolute; border-radius: 50%; filter: blur(100px); opacity: .12;
+        }
+        .blob-1 { width: 500px; height: 500px; background: var(--purple-600); top: -120px; right: -80px; animation: float 20s ease-in-out infinite; }
+        .blob-2 { width: 400px; height: 400px; background: var(--blue-600); bottom: -100px; left: -100px; animation: float 25s ease-in-out infinite reverse; }
+        .blob-3 { width: 300px; height: 300px; background: var(--emerald-500); top: 50%; left: 40%; animation: float 18s ease-in-out infinite 5s; }
+        @keyframes float {
+            0%,100% { transform: translate(0,0) scale(1); }
+            33% { transform: translate(40px,-30px) scale(1.05); }
+            66% { transform: translate(-20px,20px) scale(.95); }
+        }
+
+        /* â”€â”€â”€ Top Bar â”€â”€â”€ */
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 24px;
+            background: rgba(10,14,26,.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+        .top-bar .logo {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 900; font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--purple-500), var(--blue-500));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+        .top-bar .nav { display: flex; align-items: center; gap: 8px; }
+
+        /* â”€â”€â”€ Buttons â”€â”€â”€ */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 10px; border: none;
+            font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
+            cursor: pointer; transition: all .2s ease;
+        }
+        .btn-ghost {
+            background: transparent; color: var(--text-secondary);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+        .btn-outline {
+            background: transparent; color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover { border-color: var(--purple-500); color: var(--purple-500); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--purple-600), var(--blue-600));
+            color: #fff; border: none;
+            box-shadow: 0 4px 20px rgba(99,102,241,.3);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 30px rgba(99,102,241,.5); transform: translateY(-1px); }
+        .btn-secondary {
+            background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--bg-card-hover); border-color: var(--purple-500); }
+
+        /* â”€â”€â”€ User Badge (logged-in) â”€â”€â”€ */
+        .user-badge {
+            display: flex; align-items: center; gap: 10px;
+            padding: 6px 12px 6px 6px;
+            border-radius: 12px;
+            background: rgba(139,92,246,.1);
+            border: 1px solid rgba(139,92,246,.25);
+        }
+        .user-badge .avatar {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--purple-500), var(--pink-500));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: .75rem; color: #fff;
+        }
+        .user-badge .info { line-height: 1.3; }
+        .user-badge .name { font-weight: 700; font-size: .8rem; color: var(--text-primary); }
+        .user-badge .coins {
+            font-weight: 600; font-size: .7rem; color: var(--amber-500);
+            display: flex; align-items: center; gap: 4px;
+        }
+        .user-badge .coin-icon { font-size: .65rem; }
+
+        /* â”€â”€â”€ Page Container â”€â”€â”€ */
+        .page { position: relative; z-index: 1; padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 40px; }
+
+        /* â”€â”€â”€ View Toggle â”€â”€â”€ */
+        .view-toggle {
+            display: flex; gap: 4px; padding: 4px; border-radius: 12px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            margin-bottom: 32px;
+        }
+        .view-toggle button {
+            padding: 10px 20px; border-radius: 9px; border: none;
+            font-family: 'Inter', sans-serif; font-weight: 600; font-size: .8rem;
+            cursor: pointer; transition: all .2s;
+            background: transparent; color: var(--text-muted);
+        }
+        .view-toggle button.active {
+            background: linear-gradient(135deg, var(--purple-600), var(--blue-600));
+            color: #fff; box-shadow: 0 2px 12px rgba(99,102,241,.3);
+        }
+
+        /* â”€â”€â”€ Card â”€â”€â”€ */
+        .lobby-card {
+            width: 100%; max-width: 440px;
+            background: rgba(17,24,39,.8);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,.06);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0,0,0,.4);
+            overflow: hidden;
+        }
+
+        .card-header {
+            text-align: center; padding: 36px 32px 16px;
+        }
+        .card-icon {
+            width: 64px; height: 64px; margin: 0 auto 16px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--purple-500), var(--blue-600));
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(99,102,241,.3);
+        }
+        .card-icon svg { width: 32px; height: 32px; color: #fff; }
+        .card-title {
+            font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 2rem;
+            background: linear-gradient(135deg, #a78bfa, var(--blue-500));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .card-subtitle { color: var(--text-muted); font-size: .85rem; margin-top: 4px; }
+
+        .card-body { padding: 16px 32px 32px; }
+
+        /* â”€â”€â”€ Form Elements â”€â”€â”€ */
+        .field { margin-bottom: 16px; }
+        .field-label {
+            display: flex; align-items: center; gap: 6px;
+            font-size: .8rem; font-weight: 600; color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .field-label svg { width: 14px; height: 14px; opacity: .6; }
+        .input {
+            width: 100%; height: 48px; padding: 0 16px;
+            border-radius: 12px; border: 1px solid var(--border);
+            background: var(--bg-input); color: var(--text-primary);
+            font-family: 'Inter', sans-serif; font-size: .95rem;
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+        }
+        .input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+        .input-code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            text-align: center; letter-spacing: 6px; text-transform: uppercase;
+        }
+
+        .separator {
+            display: flex; align-items: center; gap: 12px; margin: 20px 0;
+        }
+        .separator::before, .separator::after {
+            content: ''; flex: 1; height: 1px; background: var(--border);
+        }
+        .separator span {
+            font-size: .7rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .row { display: flex; gap: 8px; }
+        .row .input { flex: 1; }
+        .row .btn { white-space: nowrap; padding: 0 20px; height: 48px; }
+
+        /* â”€â”€â”€ Logged-in Extras â”€â”€â”€ */
+        .logged-in-extras {
+            margin-top: 20px; padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,.05);
+        }
+        .extras-label {
+            font-size: .7rem; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+        }
+        .quick-links { display: flex; gap: 8px; }
+        .quick-link {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+            padding: 14px 8px; border-radius: 14px;
+            background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
+            cursor: pointer; transition: all .2s; text-decoration: none;
+        }
+        .quick-link:hover {
+            background: rgba(139,92,246,.08); border-color: rgba(139,92,246,.2);
+            transform: translateY(-2px);
+        }
+        .quick-link .ql-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .quick-link .ql-text { font-size: .7rem; font-weight: 600; color: var(--text-secondary); }
+
+        .ql-dashboard .ql-icon { background: rgba(99,102,241,.15); }
+        .ql-store .ql-icon { background: rgba(245,158,11,.15); }
+        .ql-profile .ql-icon { background: rgba(16,185,129,.15); }
+
+        /* â”€â”€â”€ Room Stats (logged-in lobby) â”€â”€â”€ */
+        .room-stats {
+            display: flex; gap: 8px; margin-top: 12px;
+        }
+        .stat-chip {
+            flex: 1; text-align: center; padding: 10px 6px;
+            border-radius: 10px; background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.04);
+        }
+        .stat-chip .stat-val { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); }
+        .stat-chip .stat-lbl { font-size: .65rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* â”€â”€â”€ Footer â”€â”€â”€ */
+        .footer { text-align: center; margin-top: 24px; font-size: .75rem; color: var(--text-muted); }
+
+        /* â”€â”€â”€ Hidden â”€â”€â”€ */
+        .hidden { display: none !important; }
+
+        /* â”€â”€â”€ Section Banner â”€â”€â”€ */
+        .section-banner {
+            text-align: center; margin-bottom: 24px;
+            padding: 10px 20px; border-radius: 12px;
+            background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.15);
+            font-size: .75rem; font-weight: 600; color: var(--purple-500);
+            letter-spacing: .5px;
+        }
+
+        /* â”€â”€â”€ Scrollbar â”€â”€â”€ */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* â”€â”€â”€ Cosmetic Preview â”€â”€â”€ */
+        .cosmetic-preview {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 12px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.04);
+            margin-top: 10px;
+        }
+        .cosmetic-avatar {
+            width: 40px; height: 40px; border-radius: 10px;
+            border: 2px solid var(--amber-500);
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: .9rem; color: #fff;
+            box-shadow: 0 0 12px rgba(245,158,11,.3);
+        }
+        .cosmetic-info { flex: 1; }
+        .cosmetic-name { font-size: .8rem; font-weight: 700; color: var(--text-primary); }
+        .cosmetic-detail { font-size: .65rem; color: var(--text-muted); }
+        .cosmetic-badge {
+            font-size: .6rem; font-weight: 700; padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(245,158,11,.15); color: var(--amber-500);
+        }
+
+        @media (max-width: 480px) {
+            .lobby-card { margin: 0 16px; }
+            .card-body { padding: 16px 20px 24px; }
+            .top-bar { padding: 10px 16px; }
+        }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="ambient">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOP BAR â€” GUEST â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div class="top-bar" id="topbar-guest">
+    <div class="logo">TABU</div>
+    <div class="nav">
+        <button class="btn btn-ghost" title="Duyurular">ğŸ“¢</button>
+        <button class="btn btn-ghost" onclick="switchView('login')">GiriÅŸ Yap</button>
+        <button class="btn btn-outline" onclick="switchView('login')">KayÄ±t Ol</button>
+        <button class="btn btn-ghost" title="Tema">ğŸŒ™</button>
+    </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOP BAR â€” LOGGED IN â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div class="top-bar hidden" id="topbar-user">
+    <div class="logo">TABU</div>
+    <div class="nav">
+        <button class="btn btn-ghost" title="Duyurular">ğŸ“¢</button>
+        <div class="user-badge">
+            <div class="avatar">EP</div>
+            <div class="info">
+                <div class="name">Erdal</div>
+                <div class="coins"><span class="coin-mark" aria-hidden="true"></span> 2,450</div>
+            </div>
+        </div>
+        <button class="btn btn-ghost" title="Tema">ğŸŒ™</button>
+    </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div class="page">
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button class="active" id="toggle-guest" onclick="switchView('guest')">ğŸ‘¤ Misafir GÃ¶rÃ¼nÃ¼m</button>
+        <button id="toggle-user" onclick="switchView('user')">ğŸ” GiriÅŸ Yapan</button>
+    </div>
+
+    <!-- â”€â”€â”€ GUEST LOBBY â”€â”€â”€ -->
+    <div id="view-guest">
+        <div class="section-banner">ğŸ® Misafir olarak oyna â€” hesap gerekmez!</div>
+        <div class="lobby-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+                </div>
+                <div class="card-title">TABU</div>
+                <div class="card-subtitle">Online SÃ¶zcÃ¼k Tahmin Oyunu</div>
+            </div>
+            <div class="card-body">
+                <div class="field">
+                    <div class="field-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        KullanÄ±cÄ± AdÄ±
+                    </div>
+                    <input class="input" placeholder="AdÄ±nÄ±zÄ± girin..." value="Misafir_42">
+                </div>
+
+                <button class="btn btn-primary" style="width:100%;height:48px;font-size:.95rem;border-radius:12px;justify-content:center;">
+                    â• Yeni Oda OluÅŸtur
+                </button>
+
+                <div class="separator"><span>veya</span></div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Oda Kodu
+                    </div>
+                    <div class="row">
+                        <input class="input input-code" placeholder="ABC123" maxlength="6">
+                        <button class="btn btn-secondary">KatÄ±l</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">Tabu Online â€” ArkadaÅŸlarÄ±nla eÄŸlenceli vakit geÃ§ir!</div>
+    </div>
+
+    <!-- â”€â”€â”€ LOGGED-IN LOBBY â”€â”€â”€ -->
+    <div id="view-user" class="hidden">
+        <div class="section-banner">âœ¨ HoÅŸ geldin Erdal â€” Kozmetiklerin aktif, coin kazanmaya devam et!</div>
+        <div class="lobby-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+                </div>
+                <div class="card-title">TABU</div>
+                <div class="card-subtitle">Online SÃ¶zcÃ¼k Tahmin Oyunu</div>
+            </div>
+            <div class="card-body">
+                <!-- Cosmetic Preview -->
+                <div class="cosmetic-preview">
+                    <div class="cosmetic-avatar">E</div>
+                    <div class="cosmetic-info">
+                        <div class="cosmetic-name">Erdal</div>
+                        <div class="cosmetic-detail">AltÄ±n Ã‡erÃ§eve aktif â€¢ Epic Avatar</div>
+                    </div>
+                    <div class="cosmetic-badge">LVL 12</div>
+                </div>
+
+                <div style="margin-top:16px;">
+                    <div class="field">
+                        <div class="field-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            KullanÄ±cÄ± AdÄ±
+                        </div>
+                        <input class="input" value="Erdal" style="opacity:.7" readonly>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" style="width:100%;height:48px;font-size:.95rem;border-radius:12px;justify-content:center;">
+                    â• Yeni Oda OluÅŸtur
+                </button>
+
+                <div class="separator"><span>veya</span></div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Oda Kodu
+                    </div>
+                    <div class="row">
+                        <input class="input input-code" placeholder="ABC123" maxlength="6">
+                        <button class="btn btn-secondary">KatÄ±l</button>
+                    </div>
+                </div>
+
+                <!-- Logged-in Quick Links -->
+                <div class="logged-in-extras">
+                    <div class="extras-label">HÄ±zlÄ± EriÅŸim</div>
+                    <div class="quick-links">
+                        <a class="quick-link ql-dashboard" href="#">
+                            <div class="ql-icon">ğŸ“Š</div>
+                            <div class="ql-text">Dashboard</div>
+                        </a>
+                        <a class="quick-link ql-store" href="#">
+                            <div class="ql-icon">ğŸ›ï¸</div>
+                            <div class="ql-text">MaÄŸaza</div>
+                        </a>
+                        <a class="quick-link ql-profile" href="#">
+                            <div class="ql-icon">ğŸ‘¤</div>
+                            <div class="ql-text">Profil</div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mini Stats -->
+                <div class="room-stats">
+                    <div class="stat-chip">
+                        <div class="stat-val"><span class="coin-mark" aria-hidden="true"></span> 2,450</div>
+                        <div class="stat-lbl">Coin</div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-val">%68</div>
+                        <div class="stat-lbl">Winrate</div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-val">47</div>
+                        <div class="stat-lbl">MaÃ§</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">Tabu Online â€” Kozmetiklerini kusan, maÃ§a hazÄ±rlan!</div>
+    </div>
+
+</div>
+
+<script>
+function switchView(view) {
+    const isGuest = view === 'guest';
+    document.getElementById('view-guest').classList.toggle('hidden', !isGuest);
+    document.getElementById('view-user').classList.toggle('hidden', isGuest);
+    document.getElementById('topbar-guest').classList.toggle('hidden', !isGuest);
+    document.getElementById('topbar-user').classList.toggle('hidden', isGuest);
+    document.getElementById('toggle-guest').classList.toggle('active', isGuest);
+    document.getElementById('toggle-user').classList.toggle('active', !isGuest);
+}
+</script>
+
+</body>
+</html>

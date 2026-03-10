@@ -1,5 +1,8 @@
 // ─── Game State Enums ──────────────────────────────────────────
 
+import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
+import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
+
 export enum GameView {
     LOGIN = "LOGIN",
     LOBBY = "LOBBY",
@@ -10,15 +13,35 @@ export enum GameView {
     GAME_OVER = "GAME_OVER",
 }
 
+export interface PlayerCosmetics {
+    avatarImageUrl: string | null;
+    frameImageUrl: string | null;
+    frameAccentColor: string | null;
+    frameSecondaryColor?: string | null;
+    framePattern?: "none" | "grid" | "dots" | "diagonal" | "chevrons" | "rings" | "noise" | null;
+    framePatternOpacity?: number | null;
+    framePatternScale?: number | null;
+    frameGlowColor?: string | null;
+    frameGlowBlur?: number | null;
+    frameGlowOpacity?: number | null;
+    frameStyle?: "solid" | "double" | "ornate" | null;
+    frameThickness?: number | null;
+    frameRadius?: number | null;
+    frameMotionPreset?: "none" | "pulse" | "drift" | "shimmer" | null;
+    frameMotionSpeedMs?: number | null;
+}
+
 // ─── Player & Room ─────────────────────────────────────────────
 
 export interface Player {
     id: string;
     playerId: string;
+    userId?: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
+    cosmetics?: PlayerCosmetics;
 }
 
 export interface RoomSettings {
@@ -72,6 +95,12 @@ export interface GameState {
         ad: string;
         takim: "A" | "B";
     } | null;
+    gozetmen: {
+        id: string;
+        playerId: string;
+        ad: string;
+        takim: "A" | "B";
+    } | null;
     aktifKart: CardData | null;
     altinSkorAktif: boolean;
     creatorId?: string;
@@ -85,6 +114,7 @@ export interface TransitionData {
     gozetmen: { ad: string; takim: string } | null;
     kalanSure: number;
     creatorId: string;
+    cardBackTheme: ResolvedCardBackTheme | null;
 }
 
 export interface TurnInfo {
@@ -93,6 +123,8 @@ export interface TurnInfo {
     kart: CardData | null;
     anlaticiAd: string;
     gozetmenAd: string;
+    cardFaceTheme: ResolvedCardFaceTheme | null;
+    cardBackTheme: ResolvedCardBackTheme | null;
 }
 
 export interface GameOverData {

@@ -1,0 +1,332 @@
+﻿<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tabu Overlay: Pro Sidebar Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#EF4444", // Red team base
+                        secondary: "#3B82F6", // Blue team base
+                        success: "#00C853",
+                        warning: "#FFAB00",
+                        danger: "#FF1744",
+                        dark: "#1A1A1A",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#121212",
+                        "card-dark": "#1E293B",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        xl: "1rem",
+                        '2xl': "1.5rem",
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+            border-right: 3px solid #3B82F6;
+        }
+        .dark .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60A5FA;
+        }
+            .coin-mark {
+            display: inline-flex;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 999px;
+            vertical-align: -0.16em;
+            margin: 0 0.12em;
+            background: radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,.55), inset 0 -2px 4px rgba(120,53,15,.35), 0 1px 2px rgba(15,23,42,.22);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .coin-mark::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 42%;
+            height: 42%;
+            border-radius: 999px;
+            border: 1.5px solid rgba(120,53,15,.65);
+            background: rgba(255,255,255,.12);
+        }
+        .coin-mark-lg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans h-screen overflow-hidden relative selection:bg-primary selection:text-white">
+<div aria-hidden="true" class="absolute inset-0 flex w-full h-full z-0 pointer-events-none">
+<aside class="w-64 h-full bg-red-50 dark:bg-red-900/10 border-r border-red-100 dark:border-red-900/20 flex flex-col pt-6 relative opacity-30">
+</aside>
+<main class="flex-1 relative flex flex-col opacity-30">
+</main>
+<aside class="w-64 h-full bg-blue-50 dark:bg-blue-900/10 border-l border-blue-100 dark:border-blue-900/20 flex flex-col pt-6 relative opacity-30">
+</aside>
+</div>
+<div class="absolute inset-0 z-50 flex items-center justify-center glass-overlay p-4 sm:p-6 md:p-8">
+<div class="glass-panel w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden relative flex animate-fade-in-up">
+<button class="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-200/50 dark:bg-slate-700/50 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 flex items-center justify-center backdrop-blur-sm transition-all text-slate-600 dark:text-slate-300 shadow-sm">
+<span class="material-icons-round text-lg">close</span>
+</button>
+<nav class="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md">
+<div class="mb-8">
+<div class="w-10 h-10 bg-gradient-to-tr from-primary to-secondary rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">T</div>
+</div>
+<div class="flex flex-col gap-6 w-full">
+<button class="nav-item active w-full py-3 flex flex-col items-center justify-center gap-1 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</button>
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">backpack</span>
+<span class="text-[10px] font-medium">Inv</span>
+</button>
+<button class="nav-item w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 group">
+<span class="material-icons-round text-2xl group-hover:scale-110 transition-transform">shopping_bag</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4 w-full">
+<button class="w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+<span class="material-icons-round text-xl">help</span>
+</button>
+</div>
+</nav>
+<main class="flex-1 h-full overflow-y-auto relative scroll-smooth">
+<div class="p-8 md:p-10 max-w-4xl mx-auto">
+<header class="flex items-center justify-between mb-8">
+<div>
+<h1 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Dashboard</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Welcome back to the arena.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-1 shadow-sm border border-yellow-200/50 dark:border-yellow-700/30">
+                                250 
+                                <span class="material-icons-round text-sm">diamond</span>
+</div>
+</div>
+</header>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="p-5 rounded-2xl bg-white/40 dark:bg-slate-800/40 shadow-sm border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Matches</span>
+<div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-lg">sports_esports</span>
+</div>
+</div>
+<div class="text-3xl font-black text-slate-800 dark:text-white">1,248</div>
+<div class="text-xs text-green-600 font-bold mt-1 flex items-center">
+<span class="material-icons-round text-sm mr-0.5">trending_up</span> +12
+                            </div>
+</div>
+<div class="p-5 rounded-2xl bg-white/40 dark:bg-slate-800/40 shadow-sm border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Win Rate</span>
+<div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-lg">emoji_events</span>
+</div>
+</div>
+<div class="text-3xl font-black text-slate-800 dark:text-white">68%</div>
+<div class="text-xs text-slate-500 font-bold mt-1">Top 5%</div>
+</div>
+<div class="p-5 rounded-2xl bg-white/40 dark:bg-slate-800/40 shadow-sm border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Words</span>
+<div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-lg">library_books</span>
+</div>
+</div>
+<div class="text-3xl font-black text-slate-800 dark:text-white">8.9k</div>
+<div class="text-xs text-slate-500 font-bold mt-1">Avg 7.2</div>
+</div>
+<div class="p-5 rounded-2xl bg-white/40 dark:bg-slate-800/40 shadow-sm border border-white/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Taboos</span>
+<div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-lg">warning</span>
+</div>
+</div>
+<div class="text-3xl font-black text-slate-800 dark:text-white">423</div>
+<div class="text-xs text-green-600 font-bold mt-1 flex items-center">
+<span class="material-icons-round text-sm mr-0.5">arrow_downward</span> -5%
+                            </div>
+</div>
+</div>
+<div class="bg-white/40 dark:bg-slate-800/40 rounded-2xl border border-white/30 dark:border-slate-700/30 p-6 backdrop-blur-sm">
+<div class="flex items-center justify-between mb-6">
+<h4 class="text-base font-bold text-slate-700 dark:text-slate-200">Recent Activity</h4>
+<button class="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">View All</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-600 group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center justify-center font-bold text-xs shadow-sm">
+                                        W
+                                    </div>
+<div>
+<div class="font-bold text-slate-800 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">vs Team Delta</div>
+<div class="text-xs text-slate-500 font-medium">2 hours ago</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-bold text-green-600 dark:text-green-400 text-lg">62 - 45</div>
+<div class="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Score</div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-600 group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center font-bold text-xs shadow-sm">
+                                        L
+                                    </div>
+<div>
+<div class="font-bold text-slate-800 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">vs Team Alpha</div>
+<div class="text-xs text-slate-500 font-medium">Yesterday</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-bold text-red-500 dark:text-red-400 text-lg">58 - 60</div>
+<div class="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Score</div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-600 group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center justify-center font-bold text-xs shadow-sm">
+                                        W
+                                    </div>
+<div>
+<div class="font-bold text-slate-800 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">vs Team Omega</div>
+<div class="text-xs text-slate-500 font-medium">2 days ago</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-bold text-green-600 dark:text-green-400 text-lg">70 - 68</div>
+<div class="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Score</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-72 min-w-[280px] h-full border-l border-slate-200/50 dark:border-slate-700/50 bg-white/40 dark:bg-black/20 flex flex-col backdrop-blur-md">
+<div class="p-8 flex flex-col items-center text-center">
+<div class="relative mb-4 group cursor-pointer">
+<img alt="Player Avatar" class="w-24 h-24 rounded-2xl shadow-xl ring-2 ring-white/50 dark:ring-slate-700 object-cover transform group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx9NQ6ISF5sz_vpBbasOackdaRH_S1VtV-Y2oKPhgmWfO8Hxli9J4D0CNPP5jja8DcMELVDTJo5UipBNzsIzjKjWyFWbwYfEzq2Mt0Ie1fGb-fozgaeU-0U1SC0zGeQzf6lgkQYfpBZ6w2t-vlsCGNH-s7ojlV2_I4AI8oqywpKStVtpLdiOL2KC9WIzC1zlrptpNFi36LTQi2Y8ZAwwMR3umRzuWFSTLZsNY2lIfvB7_c-ZDbo5XdaHlIquCT3cqQfYSZv2b-12I"/>
+<div class="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-md border-2 border-white dark:border-slate-800"></div>
+</div>
+<h2 class="text-xl font-black text-slate-800 dark:text-white">Player One</h2>
+<p class="text-xs font-bold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-4">Level 42</p>
+<button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors mb-6 shadow-sm">
+<span class="material-icons-round text-sm">settings</span>
+                        Settings
+                    </button>
+<div class="w-full bg-slate-100/50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200/50 dark:border-slate-700/50 mb-6">
+<div class="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+<span>XP Progress</span>
+<span class="text-slate-800 dark:text-white font-bold">82%</span>
+</div>
+<div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full w-[82%] shadow-sm relative overflow-hidden">
+<div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+</div>
+</div>
+<div class="text-[10px] text-slate-400 mt-2 text-right">2,450 / 3,000 XP</div>
+</div>
+<div class="w-full text-left">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Quick Equip</h3>
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-indigo-400 transition-all">
+<span class="material-icons-round text-white text-lg opacity-90">palette</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex-shrink-0 flex items-center justify-center shadow-md cursor-pointer hover:ring-2 ring-orange-400 transition-all opacity-50 hover:opacity-100">
+<span class="material-icons-round text-white text-lg opacity-90">local_fire_department</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-400 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+<span class="material-icons-round text-lg">add</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto p-6 border-t border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/50">
+<div class="flex items-center justify-between text-xs text-slate-500">
+<span>Server Time</span>
+<span class="font-mono">14:02 UTC</span>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+        // Use local storage to persist dark mode or default to system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+
+</body></html>

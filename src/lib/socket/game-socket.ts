@@ -1,8 +1,12 @@
 import { Server, Socket } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { getToken } from "next-auth/jwt";
+import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
+import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
+import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
+import type { PlayerCosmetics } from "@/types/game";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -14,11 +18,13 @@ interface BanList {
 interface PlayerData {
     id: string;
     playerId: string;
+    userId: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
     ip: string;
+    cosmetics: PlayerCosmetics;
 }
 
 interface NarratorInfo {
@@ -41,6 +47,7 @@ interface GameStateData {
     takimA_anlaticiIndex: number;
     takimB_anlaticiIndex: number;
     anlatici: NarratorInfo | null;
+    gozetmen: NarratorInfo | null;
     aktifKart: unknown;
     altinSkorAktif: boolean;
     kalanGecisSuresi?: number;
@@ -59,6 +66,17 @@ interface RoomData {
     oyunDurumu: GameStateData;
     zamanlayici: ReturnType<typeof setInterval> | null;
     banList: BanList;
+}
+
+export interface RoomMatchSnapshot {
+    odaKodu: string;
+    oyunAktifMi: boolean;
+    skor: { A: number; B: number };
+    oyuncular: Array<{
+        playerId: string;
+        userId: number | null;
+        takim: "A" | "B" | null;
+    }>;
 }
 
 // ─── State ─────────────────────────────────────────────────────
@@ -149,6 +167,7 @@ function createInitialGameState(): GameStateData {
         takimA_anlaticiIndex: -1,
         takimB_anlaticiIndex: -1,
         anlatici: null,
+        gozetmen: null,
         aktifKart: null,
         altinSkorAktif: false,
     };
@@ -174,7 +193,7 @@ function shuffleArray<T>(array: T[]): T[] {
 const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
-    playerId: z.string().uuid().optional(),
+    guestToken: z.string().min(20).max(512).optional(),
 });
 
 const KategoriAyarlariSchema = z.object({
@@ -213,7 +232,10 @@ export function setupGameSocket(io: Server): void {
 
     function broadcastLobby(room: RoomData): void {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const sanitizedPlayers = room.oyuncular.map(({ ip, ...rest }) => rest);
+        const sanitizedPlayers = room.oyuncular.map(({ ip, cosmetics, ...rest }) => ({
+            ...rest,
+            cosmetics: cosmetics ?? createEmptyPlayerCosmetics(),
+        }));
         io.to(room.odaKodu).emit("lobiGuncelle", {
             odaKodu: room.odaKodu,
             creatorId: room.creatorId,
@@ -314,6 +336,8 @@ export function setupGameSocket(io: Server): void {
                 ] || opponentPlayers[0]
                 : null;
 
+        const narratorCardThemes = await hydrateNarratorCardThemes(narrator.userId);
+
         room.oyunDurumu.kalanGecisSuresi = 10;
         persistRoom(room);
 
@@ -324,6 +348,7 @@ export function setupGameSocket(io: Server): void {
                 : null,
             kalanSure: room.oyunDurumu.kalanGecisSuresi,
             creatorId: room.creatorId,
+            cardBackTheme: narratorCardThemes.cardBackTheme,
         });
 
         room.zamanlayici = setInterval(() => {
@@ -349,7 +374,7 @@ export function setupGameSocket(io: Server): void {
                     if (narratorStillOnline) {
                         currentRoom.oyunDurumu.gecisEkraninda = false;
                         persistRoom(currentRoom);
-                        startTurn(roomCode, currentRoom, narrator, inspector);
+                        startTurn(roomCode, currentRoom, narrator, inspector, narratorCardThemes);
                     } else {
                         startNewRound(roomCode);
                     }
@@ -362,7 +387,8 @@ export function setupGameSocket(io: Server): void {
         roomCode: string,
         room: RoomData | undefined,
         narrator: PlayerData,
-        inspector: PlayerData | null
+        inspector: PlayerData | null,
+        narratorCardThemes: RoomCardThemePayload
     ): Promise<void> {
         const currentRoom = room || getRoom(roomCode);
         if (!currentRoom || !narrator) return;
@@ -376,6 +402,14 @@ export function setupGameSocket(io: Server): void {
             ad: narrator.ad,
             takim: narrator.takim!,
         };
+        currentRoom.oyunDurumu.gozetmen = inspector
+            ? {
+                id: inspector.id,
+                playerId: inspector.playerId,
+                ad: inspector.ad,
+                takim: inspector.takim!,
+            }
+            : null;
         currentRoom.oyunDurumu.kalanPasHakki = 3;
 
         try {
@@ -388,7 +422,7 @@ export function setupGameSocket(io: Server): void {
             currentRoom.oyunDurumu.aktifKart = card;
             persistRoom(currentRoom);
 
-            broadcastTurnInfo(currentRoom, narrator, inspector, card);
+            broadcastTurnInfo(currentRoom, narrator, inspector, card, narratorCardThemes);
             startTimer(currentRoom.odaKodu);
         } catch (error) {
             console.error("Failed to get next word", error);
@@ -405,7 +439,8 @@ export function setupGameSocket(io: Server): void {
         room: RoomData,
         narrator: PlayerData,
         inspector: PlayerData | null,
-        card: unknown
+        card: unknown,
+        narratorCardThemes: RoomCardThemePayload
     ): void {
         room.oyuncular.forEach((player) => {
             if (!player.online) return;
@@ -426,7 +461,7 @@ export function setupGameSocket(io: Server): void {
                 rol = "Gözetmen";
                 isPrimaryGozetmen = true;
             } else if (player.takim !== narrator.takim) {
-                rol = "Gözetmen";
+                rol = "Tahminci";
             }
 
             const shouldSeeCard = rol === "Anlatıcı" || rol === "Gözetmen";
@@ -437,6 +472,8 @@ export function setupGameSocket(io: Server): void {
                 kart: shouldSeeCard ? card : null,
                 anlaticiAd: narrator.ad,
                 gozetmenAd: inspector ? inspector.ad : "-",
+                cardFaceTheme: narratorCardThemes.cardFaceTheme,
+                cardBackTheme: narratorCardThemes.cardBackTheme,
             });
         });
     }
@@ -500,13 +537,13 @@ export function setupGameSocket(io: Server): void {
         const player = room.oyuncular.find((p) => p.id === socket.id);
         if (!player) return;
 
-        // Tabu can only be pressed by opponent or narrator
-        if (
-            action === "tabu" &&
-            narrator.takim === player.takim &&
-            narrator.id !== player.id
-        )
-            return;
+        const activeInspector = room.oyunDurumu.gozetmen;
+
+        if (action === "tabu") {
+            const isNarrator = narrator.id === player.id;
+            const isPrimaryInspector = activeInspector?.id === player.id;
+            if (!isNarrator && !isPrimaryInspector) return;
+        }
 
         // Dogru and pas can only be pressed by narrator
         if (
@@ -645,16 +682,21 @@ export function setupGameSocket(io: Server): void {
     // ─── Connection Handler ────────────────────────────────────
 
     io.on("connection", (socket: Socket) => {
+        if (!isTrustedSocketOrigin(socket)) {
+            socket.emit("hata", "Gecersiz baglanti origin'i.");
+            socket.disconnect(true);
+            return;
+        }
         // ── Room Join / Create ──
         socket.on(
-            "odaİsteği",
+            "room:request",
             async (rawPayload: unknown) => {
                 const parsed = OdaIstegiSchema.safeParse(rawPayload);
                 if (!parsed.success) {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, playerId } = parsed.data;
+                const { kullaniciAdi, odaKodu, guestToken } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -682,14 +724,14 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    // Determine effective player ID once
-                    // If client sent an ID, use it. Otherwise generate new one.
-                    let effectivePlayerId = playerId;
-                    let isNewId = false;
-                    if (!effectivePlayerId) {
-                        effectivePlayerId = uuidv4();
-                        isNewId = true;
-                    }
+                    const socketAuthUserId = await getSocketAuthUserId(socket);
+                    const effectiveAuthUserId = socketAuthUserId ?? null;
+
+                    const identity = resolveSocketPlayerIdentity(
+                        effectiveAuthUserId,
+                        guestToken
+                    );
+                    const effectivePlayerId = identity.playerId;
 
                     const requestedCode = odaKodu
                         ? String(odaKodu).toUpperCase()
@@ -706,7 +748,7 @@ export function setupGameSocket(io: Server): void {
                         room = {
                             odaKodu: targetCode,
                             creatorId: socket.id,
-                            creatorPlayerId: effectivePlayerId, // Use effective ID
+                            creatorPlayerId: effectivePlayerId,
                             oyuncular: [],
                             ayarlar: { sure: 60, mod: "tur", deger: 2 },
                             gecerliKategoriIdleri: [],
@@ -744,6 +786,10 @@ export function setupGameSocket(io: Server): void {
                         existingPlayer.ad = sanitizedName;
                         existingPlayer.online = true;
                         existingPlayer.ip = ip;
+                        if (effectiveAuthUserId) {
+                            existingPlayer.userId = effectiveAuthUserId;
+                        }
+                        await hydratePlayerCosmetics(existingPlayer);
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
@@ -769,19 +815,22 @@ export function setupGameSocket(io: Server): void {
                         const yeniOyuncu: PlayerData = {
                             id: socket.id,
                             playerId: effectivePlayerId,
+                            userId: effectiveAuthUserId,
                             ad: sanitizedName,
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
                             ip,
+                            cosmetics: createEmptyPlayerCosmetics(),
                         };
+                        await hydratePlayerCosmetics(yeniOyuncu);
                         room.oyuncular.push(yeniOyuncu);
-
-                        // Only emit if we generated a new ID
-                        if (isNewId) {
-                            socket.emit("kimlikAta", effectivePlayerId);
-                        }
                     }
+
+                    socket.emit("kimlikAta", {
+                        playerId: effectivePlayerId,
+                        guestToken: identity.guestToken,
+                    });
 
                     persistRoom(room);
                     socket.join(targetCode!);
@@ -1122,8 +1171,9 @@ export function setupGameSocket(io: Server): void {
         // ── Disconnect ──
         socket.on("disconnect", () => {
             wordActionTimestamps.delete(socket.id);
+            const roomCode = socketToRoom.get(socket.id);
+            const room = roomCode ? getRoom(roomCode) : undefined;
             socketToRoom.delete(socket.id);
-            const room = getRoomBySocketId(socket.id);
             if (!room) return;
 
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1219,5 +1269,116 @@ export function getRoomMetrics(): {
     return {
         aktifLobiSayisi: rooms.size,
         onlineKullaniciSayisi,
+    };
+}
+
+function createEmptyPlayerCosmetics(): PlayerCosmetics {
+    return {
+        avatarImageUrl: null,
+        frameImageUrl: null,
+        frameAccentColor: null,
+    };
+}
+
+function isSecureSocketHandshake(socket: Socket): boolean {
+    const forwardedProto = socket.handshake.headers["x-forwarded-proto"];
+    const normalizedProto = Array.isArray(forwardedProto)
+        ? forwardedProto[0]
+        : forwardedProto;
+
+    if (typeof normalizedProto === "string") {
+        return normalizedProto.split(",")[0].trim() === "https";
+    }
+
+    const origin = socket.handshake.headers.origin;
+    if (typeof origin === "string") {
+        return origin.startsWith("https://");
+    }
+
+    return process.env.NODE_ENV === "production";
+}
+
+function isTrustedSocketOrigin(socket: Socket): boolean {
+    const origin = socket.handshake.headers.origin;
+    if (typeof origin !== "string") {
+        return process.env.NODE_ENV !== "production";
+    }
+
+    const hostHeader =
+        socket.handshake.headers["x-forwarded-host"] ??
+        socket.handshake.headers.host;
+    const normalizedHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+    if (!normalizedHost) {
+        return process.env.NODE_ENV !== "production";
+    }
+
+    try {
+        const originUrl = new URL(origin);
+        return originUrl.host === normalizedHost;
+    } catch {
+        return false;
+    }
+}
+
+async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader || !process.env.AUTH_SECRET) {
+        return null;
+    }
+
+    const token = await getToken({
+        req: {
+            headers: {
+                cookie: cookieHeader,
+            },
+        },
+        secret: process.env.AUTH_SECRET,
+        secureCookie: isSecureSocketHandshake(socket),
+    });
+
+    const userId = Number(token?.sub);
+    return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+async function hydrateNarratorCardThemes(userId: number | null): Promise<RoomCardThemePayload> {
+    if (!userId) {
+        return createEmptyRoomCardThemes();
+    }
+
+    try {
+        const snapshot = await getPlayerCardCosmeticsSnapshot(userId);
+        return resolveRoomCardThemes(snapshot);
+    } catch (error) {
+        console.error("Narrator card cosmetics could not be loaded", error);
+        return createEmptyRoomCardThemes();
+    }
+}
+
+async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {
+    if (!player.userId) {
+        player.cosmetics = createEmptyPlayerCosmetics();
+        return;
+    }
+
+    try {
+        player.cosmetics = await getPlayerAppearanceSnapshot(player.userId);
+    } catch (error) {
+        console.error("Player cosmetics could not be loaded", error);
+        player.cosmetics = createEmptyPlayerCosmetics();
+    }
+}
+
+export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {
+    const room = rooms.get(roomCode);
+    if (!room) return null;
+    return {
+        odaKodu: room.odaKodu,
+        oyunAktifMi: room.oyunDurumu.oyunAktifMi,
+        skor: room.oyunDurumu.skor,
+        oyuncular: room.oyuncular.map((player) => ({
+            playerId: player.playerId,
+            userId: player.userId ?? null,
+            takim: player.takim,
+        })),
     };
 }

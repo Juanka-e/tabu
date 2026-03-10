@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-guard";
+import { Prisma } from "@prisma/client";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,11 @@ export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     const { id } = await params;
     const word = await prisma.word.findUnique({
         where: { id: parseInt(id) },
@@ -40,8 +44,11 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const { id } = await params;
         const wordId = parseInt(id);
@@ -49,9 +56,8 @@ export async function PUT(
         const data = updateWordSchema.parse(body);
 
         // Update word and related data in a transaction
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const word = await prisma.$transaction(async (tx: any) => {
-            // Update main word text and difficulty
+        const word = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // Update main word data
             await tx.word.update({
                 where: { id: wordId },
                 data: {
@@ -112,8 +118,11 @@ export async function DELETE(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const { id } = await params;
         await prisma.word.delete({ where: { id: parseInt(id) } });

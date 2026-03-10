@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
+import { getToken } from "next-auth/jwt";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -22,10 +23,28 @@ app.prepare().then(() => {
         transports: ["websocket", "polling"],
     });
 
-    // Initialize game socket logic
+    // Resolve auth when present, but keep guest socket access open.
+    io.use(async (socket, nextMiddleware) => {
+        try {
+            const token = process.env.AUTH_SECRET
+                ? await getToken({
+                    req: { headers: socket.request.headers } as never,
+                    secret: process.env.AUTH_SECRET,
+                    secureCookie: process.env.NODE_ENV === "production",
+                })
+                : null;
+
+            socket.data.userId = token?.sub ?? null;
+            nextMiddleware();
+        } catch (error) {
+            console.error("Socket authentication failed, continuing as guest:", error);
+            socket.data.userId = null;
+            nextMiddleware();
+        }
+    });
+
     setupGameSocket(io);
 
-    // Health check endpoint (accessible via custom server)
     httpServer.on("request", (req, res) => {
         if (req.url === "/api/health" && req.method === "GET") {
             const metrics = getRoomMetrics();
@@ -44,7 +63,6 @@ app.prepare().then(() => {
         console.log(`> Ready on http://${hostname}:${port}`);
     });
 
-    // Graceful shutdown
     const shutdown = () => {
         console.log("Shutting down...");
         io.close();

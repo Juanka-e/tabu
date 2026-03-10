@@ -63,6 +63,7 @@ export default function AdminWordsPage() {
     const [pages, setPages] = useState(1);
     const [search, setSearch] = useState("");
     const [filterDifficulty, setFilterDifficulty] = useState("");
+    const [filterCategoryId, setFilterCategoryId] = useState("");
     const [loading, setLoading] = useState(true);
 
     // ── Form State ──
@@ -91,6 +92,7 @@ export default function AdminWordsPage() {
         });
         if (search) params.set("search", search);
         if (filterDifficulty) params.set("difficulty", filterDifficulty);
+        if (filterCategoryId) params.set("categoryId", filterCategoryId);
 
         try {
             const res = await fetch(`/api/admin/words?${params}`);
@@ -103,7 +105,7 @@ export default function AdminWordsPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, search, filterDifficulty]);
+    }, [filterCategoryId, filterDifficulty, page, search]);
 
     useEffect(() => {
         fetchWords();
@@ -307,6 +309,21 @@ export default function AdminWordsPage() {
                     <option value="1">Kolay</option>
                     <option value="2">Orta</option>
                     <option value="3">Zor</option>
+                </select>
+                <select
+                    value={filterCategoryId}
+                    onChange={(e) => {
+                        setFilterCategoryId(e.target.value);
+                        setPage(1);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                >
+                    <option value="">Tum Kategoriler</option>
+                    {flatCategories.map((category) => (
+                        <option key={category.id} value={String(category.id)}>
+                            {category.indent ? `- ${category.name}` : category.name}
+                        </option>
+                    ))}
                 </select>
             </div>
 

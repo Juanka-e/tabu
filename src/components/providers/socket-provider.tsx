@@ -5,6 +5,7 @@ import {
     useContext,
     useEffect,
     useState,
+    useRef,
     type ReactNode,
 } from "react";
 import { io, Socket } from "socket.io-client";
@@ -22,26 +23,28 @@ const SocketContext = createContext<SocketContextValue>({
 export function SocketProvider({ children }: { children: ReactNode }) {
     const [isConnected, setIsConnected] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
+    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
+        // Connect to the Socket.IO server
         const socketInstance = io({
             path: "/api/socketio",
             transports: ["websocket", "polling"],
         });
 
-        // Defer setState one tick so it's not synchronous in the effect body
-        const timer = setTimeout(() => setSocket(socketInstance), 0);
+        socketRef.current = socketInstance;
 
         socketInstance.on("connect", () => {
             setIsConnected(true);
+            setSocket(socketInstance);
         });
 
         socketInstance.on("disconnect", () => {
             setIsConnected(false);
+            setSocket(null);
         });
 
         return () => {
-            clearTimeout(timer);
             socketInstance.disconnect();
             setSocket(null);
         };

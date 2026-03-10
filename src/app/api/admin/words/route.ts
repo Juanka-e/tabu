@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
 // GET - List words with search & pagination
 export async function GET(request: NextRequest) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -64,8 +66,11 @@ const createWordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const body = await request.json();
         const data = createWordSchema.parse(body);

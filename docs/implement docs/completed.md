@@ -223,3 +223,66 @@
 "@dnd-kit/sortable": "^10.0.0",
 "@dnd-kit/utilities": "^3.2.2"
 ```
+
+## ? Faz 16: Hybrid User Platform (Dashboard + Profile + Store) (2 March 2026)
+
+### Auth and Access Separation
+- User and admin login flows were separated with `portal`-based credentials checks.
+- Session now carries `user.id` and `user.role` consistently.
+- Middleware protection expanded for `/dashboard`, `/profile`, `/store`, `/api/user/*`, `/api/store/*`, `/api/game/*`.
+- Files: `src/lib/auth.ts`, `src/middleware.ts`, `src/types/next-auth.d.ts`, `src/app/login/page.tsx`, `src/app/admin/login/page.tsx`
+
+### Database and Economy Foundation
+- Added new Prisma models: `UserProfile`, `Wallet`, `ShopItem`, `InventoryItem`, `Purchase`, `MatchResult`, `GuestProgress`.
+- Added store/economy enums and relations for future game expansion.
+- Ran `prisma db push` successfully on local MySQL (`tabu2`).
+- File: `prisma/schema.prisma`
+
+### API Layer (MVP)
+- Added user APIs: `/api/user/me`, `/api/user/profile`, `/api/user/dashboard`.
+- Added store APIs: `/api/store/items`, `/api/store/purchase`, `/api/store/equip`.
+- Added match reward finalize API: `/api/game/match/finalize`.
+- Files: `src/app/api/user/*`, `src/app/api/store/*`, `src/app/api/game/match/finalize/route.ts`
+
+### New User Pages
+- Added `/dashboard`, `/profile`, `/store` pages.
+- Added shared user navigation component.
+- Files: `src/app/dashboard/page.tsx`, `src/app/profile/page.tsx`, `src/app/store/page.tsx`, `src/components/user/user-nav.tsx`
+
+### Game Socket and Reward Integration
+- Added optional `authUserId` to room join payload and player `userId` tracking.
+- Fixed disconnect lookup ordering bug (`socketToRoom` map usage).
+- Added room match snapshot helper for secure reward validation.
+- Added reward claim trigger on game end for logged-in users.
+- Files: `src/lib/socket/game-socket.ts`, `src/app/room/[code]/page.tsx`, `src/app/page.tsx`, `src/types/game.ts`
+
+### Type Fix
+- Explicitly typed `m` and `match` in dashboard page to remove implicit-any issue.
+- File: `src/app/dashboard/page.tsx`
+
+## ? Faz 17: Lint Error Cleanup + CI Stabilization (2 March 2026)
+
+### Lint Error Fixes
+- Removed all ESLint **error** findings from current codebase state.
+- Replaced explicit `any` usages in test scripts and admin word update route with typed interfaces / Prisma transaction types.
+- Fixed React hook rule violations:
+  - Removed sync `setState` in effect bodies on home/room/socket-provider flows.
+  - Removed render-time ref access in room sidebars.
+  - Removed impure `Math.random()` render path in UI sidebar skeleton.
+- Files: `src/app/page.tsx`, `src/app/room/[code]/page.tsx`, `src/components/providers/socket-provider.tsx`, `src/components/ui/sidebar.tsx`, `scripts/*`, `src/app/api/admin/words/[id]/route.ts`
+
+### Build/CI Parity Fixes
+- Fixed login pages to avoid `useSearchParams` build-time bailout by reading callback URL from `window.location.search` on submit.
+- Re-encoded `src/app/page.tsx` as UTF-8 to resolve parsing/build issue.
+- Files: `src/app/login/page.tsx`, `src/app/admin/login/page.tsx`, `src/app/page.tsx`
+
+### Verification
+- `npm run lint` -> pass (0 errors, warnings remain).
+- `npx tsc --noEmit` -> pass.
+- `npm run build` -> pass.
+
+## ? Faz 18: Warning Cleanup (2 March 2026)
+- Removed all remaining ESLint warnings (unused imports/vars and image lint issue).
+- Replaced announcement modal `<img>` with `next/image` (`unoptimized`) to satisfy Next lint rule.
+- Cleaned admin/game modules with minimal no-behavior-change refactors.
+- Verification: `npm run lint`, `npx tsc --noEmit`, `npm run build` all pass.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +10,11 @@ interface ReorderItem {
 }
 
 export async function POST(request: NextRequest) {
-    const { error } = await requireAdmin();
-    if (error) return error;
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
     try {
         const body = await request.json();
         const { updates }: { updates: ReorderItem[] } = body;

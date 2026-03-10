@@ -11,6 +11,8 @@ import {
     Upload,
     LogOut,
     Gamepad2,
+    ShoppingBag,
+    TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +21,8 @@ const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/words", icon: BookOpen, label: "Kelimeler" },
     { href: "/admin/categories", icon: FolderTree, label: "Kategoriler" },
+    { href: "/admin/shop-items", icon: ShoppingBag, label: "Kozmetikler" },
+    { href: "/admin/promotions", icon: TicketPercent, label: "Promosyonlar" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
     { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yükleme" },
 ];
@@ -85,7 +89,7 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
                 <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 text-sm text-destructive hover:text-destructive"
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={() => signOut({ callbackUrl: "/admin/login" })}
                 >
                     <LogOut className="h-4 w-4" />
                     Çıkış Yap
