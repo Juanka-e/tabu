@@ -24,6 +24,13 @@ export interface EconomySettings {
     winRewardCoin: number;
     lossRewardCoin: number;
     drawRewardCoin: number;
+    matchCoinMultiplier: number;
+    weekendCoinMultiplierEnabled: boolean;
+    weekendCoinMultiplier: number;
+    storePriceMultiplier: number;
+    bundlesEnabled: boolean;
+    discountCampaignsEnabled: boolean;
+    couponsEnabled: boolean;
 }
 
 export interface CaptchaSettings {

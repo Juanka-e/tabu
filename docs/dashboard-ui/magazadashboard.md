@@ -72,6 +72,50 @@
 2. Magaza baslangic seed'i ekle (6 avatar, 4 cerceve, 4 kart arkasi).
 3. Room UI'da equip edilen kozmetiklerin gorunur yansitmasini tamamla.
 4. Guest-to-account merge kuralini (coin snapshot aktarim) aktif et.
+
+## Economy LiveOps Controls (March 13, 2026)
+
+- Runtime economy artik sadece baslangic coin ve mac odullerinden ibaret degil.
+- Admin panel `Sistem Ayarlari > Ekonomi Temeli` bolumunden su alanlari yonetiyor:
+  - `startingCoinBalance`
+  - `winRewardCoin`
+  - `lossRewardCoin`
+  - `drawRewardCoin`
+  - `matchCoinMultiplier`
+  - `weekendCoinMultiplierEnabled`
+  - `weekendCoinMultiplier`
+  - `storePriceMultiplier`
+  - `bundlesEnabled`
+  - `discountCampaignsEnabled`
+  - `couponsEnabled`
+
+### Runtime Etki
+
+- Mac odulleri artik:
+  - baz galibiyet/maglubiyet/beraberlik odulu
+  - global mac coin carpani
+  - opsiyonel weekend carpani
+  katmanlariyla hesaplanir.
+- Store katalog fiyatlari artik DB fiyatinin birebir kopyasi degil; `storePriceMultiplier` ile runtime'da olusturulur.
+- Discount campaign ve coupon mantigi ayni efektif liste fiyatinin ustunde calisir.
+- Bundle satislari, kupon kullanimi ve campaign discount'lari ayri ayri liveops kill-switch ile kapatilabilir.
+
+### UI Yansima
+
+- `/api/store/catalog` artik `liveops` ozetini de doner.
+- Dashboard magazasi:
+  - aktif store multiplier'i
+  - aktif mac multiplier'i
+  - weekend boost durumu
+  - campaign pause durumu
+  - coupon / bundle gate durumu
+  bilgilerini oyuncuya gosterir.
+
+### Bilincli Sinirlar
+
+- Bu slice coupon / discount / bundle admin CRUD mantigini degistirmez; sadece runtime davranisini kontrol eder.
+- Weekend carpani platform timezone olarak `Europe/Istanbul` uzerinden hesaplanir.
+- Daha ileri event sistemi (tarih aralikli kampanya scheduler, sezon mantigi, per-segment economy rollout) sonraki liveops branch'lerine birakildi.
 ## CI / Workflow Notes (March 2, 2026)
 
 - Reviewed `.github/workflows/ci.yml`.

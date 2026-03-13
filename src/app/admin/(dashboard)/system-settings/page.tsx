@@ -243,22 +243,61 @@ export default function SystemSettingsPage() {
                 <CardHeader>
                     <CardTitle className="text-xl">Ekonomi Temeli</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="space-y-2">
-                        <FieldLabel label="Baslangic Coin" helper="Yeni kayit olan kullanicinin wallet bakiyesi." />
-                        <input className={inputClassName} type="number" min="0" value={payload.settings.economy.startingCoinBalance} onChange={(event) => updatePayload("economy", "startingCoinBalance", Number(event.target.value))} />
+                <CardContent className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2">
+                            <FieldLabel label="Baslangic Coin" helper="Yeni kayit olan kullanicinin wallet bakiyesi." />
+                            <input className={inputClassName} type="number" min="0" value={payload.settings.economy.startingCoinBalance} onChange={(event) => updatePayload("economy", "startingCoinBalance", Number(event.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Galibiyet Odulu" helper="Mac kazanana verilecek baz coin." />
+                            <input className={inputClassName} type="number" min="0" value={payload.settings.economy.winRewardCoin} onChange={(event) => updatePayload("economy", "winRewardCoin", Number(event.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Maglubiyet Odulu" helper="Kaybeden oyuncuya verilecek baz coin." />
+                            <input className={inputClassName} type="number" min="0" value={payload.settings.economy.lossRewardCoin} onChange={(event) => updatePayload("economy", "lossRewardCoin", Number(event.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Beraberlik Odulu" helper="Mac berabere biterse verilecek baz coin." />
+                            <input className={inputClassName} type="number" min="0" value={payload.settings.economy.drawRewardCoin} onChange={(event) => updatePayload("economy", "drawRewardCoin", Number(event.target.value))} />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <FieldLabel label="Galibiyet Odulu" helper="Mac kazanana verilecek coin." />
-                        <input className={inputClassName} type="number" min="0" value={payload.settings.economy.winRewardCoin} onChange={(event) => updatePayload("economy", "winRewardCoin", Number(event.target.value))} />
+
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="space-y-2">
+                            <FieldLabel label="Mac Coin Carpani" helper="Tum mac odullerine uygulanan global multiplier." />
+                            <input className={inputClassName} type="number" min="0" max="10" step="0.1" value={payload.settings.economy.matchCoinMultiplier} onChange={(event) => updatePayload("economy", "matchCoinMultiplier", Number(event.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Weekend Carpani" helper="Hafta sonu aktifse global carpana eklenir." />
+                            <input className={inputClassName} type="number" min="1" max="10" step="0.1" value={payload.settings.economy.weekendCoinMultiplier} onChange={(event) => updatePayload("economy", "weekendCoinMultiplier", Number(event.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Magaza Fiyat Carpani" helper="Tum item ve bundle liste fiyatlarina runtime uygulanir." />
+                            <input className={inputClassName} type="number" min="0.1" max="10" step="0.1" value={payload.settings.economy.storePriceMultiplier} onChange={(event) => updatePayload("economy", "storePriceMultiplier", Number(event.target.value))} />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <FieldLabel label="Maglubiyet Odulu" helper="Kaybeden oyuncuya verilecek coin." />
-                        <input className={inputClassName} type="number" min="0" value={payload.settings.economy.lossRewardCoin} onChange={(event) => updatePayload("economy", "lossRewardCoin", Number(event.target.value))} />
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <ToggleField checked={payload.settings.economy.weekendCoinMultiplierEnabled} label="Weekend Boost" description="Cumartesi/Pazar odullerine ek multiplier uygular." onChange={(checked) => updatePayload("economy", "weekendCoinMultiplierEnabled", checked)} />
+                        <ToggleField checked={payload.settings.economy.bundlesEnabled} label="Bundle Satislari" description="Bundle katalogu ve satin alma akislarini acar/kapatir." onChange={(checked) => updatePayload("economy", "bundlesEnabled", checked)} />
+                        <ToggleField checked={payload.settings.economy.discountCampaignsEnabled} label="Kampanya Indirimleri" description="Discount campaign fiyat dusumlerini runtime kapatir/acar." onChange={(checked) => updatePayload("economy", "discountCampaignsEnabled", checked)} />
+                        <ToggleField checked={payload.settings.economy.couponsEnabled} label="Kuponlar" description="Coupon preview ve coupon checkout davranisini acar/kapatir." onChange={(checked) => updatePayload("economy", "couponsEnabled", checked)} />
                     </div>
-                    <div className="space-y-2">
-                        <FieldLabel label="Beraberlik Odulu" helper="Mac berabere biterse verilecek coin." />
-                        <input className={inputClassName} type="number" min="0" value={payload.settings.economy.drawRewardCoin} onChange={(event) => updatePayload("economy", "drawRewardCoin", Number(event.target.value))} />
+
+                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                        Canli sonuc ozeti:
+                        <span className="ml-2 font-semibold text-foreground">
+                            Mac multiplier x{payload.settings.economy.matchCoinMultiplier.toFixed(2)}
+                        </span>
+                        <span className="ml-4 font-semibold text-foreground">
+                            Store multiplier x{payload.settings.economy.storePriceMultiplier.toFixed(2)}
+                        </span>
+                        {payload.settings.economy.weekendCoinMultiplierEnabled ? (
+                            <span className="ml-4 font-semibold text-foreground">
+                                Weekend x{payload.settings.economy.weekendCoinMultiplier.toFixed(2)}
+                            </span>
+                        ) : null}
                     </div>
                 </CardContent>
             </Card>

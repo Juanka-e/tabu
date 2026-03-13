@@ -49,6 +49,11 @@ export async function PUT(req: Request) {
                 maintenanceEnabled: updatedSettings.platform.maintenanceEnabled,
                 storeEnabled: updatedSettings.features.storeEnabled,
                 registrationsEnabled: updatedSettings.features.registrationsEnabled,
+                bundlesEnabled: updatedSettings.economy.bundlesEnabled,
+                couponsEnabled: updatedSettings.economy.couponsEnabled,
+                discountCampaignsEnabled: updatedSettings.economy.discountCampaignsEnabled,
+                storePriceMultiplier: updatedSettings.economy.storePriceMultiplier,
+                matchCoinMultiplier: updatedSettings.economy.matchCoinMultiplier,
             },
             request: req,
         });

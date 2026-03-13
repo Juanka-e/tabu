@@ -241,8 +241,18 @@ export interface CouponPreviewResponse {
     coupon: CouponPreviewView | null;
 }
 
+export interface StoreLiveopsView {
+    bundlesEnabled: boolean;
+    couponsEnabled: boolean;
+    discountCampaignsEnabled: boolean;
+    storePriceMultiplier: number;
+    activeMatchCoinMultiplier: number;
+    weekendBoostApplied: boolean;
+}
+
 export interface StoreCatalogResponse {
     coinBalance: number;
     items: CatalogStoreItemView[];
     bundles: CatalogBundleView[];
+    liveops: StoreLiveopsView;
 }

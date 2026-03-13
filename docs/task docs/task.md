@@ -358,6 +358,27 @@ Reference:
 - [x] Move `/admin/shop-items` onto the shared list foundation and add row selection with bulk visibility/spotlight actions
 - [x] Add promotions-wide search and shared empty-state handling to `/admin/promotions`
 - [x] Add smoke test: `npm run test:admin-table-foundation`
+
+### Phase 16 Update (March 13, 2026 - Economy LiveOps Controls)
+- [x] Create isolated branch `feature/economy-liveops-controls`
+- [x] Extend runtime economy settings with:
+  - `matchCoinMultiplier`
+  - `weekendCoinMultiplierEnabled`
+  - `weekendCoinMultiplier`
+  - `storePriceMultiplier`
+  - `bundlesEnabled`
+  - `discountCampaignsEnabled`
+  - `couponsEnabled`
+- [x] Add shared economy liveops helper layer for reward and pricing resolution
+- [x] Apply match reward multipliers in `/api/game/match/finalize`
+- [x] Apply store price multiplier to live catalog, coupon preview, item purchase, and bundle purchase
+- [x] Add runtime kill switches for bundle sales, campaign discounts, and coupons
+- [x] Surface liveops state inside the shared shop catalog response
+- [x] Update `/admin/system-settings` to manage advanced economy liveops controls
+- [x] Update dashboard shop UI to reflect coupon/bundle/campaign liveops status
+- [x] Fix coupon preview behavior for zero-priced targets
+- [x] Add smoke test: `npm run test:economy-liveops`
+- [x] Verification completed: `npm run test:system-settings`, `npm run test:economy-liveops`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
 - [x] Verification completed: `npm run test:admin-table-foundation`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
 
 ### Phase 16 Update (March 13, 2026 - Moderation Foundation)
