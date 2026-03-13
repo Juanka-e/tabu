@@ -1046,3 +1046,17 @@ Critical Findings
 ### Remaining hardening note
 - The system-settings cache is process-local.
 - For multi-instance deployments, the next hardening step is shared cache invalidation or Redis-backed settings reads.
+
+## 13 March 2026 Update - Captcha Runtime Enforcement
+
+- Runtime captcha settings are no longer display-only; they now affect real request gates.
+- `security.captcha.*` settings now drive these flows:
+  - register
+  - login
+  - room create
+  - guest join
+- `turnstile` is treated as the primary low-friction provider.
+- `recaptcha_v3` is available as an alternate provider.
+- `soft_fail` only soft-passes provider outage or missing provider configuration.
+- Missing token, invalid token, low score, or action mismatch still fail hard.
+- This avoids turning `soft_fail` into a user-controlled bypass.

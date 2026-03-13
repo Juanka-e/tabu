@@ -983,3 +983,36 @@ Dogru baslangic modeli:
 - provider secimi ve aktiflik DB/settings
 - varsayilan UX gorunmez / dusuk surtunmeli
 - supheli trafikte daha sert moda gecis admin panelden yapilabilir
+
+## Captcha Enforcement Slice (13 March 2026)
+
+### Tamamlananlar
+- `turnstile` ve `recaptcha_v3` icin ortak server-side verification katmani eklendi.
+- Public captcha config route eklendi:
+  - `/api/security/captcha-config`
+- Client token toplama katmani eklendi; provider script'i sadece gerektiginde yukleniyor.
+- Captcha enforcement baglanan yuzeyler:
+  - register
+  - login
+  - room create
+  - guest join
+  - direct `/room/[code]` guest entry
+
+### Davranis modeli
+- `soft_fail` yalnizca su durumlarda gecerlidir:
+  - provider servis sorunu
+  - provider config eksigi
+- Su durumlar ise yine fail olur:
+  - token yok
+  - token gecersiz
+  - action mismatch
+  - reCAPTCHA score threshold alti
+
+### Test ve dogrulama
+- Yeni smoke test: `npm run test:captcha-security`
+- Gecen kontroller:
+  - `npm run test:captcha-security`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+  - `npm audit --omit=dev`

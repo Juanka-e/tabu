@@ -484,3 +484,25 @@ Reference:
 - Enforce captcha providers in register / room-create flows once the dedicated captcha integration branch starts.
 - Add a maintenance allowlist or beta-code path if closed testing is required during maintenance windows.
 - Move in-memory settings cache to Redis or a shared cache if the app is scaled horizontally.
+
+### Completed in the March 13 security-entry-gates slice
+- Added Turnstile/reCAPTCHA runtime enforcement for entry surfaces.
+- Added public captcha config route and shared client token loader.
+- Enforced captcha on:
+  - registration
+  - credentials login
+  - room create
+  - guest join
+  - direct guest room entry
+- Implemented provider-aware verification with:
+  - action matching
+  - reCAPTCHA score threshold
+  - soft-fail only for provider outage / unconfigured provider
+- Added `.env.example` placeholders for provider keys.
+- Added smoke test: `npm run test:captcha-security`.
+- Verification completed: `npm run test:captcha-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Consider adding separate admin-login-specific captcha policy if admin auth abuse becomes materially different from user login abuse.
+- If horizontal scale is introduced, combine captcha telemetry and request limits with shared Redis storage.
+- Add optional invisible challenge analytics if product decisions require captcha conversion monitoring.

@@ -3,6 +3,9 @@ import Credentials from "next-auth/providers/credentials";
 import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sharedAuthConfig } from "@/lib/auth-shared";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import { verifyCaptchaForAction } from "@/lib/security/captcha";
+import { getRequestIp } from "@/lib/security/request-rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...sharedAuthConfig,
@@ -13,9 +16,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 username: { label: "Kullanici Adi", type: "text" },
                 password: { label: "Sifre", type: "password" },
                 portal: { label: "Portal", type: "text" },
+                captchaToken: { label: "Captcha Token", type: "text" },
+                captchaAction: { label: "Captcha Action", type: "text" },
             },
-            async authorize(credentials) {
+            async authorize(credentials, request) {
                 if (!credentials?.username || !credentials?.password) {
+                    return null;
+                }
+
+                const settings = await getSystemSettings();
+                const captchaResult = await verifyCaptchaForAction({
+                    action: "login",
+                    token: typeof credentials.captchaToken === "string" ? credentials.captchaToken : null,
+                    remoteIp: getRequestIp(request),
+                    settings,
+                });
+                if (!captchaResult.ok) {
                     return null;
                 }
 

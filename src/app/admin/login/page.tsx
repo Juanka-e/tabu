@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2 } from "lucide-react";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 export default function AdminLoginPage() {
     const [username, setUsername] = useState("");
@@ -21,25 +22,34 @@ export default function AdminLoginPage() {
         setLoading(true);
         setError("");
 
-        const result = await signIn("credentials", {
-            username,
-            password,
-            portal: "admin",
-            redirect: false,
-        });
+        try {
+            const { token } = await getCaptchaTokenForAction("login");
+            const result = await signIn("credentials", {
+                username,
+                password,
+                portal: "admin",
+                captchaToken: token,
+                captchaAction: "login",
+                redirect: false,
+            });
 
-        if (result?.error) {
-            setError("Kullanici adi veya sifre hatali.");
+            if (result?.error) {
+                setError("Kullanici adi veya sifre hatali.");
+                setLoading(false);
+                return;
+            }
+
+            const callbackUrl =
+                typeof window !== "undefined"
+                    ? new URLSearchParams(window.location.search).get("callbackUrl") || "/admin"
+                    : "/admin";
+            router.push(callbackUrl);
+            router.refresh();
+        } catch {
+            setError("Guvenlik dogrulamasi baslatilamadi.");
+        } finally {
             setLoading(false);
-            return;
         }
-
-        const callbackUrl =
-            typeof window !== "undefined"
-                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/admin"
-                : "/admin";
-        router.push(callbackUrl);
-        router.refresh();
     };
 
     return (

@@ -338,3 +338,14 @@ Reference:
 - [x] Replace hardcoded registration coin seed and match reward reads with dynamic settings
 - [x] Add smoke test: `npm run test:system-settings`
 - [x] Verification completed: `npm run test:system-settings`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 14 Update (March 13, 2026 - Security Entry Gates)
+- [x] Add shared captcha provider verification service for Turnstile and reCAPTCHA v3
+- [x] Add shared public captcha config route for client-side action preparation
+- [x] Enforce captcha in register flow
+- [x] Enforce captcha in login flow through credentials provider
+- [x] Enforce captcha in socket room create flow
+- [x] Enforce captcha in guest join flow, including direct `/room/[code]` guest entry
+- [x] Support `soft_fail` vs `hard_fail` behavior from runtime system settings
+- [x] Add smoke test: `npm run test:captcha-security`
+- [x] Verification completed: `npm run test:captcha-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
