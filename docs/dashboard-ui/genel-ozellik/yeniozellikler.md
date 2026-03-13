@@ -1016,3 +1016,31 @@ Dogru baslangic modeli:
   - `npx tsc --noEmit`
   - `npm run build`
   - `npm audit --omit=dev`
+## Admin Table Foundation Slice (13 March 2026)
+
+### Tamamlananlar
+- Ortak admin liste omurgasi eklendi:
+  - AdminPageHeader
+  - AdminToolbar
+  - AdminToolbarStats
+  - AdminTableShell
+  - AdminEmptyState
+  - AdminPagination
+  - AdminSelectionBar
+- Ortak secim ve local pagination yardimcilari eklendi:
+  - src/lib/admin/admin-table.ts
+  - src/hooks/use-admin-selection.ts
+- admin/words sayfasi tamamen yeni omurgaya tasindi ve server-side pagination korundu.
+- admin/shop-items sayfasi yeni omurgaya tasindi; row selection ile toplu aktif et, pasif yap, spotlight aksiyonlari eklendi.
+- admin/promotions sayfasina ortak header, toolbar, global arama ve shared empty-state dili eklendi.
+
+### Bilincli olarak disarida birakilanlar
+- Bu branch bulk mutation API standardizasyonu getirmedi.
+- shop-items toplu aksiyonlari mevcut tekil update route'u uzerinden calisiyor.
+- promotions ekrani bu turda kart-editor yapisini korudu; tam tabloya zorlanmadi.
+
+### Sonraki dogal adimlar
+- feature/moderation-foundation
+- veya admin operasyon agirligini azaltmak istersek:
+  - feature/admin-user-operations
+  - feature/admin-shop-ux
