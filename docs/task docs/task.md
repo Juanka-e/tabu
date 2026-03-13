@@ -368,5 +368,7 @@ Reference:
 - [x] Add `/admin/users` moderation screen and sidebar entry
 - [x] Block admin-on-admin moderation in the new foundation
 - [x] Enforce suspended-user denial in login, session-based protected routes, and socket room requests
+- [x] Redirect authenticated non-admin users away from `/admin` and `/admin/login` instead of showing the admin login form
+- [x] Allow deleting only internal `note` moderation events; keep suspend/reactivate records immutable
 - [x] Add smoke test: `npm run test:moderation-foundation`
 - [x] Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`

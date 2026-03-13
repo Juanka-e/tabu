@@ -71,11 +71,23 @@ export default auth((req) => {
     }
 
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-        if (!isAuthed(req) || role !== "admin") {
+        if (!isAuthed(req)) {
             const loginUrl = new URL("/admin/login", req.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
             return NextResponse.redirect(loginUrl);
         }
+
+        if (role !== "admin") {
+            return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+    }
+
+    if (pathname.startsWith("/admin/login") && isAuthed(req)) {
+        if (role === "admin") {
+            return NextResponse.redirect(new URL("/admin", req.url));
+        }
+
+        return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     if (pathname.startsWith("/api/admin")) {

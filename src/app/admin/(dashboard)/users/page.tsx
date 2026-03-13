@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, ShieldBan, StickyNote, Users, X } from "lucide-react";
+import { ChevronDown, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,9 @@ export default function AdminUsersPage() {
     const [status, setStatus] = useState<StatusFilter>("all");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
     const [selectedUser, setSelectedUser] = useState<AdminUserModerationView | null>(null);
+    const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
     const [actionMode, setActionMode] = useState<ActionMode>("suspend");
     const [reason, setReason] = useState("");
     const [suspendedUntil, setSuspendedUntil] = useState("");
@@ -183,6 +185,30 @@ export default function AdminUsersPage() {
             setSaving(false);
         }
     }, [actionMode, closeActionModal, loadUsers, reason, selectedUser, suspendedUntil]);
+
+    const deleteNote = useCallback(async (userId: number, eventId: number) => {
+        setDeletingEventId(eventId);
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/moderation/${eventId}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({
+                    error: "Ic not silinemedi.",
+                }))) as { error?: string };
+                toast.error(errorPayload.error ?? "Ic not silinemedi.");
+                return;
+            }
+
+            toast.success("Ic not silindi.");
+            await loadUsers();
+        } catch {
+            toast.error("Ic not silinemedi.");
+        } finally {
+            setDeletingEventId(null);
+        }
+    }, [loadUsers]);
 
     return (
         <div className="space-y-6">
@@ -294,24 +320,70 @@ export default function AdminUsersPage() {
                                                 Moderasyon kaydi yok.
                                             </div>
                                         ) : (
-                                            user.recentModerationEvents.slice(0, 3).map((event) => (
-                                                <div
-                                                    key={event.id}
-                                                    className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-xs"
-                                                >
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span className="font-semibold text-foreground">
-                                                            {getEventLabel(event.actionType)}
-                                                        </span>
-                                                        <span className="text-muted-foreground">
-                                                            {formatDateTime(event.createdAt)}
-                                                        </span>
+                                            <>
+                                                {(expandedUserId === user.id
+                                                    ? user.recentModerationEvents
+                                                    : user.recentModerationEvents.slice(0, 2)
+                                                ).map((event) => (
+                                                    <div
+                                                        key={event.id}
+                                                        className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-xs"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-foreground">
+                                                                        {getEventLabel(event.actionType)}
+                                                                    </span>
+                                                                    <span className="text-muted-foreground">
+                                                                        {formatDateTime(event.createdAt)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="line-clamp-2 text-muted-foreground">
+                                                                    {event.reason}
+                                                                </div>
+                                                            </div>
+                                                            {event.actionType === "note" ? (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    disabled={deletingEventId === event.id}
+                                                                    onClick={() => void deleteNote(user.id, event.id)}
+                                                                >
+                                                                    {deletingEventId === event.id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+                                                            ) : null}
+                                                        </div>
                                                     </div>
-                                                    <div className="mt-1 text-muted-foreground">
-                                                        {event.reason}
-                                                    </div>
-                                                </div>
-                                            ))
+                                                ))}
+                                                {user.recentModerationEvents.length > 2 ? (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="gap-1 px-0 text-xs text-muted-foreground"
+                                                        onClick={() =>
+                                                            setExpandedUserId((current) =>
+                                                                current === user.id ? null : user.id
+                                                            )
+                                                        }
+                                                    >
+                                                        <ChevronDown
+                                                            className={`h-4 w-4 transition-transform ${
+                                                                expandedUserId === user.id ? "rotate-180" : ""
+                                                            }`}
+                                                        />
+                                                        {expandedUserId === user.id
+                                                            ? "Daha az goster"
+                                                            : `${user.recentModerationEvents.length - 2} olay daha`}
+                                                    </Button>
+                                                ) : null}
+                                            </>
                                         )}
                                     </div>
                                 </TableCell>

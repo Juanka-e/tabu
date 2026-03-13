@@ -528,3 +528,4 @@ Reference:
 - Replace some remaining `window.confirm` admin flows with a shared confirmation dialog system.
 - If operator workload grows, add bulk moderation actions with a dedicated transactional API.
 - Add appeal/review workflow only if product policy requires it; it is intentionally not part of the current foundation.
+- If moderation event history grows further, add a dedicated detail drawer or paginated timeline instead of expanding the row inline.

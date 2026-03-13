@@ -1080,6 +1080,11 @@ Critical Findings
   - credentials login
   - session-backed protected page/API checks through `getSessionUser`
   - socket-based room create/join resolution
+- Authenticated non-admin users are now redirected away from `/admin` and `/admin/login` to `/dashboard`.
+  - This is primarily a UX and route-hygiene fix.
+  - It is not treated as a security vulnerability that the admin login page existed for unauthenticated users.
+- Only internal `note` moderation events are deletable.
+  - suspend/reactivate records stay immutable to preserve audit integrity.
 
 ### Remaining hardening note
 - Because auth still uses JWT sessions, `proxy.ts` cannot independently verify suspension state at the edge.

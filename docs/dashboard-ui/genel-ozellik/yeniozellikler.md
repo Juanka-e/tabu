@@ -1072,3 +1072,10 @@ Dogru baslangic modeli:
 - feature/admin-user-operations
 - feature/system-notifications-foundation
 - veya guvenlik odagi devam edecekse feature/security-hardening-phase-2
+### Moderation Foundation Follow-up (13 March 2026)
+- Authenticated normal users artik /admin veya /admin/login uzerinde admin login formuna dusmuyor; /dashboard tarafina yonlendiriliyor.
+- Son olaylar alani sadeleþtirildi:
+  - varsayilan olarak kisaltilmis gorunum
+  - daha fazla / daha az goster kontrolu
+  - sadece ic not kayitlarini silme destegi
+- Suspend/reactivate olaylari audit butunlugu icin silinemez tutuldu.
