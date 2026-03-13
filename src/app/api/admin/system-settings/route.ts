@@ -1,0 +1,67 @@
+import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/admin/require-admin";
+import {
+    systemSettingsWriteSchema,
+    SYSTEM_SETTINGS_NAMESPACES,
+} from "@/lib/system-settings/schema";
+import {
+    getCaptchaProviderReadiness,
+    getSystemSettings,
+    updateSystemSettings,
+} from "@/lib/system-settings/service";
+import { writeAuditLog } from "@/lib/security/audit-log";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
+    const settings = await getSystemSettings();
+    return NextResponse.json({
+        settings,
+        captchaReadiness: getCaptchaProviderReadiness(),
+        namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
+    });
+}
+
+export async function PUT(req: Request) {
+    const adminSession = await requireAdminSession();
+    if (adminSession instanceof NextResponse) {
+        return adminSession;
+    }
+
+    try {
+        const body = await req.json();
+        const nextSettings = systemSettingsWriteSchema.parse(body);
+        const updatedSettings = await updateSystemSettings(nextSettings, adminSession.id);
+
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.system-settings.update",
+            resourceType: "system_settings",
+            resourceId: "global",
+            summary: "Updated platform system settings",
+            metadata: {
+                namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
+                maintenanceEnabled: updatedSettings.platform.maintenanceEnabled,
+                storeEnabled: updatedSettings.features.storeEnabled,
+                registrationsEnabled: updatedSettings.features.registrationsEnabled,
+            },
+            request: req,
+        });
+
+        return NextResponse.json({
+            settings: updatedSettings,
+            captchaReadiness: getCaptchaProviderReadiness(),
+            namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : "Sistem ayarlari guncellenemedi." },
+            { status: 422 }
+        );
+    }
+}

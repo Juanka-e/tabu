@@ -13,6 +13,7 @@ import {
     Gamepad2,
     ShoppingBag,
     TicketPercent,
+    SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +24,7 @@ const navItems = [
     { href: "/admin/categories", icon: FolderTree, label: "Kategoriler" },
     { href: "/admin/shop-items", icon: ShoppingBag, label: "Kozmetikler" },
     { href: "/admin/promotions", icon: TicketPercent, label: "Promosyonlar" },
+    { href: "/admin/system-settings", icon: SlidersHorizontal, label: "Sistem Ayarlari" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
     { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yükleme" },
 ];

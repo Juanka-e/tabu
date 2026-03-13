@@ -5,6 +5,8 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { GlobalRuntimeBanner } from "@/components/system/global-runtime-banner";
+import { getSystemSettings } from "@/lib/system-settings/service";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,13 +42,34 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const pathname = requestHeaders.get("x-pathname") ?? "/";
+  const settings = await getSystemSettings();
+  const isAdminPath = pathname.startsWith("/admin");
+  const showMaintenanceBanner = settings.platform.maintenanceEnabled && !isAdminPath;
+  const showMotdBanner =
+    settings.platform.motdEnabled &&
+    settings.platform.motdText.trim().length > 0 &&
+    !isAdminPath;
 
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
           <ThemeProvider nonce={nonce}>
+            {showMaintenanceBanner ? (
+              <GlobalRuntimeBanner
+                tone="warning"
+                message={settings.platform.maintenanceMessage}
+              />
+            ) : null}
+            {showMotdBanner ? (
+              <GlobalRuntimeBanner
+                tone="info"
+                message={settings.platform.motdText}
+              />
+            ) : null}
             {children}
             <Toaster />
           </ThemeProvider>

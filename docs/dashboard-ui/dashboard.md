@@ -469,3 +469,25 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - `PromotionTargetType`
   - `PromotionDiscountType`
 - Boylece validator ve UI sade kalirken Prisma client'a giden deger runtime-safe hale geldi.
+
+## 13 March 2026 Update - LiveOps System Settings Foundation
+
+- Added a new admin surface at `/admin/system-settings`.
+- Introduced a typed `SystemSetting` persistence model with namespaced runtime config:
+  - `platform`
+  - `features`
+  - `economy`
+  - `security`
+- Root layout now reads runtime settings and can render:
+  - maintenance banner
+  - MOTD banner
+- Admin sidebar now includes `Sistem Ayarlari`.
+- Captcha readiness is surfaced in the admin panel, but provider enforcement is intentionally deferred to a later dedicated branch.
+- Verification completed:
+  - `npm run test:system-settings`
+  - `npx prisma db push`
+  - `npx prisma generate --no-engine`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+  - `npm audit --omit=dev`

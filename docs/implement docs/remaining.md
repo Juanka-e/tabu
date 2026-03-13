@@ -462,3 +462,25 @@ Reference:
 - Fixed active narrator team derivation so timer, narrator badge, and inspector badge colors track the real active team.
 - Cleaned room prompt and guess-panel Turkish strings and added smoke test: `npm run test:room-display`.
 - Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Completed in the March 13 liveops-system-settings-foundation slice
+- Added Prisma `SystemSetting` model for namespaced runtime configuration.
+- Added typed schema/service/policy helpers for:
+  - platform settings
+  - feature gates
+  - economy defaults
+  - captcha readiness state
+- Added `/admin/system-settings` UI and `/api/admin/system-settings` API.
+- Wired runtime gates into:
+  - registration
+  - room create/join socket request policy
+  - store catalog / purchase / equip flows
+- Added maintenance and MOTD banners to the shared root layout.
+- Replaced hardcoded registration wallet seed and match reward values with runtime settings reads.
+- Added smoke test: `npm run test:system-settings`.
+- Verification completed: `npm run test:system-settings`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Enforce captcha providers in register / room-create flows once the dedicated captcha integration branch starts.
+- Add a maintenance allowlist or beta-code path if closed testing is required during maintenance windows.
+- Move in-memory settings cache to Redis or a shared cache if the app is scaled horizontally.
