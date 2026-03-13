@@ -8,6 +8,11 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import {
+    getFeatureDisabledMessage,
+    isStoreAvailable,
+} from "@/lib/system-settings/policies";
 
 const purchaseBundleSchema = z.object({
     bundleId: z.number().int().positive(),
@@ -18,6 +23,14 @@ export async function POST(req: Request) {
     const sessionUser = await getSessionUser();
     if (!sessionUser) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
+    }
+
+    const settings = await getSystemSettings();
+    if (!isStoreAvailable(settings)) {
+        return NextResponse.json(
+            { error: getFeatureDisabledMessage("store") },
+            { status: 409 }
+        );
     }
 
     try {

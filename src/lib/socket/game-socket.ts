@@ -4,6 +4,8 @@ import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
+import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
+import { getSystemSettings } from "@/lib/system-settings/service";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
 import type { PlayerCosmetics } from "@/types/game";
@@ -725,6 +727,7 @@ export function setupGameSocket(io: Server): void {
                     }
 
                     const socketAuthUserId = await getSocketAuthUserId(socket);
+                    const socketAuthRole = await getSocketAuthRole(socket);
                     const effectiveAuthUserId = socketAuthUserId ?? null;
 
                     const identity = resolveSocketPlayerIdentity(
@@ -738,6 +741,25 @@ export function setupGameSocket(io: Server): void {
                         : undefined;
                     let targetCode = requestedCode;
                     let room = targetCode ? getRoom(targetCode) : undefined;
+                    const existingPlayer = room?.oyuncular.find(
+                        (player) => player.playerId === effectivePlayerId
+                    );
+                    const settings = await getSystemSettings();
+                    const roomRequestPolicy = evaluateRoomRequestPolicy({
+                        settings,
+                        isAuthenticated: Boolean(effectiveAuthUserId),
+                        isAdmin: socketAuthRole === "admin",
+                        isCreateRequest: !requestedCode,
+                        isReconnect: Boolean(existingPlayer),
+                    });
+
+                    if (!roomRequestPolicy.allowed) {
+                        socket.emit(
+                            "hata",
+                            roomRequestPolicy.message || "Bu islem su anda kullanima kapali."
+                        );
+                        return;
+                    }
 
                     if (!room) {
                         if (requestedCode) {
@@ -777,23 +799,23 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    const existingPlayer = room.oyuncular.find(
+                    const reconnectingPlayer = room.oyuncular.find(
                         (player) => player.playerId === effectivePlayerId
                     );
 
-                    if (existingPlayer) {
-                        existingPlayer.id = socket.id;
-                        existingPlayer.ad = sanitizedName;
-                        existingPlayer.online = true;
-                        existingPlayer.ip = ip;
+                    if (reconnectingPlayer) {
+                        reconnectingPlayer.id = socket.id;
+                        reconnectingPlayer.ad = sanitizedName;
+                        reconnectingPlayer.online = true;
+                        reconnectingPlayer.ip = ip;
                         if (effectiveAuthUserId) {
-                            existingPlayer.userId = effectiveAuthUserId;
+                            reconnectingPlayer.userId = effectiveAuthUserId;
                         }
-                        await hydratePlayerCosmetics(existingPlayer);
+                        await hydratePlayerCosmetics(reconnectingPlayer);
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
-                        if (existingPlayer.playerId === room.creatorPlayerId) {
+                        if (reconnectingPlayer.playerId === room.creatorPlayerId) {
                             room.creatorId = socket.id;
 
                             // Clear any pending admin timeout
@@ -806,7 +828,7 @@ export function setupGameSocket(io: Server): void {
 
                         if (
                             room.oyunDurumu.anlatici &&
-                            room.oyunDurumu.anlatici.playerId === existingPlayer.playerId
+                            room.oyunDurumu.anlatici.playerId === reconnectingPlayer.playerId
                         ) {
                             room.oyunDurumu.anlatici.id = socket.id;
                         }
@@ -1338,6 +1360,25 @@ async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
 
     const userId = Number(token?.sub);
     return Number.isInteger(userId) && userId > 0 ? userId : null;
+}
+
+async function getSocketAuthRole(socket: Socket): Promise<string | null> {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader || !process.env.AUTH_SECRET) {
+        return null;
+    }
+
+    const token = await getToken({
+        req: {
+            headers: {
+                cookie: cookieHeader,
+            },
+        },
+        secret: process.env.AUTH_SECRET,
+        secureCookie: isSecureSocketHandshake(socket),
+    });
+
+    return typeof token?.role === "string" ? token.role : null;
 }
 
 async function hydrateNarratorCardThemes(userId: number | null): Promise<RoomCardThemePayload> {

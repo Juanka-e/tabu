@@ -35,6 +35,7 @@ function createPageResponse(req: NextRequest): NextResponse {
     const requestHeaders = new Headers(req.headers);
 
     requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("x-pathname", req.nextUrl.pathname);
     requestHeaders.set("Content-Security-Policy", csp);
 
     const response = NextResponse.next({
@@ -45,6 +46,7 @@ function createPageResponse(req: NextRequest): NextResponse {
 
     response.headers.set("Content-Security-Policy", csp);
     response.headers.set("x-nonce", nonce);
+    response.headers.set("x-pathname", req.nextUrl.pathname);
 
     return response;
 }

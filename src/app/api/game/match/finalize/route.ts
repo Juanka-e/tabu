@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { LOSS_REWARD, WIN_REWARD, ensureUserCore } from "@/lib/economy";
+import { ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
 import {
   buildRateLimitHeaders,
@@ -10,6 +10,7 @@ import {
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { getSystemSettings } from "@/lib/system-settings/service";
 
 const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
@@ -64,7 +65,12 @@ export async function POST(req: Request) {
 
     const winner = room.skor.A === room.skor.B ? "Berabere" : room.skor.A > room.skor.B ? "A" : "B";
     const won = winner !== "Berabere" && participant.takim === winner;
-    const coinEarned = winner === "Berabere" ? LOSS_REWARD : won ? WIN_REWARD : LOSS_REWARD;
+    const settings = await getSystemSettings();
+    const coinEarned = winner === "Berabere"
+      ? settings.economy.drawRewardCoin
+      : won
+        ? settings.economy.winRewardCoin
+        : settings.economy.lossRewardCoin;
 
     await ensureUserCore(sessionUser.id);
 

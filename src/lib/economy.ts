@@ -23,9 +23,6 @@ import type {
     UserInventoryResponse,
 } from "@/types/economy";
 
-export const WIN_REWARD = 120;
-export const LOSS_REWARD = 40;
-
 type AppearanceProfileRecord = {
     userId: number;
     avatarItem: {

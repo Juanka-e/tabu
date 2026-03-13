@@ -8,6 +8,11 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import {
+    getFeatureDisabledMessage,
+    isRegistrationAvailable,
+} from "@/lib/system-settings/policies";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır."),
@@ -31,6 +36,14 @@ export async function POST(req: Request) {
 
         const body = await req.json();
         const { username, password } = registerSchema.parse(body);
+        const settings = await getSystemSettings();
+
+        if (!isRegistrationAvailable(settings)) {
+            return NextResponse.json(
+                { error: getFeatureDisabledMessage("register") },
+                { status: 409 }
+            );
+        }
 
         const existingUser = await prisma.user.findUnique({
             where: { username },
@@ -51,7 +64,7 @@ export async function POST(req: Request) {
                 password: hashedPassword,
                 role: "user",
                 wallet: {
-                    create: { coinBalance: 0 },
+                    create: { coinBalance: settings.economy.startingCoinBalance },
                 },
                 profile: {
                     create: {},

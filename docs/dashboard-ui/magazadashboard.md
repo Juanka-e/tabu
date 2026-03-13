@@ -1018,3 +1018,20 @@ Bu planda netlestirilen ana kararlar:
 - This was fixed in both places:
   - client UI button visibility
   - server-side `oyunVerisi` authorization guard
+
+## 13 March 2026 Update - Store and Economy Runtime Gates
+
+- Store access is now controlled by runtime system settings instead of hardcoded-only behavior.
+- The following store routes now respect `features.storeEnabled` and maintenance state:
+  - `/api/store/catalog`
+  - `/api/store/items`
+  - `/api/store/coupons/preview`
+  - `/api/store/purchase`
+  - `/api/store/bundles/purchase`
+  - `/api/store/equip`
+- Registration and match rewards are now partially runtime-configurable through system settings:
+  - `economy.startingCoinBalance`
+  - `economy.winRewardCoin`
+  - `economy.lossRewardCoin`
+  - `economy.drawRewardCoin`
+- This removes the last hardcoded-only behavior from the most visible economy entry points.

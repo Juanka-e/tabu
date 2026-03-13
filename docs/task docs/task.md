@@ -327,3 +327,14 @@ Reference:
 - Follow-up fix: active turn now has exactly one primary inspector on the opponent side.
 - Non-primary opponent players no longer receive inspector authority or the `TABU` action in UI.
 - Server-side `oyunVerisi` guard now also enforces `tabu` authority to narrator or the single active primary inspector only.
+
+### Phase 13 Update (March 13, 2026 - LiveOps System Settings Foundation)
+- [x] Create isolated branch `feature/liveops-system-settings-foundation`
+- [x] Add Prisma `SystemSetting` model for namespaced runtime config
+- [x] Add typed config schema for `platform`, `features`, `economy`, `security`
+- [x] Add admin `Sistem Ayarlari` screen and secure admin API
+- [x] Wire maintenance / MOTD banners into the shared root layout
+- [x] Gate register, store, and room create/join flows through runtime settings policies
+- [x] Replace hardcoded registration coin seed and match reward reads with dynamic settings
+- [x] Add smoke test: `npm run test:system-settings`
+- [x] Verification completed: `npm run test:system-settings`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`

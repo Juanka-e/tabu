@@ -62,6 +62,7 @@ model User {
   matchResults MatchResult[]
   guestLinks   GuestProgress[]
   auditLogs    AuditLog[]   @relation("AuditActor")
+  systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
 
   @@map("users")
 }
@@ -84,6 +85,19 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([resourceType, createdAt])
   @@map("audit_logs")
+}
+
+model SystemSetting {
+  key             String   @id @db.VarChar(80)
+  value           Json     @db.Json
+  updatedByUserId Int?     @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  updatedBy User? @relation("SystemSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId])
+  @@map("system_settings")
 }
 
 model UserProfile {

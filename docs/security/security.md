@@ -1024,3 +1024,25 @@ Critical Findings
   - `npm run build`
 - Enforced a single active primary inspector on the opponent side per turn.
 - Added a server-side `tabu` authorization guard so non-primary opponent players cannot mutate score even if they emit socket events manually.
+
+## Review Update (13 March 2026 - Runtime Settings Gates)
+
+### What changed
+- Added a centralized runtime settings layer with a short-lived server cache.
+- Store and registration gates now depend on typed server-side settings instead of purely hardcoded behavior.
+- Room create/join requests now evaluate server-side maintenance and guest/entry feature flags before a lobby mutation occurs.
+
+### Security implications
+- This reduces the risk of emergency response via ad-hoc code edits when abuse or instability occurs.
+- Admin can now close:
+  - registrations
+  - guest gameplay
+  - room creation
+  - room joining
+  - store access
+  without a redeploy.
+- Captcha settings are persisted and surfaced, but actual provider enforcement is not claimed yet in this slice.
+
+### Remaining hardening note
+- The system-settings cache is process-local.
+- For multi-instance deployments, the next hardening step is shared cache invalidation or Redis-backed settings reads.
