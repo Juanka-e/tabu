@@ -26,6 +26,7 @@
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",
     "test:captcha-security": "tsx scripts/test-captcha-security.ts",
+    "test:admin-table-foundation": "tsx scripts/test-admin-table-foundation.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push",

@@ -2,10 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { CosmeticLivePreview } from "@/components/admin/cosmetic-live-preview";
 import { ShopOrderBoard } from "@/components/admin/shop-order-board";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminSelectionBar } from "@/components/admin/admin-selection-bar";
+import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
+import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
+import { useAdminSelection } from "@/hooks/use-admin-selection";
+import { paginateItems } from "@/lib/admin/admin-table";
 import {
     Edit2,
     FileJson2,
@@ -255,11 +263,13 @@ export default function ShopItemsPage() {
     const [search, setSearch] = useState("");
     const [filterType, setFilterType] = useState<ItemType | "">("");
     const [filterRarity, setFilterRarity] = useState<Rarity | "">("");
+    const [page, setPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
     const [form, setForm] = useState<ShopItemFormState>(emptyItem);
     const [saving, setSaving] = useState(false);
     const [reorderSaving, setReorderSaving] = useState(false);
+    const [bulkSaving, setBulkSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
 
     const loadItems = useCallback(async () => {
@@ -301,6 +311,28 @@ export default function ShopItemsPage() {
             return true;
         });
     }, [filterRarity, filterType, items, search]);
+
+    const paginatedItems = useMemo(
+        () => paginateItems(filteredItems, page, 12),
+        [filteredItems, page]
+    );
+    const visibleItemIds = useMemo(
+        () => paginatedItems.items.map((item) => item.id),
+        [paginatedItems.items]
+    );
+    const {
+        allSelected,
+        clearSelection,
+        selectedCount,
+        selectedIds,
+        toggleAll,
+        toggleOne,
+    } = useAdminSelection(visibleItemIds);
+
+    useEffect(() => {
+        setPage(1);
+        clearSelection();
+    }, [clearSelection, filterRarity, filterType, search]);
 
     const handleReorder = async (
         updates: Array<{ id: number; sortOrder: number }>
@@ -389,29 +421,39 @@ export default function ShopItemsPage() {
 
             if (!response.ok) {
                 const errorPayload = (await response.json().catch(() => ({ error: "Kozmetik kaydedilemedi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Kozmetik kaydedilemedi.");
+                toast.error(errorPayload.error || "Kozmetik kaydedilemedi.");
                 return;
             }
 
             setShowModal(false);
+            toast.success(editingItem ? "Kozmetik guncellendi." : "Kozmetik olusturuldu.");
             await loadItems();
         } catch (error) {
-            window.alert(error instanceof Error ? error.message : "Template config gecersiz.");
+            toast.error(error instanceof Error ? error.message : "Template config gecersiz.");
         } finally {
             setSaving(false);
         }
     };
 
+    const updateItem = useCallback(async (itemId: number, patch: Partial<ShopItem>) => {
+        const response = await fetch(`/api/admin/shop-items/${itemId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+        });
+        return response.ok;
+    }, []);
+
     const toggleActive = async (item: ShopItem) => {
         try {
-            await fetch(`/api/admin/shop-items/${item.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive: !item.isActive }),
-            });
+            const succeeded = await updateItem(item.id, { isActive: !item.isActive });
+            if (!succeeded) {
+                toast.error("Durum guncellenemedi.");
+                return;
+            }
             await loadItems();
         } catch {
-            // Ignore toggle failures for now.
+            toast.error("Durum guncellenemedi.");
         }
     };
 
@@ -421,12 +463,40 @@ export default function ShopItemsPage() {
         }
 
         try {
-            await fetch(`/api/admin/shop-items/${item.id}`, { method: "DELETE" });
+            const response = await fetch(`/api/admin/shop-items/${item.id}`, { method: "DELETE" });
+            if (!response.ok) {
+                toast.error("Kozmetik pasife alinamadi.");
+                return;
+            }
+            toast.success("Kozmetik pasife alindi.");
             await loadItems();
         } catch {
-            // Ignore delete failures for now.
+            toast.error("Kozmetik pasife alinamadi.");
         }
     };
+
+    const runBulkPatch = useCallback(async (patch: Partial<ShopItem>, successMessage: string) => {
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0) {
+            return;
+        }
+
+        setBulkSaving(true);
+        try {
+            const results = await Promise.all(ids.map((itemId) => updateItem(itemId, patch)));
+            if (results.some((result) => !result)) {
+                toast.error("Toplu islem kismen basarisiz oldu.");
+            } else {
+                toast.success(successMessage);
+            }
+            clearSelection();
+            await loadItems();
+        } catch {
+            toast.error("Toplu islem tamamlanamadi.");
+        } finally {
+            setBulkSaving(false);
+        }
+    }, [clearSelection, loadItems, selectedIds, updateItem]);
 
     const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -492,31 +562,31 @@ export default function ShopItemsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">Kozmetikler</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Magaza urunlerini yonetin - {items.length} urun
-                    </p>
-                </div>
-                <Button onClick={openCreate} className="gap-2">
+            <AdminPageHeader
+                title="Kozmetikler"
+                description="Magaza urunlerini filtreleme, siralama ve toplu aksiyonlarla yonetin."
+                meta={`${items.length} kayit`}
+                icon={<ImageIcon className="h-5 w-5 text-fuchsia-500" />}
+                action={
+                    <Button onClick={openCreate} className="gap-2">
                     <Plus size={16} />
                     Yeni Ekle
-                </Button>
-            </div>
+                    </Button>
+                }
+            />
 
             <ShopOrderBoard items={items} saving={reorderSaving} onReorder={(updates) => void handleReorder(updates)} />
 
-            <Card className="border-border/50">
-                <CardContent className="p-4 flex flex-wrap gap-3 items-center">
-                    <div className="relative flex-1 min-w-[200px]">
+            <AdminToolbar>
+                <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+                    <div className="relative">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input
+                        <Input
                             type="text"
                             placeholder="Isim veya kod ara..."
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary/50 outline-none"
+                            className="pl-9"
                         />
                     </div>
                     <select
@@ -541,14 +611,78 @@ export default function ShopItemsPage() {
                         <option value="epic">Epic</option>
                         <option value="legendary">Legendary</option>
                     </select>
-                </CardContent>
-            </Card>
+                </div>
+                <AdminToolbarStats
+                    stats={[
+                        { label: "gorunen", value: String(filteredItems.length) },
+                        { label: "sayfa", value: `${paginatedItems.page} / ${paginatedItems.pageCount}` },
+                    ]}
+                />
+            </AdminToolbar>
 
-            <Card className="border-border/50 overflow-hidden">
+            <AdminSelectionBar selectedCount={selectedCount} onClear={clearSelection}>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ isActive: true }, "Secili urunler aktif edildi.")}
+                >
+                    Aktif et
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ isActive: false }, "Secili urunler pasife alindi.")}
+                >
+                    Pasif yap
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ isFeatured: true }, "Secili urunler spotlight alanina alindi.")}
+                >
+                    Spotlight
+                </Button>
+            </AdminSelectionBar>
+
+            <AdminTableShell
+                title="Katalog Tablosu"
+                description="Filtrelenmis katalog kayitlari burada listelenir. Sira surukle-birak panelinden yonetilir."
+                loading={loading}
+                isEmpty={!loading && filteredItems.length === 0}
+                emptyState={
+                    <AdminEmptyState
+                        icon={<ImageIcon className="h-6 w-6" />}
+                        title="Kozmetik bulunamadi"
+                        description="Mevcut filtrelerle eslesen urun yok."
+                    />
+                }
+                footer={
+                    <AdminPagination
+                        page={paginatedItems.page}
+                        pageCount={paginatedItems.pageCount}
+                        onPageChange={setPage}
+                    />
+                }
+            >
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/30">
+                                <th className="w-10 p-3 text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={() => toggleAll()}
+                                        aria-label="Tum gorunen urunleri sec"
+                                        className="h-4 w-4 rounded border-border"
+                                    />
+                                </th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Gorsel</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Isim / Kod</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tur</th>
@@ -563,18 +697,17 @@ export default function ShopItemsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading && (
-                                <tr>
-                                    <td colSpan={11} className="p-8 text-center text-muted-foreground">Yukleniyor...</td>
-                                </tr>
-                            )}
-                            {!loading && filteredItems.length === 0 && (
-                                <tr>
-                                    <td colSpan={11} className="p-8 text-center text-muted-foreground">Kozmetik bulunamadi.</td>
-                                </tr>
-                            )}
-                            {filteredItems.map((item) => (
+                            {paginatedItems.items.map((item) => (
                                 <tr key={item.id} className={`border-b border-border/50 transition-colors hover:bg-muted/20 ${!item.isActive ? "opacity-50" : ""}`}>
+                                    <td className="p-3 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(item.id)}
+                                            onChange={() => toggleOne(item.id)}
+                                            aria-label={`${item.name} sec`}
+                                            className="h-4 w-4 rounded border-border"
+                                        />
+                                    </td>
                                     <td className="p-3">
                                         {item.imageUrl ? (
                                             <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={40} height={40} className="w-10 h-10 rounded-lg object-cover border border-border" />
@@ -628,7 +761,7 @@ export default function ShopItemsPage() {
                         </tbody>
                     </table>
                 </div>
-            </Card>
+            </AdminTableShell>
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

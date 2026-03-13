@@ -349,3 +349,13 @@ Reference:
 - [x] Support `soft_fail` vs `hard_fail` behavior from runtime system settings
 - [x] Add smoke test: `npm run test:captcha-security`
 - [x] Verification completed: `npm run test:captcha-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 15 Update (March 13, 2026 - Admin Table Foundation)
+- [x] Create isolated branch `feature/admin-table-foundation`
+- [x] Add shared admin list shell components for header, toolbar, stats, loading, empty state, pagination, and bulk selection
+- [x] Add shared admin list helpers for local pagination and row selection state
+- [x] Move `/admin/words` onto the shared list foundation while keeping server-side pagination
+- [x] Move `/admin/shop-items` onto the shared list foundation and add row selection with bulk visibility/spotlight actions
+- [x] Add promotions-wide search and shared empty-state handling to `/admin/promotions`
+- [x] Add smoke test: `npm run test:admin-table-foundation`
+- [x] Verification completed: `npm run test:admin-table-foundation`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
