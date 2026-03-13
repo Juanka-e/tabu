@@ -506,3 +506,26 @@ Reference:
 - Consider adding separate admin-login-specific captcha policy if admin auth abuse becomes materially different from user login abuse.
 - If horizontal scale is introduced, combine captcha telemetry and request limits with shared Redis storage.
 - Add optional invisible challenge analytics if product decisions require captcha conversion monitoring.
+
+### Completed in the March 13 moderation-foundation slice
+- Added first-class moderation persistence:
+  - user suspension fields
+  - user moderation event log
+- Added `/admin/users` with:
+  - search
+  - active/suspended filter
+  - suspend/reactivate flow
+  - internal note flow
+- Added explicit-reason moderation contract and secure admin APIs.
+- Added suspended-user enforcement for:
+  - login
+  - session-backed protected routes
+  - socket room requests
+- Added smoke test: `npm run test:moderation-foundation`.
+- Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Remaining
+- Replace some remaining `window.confirm` admin flows with a shared confirmation dialog system.
+- If operator workload grows, add bulk moderation actions with a dedicated transactional API.
+- Add appeal/review workflow only if product policy requires it; it is intentionally not part of the current foundation.
+- If moderation event history grows further, add a dedicated detail drawer or paginated timeline instead of expanding the row inline.

@@ -1044,3 +1044,38 @@ Dogru baslangic modeli:
 - veya admin operasyon agirligini azaltmak istersek:
   - feature/admin-user-operations
   - feature/admin-shop-ux
+## Moderation Foundation Slice (13 March 2026)
+
+### Tamamlananlar
+- Kullanicilar icin ilk moderasyon veri modeli eklendi:
+  - users.is_suspended
+  - users.suspended_at
+  - users.suspended_until
+  - users.suspension_reason
+  - user_moderation_events
+- Guvenli admin API'leri eklendi:
+  - /api/admin/users
+  - /api/admin/users/[id]/moderation
+- Her suspend / reactivate / note islemi icin gerekce zorunlu hale getirildi.
+- /admin/users sayfasi ve admin sidebar girisi eklendi.
+- Askidaki kullanicilar su giris noktalarinda engelleniyor:
+  - login
+  - session-backed protected route ve API yuzeyleri
+  - socket room create/join akisi
+
+### Bilincli olarak disarida birakilanlar
+- Bu foundation branch'i bulk moderation API eklemedi.
+- Appeal / review workflow eklenmedi.
+- Admin-on-admin moderasyon desteklenmedi; operator lockout riskini azaltmak icin bilerek kapali tutuldu.
+
+### Sonraki dogal adimlar
+- feature/admin-user-operations
+- feature/system-notifications-foundation
+- veya guvenlik odagi devam edecekse feature/security-hardening-phase-2
+### Moderation Foundation Follow-up (13 March 2026)
+- Authenticated normal users artik /admin veya /admin/login uzerinde admin login formuna dusmuyor; /dashboard tarafina yonlendiriliyor.
+- Son olaylar alani sadeleþtirildi:
+  - varsayilan olarak kisaltilmis gorunum
+  - daha fazla / daha az goster kontrolu
+  - sadece ic not kayitlarini silme destegi
+- Suspend/reactivate olaylari audit butunlugu icin silinemez tutuldu.

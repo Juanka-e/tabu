@@ -1060,3 +1060,36 @@ Critical Findings
 - `soft_fail` only soft-passes provider outage or missing provider configuration.
 - Missing token, invalid token, low score, or action mismatch still fail hard.
 - This avoids turning `soft_fail` into a user-controlled bypass.
+
+## 13 March 2026 Update - Moderation Foundation
+
+- Added first-class user moderation state to the database:
+  - `users.is_suspended`
+  - `users.suspended_at`
+  - `users.suspended_until`
+  - `users.suspension_reason`
+  - `user_moderation_events`
+- Added secure admin moderation routes for:
+  - listing users
+  - suspend
+  - reactivate
+  - internal note logging
+- Moderation actions now require explicit reason text and are also mirrored into `audit_logs`.
+- Admin-on-admin moderation is intentionally blocked in this foundation slice to avoid accidental operator lockout.
+- Suspended accounts are now denied at these entry points:
+  - credentials login
+  - session-backed protected page/API checks through `getSessionUser`
+  - socket-based room create/join resolution
+- Authenticated non-admin users are now redirected away from `/admin` and `/admin/login` to `/dashboard`.
+  - This is primarily a UX and route-hygiene fix.
+  - It is not treated as a security vulnerability that the admin login page existed for unauthenticated users.
+- Unauthenticated `/admin` root requests are now redirected to `/`.
+  - Direct `/admin/login` remains the explicit admin entry point.
+  - This reduces accidental exposure of the admin login screen from the public root path.
+- Only internal `note` moderation events are deletable.
+  - suspend/reactivate records stay immutable to preserve audit integrity.
+
+### Remaining hardening note
+- Because auth still uses JWT sessions, `proxy.ts` cannot independently verify suspension state at the edge.
+- Protection is enforced in the server entry points that actually execute user operations.
+- If full edge-time suspension invalidation is later required, the next step is a session-version or database-session design.

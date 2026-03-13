@@ -6,6 +6,7 @@ import { sharedAuthConfig } from "@/lib/auth-shared";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { getRequestIp } from "@/lib/security/request-rate-limit";
+import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...sharedAuthConfig,
@@ -37,8 +38,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 const user = await prisma.user.findUnique({
                     where: { username: credentials.username as string },
+                    select: {
+                        id: true,
+                        username: true,
+                        password: true,
+                        role: true,
+                        isSuspended: true,
+                        suspendedUntil: true,
+                    },
                 });
                 if (!user) return null;
+
+                await clearExpiredSuspensions();
+                if (isSuspensionActive(user)) {
+                    return null;
+                }
 
                 const isValid = await bcryptjs.compare(
                     credentials.password as string,
