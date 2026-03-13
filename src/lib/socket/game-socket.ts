@@ -3,10 +3,12 @@ import { z } from "zod";
 import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
+import { prisma } from "@/lib/prisma";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
 import { getSystemSettings } from "@/lib/system-settings/service";
+import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
 import type { PlayerCosmetics } from "@/types/game";
@@ -728,9 +730,16 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    const socketAuthUserId = await getSocketAuthUserId(socket);
+                    const socketAuthState = await getSocketAuthState(socket);
                     const socketAuthRole = await getSocketAuthRole(socket);
-                    const effectiveAuthUserId = socketAuthUserId ?? null;
+                    if (socketAuthState.isSuspended) {
+                        socket.emit(
+                            "hata",
+                            "Hesabiniz askiya alinmis durumda. Bu yuzeyi kullanamazsiniz."
+                        );
+                        return;
+                    }
+                    const effectiveAuthUserId = socketAuthState.userId ?? null;
 
                     const identity = resolveSocketPlayerIdentity(
                         effectiveAuthUserId,
@@ -1367,10 +1376,16 @@ function isTrustedSocketOrigin(socket: Socket): boolean {
     }
 }
 
-async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
+async function getSocketAuthState(socket: Socket): Promise<{
+    userId: number | null;
+    isSuspended: boolean;
+}> {
     const cookieHeader = socket.handshake.headers.cookie;
     if (!cookieHeader || !process.env.AUTH_SECRET) {
-        return null;
+        return {
+            userId: null,
+            isSuspended: false,
+        };
     }
 
     const token = await getToken({
@@ -1384,7 +1399,34 @@ async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
     });
 
     const userId = Number(token?.sub);
-    return Number.isInteger(userId) && userId > 0 ? userId : null;
+    if (!Number.isInteger(userId) || userId <= 0) {
+        return {
+            userId: null,
+            isSuspended: false,
+        };
+    }
+
+    await clearExpiredSuspensions();
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            isSuspended: true,
+            suspendedUntil: true,
+        },
+    });
+
+    if (!user) {
+        return {
+            userId: null,
+            isSuspended: false,
+        };
+    }
+
+    return {
+        userId: isSuspensionActive(user) ? null : user.id,
+        isSuspended: isSuspensionActive(user),
+    };
 }
 
 async function getSocketAuthRole(socket: Socket): Promise<string | null> {

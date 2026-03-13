@@ -359,3 +359,14 @@ Reference:
 - [x] Add promotions-wide search and shared empty-state handling to `/admin/promotions`
 - [x] Add smoke test: `npm run test:admin-table-foundation`
 - [x] Verification completed: `npm run test:admin-table-foundation`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+### Phase 16 Update (March 13, 2026 - Moderation Foundation)
+- [x] Create isolated branch `feature/moderation-foundation`
+- [x] Add Prisma moderation models and suspension fields to `User`
+- [x] Add secure admin moderation APIs for user listing and suspend/reactivate/note actions
+- [x] Require moderation reason text for every suspend/reactivate/note action
+- [x] Add `/admin/users` moderation screen and sidebar entry
+- [x] Block admin-on-admin moderation in the new foundation
+- [x] Enforce suspended-user denial in login, session-based protected routes, and socket room requests
+- [x] Add smoke test: `npm run test:moderation-foundation`
+- [x] Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`

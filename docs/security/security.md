@@ -1060,3 +1060,28 @@ Critical Findings
 - `soft_fail` only soft-passes provider outage or missing provider configuration.
 - Missing token, invalid token, low score, or action mismatch still fail hard.
 - This avoids turning `soft_fail` into a user-controlled bypass.
+
+## 13 March 2026 Update - Moderation Foundation
+
+- Added first-class user moderation state to the database:
+  - `users.is_suspended`
+  - `users.suspended_at`
+  - `users.suspended_until`
+  - `users.suspension_reason`
+  - `user_moderation_events`
+- Added secure admin moderation routes for:
+  - listing users
+  - suspend
+  - reactivate
+  - internal note logging
+- Moderation actions now require explicit reason text and are also mirrored into `audit_logs`.
+- Admin-on-admin moderation is intentionally blocked in this foundation slice to avoid accidental operator lockout.
+- Suspended accounts are now denied at these entry points:
+  - credentials login
+  - session-backed protected page/API checks through `getSessionUser`
+  - socket-based room create/join resolution
+
+### Remaining hardening note
+- Because auth still uses JWT sessions, `proxy.ts` cannot independently verify suspension state at the edge.
+- Protection is enforced in the server entry points that actually execute user operations.
+- If full edge-time suspension invalidation is later required, the next step is a session-version or database-session design.
