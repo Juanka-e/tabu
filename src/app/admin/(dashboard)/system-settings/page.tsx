@@ -273,7 +273,7 @@ export default function SystemSettingsPage() {
                         <ProviderBadge enabled={payload.captchaReadiness.recaptchaConfigured} label="reCAPTCHA" />
                     </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        <ToggleField checked={payload.settings.security.captcha.enabled} label="Captcha Aktif" description="Provider enforcement sonraki fazda baglanacak. Burada operasyonel hazirlik tutulur." onChange={(checked) => updateCaptcha("enabled", checked)} />
+                        <ToggleField checked={payload.settings.security.captcha.enabled} label="Captcha Aktif" description="Captcha enforcement register, login ve room entry akislarina baglidir. Buradan runtime davranisini yonetirsin." onChange={(checked) => updateCaptcha("enabled", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onRegister} label="Register'da Kullan" description="Kayit akisinda captcha zorunlulugu." onChange={(checked) => updateCaptcha("onRegister", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onRoomCreate} label="Oda Olusturmada Kullan" description="Abuse dalgasinda create akisina uygulanir." onChange={(checked) => updateCaptcha("onRoomCreate", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onGuestJoin} label="Guest Join'de Kullan" description="Misafir katilim akisinda acar/kapatir." onChange={(checked) => updateCaptcha("onGuestJoin", checked)} />
@@ -306,5 +306,6 @@ export default function SystemSettingsPage() {
         </div>
     );
 }
+
 
 

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -27,10 +28,13 @@ export default function LoginPage() {
                 : "/dashboard";
 
         try {
+            const { token } = await getCaptchaTokenForAction("login");
             const res = await signIn("credentials", {
                 username,
                 password,
                 portal: "user",
+                captchaToken: token,
+                captchaAction: "login",
                 redirect: false,
             });
 

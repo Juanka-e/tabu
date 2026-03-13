@@ -22,6 +22,7 @@ import { useSession, signOut } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 interface SocketIdentityPayload {
   playerId: string;
@@ -49,7 +50,7 @@ export function AuthenticatedDashboardHome({
 
   const sessionUsername = session.user.name || "";
 
-  const handleJoinOrCreate = (isCreate: boolean) => {
+  const handleJoinOrCreate = async (isCreate: boolean) => {
     const currentUsername = sessionUsername.trim();
 
     if (!currentUsername) {
@@ -64,44 +65,54 @@ export function AuthenticatedDashboardHome({
     setIsConnecting(true);
     setError("");
 
-    const socket: Socket = io({
-      path: "/api/socketio",
-      transports: ["websocket", "polling"],
-    });
+    try {
+      const { token } = isCreate
+        ? await getCaptchaTokenForAction("room_create")
+        : { token: null as string | null };
 
-    socket.on("connect", () => {
-      socket.emit("room:request", {
-        kullaniciAdi: currentUsername,
-        odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
+      const socket: Socket = io({
+        path: "/api/socketio",
+        transports: ["websocket", "polling"],
       });
-    });
 
-    socket.on("kimlikAta", ({ playerId, guestToken }: SocketIdentityPayload) => {
-      window.sessionStorage.setItem("tabu_playerId", playerId);
-      if (guestToken) {
-        window.sessionStorage.setItem("tabu_guestToken", guestToken);
-      } else {
-        window.sessionStorage.removeItem("tabu_guestToken");
-      }
-    });
+      socket.on("connect", () => {
+        socket.emit("room:request", {
+          kullaniciAdi: currentUsername,
+          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
+          ...(token ? { captchaToken: token } : {}),
+        });
+      });
 
-    socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
-      localStorage.setItem("tabu_username", currentUsername);
-      localStorage.setItem("tabu_roomCode", data.odaKodu);
-      socket.disconnect();
-      router.push(`/room/${data.odaKodu}`);
-    });
+      socket.on("kimlikAta", ({ playerId, guestToken }: SocketIdentityPayload) => {
+        window.sessionStorage.setItem("tabu_playerId", playerId);
+        if (guestToken) {
+          window.sessionStorage.setItem("tabu_guestToken", guestToken);
+        } else {
+          window.sessionStorage.removeItem("tabu_guestToken");
+        }
+      });
 
-    socket.on("hata", (message: string) => {
-      setError(message);
+      socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
+        localStorage.setItem("tabu_username", currentUsername);
+        localStorage.setItem("tabu_roomCode", data.odaKodu);
+        socket.disconnect();
+        router.push(`/room/${data.odaKodu}`);
+      });
+
+      socket.on("hata", (message: string) => {
+        setError(message);
+        setIsConnecting(false);
+        socket.disconnect();
+      });
+
+      socket.on("connect_error", () => {
+        setError("Sunucuya baglanilamadi. Lutfen tekrar dene.");
+        setIsConnecting(false);
+      });
+    } catch {
+      setError("Guvenlik dogrulamasi baslatilamadi. Lutfen tekrar deneyin.");
       setIsConnecting(false);
-      socket.disconnect();
-    });
-
-    socket.on("connect_error", () => {
-      setError("Sunucuya baglanilamadi. Lutfen tekrar dene.");
-      setIsConnecting(false);
-    });
+    }
   };
 
   const playContent = (
@@ -242,3 +253,5 @@ export function AuthenticatedDashboardHome({
     </div>
   );
 }
+
+

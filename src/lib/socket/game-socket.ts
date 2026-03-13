@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
+import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { getNextWord, clearWordPool } from "./word-service";
@@ -196,6 +197,7 @@ const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
     guestToken: z.string().min(20).max(512).optional(),
+    captchaToken: z.string().min(1).max(4096).optional(),
 });
 
 const KategoriAyarlariSchema = z.object({
@@ -698,7 +700,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, guestToken } = parsed.data;
+                const { kullaniciAdi, odaKodu, guestToken, captchaToken } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -759,6 +761,29 @@ export function setupGameSocket(io: Server): void {
                             roomRequestPolicy.message || "Bu islem su anda kullanima kapali."
                         );
                         return;
+                    }
+
+                    const captchaAction = !requestedCode
+                        ? "room_create"
+                        : !effectiveAuthUserId
+                            ? "guest_join"
+                            : null;
+
+                    if (captchaAction) {
+                        const captchaResult = await verifyCaptchaForAction({
+                            action: captchaAction,
+                            token: captchaToken ?? null,
+                            remoteIp: ip === "unknown" ? null : ip,
+                            settings,
+                        });
+
+                        if (!captchaResult.ok) {
+                            socket.emit(
+                                "hata",
+                                "Guvenlik dogrulamasi basarisiz. Lutfen tekrar deneyin."
+                            );
+                            return;
+                        }
                     }
 
                     if (!room) {
