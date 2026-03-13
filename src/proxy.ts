@@ -70,6 +70,10 @@ export default auth((req) => {
         );
     }
 
+    if (pathname === "/admin" && !isAuthed(req)) {
+        return NextResponse.redirect(new URL("/", req.url));
+    }
+
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
         if (!isAuthed(req)) {
             const loginUrl = new URL("/admin/login", req.url);

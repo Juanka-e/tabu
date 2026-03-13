@@ -1083,6 +1083,9 @@ Critical Findings
 - Authenticated non-admin users are now redirected away from `/admin` and `/admin/login` to `/dashboard`.
   - This is primarily a UX and route-hygiene fix.
   - It is not treated as a security vulnerability that the admin login page existed for unauthenticated users.
+- Unauthenticated `/admin` root requests are now redirected to `/`.
+  - Direct `/admin/login` remains the explicit admin entry point.
+  - This reduces accidental exposure of the admin login screen from the public root path.
 - Only internal `note` moderation events are deletable.
   - suspend/reactivate records stay immutable to preserve audit integrity.
 
