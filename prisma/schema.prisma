@@ -57,6 +57,9 @@ enum ModerationActionType {
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
+  email     String?  @db.VarChar(191)
+  normalizedEmail String? @unique @map("normalized_email") @db.VarChar(191)
+  emailVerifiedAt DateTime? @map("email_verified_at")
   password  String   @db.VarChar(255)
   role      String   @default("user") @db.VarChar(20)
   isSuspended Boolean @default(false) @map("is_suspended")
@@ -76,6 +79,7 @@ model User {
   moderationActionsAuthored UserModerationEvent[] @relation("ModerationActor")
   moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
 
+  @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
   @@map("users")
 }

@@ -214,7 +214,7 @@ export default function AdminUsersPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Kullanici Moderasyonu"
-                description="Askıya alma, yeniden etkinlestirme ve ic not akislarini tek merkezden yonetin."
+                description="Askiya alma, yeniden etkinlestirme ve ic not akislarini tek merkezden yonetin."
                 meta={`${total} kayit`}
                 icon={<Users className="h-5 w-5 text-amber-500" />}
             />
@@ -226,7 +226,7 @@ export default function AdminUsersPage() {
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Kullanici adi veya gorunen isim ara..."
+                            placeholder="Kullanici adi, e-posta veya gorunen isim ara..."
                             className="pl-9"
                         />
                     </div>
@@ -284,7 +284,15 @@ export default function AdminUsersPage() {
                                             {user.displayName || user.username}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            @{user.username} · {user.role}
+                                            @{user.username} | {user.role}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {user.email ?? "E-posta eklenmemis"}
+                                            {user.emailVerifiedAt
+                                                ? " | dogrulandi"
+                                                : user.email
+                                                  ? " | dogrulanmadi"
+                                                  : ""}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             Kayit: {formatDateTime(user.createdAt)}
@@ -519,3 +527,5 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+
+

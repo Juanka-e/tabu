@@ -400,3 +400,12 @@ Reference:
 - [x] Allow deleting only internal `note` moderation events; keep suspend/reactivate records immutable
 - [x] Add smoke test: `npm run test:moderation-foundation`
 - [x] Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+### Phase 18 Update (March 14, 2026 - User Email Foundation)
+- [x] Create isolated branch `feature/user-email-foundation`
+- [x] Add nullable email foundation fields to `User` for legacy account compatibility
+- [x] Require email in the register flow for new accounts
+- [x] Add normalized unique email handling
+- [x] Surface email in user settings and admin users listing
+- [x] Ensure legacy accounts without email can still update profile data without validation failure
+- [x] Add smoke test: `npm run test:user-email-foundation`

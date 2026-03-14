@@ -22,6 +22,8 @@ export interface ModerationEventView {
 export interface AdminUserModerationView {
     id: number;
     username: string;
+    email: string | null;
+    emailVerifiedAt: string | null;
     role: string;
     createdAt: string;
     displayName: string | null;

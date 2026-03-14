@@ -68,6 +68,8 @@ function mapModerationEvent(event: {
 function mapAdminUser(user: {
     id: number;
     username: string;
+    email: string | null;
+    emailVerifiedAt: Date | null;
     role: string;
     createdAt: Date;
     isSuspended: boolean;
@@ -88,6 +90,8 @@ function mapAdminUser(user: {
     return {
         id: user.id,
         username: user.username,
+        email: user.email,
+        emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
         role: user.role,
         createdAt: user.createdAt.toISOString(),
         displayName: user.profile?.displayName ?? null,
@@ -119,6 +123,11 @@ export async function getAdminUsers(input: {
                           },
                       },
                       {
+                          email: {
+                              contains: search,
+                          },
+                      },
+                      {
                           profile: {
                               is: {
                                   displayName: {
@@ -143,6 +152,8 @@ export async function getAdminUsers(input: {
             select: {
                 id: true,
                 username: true,
+                email: true,
+                emailVerifiedAt: true,
                 role: true,
                 createdAt: true,
                 isSuspended: true,

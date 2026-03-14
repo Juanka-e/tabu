@@ -13,6 +13,7 @@ import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export default function RegisterPage() {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, captchaToken: token }),
+                body: JSON.stringify({ username, email, password, captchaToken: token }),
             });
 
             const data = await res.json();
@@ -68,6 +69,17 @@ export default function RegisterPage() {
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
                                 minLength={3}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
+                                type="email"
+                                placeholder="E-posta"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                maxLength={191}
+                                autoComplete="email"
                             />
                         </div>
                         <div className="space-y-2">

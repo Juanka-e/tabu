@@ -1086,3 +1086,121 @@ Dogru baslangic modeli:
 - Store katalogu artik liveops ozeti donuyor; dashboard magazasi bu state'i oyuncuya yansitiyor.
 - Bundle satislari, campaign discountlari ve coupon kullanimi ayri runtime kill-switch olarak calisiyor.
 - Bu branchte scheduler/sezon sistemi bilincli olarak eklenmedi; daha ileri liveops katmani sonraki branch'e birakildi.
+## Yol Haritasi Guncellemesi - Identity, Audit, Coin Ops (14 March 2026)
+
+### Yeni Zorunlu Alanlar
+1. eature/user-email-foundation
+- register akisinda email zorunlu olacak
+- 
+ormalizedEmail unique mantigi kurulacak
+- kullanici ayarlarinda email gorunecek
+- admin users ekraninda email gorunecek
+- ileride verify / password reset / support / coin campaign baglari icin temel olacak
+
+2. eature/admin-user-operations
+- kullaniciya coin ekle / sil
+- reason zorunlulugu
+- onceki bakiye / sonraki bakiye kaydi
+- ban / kick / user ops araclari
+- audit log ile zorunlu bag
+
+3. eature/admin-audit-viewer
+- /admin/audit
+- hangi admin hangi islemi yapti gorulecek
+- filtre / arama / pagination
+- kritik aksiyonlar daha okunur hale getirilecek
+
+4. eature/coin-grant-campaigns
+- store coupon mantigindan ayri coin dagitim kampanyasi modeli
+- influencer / etkinlik / ozel kod batch dagitimi
+- campaign budget, claim limit, kisi basi limit, expiry
+- transaction + audit + duplicate claim korumasi
+
+5. eature/admin-access-gateway
+- admin login yuzeyini app-level auth disinda ikinci bir erisim katmani ile sertlestirme
+- prod'da ayri host / gateway / allowlist / access policy hazirligi
+- local-dev fallback davranisi
+
+### Coin Dagitimi Icin Guvenlik Karari
+Store kuponu ile coin verme mantigi ayni sistemde tutulmayacak.
+Dogru model:
+- store discount coupon = fiyat indirimi
+- coin grant campaign = kullanici wallet'ina deger enjekte eder
+
+Coin campaign sisteminde zorunlu guvenlikler:
+- login zorunlu
+- guest claim yok
+- campaign budget limiti
+- user basi claim limiti
+- code veya batch bazli kullanim limiti
+- transaction icinde wallet increment + claim record
+- duplicate claim unique constraint
+- audit log zorunlulugu
+- rate limit
+- gerekirse captcha / fraud heuristics
+
+### Guncel Oncelik Sirasi
+Tamamlanan feature branch'ler:
+1. eature/liveops-system-settings-foundation
+2. eature/security-entry-gates
+3. eature/admin-table-foundation
+4. eature/moderation-foundation
+5. eature/economy-liveops-controls
+
+Sýradaki planli feature branch'ler:
+6. eature/user-email-foundation
+7. eature/admin-user-operations
+8. eature/admin-audit-viewer
+9. eature/coin-grant-campaigns
+10. eature/support-desk-foundation
+11. eature/system-notifications-foundation
+12. eature/admin-access-gateway
+13. eature/branding-seo-settings
+14. eature/integration-hub
+15. eature/dashboard-visual-polish
+16. eature/store-merchandising
+17. eature/admin-shop-ux
+18. eature/admin-promotions-ux
+19. eature/cosmetic-render-upgrade
+20. eature/admin-cosmetic-authoring
+21. eature/gameplay-ui-polish
+22. eature/analytics-event-foundation
+23. eature/word-analytics-liveops
+24. eature/release-ops-docs
+
+### Sayisal Durum
+- Tamamlanan feature branch sayisi: 5
+- Planli toplam feature branch sayisi: 24
+- Kalan feature branch sayisi: 19
+
+Not:
+- ix/* branch'ler bu sayiya dahil degil.
+- maine alinmis hotfix ve room regression fix'leri ayrica yapildi ama roadmap count icinde feature olarak sayilmadi.
+- Bundan sonra her yeni karar once bu dosyaya islenecek, sonra branch acilacak.
+## User Email Foundation Slice (14 March 2026)
+
+### Tamamlananlar
+- Yeni kayit akisinda email zorunlu hale getirildi.
+- `users.email`, `users.normalized_email`, `users.email_verified_at` alanlari eklendi.
+- Legacy hesaplar bozulmasin diye email alani nullable tutuldu.
+- Var olan emailsiz kullanicilar profil ekranini ve oyun akislarini bozmadan kullanmaya devam edebilir.
+- Kullanici ayarlarinda email goruntuleme ve guncelleme alani eklendi.
+- Admin `/admin/users` ekraninda email ve dogrulama durumu gorunur hale geldi.
+- E-posta tekilligi `normalizedEmail` uzerinden saglandi.
+- Email degistiginde `emailVerifiedAt` sifirlanacak sekilde foundation kuruldu.
+
+### Bilincli olarak sonraya birakilanlar
+- Email verification gonderimi
+- Sifre sifirlama / hesap kurtarma akisi
+- Email ile login
+- Change email confirmation akisi
+
+### Veri uyumluluk karari
+- Eski iki hesap da dahil olmak uzere mevcut kullanicilarin email'i olmayabilir.
+- Bu branch yeni kayitlarda email zorunlu yapar, ancak eski kayitlari geriye donuk zorlamaz.
+- Profil guncelleme tarafinda bos email gonderimi hataya dusmez; email olmayan legacy hesaplar display name / bio guncellemeye devam edebilir.
+
+### Guncel sayisal durum
+- Tamamlanan feature branch sayisi: 6
+- Planli toplam feature branch sayisi: 24
+- Kalan feature branch sayisi: 18
