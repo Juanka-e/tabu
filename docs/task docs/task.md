@@ -50,17 +50,23 @@
 - audit ve reason zorunlulugu
 - verification: `test:admin-user-operations`, prisma push, prisma generate, lint, tsc, build, audit
 
+### `feature/admin-audit-viewer`
+- `/admin/audit` ekrani
+- action/resource/role/search filtreleri
+- pagination ve metadata ozet gorunumu
+- verification: `test:admin-audit-viewer`, lint, tsc, build, audit
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap / planning copleri temizlendi
-  - aktif docs seti sadeleştirildi
+  - aktif docs seti sadelestirildi
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/admin-user-operations`
-2. `feature/admin-audit-viewer`
-3. `feature/coin-grant-campaigns`
-4. `feature/support-desk-foundation`
-5. `feature/system-notifications-foundation`
+1. `feature/coin-grant-campaigns`
+2. `feature/support-desk-foundation`
+3. `feature/system-notifications-foundation`
+4. `feature/admin-access-gateway`
+5. `feature/branding-seo-settings`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

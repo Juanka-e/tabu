@@ -17,6 +17,7 @@
 5. `feature/economy-liveops-controls`
 6. `feature/user-email-foundation`
 7. `feature/admin-user-operations`
+8. `feature/admin-audit-viewer`
 
 ## Aktif Teknik Kararlar
 
@@ -43,8 +44,6 @@
 - Wallet'a deger enjekte eden her akista transaction, actor audit, reason, duplicate claim korumasi, limit ve budget kontrolu zorunludur.
 
 ## Sonraki Oncelikli Branch'ler
-7. `feature/admin-user-operations`
-8. `feature/admin-audit-viewer`
 9. `feature/coin-grant-campaigns`
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
@@ -79,15 +78,22 @@
 - Her coin operasyonu hem `wallet_adjustments` tablosuna hem de `audit_logs` icine yaziliyor.
 - Coin operasyon route'u admin auth + rate limit ile korunuyor.
 
+## Admin Audit Viewer Slice (14 March 2026)
+- Yeni `/admin/audit` ekrani ile audit gecmisi tek panelde izlenebilir hale getirildi.
+- `action`, `resourceType`, `actorRole` ve serbest metin arama filtreleri eklendi.
+- Audit listeleme API'si admin auth ile korunuyor ve pagination destekliyor.
+- Metadata alanlari okunabilir ozet formatinda gosteriliyor.
+- Admin sidebar'a audit ekranina hizli erisim eklendi.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
-  - aktif roadmap, completed ve remaining/task dokumanlari sadeleştirildi
+  - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 7
+- Tamamlanan feature branch sayisi: 8
 - Planli toplam branch sayisi: 25
-- Kalan branch sayisi: 18
+- Kalan branch sayisi: 17
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
