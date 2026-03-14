@@ -18,6 +18,7 @@ import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolba
 import { AdminEmptyState, AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { AdminAuditLogView } from "@/types/admin-audit";
 import type { CoinGrantCampaignView } from "@/types/coin-grants";
 
 interface CampaignFormState {
@@ -43,6 +44,8 @@ interface CodeFormState {
     expiresAt: string;
     isActive: boolean;
 }
+
+type CampaignViewFilter = "all" | "active" | "inactive" | "used" | "exhausted";
 
 const inputClassName = "w-full rounded-2xl border border-border/80 bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-amber-500";
 const sectionClassName = "space-y-4 rounded-[26px] border border-border/80 bg-background/90 p-5";
@@ -101,6 +104,31 @@ function formatDateTime(value: string | null): string {
     });
 }
 
+function isCampaignUsed(campaign: CoinGrantCampaignView): boolean {
+    return campaign.totalClaimCount > 0 || campaign.totalGrantedCoin > 0 || campaign.codes.some((code) => code.claimCount > 0);
+}
+
+function isCampaignExhausted(campaign: CoinGrantCampaignView): boolean {
+    const budgetReached =
+        campaign.totalBudgetCoin !== null && campaign.totalGrantedCoin >= campaign.totalBudgetCoin;
+    const claimLimitReached =
+        campaign.totalClaimLimit !== null && campaign.totalClaimCount >= campaign.totalClaimLimit;
+    return budgetReached || claimLimitReached;
+}
+
+function formatAuditAction(action: string): string {
+    if (action.startsWith("admin.coin_grant_campaign.")) {
+        return action.replace("admin.coin_grant_campaign.", "campaign.");
+    }
+    if (action.startsWith("admin.coin_grant_code.")) {
+        return action.replace("admin.coin_grant_code.", "code.");
+    }
+    if (action === "user.coin_grant_claim.create") {
+        return "claim.create";
+    }
+    return action;
+}
+
 function StatChip({
     icon: Icon,
     label,
@@ -146,6 +174,8 @@ export default function AdminCoinGrantsPage() {
     const [editingCampaignId, setEditingCampaignId] = useState<number | null>(null);
     const [deactivatingCampaignId, setDeactivatingCampaignId] = useState<number | null>(null);
     const [deactivatingCodeId, setDeactivatingCodeId] = useState<number | null>(null);
+    const [viewFilter, setViewFilter] = useState<CampaignViewFilter>("all");
+    const [activity, setActivity] = useState<AdminAuditLogView[]>([]);
     const [campaignForm, setCampaignForm] = useState<CampaignFormState>(emptyCampaignForm);
     const [codeForm, setCodeForm] = useState<CodeFormState>(emptyCodeForm);
 
@@ -176,19 +206,54 @@ export default function AdminCoinGrantsPage() {
         void loadCampaigns();
     }, [loadCampaigns]);
 
+    useEffect(() => {
+        const loadActivity = async () => {
+            try {
+                const response = await fetch("/api/admin/audit?search=coin_grant&page=1&limit=8", {
+                    cache: "no-store",
+                });
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = (await response.json()) as { logs?: AdminAuditLogView[] };
+                setActivity(payload.logs ?? []);
+            } catch {
+                setActivity([]);
+            }
+        };
+
+        void loadActivity();
+    }, [campaigns]);
+
     const filteredCampaigns = useMemo(() => {
         const needle = search.trim().toLowerCase();
-        if (!needle) {
-            return campaigns;
-        }
+        return campaigns.filter((campaign) => {
+            const matchesSearch =
+                !needle ||
+                [campaign.code, campaign.name, campaign.description ?? "", ...campaign.codes.map((code) => code.code)]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(needle);
 
-        return campaigns.filter((campaign) =>
-            [campaign.code, campaign.name, campaign.description ?? "", ...campaign.codes.map((code) => code.code)]
-                .join(" ")
-                .toLowerCase()
-                .includes(needle)
-        );
-    }, [campaigns, search]);
+            if (!matchesSearch) {
+                return false;
+            }
+
+            switch (viewFilter) {
+                case "active":
+                    return campaign.isActive;
+                case "inactive":
+                    return !campaign.isActive;
+                case "used":
+                    return isCampaignUsed(campaign);
+                case "exhausted":
+                    return isCampaignExhausted(campaign);
+                default:
+                    return true;
+            }
+        });
+    }, [campaigns, search, viewFilter]);
 
     const stats = useMemo(
         () => [
@@ -409,10 +474,30 @@ export default function AdminCoinGrantsPage() {
                 </div>
             ) : null}
 
+            <div className="flex flex-wrap gap-2">
+                {([
+                    ["all", "Tum kayitlar"],
+                    ["active", "Aktif"],
+                    ["inactive", "Pasif"],
+                    ["used", "Kullanilan"],
+                    ["exhausted", "Tukenen"],
+                ] as Array<[CampaignViewFilter, string]>).map(([key, label]) => (
+                    <Button
+                        key={key}
+                        type="button"
+                        variant={viewFilter === key ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewFilter(key)}
+                    >
+                        {label}
+                    </Button>
+                ))}
+            </div>
+
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <AdminTableShell
                     title="Aktif Dagitimlar"
-                    description="Campaign butcesi, claim limiti ve code dagilimi buradan izlenir."
+                    description="Campaign butcesi, claim limiti, tukenen dagitimlar ve code dagilimi buradan izlenir."
                     loading={loading}
                     isEmpty={!loading && filteredCampaigns.length === 0}
                     emptyState={
@@ -435,6 +520,16 @@ export default function AdminCoinGrantsPage() {
                                             >
                                                 {campaign.isActive ? "aktif" : "pasif"}
                                             </span>
+                                            {isCampaignUsed(campaign) ? (
+                                                <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-sky-700">
+                                                    kullanildi
+                                                </span>
+                                            ) : null}
+                                            {isCampaignExhausted(campaign) ? (
+                                                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
+                                                    tukendi
+                                                </span>
+                                            ) : null}
                                         </div>
                                         <div className="mt-1 font-mono text-xs text-muted-foreground">{campaign.code}</div>
                                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -628,6 +723,47 @@ export default function AdminCoinGrantsPage() {
                             <Button onClick={() => void submitCodes()} disabled={saving || !codeForm.campaignId}>
                                 Kodlari uret
                             </Button>
+                        </div>
+                    </div>
+
+                    <div className="rounded-[30px] border border-border/80 bg-background/95 p-5 shadow-sm">
+                        <div>
+                            <h3 className="text-lg font-semibold text-foreground">Coin Grant Gecmisi</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Silinen, pasife alinan ve claim edilen kayitlari audit izinden buradan takip et.
+                            </p>
+                        </div>
+
+                        <div className="mt-5 space-y-3">
+                            {activity.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                                    Coin grant operasyon kaydi henuz yok.
+                                </div>
+                            ) : (
+                                activity.map((entry) => (
+                                    <div key={entry.id} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                                                    {formatAuditAction(entry.action)}
+                                                </div>
+                                                <div className="mt-1 text-sm font-medium text-foreground">
+                                                    {entry.summary || `${entry.resourceType} ${entry.resourceId ?? ""}`.trim()}
+                                                </div>
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    {entry.actor?.username ?? "sistem"} • {new Date(entry.createdAt).toLocaleString("tr-TR", {
+                                                        dateStyle: "short",
+                                                        timeStyle: "short",
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-full bg-background px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                                                {entry.resourceType}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
