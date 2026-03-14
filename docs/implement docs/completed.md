@@ -18,6 +18,7 @@
 - user email foundation
 - admin user operations
 - admin audit viewer
+- coin grant campaigns
 
 ## Tamamlanan Feature Branch'ler
 
@@ -59,6 +60,11 @@
 - `/admin/audit` ekrani
 - action / resource / role / search filtreleri
 - audit metadata ozet gorunumu
+
+### 9. `feature/coin-grant-campaigns`
+- `/admin/coin-grants` campaign ve code yonetimi
+- login kullanici coin code redeem akisi
+- budget / duplicate claim / code limit korumalari
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

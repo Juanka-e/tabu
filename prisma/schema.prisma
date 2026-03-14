@@ -59,6 +59,10 @@ enum WalletAdjustmentType {
   debit
 }
 
+enum CoinGrantClaimStatus {
+  completed
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -85,6 +89,8 @@ model User {
   moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
   walletAdjustmentsAuthored WalletAdjustment[] @relation("WalletAdjustmentActor")
   walletAdjustmentsReceived WalletAdjustment[] @relation("WalletAdjustmentTarget")
+  coinGrantClaims          CoinGrantClaim[]
+  coinGrantCampaignUsage   CoinGrantCampaignUser[]
 
   @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
@@ -192,6 +198,85 @@ model WalletAdjustment {
   @@index([actorUserId, createdAt])
   @@index([adjustmentType, createdAt])
   @@map("wallet_adjustments")
+}
+
+model CoinGrantCampaign {
+  id                Int       @id @default(autoincrement())
+  code              String    @unique @db.VarChar(80)
+  name              String    @db.VarChar(120)
+  description       String?   @db.VarChar(300)
+  coinAmount        Int       @map("coin_amount")
+  totalBudgetCoin   Int?      @map("total_budget_coin")
+  totalGrantedCoin  Int       @default(0) @map("total_granted_coin")
+  totalClaimLimit   Int?      @map("total_claim_limit")
+  totalClaimCount   Int       @default(0) @map("total_claim_count")
+  perUserClaimLimit Int       @default(1) @map("per_user_claim_limit")
+  startsAt          DateTime? @map("starts_at")
+  endsAt            DateTime? @map("ends_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  archivedAt        DateTime? @map("archived_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  codes      CoinGrantCode[]
+  claims     CoinGrantClaim[]
+  userClaims CoinGrantCampaignUser[]
+
+  @@index([isActive, archivedAt, startsAt, endsAt])
+  @@map("coin_grant_campaigns")
+}
+
+model CoinGrantCode {
+  id         Int       @id @default(autoincrement())
+  campaignId Int       @map("campaign_id")
+  code       String    @unique @db.VarChar(80)
+  label      String?   @db.VarChar(120)
+  maxClaims  Int?      @map("max_claims")
+  claimCount Int       @default(0) @map("claim_count")
+  expiresAt  DateTime? @map("expires_at")
+  isActive   Boolean   @default(true) @map("is_active")
+  archivedAt DateTime? @map("archived_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  claims   CoinGrantClaim[]
+
+  @@index([campaignId, isActive, archivedAt])
+  @@map("coin_grant_codes")
+}
+
+model CoinGrantCampaignUser {
+  campaignId  Int      @map("campaign_id")
+  userId      Int      @map("user_id")
+  claimCount  Int      @default(0) @map("claim_count")
+  grantedCoin Int      @default(0) @map("granted_coin")
+  lastClaimAt DateTime @default(now()) @map("last_claim_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, userId])
+  @@index([userId, lastClaimAt])
+  @@map("coin_grant_campaign_users")
+}
+
+model CoinGrantClaim {
+  id         Int                  @id @default(autoincrement())
+  campaignId Int                  @map("campaign_id")
+  codeId     Int                  @map("code_id")
+  userId     Int                  @map("user_id")
+  status     CoinGrantClaimStatus @default(completed)
+  coinAmount Int                  @map("coin_amount")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  code     CoinGrantCode     @relation(fields: [codeId], references: [id], onDelete: Restrict)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+  @@index([codeId, createdAt])
+  @@index([userId, createdAt])
+  @@map("coin_grant_claims")
 }
 
 model ShopItem {

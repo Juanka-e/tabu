@@ -7,6 +7,7 @@ import {
     BadgePercent,
     Frame,
     Gem,
+    Gift,
     ShoppingBag,
     TicketPercent,
     UserCircle,
@@ -26,6 +27,8 @@ import type {
     StoreCatalogResponse,
     StoreItemType,
 } from "@/types/economy";
+import type { CoinGrantRedeemResult } from "@/types/coin-grants";
+import { dispatchWalletUpdated } from "@/lib/wallet-events";
 
 type ShopCategory = "all" | StoreItemType;
 type BusyTarget = { kind: "shop_item" | "bundle"; id: number } | null;
@@ -76,6 +79,9 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const [catalog, setCatalog] = useState<StoreCatalogResponse>(createEmptyCatalog);
     const [couponCode, setCouponCode] = useState("");
     const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
+    const [coinGrantCode, setCoinGrantCode] = useState("");
+    const [coinGrantFeedback, setCoinGrantFeedback] = useState<string | null>(null);
+    const [redeemingCoinGrant, setRedeemingCoinGrant] = useState(false);
     const [busyTarget, setBusyTarget] = useState<BusyTarget>(null);
 
     useEffect(() => {
@@ -178,6 +184,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             }
 
             applyOwnedItems([item.id], payload.coinBalance ?? catalog.coinBalance);
+            if (payload.coinBalance !== undefined) {
+                dispatchWalletUpdated({
+                    coinBalance: payload.coinBalance,
+                    source: "store_purchase",
+                });
+            }
             setCouponFeedback(payload.finalPriceCoin !== undefined ? `Satin alindi: ${payload.finalPriceCoin} coin` : null);
         } catch {
             setCouponFeedback("Satin alma istegi tamamlanamadi.");
@@ -216,6 +228,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
             const awardedItemIds = payload.awardedItems?.map((entry) => entry.id) ?? [];
             applyOwnedItems(awardedItemIds, payload.coinBalance ?? catalog.coinBalance);
+            if (payload.coinBalance !== undefined) {
+                dispatchWalletUpdated({
+                    coinBalance: payload.coinBalance,
+                    source: "bundle_purchase",
+                });
+            }
             setCouponFeedback(payload.finalPriceCoin !== undefined ? `Bundle satin alindi: ${payload.finalPriceCoin} coin` : null);
         } catch {
             setCouponFeedback("Bundle satin alma istegi tamamlanamadi.");
@@ -261,6 +279,48 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             setCouponFeedback("Kupon dogrulama istegi tamamlanamadi.");
         } finally {
             setBusyTarget(null);
+        }
+    };
+
+    const handleRedeemCoinGrant = async () => {
+        const trimmedCode = coinGrantCode.trim();
+        if (!trimmedCode || redeemingCoinGrant) {
+            return;
+        }
+
+        setRedeemingCoinGrant(true);
+        try {
+            const response = await fetch("/api/coin-grants/redeem", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: trimmedCode }),
+            });
+
+            const payload = (await response.json()) as CoinGrantRedeemResult | { error?: string };
+            if (!response.ok || !("ok" in payload)) {
+                setCoinGrantFeedback(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanilamadi.");
+                return;
+            }
+
+            if (!payload.ok) {
+                setCoinGrantFeedback("Coin kodu kullanilamadi.");
+                return;
+            }
+
+            setCatalog((currentCatalog) => ({
+                ...currentCatalog,
+                coinBalance: payload.coinBalance,
+            }));
+            dispatchWalletUpdated({
+                coinBalance: payload.coinBalance,
+                source: "coin_grant",
+            });
+            setCoinGrantCode("");
+            setCoinGrantFeedback(`${payload.coinAmount} coin eklendi: ${payload.code.code}`);
+        } catch {
+            setCoinGrantFeedback("Coin kodu istegi tamamlanamadi.");
+        } finally {
+            setRedeemingCoinGrant(false);
         }
     };
 
@@ -328,33 +388,60 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
                 <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                     <CoinBadge value={catalog.coinBalance} label="Gold Coins" />
-                    <div className="flex min-w-[280px] flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            <TicketPercent size={12} />
-                            Coupon
+                    <div className="grid min-w-[280px] gap-3 lg:min-w-[520px] lg:grid-cols-2">
+                        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <TicketPercent size={12} />
+                                Coupon
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    value={couponCode}
+                                    onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                                    placeholder="WELCOME25"
+                                    disabled={!catalog.liveops.couponsEnabled}
+                                    className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setCouponFeedback("Kuponu secili satin almada test edebilirsin.")}
+                                    disabled={!catalog.liveops.couponsEnabled}
+                                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                                >
+                                    Ready
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {catalog.liveops.couponsEnabled
+                                    ? "Kod, sonraki satin alma istegine eklenir. Gecerlilik server tarafinda dogrulanir."
+                                    : "Kupon kullanimi su anda liveops tarafinda gecici olarak kapali."}
+                            </p>
                         </div>
-                        <div className="flex gap-2">
-                            <input
-                                value={couponCode}
-                                onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                                placeholder="WELCOME25"
-                                disabled={!catalog.liveops.couponsEnabled}
-                                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setCouponFeedback("Kuponu secili satin almada test edebilirsin.")}
-                                disabled={!catalog.liveops.couponsEnabled}
-                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                            >
-                                Ready
-                            </button>
+                        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <Gift size={12} />
+                                Coin Code
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    value={coinGrantCode}
+                                    onChange={(event) => setCoinGrantCode(event.target.value.toUpperCase())}
+                                    placeholder="CREATOR-AB12CD"
+                                    className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-amber-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => void handleRedeemCoinGrant()}
+                                    disabled={redeemingCoinGrant || !coinGrantCode.trim()}
+                                    className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+                                >
+                                    {redeemingCoinGrant ? "..." : "Redeem"}
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Etkinlik veya influencer kodu ile dogrudan wallet bakiyene coin eklenir.
+                            </p>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {catalog.liveops.couponsEnabled
-                                ? "Kod, sonraki satin alma istegine eklenir. Gecerlilik server tarafinda dogrulanir."
-                                : "Kupon kullanimi su anda liveops tarafinda gecici olarak kapali."}
-                        </p>
                     </div>
                 </div>
             </header>
@@ -362,6 +449,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             {couponFeedback && (
                 <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-slate-200">
                     {couponFeedback}
+                </div>
+            )}
+            {coinGrantFeedback && (
+                <div className="mb-6 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-800 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                    {coinGrantFeedback}
                 </div>
             )}
 

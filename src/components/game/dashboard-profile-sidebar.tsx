@@ -5,6 +5,7 @@ import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import { CoinMark } from "@/components/ui/coin-badge";
+import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import type {
     CatalogStoreItemView,
     DashboardDataResponse,
@@ -115,6 +116,15 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
         };
 
         void load();
+
+        const handleWalletUpdated = () => {
+            void load();
+        };
+
+        window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        return () => {
+            window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        };
     }, [session]);
 
     const name = profile?.displayName || session?.user?.name || "Player";
