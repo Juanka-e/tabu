@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   if (!isStoreAvailable(settings)) {
     return NextResponse.json({ error: getFeatureDisabledMessage("store") }, { status: 409 });
   }
-  const catalog = await getStoreCatalog(sessionUser?.id);
+  const catalog = await getStoreCatalog(sessionUser?.id, settings);
   const items = parsed.data.type
     ? catalog.items.filter((item) => item.type === parsed.data.type)
     : catalog.items;

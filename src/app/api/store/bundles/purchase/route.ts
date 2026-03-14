@@ -50,16 +50,22 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { bundleId, couponCode } = purchaseBundleSchema.parse(body);
 
-        const result = await purchaseStoreBundle(sessionUser.id, bundleId, couponCode);
+        const result = await purchaseStoreBundle(sessionUser.id, bundleId, couponCode, settings);
         if (!result.ok) {
             if (result.code === "not_found") {
                 return NextResponse.json({ error: "Bundle bulunamadi." }, { status: 404 });
+            }
+            if (result.code === "bundle_disabled") {
+                return NextResponse.json({ error: "Bundle satislari su anda gecici olarak kapali." }, { status: 409 });
             }
             if (result.code === "already_owned") {
                 return NextResponse.json({ error: "Bundle icindeki tum urunlere zaten sahipsin." }, { status: 409 });
             }
             if (result.code === "contains_owned_items") {
                 return NextResponse.json({ error: "Bundle icinde zaten sahip oldugun urunler var. Once bundlei guncelle." }, { status: 409 });
+            }
+            if (result.code === "coupon_disabled") {
+                return NextResponse.json({ error: "Kupon kullanimi su anda gecici olarak kapali." }, { status: 409 });
             }
             if (result.code === "invalid_coupon") {
                 return NextResponse.json({ error: "Kupon gecersiz veya bu bundle ile kullanilamaz." }, { status: 409 });

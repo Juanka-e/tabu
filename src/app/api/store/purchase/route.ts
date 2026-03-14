@@ -47,13 +47,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { shopItemId, couponCode } = purchaseSchema.parse(body);
 
-    const result = await purchaseStoreItem(sessionUser.id, shopItemId, couponCode);
+    const result = await purchaseStoreItem(sessionUser.id, shopItemId, couponCode, settings);
     if (!result.ok) {
       if (result.code === "not_found") {
         return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
       }
       if (result.code === "already_owned") {
         return NextResponse.json({ error: "Urun zaten sahiplenilmis." }, { status: 409 });
+      }
+      if (result.code === "coupon_disabled") {
+        return NextResponse.json({ error: "Kupon kullanimi su anda gecici olarak kapali." }, { status: 409 });
       }
       if (result.code === "invalid_coupon") {
         return NextResponse.json({ error: "Kupon gecersiz veya bu urun ile kullanilamaz." }, { status: 409 });

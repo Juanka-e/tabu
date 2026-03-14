@@ -10,6 +10,7 @@ import {
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { resolveMatchRewardCoin } from "@/lib/system-settings/economy";
 import { getSystemSettings } from "@/lib/system-settings/service";
 
 const finalizeSchema = z.object({
@@ -66,11 +67,13 @@ export async function POST(req: Request) {
     const winner = room.skor.A === room.skor.B ? "Berabere" : room.skor.A > room.skor.B ? "A" : "B";
     const won = winner !== "Berabere" && participant.takim === winner;
     const settings = await getSystemSettings();
-    const coinEarned = winner === "Berabere"
+    const baseRewardCoin = winner === "Berabere"
       ? settings.economy.drawRewardCoin
       : won
         ? settings.economy.winRewardCoin
         : settings.economy.lossRewardCoin;
+    const reward = resolveMatchRewardCoin(baseRewardCoin, settings, new Date());
+    const coinEarned = reward.finalRewardCoin;
 
     await ensureUserCore(sessionUser.id);
 
@@ -104,10 +107,13 @@ export async function POST(req: Request) {
       resourceType: "match_result",
       resourceId: result.created.id,
       summary: `Finalized match reward for room ${room.odaKodu}`,
-      metadata: {
+        metadata: {
         roomCode: room.odaKodu,
         won,
         coinEarned,
+        baseRewardCoin: reward.baseRewardCoin,
+        rewardMultiplier: reward.multiplier,
+        weekendBoostApplied: reward.weekendBoostApplied,
       },
       request: req,
     });

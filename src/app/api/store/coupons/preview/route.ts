@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
         const body = await req.json();
         const { targetKind, targetId, couponCode } = previewSchema.parse(body);
-        const result = await previewCouponForTarget(sessionUser.id, targetKind, targetId, couponCode);
+        const result = await previewCouponForTarget(sessionUser.id, targetKind, targetId, couponCode, settings);
 
         return NextResponse.json(result, { status: result.valid ? 200 : 409 });
     } catch (error) {

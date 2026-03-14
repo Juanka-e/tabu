@@ -55,6 +55,14 @@ function createEmptyCatalog(): StoreCatalogResponse {
         coinBalance: 0,
         items: [],
         bundles: [],
+        liveops: {
+            bundlesEnabled: true,
+            couponsEnabled: true,
+            discountCampaignsEnabled: true,
+            storePriceMultiplier: 1,
+            activeMatchCoinMultiplier: 1,
+            weekendBoostApplied: false,
+        },
     };
 }
 
@@ -138,6 +146,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     fullyOwned: ownedItemCount >= bundle.items.length && bundle.items.length > 0,
                 };
             }),
+            liveops: currentCatalog.liveops,
         }));
     };
 
@@ -297,6 +306,24 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                             ))}
                         </div>
                     )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+                            Store x{catalog.liveops.storePriceMultiplier.toFixed(2)}
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+                            Match x{catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}
+                        </div>
+                        {catalog.liveops.weekendBoostApplied ? (
+                            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-50/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+                                Weekend boost active
+                            </div>
+                        ) : null}
+                        {!catalog.liveops.discountCampaignsEnabled ? (
+                            <div className="inline-flex items-center gap-2 rounded-full border border-rose-300/80 bg-rose-50/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+                                Campaigns paused
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
 
                 <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -311,18 +338,22 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                 value={couponCode}
                                 onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                                 placeholder="WELCOME25"
+                                disabled={!catalog.liveops.couponsEnabled}
                                 className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                             />
                             <button
                                 type="button"
                                 onClick={() => setCouponFeedback("Kuponu secili satin almada test edebilirsin.")}
+                                disabled={!catalog.liveops.couponsEnabled}
                                 className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                             >
                                 Ready
                             </button>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Kod, sonraki satin alma istegine eklenir. Gecerlilik server tarafinda dogrulanir.
+                            {catalog.liveops.couponsEnabled
+                                ? "Kod, sonraki satin alma istegine eklenir. Gecerlilik server tarafinda dogrulanir."
+                                : "Kupon kullanimi su anda liveops tarafinda gecici olarak kapali."}
                         </p>
                     </div>
                 </div>
@@ -383,7 +414,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                         onBuy={handleBuyItem}
                                         onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })}
                                         busy={busyKey === `shop_item:${item.id}`}
-                                        couponReady={couponCode.trim().length > 0}
+                                        couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0}
                                         itemInitial={getItemInitial(item.name)}
                                     />
                                 ))}
@@ -402,7 +433,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                         </div>
                         {catalog.bundles.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-300/60 bg-white/30 p-10 text-center text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-800/30 dark:text-slate-400">
-                                No active bundles yet.
+                                {catalog.liveops.bundlesEnabled ? "No active bundles yet." : "Bundle satislari gecici olarak kapali."}
                             </div>
                         ) : (
                             <div className="grid gap-4 xl:grid-cols-2">
@@ -410,7 +441,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                     <BundleCard
                                         key={bundle.id}
                                         bundle={bundle}
-                                        couponReady={couponCode.trim().length > 0}
+                                        couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0}
                                         busy={busyKey === `bundle:${bundle.id}`}
                                         onBuy={handleBuyBundle}
                                         onPreviewCoupon={() => void handlePreviewCoupon({ kind: "bundle", id: bundle.id })}

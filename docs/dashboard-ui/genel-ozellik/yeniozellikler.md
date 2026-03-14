@@ -1079,3 +1079,10 @@ Dogru baslangic modeli:
   - daha fazla / daha az goster kontrolu
   - sadece ic not kayitlarini silme destegi
 - Suspend/reactivate olaylari audit butunlugu icin silinemez tutuldu.
+## Progress Update - feature/economy-liveops-controls (13 March 2026)
+- Runtime ekonomi kontrollari genisletildi.
+- Admin panel artik baslangic coin, mac odulleri, global mac coin carpani, weekend boost, store fiyat carpani, bundle toggle, discount toggle ve coupon toggle yonetiyor.
+- Mac odulleri /api/game/match/finalize uzerinde runtime multiplier ile hesaplanir hale geldi.
+- Store katalogu artik liveops ozeti donuyor; dashboard magazasi bu state'i oyuncuya yansitiyor.
+- Bundle satislari, campaign discountlari ve coupon kullanimi ayri runtime kill-switch olarak calisiyor.
+- Bu branchte scheduler/sezon sistemi bilincli olarak eklenmedi; daha ileri liveops katmani sonraki branch'e birakildi.

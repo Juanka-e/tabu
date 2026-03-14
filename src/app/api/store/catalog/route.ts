@@ -21,6 +21,6 @@ export async function GET() {
         );
     }
 
-    const catalog = await getStoreCatalog(sessionUser.id);
+    const catalog = await getStoreCatalog(sessionUser.id, settings);
     return NextResponse.json(catalog);
 }

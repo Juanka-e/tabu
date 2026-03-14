@@ -28,6 +28,13 @@ const economySettingsSchema = z.object({
     winRewardCoin: z.number().int().min(0).max(1_000_000).default(120),
     lossRewardCoin: z.number().int().min(0).max(1_000_000).default(40),
     drawRewardCoin: z.number().int().min(0).max(1_000_000).default(40),
+    matchCoinMultiplier: z.number().min(0).max(10).default(1),
+    weekendCoinMultiplierEnabled: z.boolean().default(false),
+    weekendCoinMultiplier: z.number().min(1).max(10).default(1.5),
+    storePriceMultiplier: z.number().min(0.1).max(10).default(1),
+    bundlesEnabled: z.boolean().default(true),
+    discountCampaignsEnabled: z.boolean().default(true),
+    couponsEnabled: z.boolean().default(true),
 });
 
 const captchaSettingsSchema = z.object({
