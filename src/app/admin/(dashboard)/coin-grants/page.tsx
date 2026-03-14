@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Archive,
     BadgeDollarSign,
+    ChevronDown,
+    ChevronUp,
     Clock3,
+    ExternalLink,
     Gift,
     Hash,
     Plus,
@@ -19,7 +22,6 @@ import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolba
 import { AdminEmptyState, AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AdminAuditLogView } from "@/types/admin-audit";
 import type { CoinGrantCampaignView } from "@/types/coin-grants";
 
 interface CampaignFormState {
@@ -121,19 +123,6 @@ function isCampaignArchived(campaign: CoinGrantCampaignView): boolean {
     return campaign.archivedAt !== null;
 }
 
-function formatAuditAction(action: string): string {
-    if (action.startsWith("admin.coin_grant_campaign.")) {
-        return action.replace("admin.coin_grant_campaign.", "campaign.");
-    }
-    if (action.startsWith("admin.coin_grant_code.")) {
-        return action.replace("admin.coin_grant_code.", "code.");
-    }
-    if (action === "user.coin_grant_claim.create") {
-        return "claim.create";
-    }
-    return action;
-}
-
 function StatChip({
     icon: Icon,
     label,
@@ -182,7 +171,7 @@ export default function AdminCoinGrantsPage() {
     const [archivingCampaignId, setArchivingCampaignId] = useState<number | null>(null);
     const [archivingCodeId, setArchivingCodeId] = useState<number | null>(null);
     const [viewFilter, setViewFilter] = useState<CampaignViewFilter>("all");
-    const [activity, setActivity] = useState<AdminAuditLogView[]>([]);
+    const [expandedCampaignIds, setExpandedCampaignIds] = useState<number[]>([]);
     const [campaignForm, setCampaignForm] = useState<CampaignFormState>(emptyCampaignForm);
     const [codeForm, setCodeForm] = useState<CodeFormState>(emptyCodeForm);
 
@@ -212,26 +201,6 @@ export default function AdminCoinGrantsPage() {
     useEffect(() => {
         void loadCampaigns();
     }, [loadCampaigns]);
-
-    useEffect(() => {
-        const loadActivity = async () => {
-            try {
-                const response = await fetch("/api/admin/audit?search=coin_grant&page=1&limit=8", {
-                    cache: "no-store",
-                });
-                if (!response.ok) {
-                    return;
-                }
-
-                const payload = (await response.json()) as { logs?: AdminAuditLogView[] };
-                setActivity(payload.logs ?? []);
-            } catch {
-                setActivity([]);
-            }
-        };
-
-        void loadActivity();
-    }, [campaigns]);
 
     const filteredCampaigns = useMemo(() => {
         const needle = search.trim().toLowerCase();
@@ -527,6 +496,14 @@ export default function AdminCoinGrantsPage() {
         }
     };
 
+    const toggleCampaignCodes = (campaignId: number) => {
+        setExpandedCampaignIds((current) =>
+            current.includes(campaignId)
+                ? current.filter((entry) => entry !== campaignId)
+                : [...current, campaignId]
+        );
+    };
+
     return (
         <div className="space-y-6">
             <AdminPageHeader
@@ -598,6 +575,13 @@ export default function AdminCoinGrantsPage() {
                     <div className="space-y-4 p-4">
                         {filteredCampaigns.map((campaign) => (
                             <article key={campaign.id} className="rounded-[28px] border border-border/80 bg-background/90 p-5 shadow-sm">
+                                {(() => {
+                                    const visibleCodes = campaign.codes.filter((code) => !code.archivedAt || viewFilter === "archived");
+                                    const isExpanded = expandedCampaignIds.includes(campaign.id);
+                                    const archivedCodeCount = campaign.codes.filter((code) => code.archivedAt).length;
+
+                                    return (
+                                        <>
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -686,18 +670,37 @@ export default function AdminCoinGrantsPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-4 space-y-2">
-                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                                <div className="mt-4 rounded-2xl border border-border/70 bg-muted/15 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                                         <Sparkles className="h-3.5 w-3.5" />
                                         Dagitim kodlari
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {campaign.codes.length === 0 ? (
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                {visibleCodes.length} gorunen kod
+                                                {archivedCodeCount > 0 ? ` • ${archivedCodeCount} arsivli` : ""}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleCampaignCodes(campaign.id)}
+                                            >
+                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                <span>{isExpanded ? "Kodlari kapat" : "Kodlari ac"}</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {isExpanded ? (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {visibleCodes.length === 0 ? (
                                             <span className="text-sm text-muted-foreground">Bu campaign icin henuz kod uretilmemis.</span>
                                         ) : (
-                                            campaign.codes
-                                                .filter((code) => !code.archivedAt || viewFilter === "archived")
-                                                .map((code) => (
+                                            visibleCodes.map((code) => (
                                                 <div key={code.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/20 px-3 py-1.5 text-xs text-foreground">
                                                     <span className="font-mono font-semibold">{code.code}</span>
                                                     <span className="text-muted-foreground">
@@ -706,27 +709,38 @@ export default function AdminCoinGrantsPage() {
                                                     {code.label ? <span className="text-muted-foreground">{code.label}</span> : null}
                                                     {!code.isActive ? <span className="text-amber-600">pasif</span> : null}
                                                     {code.archivedAt ? <span className="text-violet-600">arsiv</span> : null}
-                                                    <button
-                                                        type="button"
-                                                        disabled={deactivatingCodeId === code.id || !code.isActive || Boolean(code.archivedAt)}
-                                                        onClick={() => void deactivateCode(campaign.id, code.id)}
-                                                        className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                    >
-                                                        {code.isActive ? (deactivatingCodeId === code.id ? "kapatiliyor" : "kapat") : "pasif"}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        disabled={archivingCodeId === code.id || code.isActive || Boolean(code.archivedAt)}
-                                                        onClick={() => void archiveCode(campaign.id, code.id)}
-                                                        className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                    >
-                                                        {code.archivedAt ? "arsivde" : archivingCodeId === code.id ? "arsivleniyor" : "arsivle"}
-                                                    </button>
+                                                    {!code.archivedAt ? (
+                                                        <>
+                                                            {code.isActive ? (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={deactivatingCodeId === code.id}
+                                                                    onClick={() => void deactivateCode(campaign.id, code.id)}
+                                                                    className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                                >
+                                                                    {deactivatingCodeId === code.id ? "kapatiliyor" : "kapat"}
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={archivingCodeId === code.id}
+                                                                    onClick={() => void archiveCode(campaign.id, code.id)}
+                                                                    className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                                >
+                                                                    {archivingCodeId === code.id ? "arsivleniyor" : "arsivle"}
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    ) : null}
                                                 </div>
                                             ))
                                         )}
-                                    </div>
+                                        </div>
+                                    ) : null}
                                 </div>
+                                        </>
+                                    );
+                                })()}
                             </article>
                         ))}
                     </div>
@@ -840,42 +854,22 @@ export default function AdminCoinGrantsPage() {
 
                     <div className="rounded-[30px] border border-border/80 bg-background/95 p-5 shadow-sm">
                         <div>
-                            <h3 className="text-lg font-semibold text-foreground">Coin Grant Gecmisi</h3>
+                            <h3 className="text-lg font-semibold text-foreground">Audit Kisa Yolu</h3>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                Silinen, pasife alinan ve claim edilen kayitlari audit izinden buradan takip et.
+                                Detayli operasyon gecmisi icin ayri audit ekrani kullanilsin. Coin grants sayfasi operasyon odakli kalsin.
                             </p>
                         </div>
 
                         <div className="mt-5 space-y-3">
-                            {activity.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                                    Coin grant operasyon kaydi henuz yok.
-                                </div>
-                            ) : (
-                                activity.map((entry) => (
-                                    <div key={entry.id} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <div className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-                                                    {formatAuditAction(entry.action)}
-                                                </div>
-                                                <div className="mt-1 text-sm font-medium text-foreground">
-                                                    {entry.summary || `${entry.resourceType} ${entry.resourceId ?? ""}`.trim()}
-                                                </div>
-                                                <div className="mt-1 text-xs text-muted-foreground">
-                                                    {entry.actor?.username ?? "sistem"} • {new Date(entry.createdAt).toLocaleString("tr-TR", {
-                                                        dateStyle: "short",
-                                                        timeStyle: "short",
-                                                    })}
-                                                </div>
-                                            </div>
-                                            <div className="rounded-full bg-background px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                                                {entry.resourceType}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                                Silinen, arsivlenen, pasife alinan ve claim edilen tum kayitlari audit ekraninda filtreleyerek takip et.
+                            </div>
+                            <Button asChild variant="outline" className="w-full justify-between">
+                                <a href="/admin/audit?search=coin_grant">
+                                    Coin grant auditini ac
+                                    <ExternalLink size={14} />
+                                </a>
+                            </Button>
                         </div>
                     </div>
                 </div>
