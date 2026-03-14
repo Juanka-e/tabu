@@ -307,14 +307,24 @@ export default function AdminCoinGrantsPage() {
                 return;
             }
 
-            setCampaigns((current) =>
-                current.map((entry) =>
-                    entry.id === campaign.id
-                        ? { ...entry, isActive: false, updatedAt: new Date().toISOString() }
-                        : entry
-                )
-            );
-            setNotice(`${campaign.name} pasife alindi.`);
+            const payload = (await response.json().catch(() => ({ ok: true, outcome: "deactivated" }))) as {
+                ok?: boolean;
+                outcome?: "deleted" | "deactivated";
+            };
+
+            if (payload.outcome === "deleted") {
+                setCampaigns((current) => current.filter((entry) => entry.id !== campaign.id));
+                setNotice(`${campaign.name} silindi.`);
+            } else {
+                setCampaigns((current) =>
+                    current.map((entry) =>
+                        entry.id === campaign.id
+                            ? { ...entry, isActive: false, updatedAt: new Date().toISOString() }
+                            : entry
+                    )
+                );
+                setNotice(`${campaign.name} pasife alindi.`);
+            }
             await loadCampaigns();
         } finally {
             setDeactivatingCampaignId(null);
@@ -339,19 +349,27 @@ export default function AdminCoinGrantsPage() {
                 return;
             }
 
+            const payload = (await response.json().catch(() => ({ ok: true, outcome: "deactivated" }))) as {
+                ok?: boolean;
+                outcome?: "deleted" | "deactivated";
+            };
+
             setCampaigns((current) =>
                 current.map((campaign) =>
                     campaign.id === campaignId
                         ? {
                             ...campaign,
-                            codes: campaign.codes.map((entry) =>
-                                entry.id === codeId ? { ...entry, isActive: false } : entry
-                            ),
+                            codes:
+                                payload.outcome === "deleted"
+                                    ? campaign.codes.filter((entry) => entry.id !== codeId)
+                                    : campaign.codes.map((entry) =>
+                                        entry.id === codeId ? { ...entry, isActive: false } : entry
+                                    ),
                         }
                         : campaign
                 )
             );
-            setNotice("Kod pasife alindi.");
+            setNotice(payload.outcome === "deleted" ? "Kod silindi." : "Kod pasife alindi.");
             await loadCampaigns();
         } finally {
             setDeactivatingCodeId(null);

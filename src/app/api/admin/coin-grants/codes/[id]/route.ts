@@ -39,19 +39,22 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
         );
     }
 
-    const ok = await deactivateCoinGrantCode(paramsResult.data.id);
-    if (!ok) {
+    const outcome = await deactivateCoinGrantCode(paramsResult.data.id);
+    if (!outcome) {
         return NextResponse.json({ error: "Kod bulunamadi." }, { status: 404 });
     }
 
     await writeAuditLog({
         actor: adminSession,
-        action: "admin.coin_grant_code.deactivate",
+        action: outcome === "deleted" ? "admin.coin_grant_code.delete" : "admin.coin_grant_code.deactivate",
         resourceType: "coin_grant_code",
         resourceId: paramsResult.data.id,
-        summary: `deactivated coin grant code ${paramsResult.data.id}`,
+        summary: `${outcome} coin grant code ${paramsResult.data.id}`,
+        metadata: {
+            outcome,
+        },
         request,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, outcome });
 }

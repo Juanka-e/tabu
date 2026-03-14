@@ -387,13 +387,44 @@ export async function updateCoinGrantCampaign(id: number, input: CoinGrantCampai
     return mapCoinGrantCampaign(campaign);
 }
 
-export async function deactivateCoinGrantCampaign(id: number): Promise<boolean> {
-    const result = await prisma.coinGrantCampaign.updateMany({
+export async function deactivateCoinGrantCampaign(id: number): Promise<"deleted" | "deactivated" | null> {
+    const existing = await prisma.coinGrantCampaign.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            totalClaimCount: true,
+            totalGrantedCoin: true,
+            codes: {
+                select: {
+                    id: true,
+                    claimCount: true,
+                },
+            },
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    const canDelete =
+        existing.totalClaimCount === 0 &&
+        existing.totalGrantedCoin === 0 &&
+        existing.codes.every((code) => code.claimCount === 0);
+
+    if (canDelete) {
+        await prisma.coinGrantCampaign.delete({
+            where: { id },
+        });
+        return "deleted";
+    }
+
+    await prisma.coinGrantCampaign.update({
         where: { id },
         data: { isActive: false },
     });
 
-    return result.count === 1;
+    return "deactivated";
 }
 
 export async function createCoinGrantCodes(input: CoinGrantCodeBatchCreateInput): Promise<CoinGrantCodeView[]> {
@@ -473,13 +504,32 @@ export async function createCoinGrantCodes(input: CoinGrantCodeBatchCreateInput)
     return createdCodes.map(mapCoinGrantCode);
 }
 
-export async function deactivateCoinGrantCode(id: number): Promise<boolean> {
-    const result = await prisma.coinGrantCode.updateMany({
+export async function deactivateCoinGrantCode(id: number): Promise<"deleted" | "deactivated" | null> {
+    const existing = await prisma.coinGrantCode.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            claimCount: true,
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    if (existing.claimCount === 0) {
+        await prisma.coinGrantCode.delete({
+            where: { id },
+        });
+        return "deleted";
+    }
+
+    await prisma.coinGrantCode.update({
         where: { id },
         data: { isActive: false },
     });
 
-    return result.count === 1;
+    return "deactivated";
 }
 
 export async function redeemCoinGrantCode(input: {
