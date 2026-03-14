@@ -8,6 +8,12 @@ import {
     resolveCatalogPricing,
     resolveCouponPricing,
 } from "@/lib/store/pricing";
+import {
+    applyStorePriceMultiplier,
+    getStoreLiveopsState,
+} from "@/lib/system-settings/economy";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import type { SystemSettings } from "@/types/system-settings";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
@@ -19,12 +25,10 @@ import type {
     StoreItemType,
     StoreItemView,
     StoreCatalogResponse,
+    StoreLiveopsView,
     UserInventoryProfile,
     UserInventoryResponse,
 } from "@/types/economy";
-
-export const WIN_REWARD = 120;
-export const LOSS_REWARD = 40;
 
 type AppearanceProfileRecord = {
     userId: number;
@@ -462,7 +466,7 @@ type CouponRecord = Prisma.CouponCodeGetPayload<{
 
 type PurchaseItemResult =
     | { ok: true; item: StoreCatalogItemRecord; coinBalance: number; finalPriceCoin: number }
-    | { ok: false; code: "not_found" | "already_owned" | "insufficient_balance" | "invalid_coupon" | "promotion_unavailable" };
+    | { ok: false; code: "not_found" | "already_owned" | "insufficient_balance" | "invalid_coupon" | "promotion_unavailable" | "coupon_disabled" };
 
 type PurchaseBundleResult =
     | {
@@ -480,14 +484,19 @@ type PurchaseBundleResult =
         | "contains_owned_items"
         | "insufficient_balance"
         | "invalid_coupon"
-        | "promotion_unavailable";
+        | "promotion_unavailable"
+        | "bundle_disabled"
+        | "coupon_disabled";
     };
 
 function mapStoreItemView(
     item: StoreCatalogItemRecord,
     ownedIds: Set<number>,
-    equippedSlots: EquippedSlots
+    equippedSlots: EquippedSlots,
+    settings: SystemSettings
 ): StoreItemView {
+    const effectivePriceCoin = applyStorePriceMultiplier(item.priceCoin, settings);
+
     return {
         id: item.id,
         code: item.code,
@@ -495,7 +504,7 @@ function mapStoreItemView(
         type: item.type,
         rarity: item.rarity,
         renderMode: item.renderMode,
-        priceCoin: item.priceCoin,
+        priceCoin: effectivePriceCoin,
         imageUrl: item.imageUrl,
         templateKey: item.templateKey,
         templateConfig: normalizeTemplateConfig(item.templateConfig),
@@ -514,14 +523,16 @@ function mapCatalogItemView(
     ownedIds: Set<number>,
     equippedSlots: EquippedSlots,
     discounts: DiscountRecord[],
-    now: Date
+    now: Date,
+    settings: SystemSettings
 ): CatalogStoreItemView {
-    const baseView = mapStoreItemView(item, ownedIds, equippedSlots);
+    const effectivePriceCoin = applyStorePriceMultiplier(item.priceCoin, settings);
+    const baseView = mapStoreItemView(item, ownedIds, equippedSlots, settings);
 
     return {
         ...baseView,
         pricing: resolveCatalogPricing(
-            item.priceCoin,
+            effectivePriceCoin,
             { kind: "shop_item", targetId: item.id },
             discounts,
             now
@@ -533,23 +544,25 @@ function mapCatalogBundleView(
     bundle: StoreCatalogBundleRecord,
     ownedIds: Set<number>,
     discounts: DiscountRecord[],
-    now: Date
+    now: Date,
+    settings: SystemSettings
 ): CatalogBundleView {
     const ownedItemCount = bundle.items.filter((entry) => ownedIds.has(entry.shopItemId)).length;
+    const effectivePriceCoin = applyStorePriceMultiplier(bundle.priceCoin, settings);
 
     return {
         id: bundle.id,
         code: bundle.code,
         name: bundle.name,
         description: bundle.description,
-        priceCoin: bundle.priceCoin,
+        priceCoin: effectivePriceCoin,
         isActive: bundle.isActive,
         sortOrder: bundle.sortOrder,
         createdAt: bundle.createdAt.toISOString(),
         ownedItemCount,
         fullyOwned: ownedItemCount === bundle.items.length && bundle.items.length > 0,
         pricing: resolveCatalogPricing(
-            bundle.priceCoin,
+            effectivePriceCoin,
             { kind: "bundle", targetId: bundle.id },
             discounts,
             now
@@ -566,7 +579,7 @@ function mapCatalogBundleView(
     };
 }
 
-async function loadStoreContext(userId?: number) {
+async function loadStoreContext(settings: SystemSettings, userId?: number) {
     if (userId) {
         await ensureUserCore(userId);
     }
@@ -600,47 +613,51 @@ async function loadStoreContext(userId?: number) {
                 createdAt: true,
             },
         }),
-        prisma.shopBundle.findMany({
-            where: { isActive: true },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-            include: {
-                items: {
-                    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-                    include: {
-                        shopItem: {
-                            select: {
-                                id: true,
-                                code: true,
-                                name: true,
-                                type: true,
-                                rarity: true,
+        settings.economy.bundlesEnabled
+            ? prisma.shopBundle.findMany({
+                where: { isActive: true },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                include: {
+                    items: {
+                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                        include: {
+                            shopItem: {
+                                select: {
+                                    id: true,
+                                    code: true,
+                                    name: true,
+                                    type: true,
+                                    rarity: true,
+                                },
                             },
                         },
                     },
                 },
-            },
-        }),
-        prisma.discountCampaign.findMany({
-            where: { isActive: true },
-            select: {
-                id: true,
-                code: true,
-                name: true,
-                description: true,
-                targetType: true,
-                discountType: true,
-                percentageOff: true,
-                fixedCoinOff: true,
-                shopItemId: true,
-                bundleId: true,
-                usageLimit: true,
-                usedCount: true,
-                startsAt: true,
-                endsAt: true,
-                isActive: true,
-                stackableWithCoupon: true,
-            },
-        }),
+            })
+            : Promise.resolve([]),
+        settings.economy.discountCampaignsEnabled
+            ? prisma.discountCampaign.findMany({
+                where: { isActive: true },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    targetType: true,
+                    discountType: true,
+                    percentageOff: true,
+                    fixedCoinOff: true,
+                    shopItemId: true,
+                    bundleId: true,
+                    usageLimit: true,
+                    usedCount: true,
+                    startsAt: true,
+                    endsAt: true,
+                    isActive: true,
+                    stackableWithCoupon: true,
+                },
+            })
+            : Promise.resolve([]),
         userId
             ? prisma.wallet.findUnique({ where: { userId } })
             : Promise.resolve(null),
@@ -766,16 +783,21 @@ export async function listStoreItems(type?: StoreItemType, userId?: number): Pro
     });
 }
 
-export async function getStoreCatalog(userId?: number): Promise<StoreCatalogResponse> {
-    const { items, bundles, discounts, wallet, profile, inventory } = await loadStoreContext(userId);
+export async function getStoreCatalog(
+    userId?: number,
+    settingsInput?: SystemSettings
+): Promise<StoreCatalogResponse> {
+    const settings = settingsInput ?? await getSystemSettings();
+    const { items, bundles, discounts, wallet, profile, inventory } = await loadStoreContext(settings, userId);
     const now = new Date();
     const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
     const equippedSlots = getEquippedSlots(profile);
 
     return {
         coinBalance: wallet?.coinBalance ?? 0,
-        items: items.map((item) => mapCatalogItemView(item, ownedIds, equippedSlots, discounts, now)),
-        bundles: bundles.map((bundle) => mapCatalogBundleView(bundle, ownedIds, discounts, now)),
+        items: items.map((item) => mapCatalogItemView(item, ownedIds, equippedSlots, discounts, now, settings)),
+        bundles: bundles.map((bundle) => mapCatalogBundleView(bundle, ownedIds, discounts, now, settings)),
+        liveops: getStoreLiveopsState(settings, now) satisfies StoreLiveopsView,
     };
 }
 
@@ -783,9 +805,11 @@ export async function previewCouponForTarget(
     userId: number,
     targetKind: "shop_item" | "bundle",
     targetId: number,
-    couponCode: string
+    couponCode: string,
+    settingsInput?: SystemSettings
 ): Promise<CouponPreviewResponse> {
     await ensureUserCore(userId);
+    const settings = settingsInput ?? await getSystemSettings();
 
     const normalizedCode = normalizeCouponCode(couponCode);
     if (!normalizedCode) {
@@ -799,29 +823,53 @@ export async function previewCouponForTarget(
         };
     }
 
+    if (!settings.economy.couponsEnabled) {
+        return {
+            valid: false,
+            reason: "Kupon kullanimi su anda gecici olarak kapali.",
+            targetKind,
+            targetId,
+            pricing: null,
+            coupon: null,
+        };
+    }
+
+    if (targetKind === "bundle" && !settings.economy.bundlesEnabled) {
+        return {
+            valid: false,
+            reason: "Bundle satislari su anda gecici olarak kapali.",
+            targetKind,
+            targetId,
+            pricing: null,
+            coupon: null,
+        };
+    }
+
     const now = new Date();
     const [discounts, coupon, item, bundle] = await Promise.all([
-        prisma.discountCampaign.findMany({
-            where: { isActive: true },
-            select: {
-                id: true,
-                code: true,
-                name: true,
-                description: true,
-                targetType: true,
-                discountType: true,
-                percentageOff: true,
-                fixedCoinOff: true,
-                shopItemId: true,
-                bundleId: true,
-                usageLimit: true,
-                usedCount: true,
-                startsAt: true,
-                endsAt: true,
-                isActive: true,
-                stackableWithCoupon: true,
-            },
-        }),
+        settings.economy.discountCampaignsEnabled
+            ? prisma.discountCampaign.findMany({
+                where: { isActive: true },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    targetType: true,
+                    discountType: true,
+                    percentageOff: true,
+                    fixedCoinOff: true,
+                    shopItemId: true,
+                    bundleId: true,
+                    usageLimit: true,
+                    usedCount: true,
+                    startsAt: true,
+                    endsAt: true,
+                    isActive: true,
+                    stackableWithCoupon: true,
+                },
+            })
+            : Promise.resolve([]),
         prisma.couponCode.findUnique({
             where: { code: normalizedCode },
             select: {
@@ -859,7 +907,7 @@ export async function previewCouponForTarget(
     const basePriceCoin = targetKind === "shop_item" ? item?.priceCoin : bundle?.priceCoin;
     const isActiveTarget = targetKind === "shop_item" ? item?.isActive : bundle?.isActive;
 
-    if (!basePriceCoin || !isActiveTarget) {
+    if (basePriceCoin === undefined || basePriceCoin === null || !isActiveTarget) {
         return {
             valid: false,
             reason: "Hedef urun bulunamadi.",
@@ -870,8 +918,10 @@ export async function previewCouponForTarget(
         };
     }
 
+    const effectivePriceCoin = applyStorePriceMultiplier(basePriceCoin, settings);
+
     const basePricing = resolveCatalogPricing(
-        basePriceCoin,
+        effectivePriceCoin,
         { kind: targetKind, targetId },
         discounts,
         now
@@ -902,8 +952,11 @@ export async function previewCouponForTarget(
 export async function purchaseStoreItem(
     userId: number,
     shopItemId: number,
-    couponCode?: string
+    couponCode?: string,
+    settingsInput?: SystemSettings
 ): Promise<PurchaseItemResult> {
+    const settings = settingsInput ?? await getSystemSettings();
+
     return prisma.$transaction(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
@@ -946,28 +999,32 @@ export async function purchaseStoreItem(
                     userId_shopItemId: { userId, shopItemId },
                 },
             }),
-            tx.discountCampaign.findMany({
-                where: { isActive: true },
-                select: {
-                    id: true,
-                    code: true,
-                    name: true,
-                    description: true,
-                    targetType: true,
-                    discountType: true,
-                    percentageOff: true,
-                    fixedCoinOff: true,
-                    shopItemId: true,
-                    bundleId: true,
-                    usageLimit: true,
-                    usedCount: true,
-                    startsAt: true,
-                    endsAt: true,
-                    isActive: true,
-                    stackableWithCoupon: true,
-                },
-            }),
-            loadCouponRecord(tx, normalizedCouponCode || undefined),
+            settings.economy.discountCampaignsEnabled
+                ? tx.discountCampaign.findMany({
+                    where: { isActive: true },
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        description: true,
+                        targetType: true,
+                        discountType: true,
+                        percentageOff: true,
+                        fixedCoinOff: true,
+                        shopItemId: true,
+                        bundleId: true,
+                        usageLimit: true,
+                        usedCount: true,
+                        startsAt: true,
+                        endsAt: true,
+                        isActive: true,
+                        stackableWithCoupon: true,
+                    },
+                })
+                : Promise.resolve([]),
+            settings.economy.couponsEnabled
+                ? loadCouponRecord(tx, normalizedCouponCode || undefined)
+                : Promise.resolve(null),
         ]);
 
         if (!item || !item.isActive) {
@@ -976,9 +1033,14 @@ export async function purchaseStoreItem(
         if (owned) {
             return { ok: false, code: "already_owned" };
         }
+        if (normalizedCouponCode && !settings.economy.couponsEnabled) {
+            return { ok: false, code: "coupon_disabled" };
+        }
+
+        const effectivePriceCoin = applyStorePriceMultiplier(item.priceCoin, settings);
 
         const catalogPricing = resolveCatalogPricing(
-            item.priceCoin,
+            effectivePriceCoin,
             { kind: "shop_item", targetId: item.id },
             discounts,
             now
@@ -1030,8 +1092,8 @@ export async function purchaseStoreItem(
                 shopItemId,
                 couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
                 priceCoin: finalPriceCoin,
-                listPriceCoin: item.priceCoin,
-                discountCoin: item.priceCoin - finalPriceCoin,
+                listPriceCoin: effectivePriceCoin,
+                discountCoin: effectivePriceCoin - finalPriceCoin,
                 status: "completed",
             },
         });
@@ -1049,8 +1111,11 @@ export async function purchaseStoreItem(
 export async function purchaseStoreBundle(
     userId: number,
     bundleId: number,
-    couponCode?: string
+    couponCode?: string,
+    settingsInput?: SystemSettings
 ): Promise<PurchaseBundleResult> {
+    const settings = settingsInput ?? await getSystemSettings();
+
     return prisma.$transaction(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
@@ -1101,32 +1166,42 @@ export async function purchaseStoreBundle(
                 where: { userId },
                 select: { shopItemId: true },
             }),
-            tx.discountCampaign.findMany({
-                where: { isActive: true },
-                select: {
-                    id: true,
-                    code: true,
-                    name: true,
-                    description: true,
-                    targetType: true,
-                    discountType: true,
-                    percentageOff: true,
-                    fixedCoinOff: true,
-                    shopItemId: true,
-                    bundleId: true,
-                    usageLimit: true,
-                    usedCount: true,
-                    startsAt: true,
-                    endsAt: true,
-                    isActive: true,
-                    stackableWithCoupon: true,
-                },
-            }),
-            loadCouponRecord(tx, normalizedCouponCode || undefined),
+            settings.economy.discountCampaignsEnabled
+                ? tx.discountCampaign.findMany({
+                    where: { isActive: true },
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        description: true,
+                        targetType: true,
+                        discountType: true,
+                        percentageOff: true,
+                        fixedCoinOff: true,
+                        shopItemId: true,
+                        bundleId: true,
+                        usageLimit: true,
+                        usedCount: true,
+                        startsAt: true,
+                        endsAt: true,
+                        isActive: true,
+                        stackableWithCoupon: true,
+                    },
+                })
+                : Promise.resolve([]),
+            settings.economy.couponsEnabled
+                ? loadCouponRecord(tx, normalizedCouponCode || undefined)
+                : Promise.resolve(null),
         ]);
 
         if (!bundle || !bundle.isActive) {
             return { ok: false, code: "not_found" };
+        }
+        if (!settings.economy.bundlesEnabled) {
+            return { ok: false, code: "bundle_disabled" };
+        }
+        if (normalizedCouponCode && !settings.economy.couponsEnabled) {
+            return { ok: false, code: "coupon_disabled" };
         }
 
         const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
@@ -1140,8 +1215,10 @@ export async function purchaseStoreBundle(
             return { ok: false, code: "contains_owned_items" };
         }
 
+        const effectivePriceCoin = applyStorePriceMultiplier(bundle.priceCoin, settings);
+
         const catalogPricing = resolveCatalogPricing(
-            bundle.priceCoin,
+            effectivePriceCoin,
             { kind: "bundle", targetId: bundle.id },
             discounts,
             now
@@ -1193,8 +1270,8 @@ export async function purchaseStoreBundle(
                 bundleId: bundle.id,
                 couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
                 priceCoin: finalPriceCoin,
-                listPriceCoin: bundle.priceCoin,
-                discountCoin: bundle.priceCoin - finalPriceCoin,
+                listPriceCoin: effectivePriceCoin,
+                discountCoin: effectivePriceCoin - finalPriceCoin,
                 status: "completed",
             },
         });

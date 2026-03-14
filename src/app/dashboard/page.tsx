@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { AuthenticatedDashboardHome } from "@/components/game/authenticated-dashboard-home";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
+import { getSessionUser } from "@/lib/session";
 
 interface DashboardPageProps {
   searchParams: Promise<{
@@ -20,8 +20,8 @@ function resolveDashboardTab(tab: string | undefined): DashboardTab {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
     redirect("/login?callbackUrl=/dashboard");
   }
 

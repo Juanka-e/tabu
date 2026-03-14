@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
@@ -23,10 +24,11 @@ export default function RegisterPage() {
         setError("");
 
         try {
+            const { token } = await getCaptchaTokenForAction("register");
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, password, captchaToken: token }),
             });
 
             const data = await res.json();

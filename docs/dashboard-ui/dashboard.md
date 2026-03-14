@@ -469,3 +469,56 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - `PromotionTargetType`
   - `PromotionDiscountType`
 - Boylece validator ve UI sade kalirken Prisma client'a giden deger runtime-safe hale geldi.
+
+## 13 March 2026 Update - LiveOps System Settings Foundation
+
+- Added a new admin surface at `/admin/system-settings`.
+- Introduced a typed `SystemSetting` persistence model with namespaced runtime config:
+  - `platform`
+  - `features`
+  - `economy`
+  - `security`
+- Root layout now reads runtime settings and can render:
+  - maintenance banner
+  - MOTD banner
+- Admin sidebar now includes `Sistem Ayarlari`.
+- Captcha readiness is surfaced in the admin panel, but provider enforcement is intentionally deferred to a later dedicated branch.
+- Verification completed:
+  - `npm run test:system-settings`
+  - `npx prisma db push`
+  - `npx prisma generate --no-engine`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+  - `npm audit --omit=dev`
+
+## 13 March 2026 Update - Security Entry Gates
+
+- Captcha enforcement is now connected to real entry flows.
+- Active supported providers:
+  - `turnstile` (primary)
+  - `recaptcha_v3` (alternate)
+- New public config route:
+  - `/api/security/captcha-config`
+- New shared server verification layer:
+  - provider-aware verification
+  - action matching
+  - reCAPTCHA score threshold handling
+  - soft-fail vs hard-fail behavior
+- New shared client token layer:
+  - lazy-loads provider script only when needed
+  - requests low-friction tokens per action
+- Captcha is now enforced in:
+  - `/api/auth/register`
+  - credentials login via `next-auth`
+  - socket `room:request` for:
+    - room create
+    - guest join
+  - direct guest room entry via `/room/[code]`
+- Logged-in users still do not need captcha for standard room join unless the create flow itself is protected.
+- Verification completed:
+  - `npm run test:captcha-security`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+  - `npm run build`
+  - `npm audit --omit=dev`

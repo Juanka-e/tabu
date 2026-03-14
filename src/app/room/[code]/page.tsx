@@ -14,6 +14,7 @@ import { useTheme } from "next-themes";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import { ROOM_ROLE_GUESSER } from "@/lib/game/room-display";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -117,6 +118,7 @@ export default function RoomPage() {
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [showDashboard, setShowDashboard] = useState(false);
     const [hasConfirmedUsername, setHasConfirmedUsername] = useState(false);
+    const [entryError, setEntryError] = useState("");
     const storedUsername = useSyncExternalStore(
         subscribeRoomClientBootstrap,
         getRoomClientBootstrapSnapshot,
@@ -152,148 +154,173 @@ export default function RoomPage() {
     useEffect(() => {
         if (!isRoomClientReady || showUsernamePrompt) return;
 
+        let isMounted = true;
+        let activeSocket: Socket | null = null;
         const username = storedUsername || "Oyuncu";
-        const guestToken = session?.user?.id
-            ? undefined
-            : window.sessionStorage.getItem("tabu_guestToken") || undefined;
 
-        const socket = io({
-            path: "/api/socketio",
-            transports: ["websocket", "polling"],
-        });
+        async function connectToRoom(): Promise<void> {
+            try {
+                setEntryError("");
+                const guestToken = session?.user?.id
+                    ? undefined
+                    : window.sessionStorage.getItem("tabu_guestToken") || undefined;
+                const captchaToken = session?.user?.id
+                    ? null
+                    : (await getCaptchaTokenForAction("guest_join")).token;
 
-        socketRef.current = socket;
+                if (!isMounted) {
+                    return;
+                }
 
-        socket.on("connect", () => {
-            setIsConnected(true);
-            if (socket.id) setSocketId(socket.id);
-            socket.emit("room:request", {
-                kullaniciAdi: username,
-                odaKodu: roomCode,
-                ...(guestToken ? { guestToken } : {}),
-            });
-        });
+                const socket = io({
+                    path: "/api/socketio",
+                    transports: ["websocket", "polling"],
+                });
 
-        socket.on("disconnect", () => setIsConnected(false));
+                activeSocket = socket;
+                socketRef.current = socket;
 
-        socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
-            window.sessionStorage.setItem("tabu_playerId", playerId);
-            if (assignedGuestToken) {
-                window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
-            } else {
-                window.sessionStorage.removeItem("tabu_guestToken");
+                socket.on("connect", () => {
+                    setIsConnected(true);
+                    if (socket.id) setSocketId(socket.id);
+                    socket.emit("room:request", {
+                        kullaniciAdi: username,
+                        odaKodu: roomCode,
+                        ...(guestToken ? { guestToken } : {}),
+                        ...(captchaToken ? { captchaToken } : {}),
+                    });
+                });
+
+                socket.on("disconnect", () => setIsConnected(false));
+
+                socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
+                    window.sessionStorage.setItem("tabu_playerId", playerId);
+                    if (assignedGuestToken) {
+                        window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
+                    } else {
+                        window.sessionStorage.removeItem("tabu_guestToken");
+                    }
+                    setMyPlayerId(playerId);
+                });
+
+                socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
+                    setPlayers(data.oyuncular);
+                    setCreatorId(data.creatorId);
+                    setCreatorPlayerId(data.creatorPlayerId || "");
+                    setSettings(data.ayarlar);
+                    if (data.seciliKategoriler) setSelectedCategories(data.seciliKategoriler);
+                    if (data.seciliZorluklar) setSelectedDifficulties(data.seciliZorluklar);
+                });
+
+                socket.on("kategoriListesiGonder", (cats: CategoryItem[]) => {
+                    setCategories(cats);
+                });
+
+                socket.on("kategoriAyarlariGuncellendi", (data: {
+                    seciliKategoriler: number[];
+                    seciliZorluklar: number[];
+                }) => {
+                    setSelectedCategories(data.seciliKategoriler);
+                    setSelectedDifficulties(data.seciliZorluklar);
+                });
+
+                socket.on("oyunBasladi", () => {
+                    setView(GameView.TRANSITION);
+                    setIsPrimaryInspector(false);
+                    setCardFaceTheme(null);
+                });
+
+                socket.on("turGecisiBaslat", (data: TransitionData) => {
+                    setView(GameView.TRANSITION);
+                    setIsPrimaryInspector(false);
+                    setTransition(data);
+                    setCardBackTheme(data.cardBackTheme);
+                });
+
+                socket.on("turGecisDurumGuncelle", (data: { oyunDurduruldu: boolean; kalanSure: number }) => {
+                    setTransition((prev) =>
+                        prev ? { ...prev, kalanSure: data.kalanSure } : null
+                    );
+                });
+
+                socket.on("yeniTurBilgisi", (data: TurnInfo) => {
+                    setMyRole(data.rol);
+                    setIsPrimaryInspector(data.isPrimaryGozetmen);
+                    setCard(data.kart);
+                    setNarratorName(data.anlaticiAd);
+                    setInspectorName(data.gozetmenAd);
+                    setCardFaceTheme(data.cardFaceTheme);
+                    setCardBackTheme(data.cardBackTheme);
+                    setView(GameView.PLAYING);
+                });
+
+                socket.on("oyunDurumuGuncelle", (data: GameState) => {
+                    setGameState(data);
+                    if (data.creatorId) setCreatorId(data.creatorId);
+                });
+
+                socket.on("kartGuncelle", (newCard: CardData | null) => {
+                    setCard(newCard);
+                });
+
+                socket.on("oyunBitti", (data: GameOverData) => {
+                    setView(GameView.GAME_OVER);
+                    setGameOverData(data);
+
+                    if (!session?.user?.id) return;
+                    if (rewardClaimedRoomsRef.current.has(roomCode)) return;
+
+                    rewardClaimedRoomsRef.current.add(roomCode);
+                    fetch("/api/game/match/finalize", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            roomCode,
+                        }),
+                    }).catch(() => {
+                        rewardClaimedRoomsRef.current.delete(roomCode);
+                    });
+                });
+
+                socket.on("altinSkorBasladi", () => {
+                    // Game state update handles the golden score UI
+                });
+
+                socket.on("lobiyeDon", () => {
+                    setView(GameView.LOBBY);
+                    setGameState(null);
+                    setCard(null);
+                    setIsPrimaryInspector(false);
+                    setGameOverData(null);
+                    setTransition(null);
+                    setCardFaceTheme(null);
+                    setCardBackTheme(null);
+                });
+
+                socket.on("odadanAtildin", () => {
+                    router.push("/");
+                });
+
+                socket.on("hata", (msg: string) => {
+                    console.error("Socket error:", msg);
+                    setEntryError(msg);
+                    const normalizedMessage = msg.toLocaleLowerCase("tr-TR");
+                    if (normalizedMessage.includes("bulunamad") || normalizedMessage.includes("found")) {
+                        router.push("/");
+                    }
+                });
+            } catch {
+                if (isMounted) {
+                    setEntryError("Guvenlik dogrulamasi baslatilamadi. Lutfen tekrar deneyin.");
+                }
             }
-            setMyPlayerId(playerId);
-        });
+        }
 
-        socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
-            setPlayers(data.oyuncular);
-            setCreatorId(data.creatorId);
-            setCreatorPlayerId(data.creatorPlayerId || "");
-            setSettings(data.ayarlar);
-            if (data.seciliKategoriler) setSelectedCategories(data.seciliKategoriler);
-            if (data.seciliZorluklar) setSelectedDifficulties(data.seciliZorluklar);
-        });
-
-        socket.on("kategoriListesiGonder", (cats: CategoryItem[]) => {
-            setCategories(cats);
-        });
-
-        socket.on("kategoriAyarlariGuncellendi", (data: {
-            seciliKategoriler: number[];
-            seciliZorluklar: number[];
-        }) => {
-            setSelectedCategories(data.seciliKategoriler);
-            setSelectedDifficulties(data.seciliZorluklar);
-        });
-
-        socket.on("oyunBasladi", () => {
-            setView(GameView.TRANSITION);
-            setIsPrimaryInspector(false);
-            setCardFaceTheme(null);
-        });
-
-        socket.on("turGecisiBaslat", (data: TransitionData) => {
-            setView(GameView.TRANSITION);
-            setIsPrimaryInspector(false);
-            setTransition(data);
-            setCardBackTheme(data.cardBackTheme);
-        });
-
-        socket.on("turGecisDurumGuncelle", (data: { oyunDurduruldu: boolean; kalanSure: number }) => {
-            setTransition((prev) =>
-                prev ? { ...prev, kalanSure: data.kalanSure } : null
-            );
-        });
-
-        socket.on("yeniTurBilgisi", (data: TurnInfo) => {
-            setMyRole(data.rol);
-            setIsPrimaryInspector(data.isPrimaryGozetmen);
-            setCard(data.kart);
-            setNarratorName(data.anlaticiAd);
-            setInspectorName(data.gozetmenAd);
-            setCardFaceTheme(data.cardFaceTheme);
-            setCardBackTheme(data.cardBackTheme);
-            setView(GameView.PLAYING);
-        });
-
-        socket.on("oyunDurumuGuncelle", (data: GameState) => {
-            setGameState(data);
-            if (data.creatorId) setCreatorId(data.creatorId);
-        });
-
-        socket.on("kartGuncelle", (newCard: CardData | null) => {
-            setCard(newCard);
-        });
-
-        socket.on("oyunBitti", (data: GameOverData) => {
-            setView(GameView.GAME_OVER);
-            setGameOverData(data);
-
-            if (!session?.user?.id) return;
-            if (rewardClaimedRoomsRef.current.has(roomCode)) return;
-
-            rewardClaimedRoomsRef.current.add(roomCode);
-            fetch("/api/game/match/finalize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    roomCode,
-                }),
-            }).catch(() => {
-                rewardClaimedRoomsRef.current.delete(roomCode);
-            });
-        });
-
-        socket.on("altinSkorBasladi", () => {
-            // Game state update handles the golden score UI
-        });
-
-        socket.on("lobiyeDon", () => {
-            setView(GameView.LOBBY);
-            setGameState(null);
-            setCard(null);
-            setIsPrimaryInspector(false);
-            setGameOverData(null);
-            setTransition(null);
-            setCardFaceTheme(null);
-            setCardBackTheme(null);
-        });
-
-        socket.on("odadanAtildin", () => {
-            router.push("/");
-        });
-
-        socket.on("hata", (msg: string) => {
-            console.error("Socket error:", msg);
-            const normalizedMessage = msg.toLocaleLowerCase("tr-TR");
-            if (normalizedMessage.includes("bulunamad") || normalizedMessage.includes("found")) {
-                router.push("/");
-            }
-        });
+        void connectToRoom();
 
         return () => {
-            socket.disconnect();
+            isMounted = false;
+            activeSocket?.disconnect();
         };
     }, [isRoomClientReady, roomCode, router, session?.user?.id, showUsernamePrompt, storedUsername]);
 
@@ -504,6 +531,12 @@ export default function RoomPage() {
                         </div>
                     )}
 
+                    {entryError ? (
+                        <div className="absolute top-16 left-4 z-50 max-w-sm rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive shadow-lg">
+                            {entryError}
+                        </div>
+                    ) : null}
+
                     {/* Game Area */}
                     {view === GameView.LOBBY ? (
                         <div className="h-full overflow-y-auto flex items-center justify-center">
@@ -555,6 +588,11 @@ export default function RoomPage() {
         </>
     );
 }
+
+
+
+
+
 
 
 

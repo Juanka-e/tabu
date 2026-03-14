@@ -1,19 +1,30 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Search,
-    Plus,
-    Pencil,
-    Trash2,
-    ChevronLeft,
-    ChevronRight,
-    X,
-    Loader2,
     BookOpen,
+    Loader2,
+    Pencil,
+    Plus,
+    Search,
+    Trash2,
+    X,
 } from "lucide-react";
-
-/* ─── Types ──────────────────────────────────────────────────── */
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
+import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
 
 interface TabooWord {
     id: number;
@@ -36,10 +47,17 @@ interface CategoryOption {
     id: number;
     name: string;
     color: string | null;
-    children?: { id: number; name: string }[];
+    children?: Array<{ id: number; name: string }>;
 }
 
-/* ─── Difficulty helpers ─────────────────────────────────────── */
+interface WordListResponse {
+    words: Word[];
+    total: number;
+    page: number;
+    pages: number;
+}
+
+type DifficultyValue = "1" | "2" | "3";
 
 const difficultyLabel: Record<number, string> = {
     1: "Kolay",
@@ -53,602 +71,572 @@ const difficultyColor: Record<number, string> = {
     3: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
-/* ─── Page ───────────────────────────────────────────────────── */
+function buildEmptyTabooFields(): string[] {
+    return ["", "", "", "", ""];
+}
 
 export default function AdminWordsPage() {
-    // ── List State ──
     const [words, setWords] = useState<Word[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
     const [search, setSearch] = useState("");
-    const [filterDifficulty, setFilterDifficulty] = useState("");
+    const [filterDifficulty, setFilterDifficulty] = useState<"" | DifficultyValue>("");
     const [filterCategoryId, setFilterCategoryId] = useState("");
     const [loading, setLoading] = useState(true);
 
-    // ── Form State ──
+    const [categories, setCategories] = useState<CategoryOption[]>([]);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
+
     const [formOpen, setFormOpen] = useState(false);
     const [editingWord, setEditingWord] = useState<Word | null>(null);
     const [formWord, setFormWord] = useState("");
-    const [formDifficulty, setFormDifficulty] = useState(1);
-    const [formTabooWords, setFormTabooWords] = useState<string[]>([""]);
+    const [formDifficulty, setFormDifficulty] = useState<number>(1);
+    const [formTabooWords, setFormTabooWords] = useState<string[]>(buildEmptyTabooFields);
     const [formCategoryIds, setFormCategoryIds] = useState<number[]>([]);
     const [formSaving, setFormSaving] = useState(false);
     const [formError, setFormError] = useState("");
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    // ── Category Options ──
-    const [categories, setCategories] = useState<CategoryOption[]>([]);
-
-    // ── Delete ──
-    const [deleting, setDeleting] = useState<number | null>(null);
-
-    /* ─── Fetch Data ─────────────────────────────────────────── */
+    const flatCategories = useMemo(() => {
+        const result: Array<{ id: number; name: string; indent: boolean }> = [];
+        for (const category of categories) {
+            result.push({ id: category.id, name: category.name, indent: false });
+            for (const child of category.children ?? []) {
+                result.push({ id: child.id, name: child.name, indent: true });
+            }
+        }
+        return result;
+    }, [categories]);
 
     const fetchWords = useCallback(async () => {
         setLoading(true);
         const params = new URLSearchParams({
-            page: page.toString(),
+            page: String(page),
             limit: "15",
         });
-        if (search) params.set("search", search);
-        if (filterDifficulty) params.set("difficulty", filterDifficulty);
-        if (filterCategoryId) params.set("categoryId", filterCategoryId);
+        if (search.trim()) {
+            params.set("search", search.trim());
+        }
+        if (filterDifficulty) {
+            params.set("difficulty", filterDifficulty);
+        }
+        if (filterCategoryId) {
+            params.set("categoryId", filterCategoryId);
+        }
 
         try {
-            const res = await fetch(`/api/admin/words?${params}`);
-            const data = await res.json();
-            setWords(data.words);
-            setTotal(data.total);
-            setPages(data.pages);
+            const response = await fetch(`/api/admin/words?${params.toString()}`, {
+                cache: "no-store",
+            });
+            if (!response.ok) {
+                toast.error("Kelime listesi yuklenemedi.");
+                return;
+            }
+
+            const payload = (await response.json()) as WordListResponse;
+            setWords(payload.words);
+            setTotal(payload.total);
+            setPages(payload.pages);
+            setPage(payload.page);
         } catch {
-            /* ignore */
+            toast.error("Kelime listesi yuklenemedi.");
         } finally {
             setLoading(false);
         }
     }, [filterCategoryId, filterDifficulty, page, search]);
 
-    useEffect(() => {
-        fetchWords();
+    const fetchCategories = useCallback(async () => {
+        setCategoriesLoading(true);
+        try {
+            const response = await fetch("/api/admin/categories", { cache: "no-store" });
+            if (!response.ok) {
+                return;
+            }
+            const payload = (await response.json()) as CategoryOption[];
+            setCategories(payload);
+        } catch {
+            // Keep the last successful category list.
+        } finally {
+            setCategoriesLoading(false);
+        }
+    }, []);
 
-        // Fetch categories in parallel with words
-        fetch("/api/admin/categories")
-            .then((r) => r.json())
-            .then((data: CategoryOption[]) => setCategories(data))
-            .catch(() => { });
+    useEffect(() => {
+        void fetchWords();
     }, [fetchWords]);
 
-    /* ─── Form Handlers ──────────────────────────────────────── */
+    useEffect(() => {
+        void fetchCategories();
+    }, [fetchCategories]);
 
-    const openCreate = () => {
+    const resetForm = useCallback(() => {
         setEditingWord(null);
         setFormWord("");
         setFormDifficulty(1);
-        setFormTabooWords(["", "", "", "", ""]);
+        setFormTabooWords(buildEmptyTabooFields());
         setFormCategoryIds([]);
         setFormError("");
-        setFormOpen(true);
-    };
+    }, []);
 
-    const openEdit = (w: Word) => {
-        setEditingWord(w);
-        setFormWord(w.wordText);
-        setFormDifficulty(w.difficulty);
-        const taboos = w.tabooWords.map((t) => t.tabooWordText);
-        while (taboos.length < 5) taboos.push("");
-        setFormTabooWords(taboos);
-        setFormCategoryIds(w.wordCategories.map((wc) => wc.category.id));
+    const openCreate = useCallback(() => {
+        resetForm();
+        setFormOpen(true);
+    }, [resetForm]);
+
+    const openEdit = useCallback((word: Word) => {
+        setEditingWord(word);
+        setFormWord(word.wordText);
+        setFormDifficulty(word.difficulty);
+        const tabooWords = [...word.tabooWords.map((item) => item.tabooWordText)];
+        while (tabooWords.length < 5) {
+            tabooWords.push("");
+        }
+        setFormTabooWords(tabooWords);
+        setFormCategoryIds(word.wordCategories.map((entry) => entry.category.id));
         setFormError("");
         setFormOpen(true);
-    };
+    }, []);
 
-    const handleSave = async () => {
-        const cleanedTaboo = formTabooWords.filter((t) => t.trim());
+    const updateTabooWord = useCallback((index: number, value: string) => {
+        setFormTabooWords((current) => {
+            const next = [...current];
+            next[index] = value;
+            return next;
+        });
+    }, []);
+
+    const toggleCategory = useCallback((categoryId: number) => {
+        setFormCategoryIds((current) =>
+            current.includes(categoryId)
+                ? current.filter((itemId) => itemId !== categoryId)
+                : [...current, categoryId]
+        );
+    }, []);
+
+    const handleSave = useCallback(async () => {
+        const cleanedTaboos = formTabooWords
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0);
+
         if (!formWord.trim()) {
-            setFormError("Kelime boş olamaz.");
+            setFormError("Kelime bos olamaz.");
             return;
         }
-        if (cleanedTaboo.length === 0) {
-            setFormError("En az 1 yasaklı kelime gerekli.");
+
+        if (cleanedTaboos.length === 0) {
+            setFormError("En az bir yasakli kelime gerekli.");
             return;
         }
 
         setFormSaving(true);
         setFormError("");
 
-        const body = {
-            wordText: formWord.trim(),
-            difficulty: formDifficulty,
-            tabooWords: cleanedTaboo,
-            categoryIds: formCategoryIds,
-        };
-
         try {
-            const url = editingWord
-                ? `/api/admin/words/${editingWord.id}`
-                : "/api/admin/words";
-            const method = editingWord ? "PUT" : "POST";
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
+            const response = await fetch(
+                editingWord ? `/api/admin/words/${editingWord.id}` : "/api/admin/words",
+                {
+                    method: editingWord ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wordText: formWord.trim(),
+                        difficulty: formDifficulty,
+                        tabooWords: cleanedTaboos,
+                        categoryIds: formCategoryIds,
+                    }),
+                }
+            );
 
-            if (!res.ok) {
-                const err = await res.json();
-                setFormError(err.error || "Bir hata oluştu.");
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({
+                    error: "Kelime kaydedilemedi.",
+                }))) as { error?: string };
+                setFormError(errorPayload.error ?? "Kelime kaydedilemedi.");
                 return;
             }
 
             setFormOpen(false);
-            fetchWords();
+            resetForm();
+            toast.success(editingWord ? "Kelime guncellendi." : "Kelime olusturuldu.");
+            await fetchWords();
         } catch {
-            setFormError("Ağ hatası.");
+            setFormError("Ag hatasi olustu.");
         } finally {
             setFormSaving(false);
         }
-    };
+    }, [
+        editingWord,
+        fetchWords,
+        formCategoryIds,
+        formDifficulty,
+        formTabooWords,
+        formWord,
+        resetForm,
+    ]);
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Bu kelimeyi silmek istediğinize emin misiniz?")) return;
-        setDeleting(id);
-        try {
-            await fetch(`/api/admin/words/${id}`, { method: "DELETE" });
-            fetchWords();
-        } catch {
-            /* ignore */
-        } finally {
-            setDeleting(null);
+    const handleDelete = useCallback(async (word: Word) => {
+        if (!window.confirm(`"${word.wordText}" kaydini silmek istediginize emin misiniz?`)) {
+            return;
         }
-    };
 
-    /* ─── Taboo word field helpers ────────────────────────────── */
-
-    const updateTaboo = (index: number, value: string) => {
-        setFormTabooWords((prev) => {
-            const copy = [...prev];
-            copy[index] = value;
-            return copy;
-        });
-    };
-
-    const addTabooField = () => {
-        setFormTabooWords((prev) => {
-            if (prev.length < 10) {
-                return [...prev, ""];
-            }
-            return prev;
-        });
-    };
-
-    const removeTabooField = (index: number) => {
-        setFormTabooWords((prev) => {
-            if (prev.length > 1) {
-                return prev.filter((_, i) => i !== index);
-            }
-            return prev;
-        });
-    };
-
-    /* ─── Category toggle ────────────────────────────────────── */
-
-    const toggleCategory = (catId: number) => {
-        setFormCategoryIds((prev) =>
-            prev.includes(catId)
-                ? prev.filter((id) => id !== catId)
-                : [...prev, catId]
-        );
-    };
-
-    /* ─── Render ─────────────────────────────────────────────── */
-
-    // Memoize flat categories to avoid recomputation on every render
-    const flatCategories: { id: number; name: string; indent: boolean }[] = useMemo(() => {
-        const result: { id: number; name: string; indent: boolean }[] = [];
-        categories.forEach((cat) => {
-            result.push({ id: cat.id, name: cat.name, indent: false });
-            cat.children?.forEach((child) => {
-                result.push({
-                    id: child.id,
-                    name: child.name,
-                    indent: true,
-                });
+        setDeletingId(word.id);
+        try {
+            const response = await fetch(`/api/admin/words/${word.id}`, {
+                method: "DELETE",
             });
-        });
-        return result;
-    }, [categories]);
+            if (!response.ok) {
+                toast.error("Kelime silinemedi.");
+                return;
+            }
+
+            toast.success("Kelime silindi.");
+            await fetchWords();
+        } catch {
+            toast.error("Kelime silinemedi.");
+        } finally {
+            setDeletingId(null);
+        }
+    }, [fetchWords]);
+
+    const activeFilterCount = Number(Boolean(search.trim()))
+        + Number(Boolean(filterDifficulty))
+        + Number(Boolean(filterCategoryId));
 
     return (
-        <div className="space-y-5">
-            {/* Page header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                        <BookOpen className="h-6 w-6 text-purple-500" />
-                        Kelime Yönetimi
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Toplam {total} kelime
-                    </p>
-                </div>
-                <button
-                    onClick={openCreate}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold shadow-md transition-colors active:scale-95"
-                >
-                    <Plus size={18} />
-                    Yeni Kelime
-                </button>
-            </div>
+        <div className="space-y-6">
+            <AdminPageHeader
+                title="Kelime Yonetimi"
+                description="Kelime havuzunu arama, filtreleme ve hizli duzenleme akislariyla yonetin."
+                meta={`${total} kayit`}
+                icon={<BookOpen className="h-5 w-5 text-sky-500" />}
+                action={
+                    <Button onClick={openCreate} className="gap-2">
+                        <Plus size={16} />
+                        Yeni Kelime
+                    </Button>
+                }
+            />
 
-            {/* Search + Filter */}
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search
-                        size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Kelime ara..."
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
+            <AdminToolbar>
+                <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={search}
+                            onChange={(event) => {
+                                setSearch(event.target.value);
+                                setPage(1);
+                            }}
+                            placeholder="Kelime ara..."
+                            className="pl-9"
+                        />
+                    </div>
+                    <select
+                        value={filterDifficulty}
+                        onChange={(event) => {
+                            const value = event.target.value as "" | DifficultyValue;
+                            setFilterDifficulty(value);
                             setPage(1);
                         }}
-                        className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                        className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
+                    >
+                        <option value="">Tum zorluklar</option>
+                        <option value="1">Kolay</option>
+                        <option value="2">Orta</option>
+                        <option value="3">Zor</option>
+                    </select>
+                    <select
+                        value={filterCategoryId}
+                        onChange={(event) => {
+                            setFilterCategoryId(event.target.value);
+                            setPage(1);
+                        }}
+                        className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
+                        disabled={categoriesLoading}
+                    >
+                        <option value="">Tum kategoriler</option>
+                        {flatCategories.map((category) => (
+                            <option key={category.id} value={String(category.id)}>
+                                {category.indent ? `- ${category.name}` : category.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <AdminToolbarStats
+                    stats={[
+                        { label: "sayfa", value: `${page} / ${pages}` },
+                        { label: "filtre", value: String(activeFilterCount) },
+                    ]}
+                />
+            </AdminToolbar>
+
+            <AdminTableShell
+                title="Kelime Kayitlari"
+                description="Liste server-side olarak filtrelenir ve sayfalanir."
+                loading={loading}
+                isEmpty={!loading && words.length === 0}
+                emptyState={
+                    <AdminEmptyState
+                        icon={<BookOpen className="h-6 w-6" />}
+                        title="Kelime bulunamadi"
+                        description="Arama veya filtre sonucunda gosterilecek kayit yok."
                     />
-                </div>
-                <select
-                    value={filterDifficulty}
-                    onChange={(e) => {
-                        setFilterDifficulty(e.target.value);
-                        setPage(1);
-                    }}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                    <option value="">Tüm Zorluklar</option>
-                    <option value="1">Kolay</option>
-                    <option value="2">Orta</option>
-                    <option value="3">Zor</option>
-                </select>
-                <select
-                    value={filterCategoryId}
-                    onChange={(e) => {
-                        setFilterCategoryId(e.target.value);
-                        setPage(1);
-                    }}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                    <option value="">Tum Kategoriler</option>
-                    {flatCategories.map((category) => (
-                        <option key={category.id} value={String(category.id)}>
-                            {category.indent ? `- ${category.name}` : category.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Words Table */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                {loading ? (
-                    <div className="flex items-center justify-center py-16">
-                        <Loader2
-                            size={24}
-                            className="animate-spin text-purple-500"
-                        />
-                    </div>
-                ) : words.length === 0 ? (
-                    <div className="text-center py-16 text-gray-400">
-                        <BookOpen
-                            size={32}
-                            className="mx-auto mb-3 opacity-30"
-                        />
-                        <p>Kelime bulunamadı.</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">
-                                        Kelime
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">
-                                        Zorluk
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">
-                                        Yasaklı Kelimeler
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">
-                                        Kategoriler
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400 w-24">
-                                        İşlem
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {words.map((w) => (
-                                    <tr
-                                        key={w.id}
-                                        className="border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors"
+                }
+                footer={
+                    <AdminPagination
+                        page={page}
+                        pageCount={pages}
+                        onPageChange={setPage}
+                    />
+                }
+            >
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/20">
+                            <TableHead>Kelime</TableHead>
+                            <TableHead>Zorluk</TableHead>
+                            <TableHead>Yasakli Kelimeler</TableHead>
+                            <TableHead>Kategoriler</TableHead>
+                            <TableHead className="text-right">Islem</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {words.map((word) => (
+                            <TableRow key={word.id}>
+                                <TableCell className="font-semibold text-foreground">
+                                    {word.wordText}
+                                </TableCell>
+                                <TableCell>
+                                    <span
+                                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${difficultyColor[word.difficulty]}`}
                                     >
-                                        <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">
-                                            {w.wordText}
-                                        </td>
-                                        <td className="px-4 py-3">
+                                        {difficultyLabel[word.difficulty]}
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {word.tabooWords.map((taboo) => (
                                             <span
-                                                className={`px-2.5 py-1 rounded-lg text-xs font-bold ${difficultyColor[w.difficulty]}`}
+                                                key={taboo.id}
+                                                className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400"
                                             >
-                                                {difficultyLabel[w.difficulty]}
+                                                {taboo.tabooWordText}
                                             </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-1">
-                                                {w.tabooWords.map((t) => (
-                                                    <span
-                                                        key={t.id}
-                                                        className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-md"
-                                                    >
-                                                        {t.tabooWordText}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-1">
-                                                {w.wordCategories.map(
-                                                    ({ category: c }) => (
-                                                        <span
-                                                            key={c.id}
-                                                            className="px-2 py-0.5 text-xs rounded-md font-medium"
-                                                            style={{
-                                                                backgroundColor: c.color
-                                                                    ? `${c.color}20`
-                                                                    : undefined,
-                                                                color:
-                                                                    c.color ||
-                                                                    undefined,
-                                                            }}
-                                                        >
-                                                            {c.name}
-                                                        </span>
-                                                    )
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex justify-end gap-1">
-                                                <button
-                                                    onClick={() => openEdit(w)}
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                                                    title="Düzenle"
-                                                >
-                                                    <Pencil size={15} />
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        handleDelete(w.id)
-                                                    }
-                                                    disabled={
-                                                        deleting === w.id
-                                                    }
-                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                                                    title="Sil"
-                                                >
-                                                    {deleting === w.id ? (
-                                                        <Loader2
-                                                            size={15}
-                                                            className="animate-spin"
-                                                        />
-                                                    ) : (
-                                                        <Trash2 size={15} />
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+                                        ))}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {word.wordCategories.map(({ category }) => (
+                                            <span
+                                                key={category.id}
+                                                className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                style={{
+                                                    backgroundColor: category.color
+                                                        ? `${category.color}20`
+                                                        : undefined,
+                                                    color: category.color ?? undefined,
+                                                }}
+                                            >
+                                                {category.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => openEdit(word)}
+                                        >
+                                            <Pencil size={15} />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => void handleDelete(word)}
+                                            disabled={deletingId === word.id}
+                                        >
+                                            {deletingId === word.id ? (
+                                                <Loader2 size={15} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={15} />
+                                            )}
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </AdminTableShell>
 
-            {/* Pagination */}
-            {pages > 1 && (
-                <div className="flex items-center justify-center gap-4">
-                    <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    <span className="text-sm text-gray-500 font-medium">
-                        {page} / {pages}
-                    </span>
-                    <button
-                        onClick={() => setPage((p) => Math.min(pages, p + 1))}
-                        disabled={page === pages}
-                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
-            )}
-
-            {/* ─── Create / Edit Modal ───────────────────────── */}
-            {formOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
-                        <div className="p-5 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                                {editingWord
-                                    ? "Kelime Düzenle"
-                                    : "Yeni Kelime Ekle"}
-                            </h3>
-                            <button
-                                onClick={() => setFormOpen(false)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 transition-colors"
+            {formOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-border bg-card shadow-2xl">
+                        <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card/95 px-5 py-4 backdrop-blur">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">
+                                    {editingWord ? "Kelime duzenle" : "Yeni kelime"}
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Kelime, zorluk, yasakli kelime ve kategori alanlarini tek formda yonet.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setFormOpen(false);
+                                    resetForm();
+                                }}
                             >
-                                <X size={20} />
-                            </button>
+                                <X size={18} />
+                            </Button>
                         </div>
 
-                        {/* Modal Body */}
-                        <div className="p-5 space-y-4">
-                            {formError && (
-                                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium">
+                        <div className="space-y-5 p-5">
+                            {formError ? (
+                                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
                                     {formError}
                                 </div>
-                            )}
+                            ) : null}
 
-                            {/* Word */}
-                            <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
-                                    Ana Kelime
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                    Ana kelime
                                 </label>
-                                <input
-                                    type="text"
+                                <Input
                                     value={formWord}
-                                    onChange={(e) =>
-                                        setFormWord(e.target.value)
-                                    }
-                                    placeholder="Kelimeyi yazın..."
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                                    onChange={(event) => setFormWord(event.target.value)}
+                                    placeholder="Kelimeyi yazin..."
                                 />
                             </div>
 
-                            {/* Difficulty */}
-                            <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                     Zorluk
                                 </label>
-                                <div className="flex gap-2">
-                                    {[1, 2, 3].map((d) => (
+                                <div className="grid gap-2 md:grid-cols-3">
+                                    {[1, 2, 3].map((difficulty) => (
                                         <button
-                                            key={d}
-                                            onClick={() =>
-                                                setFormDifficulty(d)
-                                            }
-                                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${formDifficulty === d
-                                                    ? d === 1
-                                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                                                        : d === 2
-                                                            ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-                                                            : "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                                    : "border-gray-200 dark:border-slate-600 text-gray-400 hover:border-gray-300"
-                                                }`}
+                                            key={difficulty}
+                                            type="button"
+                                            onClick={() => setFormDifficulty(difficulty)}
+                                            className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                                                formDifficulty === difficulty
+                                                    ? "border-sky-500 bg-sky-500/10 text-foreground"
+                                                    : "border-border bg-background text-muted-foreground hover:border-sky-300"
+                                            }`}
                                         >
-                                            {difficultyLabel[d]}
+                                            {difficultyLabel[difficulty]}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Taboo Words */}
-                            <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
-                                    Yasaklı Kelimeler
-                                </label>
-                                <div className="space-y-2">
-                                    {formTabooWords.map((tw, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center gap-2"
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Yasakli kelimeler
+                                    </label>
+                                    {formTabooWords.length < 10 ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                setFormTabooWords((current) => [...current, ""])
+                                            }
                                         >
-                                            <span className="text-xs font-bold text-gray-400 w-5 text-center">
-                                                {i + 1}
-                                            </span>
-                                            <input
-                                                type="text"
-                                                value={tw}
-                                                onChange={(e) =>
-                                                    updateTaboo(
-                                                        i,
-                                                        e.target.value
-                                                    )
+                                            Alan ekle
+                                        </Button>
+                                    ) : null}
+                                </div>
+                                <div className="grid gap-2">
+                                    {formTabooWords.map((tabooWord, index) => (
+                                        <div key={`taboo-${index}`} className="flex gap-2">
+                                            <Input
+                                                value={tabooWord}
+                                                onChange={(event) =>
+                                                    updateTabooWord(index, event.target.value)
                                                 }
-                                                placeholder={`Yasaklı kelime ${i + 1}`}
-                                                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                                                placeholder={`Yasakli kelime ${index + 1}`}
                                             />
-                                            {formTabooWords.length > 1 && (
-                                                <button
+                                            {formTabooWords.length > 1 ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
                                                     onClick={() =>
-                                                        removeTabooField(i)
+                                                        setFormTabooWords((current) =>
+                                                            current.filter((_, itemIndex) => itemIndex !== index)
+                                                        )
                                                     }
-                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 >
                                                     <X size={14} />
-                                                </button>
-                                            )}
+                                                </Button>
+                                            ) : null}
                                         </div>
                                     ))}
-                                    {formTabooWords.length < 10 && (
-                                        <button
-                                            onClick={addTabooField}
-                                            className="text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors"
-                                        >
-                                            + Yasaklı kelime ekle
-                                        </button>
-                                    )}
                                 </div>
                             </div>
 
-                            {/* Categories */}
-                            <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                     Kategoriler
                                 </label>
-                                <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-slate-700 rounded-xl p-2 space-y-0.5">
-                                    {flatCategories.map((cat) => (
+                                <div className="grid max-h-52 gap-2 overflow-y-auto rounded-2xl border border-border bg-muted/20 p-3 md:grid-cols-2">
+                                    {flatCategories.map((category) => (
                                         <label
-                                            key={cat.id}
-                                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 ${cat.indent ? "ml-4" : "font-medium"}`}
+                                            key={category.id}
+                                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
+                                                category.indent
+                                                    ? "pl-6 text-muted-foreground"
+                                                    : "font-medium text-foreground"
+                                            } hover:bg-background/70`}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={formCategoryIds.includes(
-                                                    cat.id
-                                                )}
-                                                onChange={() =>
-                                                    toggleCategory(cat.id)
-                                                }
-                                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                checked={formCategoryIds.includes(category.id)}
+                                                onChange={() => toggleCategory(category.id)}
+                                                className="h-4 w-4 rounded border-border"
                                             />
-                                            {cat.name}
+                                            <span>{category.name}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="p-5 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
-                            <button
-                                onClick={() => setFormOpen(false)}
-                                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setFormOpen(false);
+                                    resetForm();
+                                }}
                             >
-                                İptal
-                            </button>
-                            <button
-                                onClick={handleSave}
+                                Iptal
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => void handleSave()}
                                 disabled={formSaving}
-                                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold shadow-md transition-colors active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                className="gap-2"
                             >
-                                {formSaving && (
-                                    <Loader2
-                                        size={16}
-                                        className="animate-spin"
-                                    />
-                                )}
-                                {editingWord ? "Güncelle" : "Kaydet"}
-                            </button>
+                                {formSaving ? <Loader2 size={16} className="animate-spin" /> : null}
+                                {editingWord ? "Guncelle" : "Kaydet"}
+                            </Button>
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }

@@ -48,11 +48,21 @@ enum PromotionDiscountType {
   fixed_coin
 }
 
+enum ModerationActionType {
+  suspend
+  reactivate
+  note
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
   password  String   @db.VarChar(255)
   role      String   @default("user") @db.VarChar(20)
+  isSuspended Boolean @default(false) @map("is_suspended")
+  suspendedAt DateTime? @map("suspended_at")
+  suspendedUntil DateTime? @map("suspended_until")
+  suspensionReason String? @map("suspension_reason") @db.VarChar(300)
   createdAt DateTime @default(now()) @map("created_at")
 
   profile      UserProfile?
@@ -62,8 +72,30 @@ model User {
   matchResults MatchResult[]
   guestLinks   GuestProgress[]
   auditLogs    AuditLog[]   @relation("AuditActor")
+  systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
+  moderationActionsAuthored UserModerationEvent[] @relation("ModerationActor")
+  moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
 
+  @@index([isSuspended, suspendedUntil])
   @@map("users")
+}
+
+model UserModerationEvent {
+  id             Int                  @id @default(autoincrement())
+  targetUserId   Int                  @map("target_user_id")
+  actorUserId    Int?                 @map("actor_user_id")
+  actionType     ModerationActionType @map("action_type")
+  reason         String               @db.VarChar(500)
+  suspendedUntil DateTime?            @map("suspended_until")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  targetUser User  @relation("ModerationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  actorUser  User? @relation("ModerationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([actionType, createdAt])
+  @@map("user_moderation_events")
 }
 
 model AuditLog {
@@ -84,6 +116,19 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([resourceType, createdAt])
   @@map("audit_logs")
+}
+
+model SystemSetting {
+  key             String   @id @db.VarChar(80)
+  value           Json     @db.Json
+  updatedByUserId Int?     @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  updatedBy User? @relation("SystemSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId])
+  @@map("system_settings")
 }
 
 model UserProfile {

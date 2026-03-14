@@ -462,3 +462,70 @@ Reference:
 - Fixed active narrator team derivation so timer, narrator badge, and inspector badge colors track the real active team.
 - Cleaned room prompt and guess-panel Turkish strings and added smoke test: `npm run test:room-display`.
 - Verification completed: `npm run test:room-display`, `npm run test:room-card-themes`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Completed in the March 13 liveops-system-settings-foundation slice
+- Added Prisma `SystemSetting` model for namespaced runtime configuration.
+- Added typed schema/service/policy helpers for:
+  - platform settings
+  - feature gates
+  - economy defaults
+  - captcha readiness state
+- Added `/admin/system-settings` UI and `/api/admin/system-settings` API.
+- Wired runtime gates into:
+  - registration
+  - room create/join socket request policy
+  - store catalog / purchase / equip flows
+- Added maintenance and MOTD banners to the shared root layout.
+- Replaced hardcoded registration wallet seed and match reward values with runtime settings reads.
+- Added smoke test: `npm run test:system-settings`.
+- Verification completed: `npm run test:system-settings`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Enforce captcha providers in register / room-create flows once the dedicated captcha integration branch starts.
+- Add a maintenance allowlist or beta-code path if closed testing is required during maintenance windows.
+- Move in-memory settings cache to Redis or a shared cache if the app is scaled horizontally.
+
+### Completed in the March 13 security-entry-gates slice
+- Added Turnstile/reCAPTCHA runtime enforcement for entry surfaces.
+- Added public captcha config route and shared client token loader.
+- Enforced captcha on:
+  - registration
+  - credentials login
+  - room create
+  - guest join
+  - direct guest room entry
+- Implemented provider-aware verification with:
+  - action matching
+  - reCAPTCHA score threshold
+  - soft-fail only for provider outage / unconfigured provider
+- Added `.env.example` placeholders for provider keys.
+- Added smoke test: `npm run test:captcha-security`.
+- Verification completed: `npm run test:captcha-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`.
+
+### Remaining
+- Consider adding separate admin-login-specific captcha policy if admin auth abuse becomes materially different from user login abuse.
+- If horizontal scale is introduced, combine captcha telemetry and request limits with shared Redis storage.
+- Add optional invisible challenge analytics if product decisions require captcha conversion monitoring.
+
+### Completed in the March 13 moderation-foundation slice
+- Added first-class moderation persistence:
+  - user suspension fields
+  - user moderation event log
+- Added `/admin/users` with:
+  - search
+  - active/suspended filter
+  - suspend/reactivate flow
+  - internal note flow
+- Added explicit-reason moderation contract and secure admin APIs.
+- Added suspended-user enforcement for:
+  - login
+  - session-backed protected routes
+  - socket room requests
+- Added smoke test: `npm run test:moderation-foundation`.
+- Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+
+### Remaining
+- Replace some remaining `window.confirm` admin flows with a shared confirmation dialog system.
+- If operator workload grows, add bulk moderation actions with a dedicated transactional API.
+- Add appeal/review workflow only if product policy requires it; it is intentionally not part of the current foundation.
+- If moderation event history grows further, add a dedicated detail drawer or paginated timeline instead of expanding the row inline.

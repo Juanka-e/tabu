@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { LOSS_REWARD, WIN_REWARD, ensureUserCore } from "@/lib/economy";
+import { ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
 import {
   buildRateLimitHeaders,
@@ -10,6 +10,8 @@ import {
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { resolveMatchRewardCoin } from "@/lib/system-settings/economy";
+import { getSystemSettings } from "@/lib/system-settings/service";
 
 const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
@@ -64,7 +66,14 @@ export async function POST(req: Request) {
 
     const winner = room.skor.A === room.skor.B ? "Berabere" : room.skor.A > room.skor.B ? "A" : "B";
     const won = winner !== "Berabere" && participant.takim === winner;
-    const coinEarned = winner === "Berabere" ? LOSS_REWARD : won ? WIN_REWARD : LOSS_REWARD;
+    const settings = await getSystemSettings();
+    const baseRewardCoin = winner === "Berabere"
+      ? settings.economy.drawRewardCoin
+      : won
+        ? settings.economy.winRewardCoin
+        : settings.economy.lossRewardCoin;
+    const reward = resolveMatchRewardCoin(baseRewardCoin, settings, new Date());
+    const coinEarned = reward.finalRewardCoin;
 
     await ensureUserCore(sessionUser.id);
 
@@ -98,10 +107,13 @@ export async function POST(req: Request) {
       resourceType: "match_result",
       resourceId: result.created.id,
       summary: `Finalized match reward for room ${room.odaKodu}`,
-      metadata: {
+        metadata: {
         roomCode: room.odaKodu,
         won,
         coinEarned,
+        baseRewardCoin: reward.baseRewardCoin,
+        rewardMultiplier: reward.multiplier,
+        weekendBoostApplied: reward.weekendBoostApplied,
       },
       request: req,
     });

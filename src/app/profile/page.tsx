@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getSessionUser } from "@/lib/session";
 
 export default async function ProfilePage() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
     redirect("/login?callbackUrl=/dashboard%3Ftab%3Dsettings");
   }
 

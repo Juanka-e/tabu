@@ -327,3 +327,76 @@ Reference:
 - Follow-up fix: active turn now has exactly one primary inspector on the opponent side.
 - Non-primary opponent players no longer receive inspector authority or the `TABU` action in UI.
 - Server-side `oyunVerisi` guard now also enforces `tabu` authority to narrator or the single active primary inspector only.
+
+### Phase 13 Update (March 13, 2026 - LiveOps System Settings Foundation)
+- [x] Create isolated branch `feature/liveops-system-settings-foundation`
+- [x] Add Prisma `SystemSetting` model for namespaced runtime config
+- [x] Add typed config schema for `platform`, `features`, `economy`, `security`
+- [x] Add admin `Sistem Ayarlari` screen and secure admin API
+- [x] Wire maintenance / MOTD banners into the shared root layout
+- [x] Gate register, store, and room create/join flows through runtime settings policies
+- [x] Replace hardcoded registration coin seed and match reward reads with dynamic settings
+- [x] Add smoke test: `npm run test:system-settings`
+- [x] Verification completed: `npm run test:system-settings`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 14 Update (March 13, 2026 - Security Entry Gates)
+- [x] Add shared captcha provider verification service for Turnstile and reCAPTCHA v3
+- [x] Add shared public captcha config route for client-side action preparation
+- [x] Enforce captcha in register flow
+- [x] Enforce captcha in login flow through credentials provider
+- [x] Enforce captcha in socket room create flow
+- [x] Enforce captcha in guest join flow, including direct `/room/[code]` guest entry
+- [x] Support `soft_fail` vs `hard_fail` behavior from runtime system settings
+- [x] Add smoke test: `npm run test:captcha-security`
+- [x] Verification completed: `npm run test:captcha-security`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 15 Update (March 13, 2026 - Admin Table Foundation)
+- [x] Create isolated branch `feature/admin-table-foundation`
+- [x] Add shared admin list shell components for header, toolbar, stats, loading, empty state, pagination, and bulk selection
+- [x] Add shared admin list helpers for local pagination and row selection state
+- [x] Move `/admin/words` onto the shared list foundation while keeping server-side pagination
+- [x] Move `/admin/shop-items` onto the shared list foundation and add row selection with bulk visibility/spotlight actions
+- [x] Add promotions-wide search and shared empty-state handling to `/admin/promotions`
+- [x] Add smoke test: `npm run test:admin-table-foundation`
+
+### Phase 16 Update (March 13, 2026 - Economy LiveOps Controls)
+- [x] Create isolated branch `feature/economy-liveops-controls`
+- [x] Extend runtime economy settings with:
+  - `matchCoinMultiplier`
+  - `weekendCoinMultiplierEnabled`
+  - `weekendCoinMultiplier`
+  - `storePriceMultiplier`
+  - `bundlesEnabled`
+  - `discountCampaignsEnabled`
+  - `couponsEnabled`
+- [x] Add shared economy liveops helper layer for reward and pricing resolution
+- [x] Apply match reward multipliers in `/api/game/match/finalize`
+- [x] Apply store price multiplier to live catalog, coupon preview, item purchase, and bundle purchase
+- [x] Add runtime kill switches for bundle sales, campaign discounts, and coupons
+- [x] Surface liveops state inside the shared shop catalog response
+- [x] Update `/admin/system-settings` to manage advanced economy liveops controls
+- [x] Update dashboard shop UI to reflect coupon/bundle/campaign liveops status
+- [x] Fix coupon preview behavior for zero-priced targets
+- [x] Add smoke test: `npm run test:economy-liveops`
+- [x] Verification completed: `npm run test:system-settings`, `npm run test:economy-liveops`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 17 Update (March 14, 2026 - Dependency Security Hotfix)
+- [x] Create isolated branch `fix/dependency-undici-audit`
+- [x] Investigate release-prep `npm audit --omit=dev` failure path (`isomorphic-dompurify -> jsdom -> undici`)
+- [x] Pin `undici` through `package.json` override to `7.24.2`
+- [x] Refresh lockfile with the patched transitive dependency
+- [x] Verification completed: `npm audit --omit=dev`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+- [x] Verification completed: `npm run test:admin-table-foundation`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
+
+### Phase 16 Update (March 13, 2026 - Moderation Foundation)
+- [x] Create isolated branch `feature/moderation-foundation`
+- [x] Add Prisma moderation models and suspension fields to `User`
+- [x] Add secure admin moderation APIs for user listing and suspend/reactivate/note actions
+- [x] Require moderation reason text for every suspend/reactivate/note action
+- [x] Add `/admin/users` moderation screen and sidebar entry
+- [x] Block admin-on-admin moderation in the new foundation
+- [x] Enforce suspended-user denial in login, session-based protected routes, and socket room requests
+- [x] Redirect authenticated non-admin users away from `/admin` and `/admin/login` instead of showing the admin login form
+- [x] Allow deleting only internal `note` moderation events; keep suspend/reactivate records immutable
+- [x] Add smoke test: `npm run test:moderation-foundation`
+- [x] Verification completed: `npm run test:moderation-foundation`, `npx prisma db push`, `npx prisma generate --no-engine`, `npm run lint`, `npx tsc --noEmit`, `npm run build`

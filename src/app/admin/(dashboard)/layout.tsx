@@ -1,18 +1,20 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { requireAdminSession } from "@/lib/admin/require-admin";
 
 export default async function AdminDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const session = await auth();
-    if (!session) redirect("/admin/login");
+    const session = await requireAdminSession();
+    if (session instanceof Response) {
+        redirect("/admin/login");
+    }
 
     return (
         <div className="min-h-screen bg-background flex">
-            <AdminSidebar username={session.user?.name || "Admin"} />
+            <AdminSidebar username={session.name || "Admin"} />
             <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
         </div>
     );

@@ -3,7 +3,12 @@ import { z } from "zod";
 import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
+import { prisma } from "@/lib/prisma";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
+import { verifyCaptchaForAction } from "@/lib/security/captcha";
+import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
 import type { PlayerCosmetics } from "@/types/game";
@@ -194,6 +199,7 @@ const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
     guestToken: z.string().min(20).max(512).optional(),
+    captchaToken: z.string().min(1).max(4096).optional(),
 });
 
 const KategoriAyarlariSchema = z.object({
@@ -696,7 +702,7 @@ export function setupGameSocket(io: Server): void {
                     socket.emit("hata", "Geçersiz istek verisi.");
                     return;
                 }
-                const { kullaniciAdi, odaKodu, guestToken } = parsed.data;
+                const { kullaniciAdi, odaKodu, guestToken, captchaToken } = parsed.data;
                 const ip = getClientIp(socket);
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
@@ -724,8 +730,16 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    const socketAuthUserId = await getSocketAuthUserId(socket);
-                    const effectiveAuthUserId = socketAuthUserId ?? null;
+                    const socketAuthState = await getSocketAuthState(socket);
+                    const socketAuthRole = await getSocketAuthRole(socket);
+                    if (socketAuthState.isSuspended) {
+                        socket.emit(
+                            "hata",
+                            "Hesabiniz askiya alinmis durumda. Bu yuzeyi kullanamazsiniz."
+                        );
+                        return;
+                    }
+                    const effectiveAuthUserId = socketAuthState.userId ?? null;
 
                     const identity = resolveSocketPlayerIdentity(
                         effectiveAuthUserId,
@@ -738,6 +752,48 @@ export function setupGameSocket(io: Server): void {
                         : undefined;
                     let targetCode = requestedCode;
                     let room = targetCode ? getRoom(targetCode) : undefined;
+                    const existingPlayer = room?.oyuncular.find(
+                        (player) => player.playerId === effectivePlayerId
+                    );
+                    const settings = await getSystemSettings();
+                    const roomRequestPolicy = evaluateRoomRequestPolicy({
+                        settings,
+                        isAuthenticated: Boolean(effectiveAuthUserId),
+                        isAdmin: socketAuthRole === "admin",
+                        isCreateRequest: !requestedCode,
+                        isReconnect: Boolean(existingPlayer),
+                    });
+
+                    if (!roomRequestPolicy.allowed) {
+                        socket.emit(
+                            "hata",
+                            roomRequestPolicy.message || "Bu islem su anda kullanima kapali."
+                        );
+                        return;
+                    }
+
+                    const captchaAction = !requestedCode
+                        ? "room_create"
+                        : !effectiveAuthUserId
+                            ? "guest_join"
+                            : null;
+
+                    if (captchaAction) {
+                        const captchaResult = await verifyCaptchaForAction({
+                            action: captchaAction,
+                            token: captchaToken ?? null,
+                            remoteIp: ip === "unknown" ? null : ip,
+                            settings,
+                        });
+
+                        if (!captchaResult.ok) {
+                            socket.emit(
+                                "hata",
+                                "Guvenlik dogrulamasi basarisiz. Lutfen tekrar deneyin."
+                            );
+                            return;
+                        }
+                    }
 
                     if (!room) {
                         if (requestedCode) {
@@ -777,23 +833,23 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    const existingPlayer = room.oyuncular.find(
+                    const reconnectingPlayer = room.oyuncular.find(
                         (player) => player.playerId === effectivePlayerId
                     );
 
-                    if (existingPlayer) {
-                        existingPlayer.id = socket.id;
-                        existingPlayer.ad = sanitizedName;
-                        existingPlayer.online = true;
-                        existingPlayer.ip = ip;
+                    if (reconnectingPlayer) {
+                        reconnectingPlayer.id = socket.id;
+                        reconnectingPlayer.ad = sanitizedName;
+                        reconnectingPlayer.online = true;
+                        reconnectingPlayer.ip = ip;
                         if (effectiveAuthUserId) {
-                            existingPlayer.userId = effectiveAuthUserId;
+                            reconnectingPlayer.userId = effectiveAuthUserId;
                         }
-                        await hydratePlayerCosmetics(existingPlayer);
+                        await hydratePlayerCosmetics(reconnectingPlayer);
 
                         // If this player is the creator, update the creatorId (socket ID)
                         // This fixes the issue where refreshing lost admin rights
-                        if (existingPlayer.playerId === room.creatorPlayerId) {
+                        if (reconnectingPlayer.playerId === room.creatorPlayerId) {
                             room.creatorId = socket.id;
 
                             // Clear any pending admin timeout
@@ -806,7 +862,7 @@ export function setupGameSocket(io: Server): void {
 
                         if (
                             room.oyunDurumu.anlatici &&
-                            room.oyunDurumu.anlatici.playerId === existingPlayer.playerId
+                            room.oyunDurumu.anlatici.playerId === reconnectingPlayer.playerId
                         ) {
                             room.oyunDurumu.anlatici.id = socket.id;
                         }
@@ -1320,7 +1376,60 @@ function isTrustedSocketOrigin(socket: Socket): boolean {
     }
 }
 
-async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
+async function getSocketAuthState(socket: Socket): Promise<{
+    userId: number | null;
+    isSuspended: boolean;
+}> {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader || !process.env.AUTH_SECRET) {
+        return {
+            userId: null,
+            isSuspended: false,
+        };
+    }
+
+    const token = await getToken({
+        req: {
+            headers: {
+                cookie: cookieHeader,
+            },
+        },
+        secret: process.env.AUTH_SECRET,
+        secureCookie: isSecureSocketHandshake(socket),
+    });
+
+    const userId = Number(token?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+        return {
+            userId: null,
+            isSuspended: false,
+        };
+    }
+
+    await clearExpiredSuspensions();
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            isSuspended: true,
+            suspendedUntil: true,
+        },
+    });
+
+    if (!user) {
+        return {
+            userId: null,
+            isSuspended: false,
+        };
+    }
+
+    return {
+        userId: isSuspensionActive(user) ? null : user.id,
+        isSuspended: isSuspensionActive(user),
+    };
+}
+
+async function getSocketAuthRole(socket: Socket): Promise<string | null> {
     const cookieHeader = socket.handshake.headers.cookie;
     if (!cookieHeader || !process.env.AUTH_SECRET) {
         return null;
@@ -1336,8 +1445,7 @@ async function getSocketAuthUserId(socket: Socket): Promise<number | null> {
         secureCookie: isSecureSocketHandshake(socket),
     });
 
-    const userId = Number(token?.sub);
-    return Number.isInteger(userId) && userId > 0 ? userId : null;
+    return typeof token?.role === "string" ? token.role : null;
 }
 
 async function hydrateNarratorCardThemes(userId: number | null): Promise<RoomCardThemePayload> {

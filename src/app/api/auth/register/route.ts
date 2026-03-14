@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcryptjs from "bcryptjs";
@@ -8,10 +7,17 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { getSystemSettings } from "@/lib/system-settings/service";
+import {
+    getFeatureDisabledMessage,
+    isRegistrationAvailable,
+} from "@/lib/system-settings/policies";
+import { verifyCaptchaForAction } from "@/lib/security/captcha";
 
 const registerSchema = z.object({
-    username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır."),
-    password: z.string().min(6, "Şifre en az 6 karakter olmalıdır."),
+    username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
+    password: z.string().min(6, "Sifre en az 6 karakter olmalidir."),
+    captchaToken: z.string().trim().min(1).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -30,7 +36,28 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { username, password } = registerSchema.parse(body);
+        const { username, password, captchaToken } = registerSchema.parse(body);
+        const settings = await getSystemSettings();
+
+        if (!isRegistrationAvailable(settings)) {
+            return NextResponse.json(
+                { error: getFeatureDisabledMessage("register") },
+                { status: 409 }
+            );
+        }
+
+        const captchaResult = await verifyCaptchaForAction({
+            action: "register",
+            token: captchaToken ?? null,
+            remoteIp: getRequestIp(req),
+            settings,
+        });
+        if (!captchaResult.ok) {
+            return NextResponse.json(
+                { error: "Guvenlik dogrulamasi basarisiz. Lutfen tekrar deneyin." },
+                { status: 403 }
+            );
+        }
 
         const existingUser = await prisma.user.findUnique({
             where: { username },
@@ -38,7 +65,7 @@ export async function POST(req: Request) {
 
         if (existingUser) {
             return NextResponse.json(
-                { error: "Bu kullanıcı adı zaten alınmış." },
+                { error: "Bu kullanici adi zaten alinmis." },
                 { status: 400 }
             );
         }
@@ -51,7 +78,7 @@ export async function POST(req: Request) {
                 password: hashedPassword,
                 role: "user",
                 wallet: {
-                    create: { coinBalance: 0 },
+                    create: { coinBalance: settings.economy.startingCoinBalance },
                 },
                 profile: {
                     create: {},
@@ -60,15 +87,15 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(
-            { message: "Kayıt başarılı.", userId: user.id },
+            { message: "Kayit basarili.", userId: user.id },
             { status: 201 }
         );
     } catch (error) {
         if (error instanceof z.ZodError) {
-                return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
+            return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
         }
         return NextResponse.json(
-            { error: "Kayıt sırasında bir hata oluştu." },
+            { error: "Kayit sirasinda bir hata olustu." },
             { status: 500 }
         );
     }

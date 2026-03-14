@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
+import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
+import { matchesAdminSearch } from "@/lib/admin/admin-table";
 import type {
     CouponCodeView,
     DiscountCampaignView,
@@ -588,6 +593,7 @@ export default function PromotionsPage() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [search, setSearch] = useState("");
     const [editingBundleId, setEditingBundleId] = useState<number | null>(null);
     const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
     const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
@@ -598,6 +604,41 @@ export default function PromotionsPage() {
     const bundleOptions = useMemo(
         () => bundles.map((bundle) => ({ id: bundle.id, name: bundle.name, code: bundle.code })),
         [bundles]
+    );
+    const filteredBundles = useMemo(
+        () =>
+            bundles.filter((bundle) =>
+                matchesAdminSearch(search, [
+                    bundle.name,
+                    bundle.code,
+                    bundle.description ?? "",
+                ])
+            ),
+        [bundles, search]
+    );
+    const filteredDiscounts = useMemo(
+        () =>
+            discounts.filter((discount) =>
+                matchesAdminSearch(search, [
+                    discount.name,
+                    discount.code,
+                    discount.description ?? "",
+                    discount.targetType,
+                ])
+            ),
+        [discounts, search]
+    );
+    const filteredCoupons = useMemo(
+        () =>
+            coupons.filter((coupon) =>
+                matchesAdminSearch(search, [
+                    coupon.name,
+                    coupon.code,
+                    coupon.description ?? "",
+                    coupon.targetType,
+                ])
+            ),
+        [coupons, search]
     );
 
     const loadAll = useCallback(async () => {
@@ -752,14 +793,44 @@ export default function PromotionsPage() {
     };
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-foreground">Promosyonlar</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Bundle, otomatik kampanya ve kupon akislarini ayri editor bloklariyla yonetin.</p>
-            </div>
+            <AdminPageHeader
+                title="Promosyonlar"
+                description="Bundle, otomatik kampanya ve kupon akislarini ayni operasyon panelinde yonetin."
+                meta={`${bundles.length + discounts.length + coupons.length} kayit`}
+                action={null}
+            />
 
-            {loading ? <Card><CardContent className="p-6 text-sm text-muted-foreground">Yukleniyor...</CardContent></Card> : null}
-            {loadError ? <Card><CardContent className="p-6 text-sm text-red-500">{loadError}</CardContent></Card> : null}
+            <AdminToolbar>
+                <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Bundle, kampanya veya kupon ara..."
+                        className="pl-9"
+                    />
+                </div>
+                <AdminToolbarStats
+                    stats={[
+                        { label: "bundle", value: String(filteredBundles.length) },
+                        { label: "kampanya", value: String(filteredDiscounts.length) },
+                        { label: "kupon", value: String(filteredCoupons.length) },
+                    ]}
+                />
+            </AdminToolbar>
 
+            {loading ? (
+                <AdminTableShell loading title="Promosyon verileri" description="Admin kaynaklari yukleniyor.">
+                    <div />
+                </AdminTableShell>
+            ) : null}
+            {loadError ? (
+                <Card>
+                    <CardContent className="p-6 text-sm text-red-500">{loadError}</CardContent>
+                </Card>
+            ) : null}
+
+            {!loading && !loadError ? (
             <div className="grid gap-6 xl:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -767,7 +838,13 @@ export default function PromotionsPage() {
                         <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {bundles.map((bundle) => (
+                        {filteredBundles.length === 0 ? (
+                            <AdminEmptyState
+                                title="Bundle bulunamadi"
+                                description="Arama sonucunda gosterilecek bundle kaydi yok."
+                            />
+                        ) : null}
+                        {filteredBundles.map((bundle) => (
                             <div key={bundle.id} className="rounded-2xl border border-border p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -805,7 +882,13 @@ export default function PromotionsPage() {
                         <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {discounts.map((discount) => (
+                        {filteredDiscounts.length === 0 ? (
+                            <AdminEmptyState
+                                title="Kampanya bulunamadi"
+                                description="Arama sonucunda gosterilecek indirim kampanyasi yok."
+                            />
+                        ) : null}
+                        {filteredDiscounts.map((discount) => (
                             <div key={discount.id} className="rounded-2xl border border-border p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -834,14 +917,22 @@ export default function PromotionsPage() {
                     </CardContent>
                 </Card>
             </div>
+            ) : null}
 
+            {!loading && !loadError ? (
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Kupon Kodlari</CardTitle>
                     <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {coupons.map((coupon) => (
+                    {filteredCoupons.length === 0 ? (
+                        <AdminEmptyState
+                            title="Kupon bulunamadi"
+                            description="Arama sonucunda gosterilecek kupon kaydi yok."
+                        />
+                    ) : null}
+                    {filteredCoupons.map((coupon) => (
                         <div key={coupon.id} className="rounded-2xl border border-border p-4">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
@@ -869,6 +960,7 @@ export default function PromotionsPage() {
                     />
                 </CardContent>
             </Card>
+            ) : null}
         </div>
     );
 }

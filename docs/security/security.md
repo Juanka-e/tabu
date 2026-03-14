@@ -1024,3 +1024,85 @@ Critical Findings
   - `npm run build`
 - Enforced a single active primary inspector on the opponent side per turn.
 - Added a server-side `tabu` authorization guard so non-primary opponent players cannot mutate score even if they emit socket events manually.
+
+## Review Update (13 March 2026 - Runtime Settings Gates)
+
+### What changed
+- Added a centralized runtime settings layer with a short-lived server cache.
+- Store and registration gates now depend on typed server-side settings instead of purely hardcoded behavior.
+- Room create/join requests now evaluate server-side maintenance and guest/entry feature flags before a lobby mutation occurs.
+
+### Security implications
+- This reduces the risk of emergency response via ad-hoc code edits when abuse or instability occurs.
+- Admin can now close:
+  - registrations
+  - guest gameplay
+  - room creation
+  - room joining
+  - store access
+  without a redeploy.
+- Captcha settings are persisted and surfaced, but actual provider enforcement is not claimed yet in this slice.
+
+### Remaining hardening note
+- The system-settings cache is process-local.
+- For multi-instance deployments, the next hardening step is shared cache invalidation or Redis-backed settings reads.
+
+## 13 March 2026 Update - Captcha Runtime Enforcement
+
+- Runtime captcha settings are no longer display-only; they now affect real request gates.
+- `security.captcha.*` settings now drive these flows:
+  - register
+  - login
+  - room create
+  - guest join
+- `turnstile` is treated as the primary low-friction provider.
+- `recaptcha_v3` is available as an alternate provider.
+- `soft_fail` only soft-passes provider outage or missing provider configuration.
+- Missing token, invalid token, low score, or action mismatch still fail hard.
+- This avoids turning `soft_fail` into a user-controlled bypass.
+
+## 13 March 2026 Update - Moderation Foundation
+
+- Added first-class user moderation state to the database:
+  - `users.is_suspended`
+  - `users.suspended_at`
+  - `users.suspended_until`
+  - `users.suspension_reason`
+  - `user_moderation_events`
+- Added secure admin moderation routes for:
+  - listing users
+  - suspend
+  - reactivate
+  - internal note logging
+- Moderation actions now require explicit reason text and are also mirrored into `audit_logs`.
+- Admin-on-admin moderation is intentionally blocked in this foundation slice to avoid accidental operator lockout.
+- Suspended accounts are now denied at these entry points:
+  - credentials login
+  - session-backed protected page/API checks through `getSessionUser`
+  - socket-based room create/join resolution
+- Authenticated non-admin users are now redirected away from `/admin` and `/admin/login` to `/dashboard`.
+  - This is primarily a UX and route-hygiene fix.
+  - It is not treated as a security vulnerability that the admin login page existed for unauthenticated users.
+- Unauthenticated `/admin` root requests are now redirected to `/`.
+  - Direct `/admin/login` remains the explicit admin entry point.
+  - This reduces accidental exposure of the admin login screen from the public root path.
+- Only internal `note` moderation events are deletable.
+  - suspend/reactivate records stay immutable to preserve audit integrity.
+
+### Remaining hardening note
+- Because auth still uses JWT sessions, `proxy.ts` cannot independently verify suspension state at the edge.
+- Protection is enforced in the server entry points that actually execute user operations.
+- If full edge-time suspension invalidation is later required, the next step is a session-version or database-session design.
+## Dependency Hotfix - Undici Advisory (March 14, 2026)
+
+- `npm audit --omit=dev` release prep sirasinda `undici` icin high severity advisory verdi.
+- Kaynak zincir:
+  - `isomorphic-dompurify`
+  - `jsdom`
+  - `undici`
+- Hotfix yaklasimi:
+  - dogrudan uygulama kodunu degistirmek yerine `package.json` icinde `overrides.undici = 7.24.2` tanimlandi
+  - lockfile bu surume sabitlendi
+- Sonuc:
+  - `npm audit --omit=dev` tekrar `0 vulnerabilities`
+  - `npm run lint`, `npx tsc --noEmit`, `npm run build` gecti

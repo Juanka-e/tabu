@@ -1,0 +1,41 @@
+export const MODERATION_ACTION_TYPES = [
+    "suspend",
+    "reactivate",
+    "note",
+] as const;
+
+export type ModerationActionType = (typeof MODERATION_ACTION_TYPES)[number];
+
+export interface ModerationEventView {
+    id: number;
+    actionType: ModerationActionType;
+    reason: string;
+    suspendedUntil: string | null;
+    createdAt: string;
+    actor: {
+        id: number | null;
+        username: string;
+        role: string;
+    } | null;
+}
+
+export interface AdminUserModerationView {
+    id: number;
+    username: string;
+    role: string;
+    createdAt: string;
+    displayName: string | null;
+    coinBalance: number;
+    isSuspended: boolean;
+    suspendedAt: string | null;
+    suspendedUntil: string | null;
+    suspensionReason: string | null;
+    recentModerationEvents: ModerationEventView[];
+}
+
+export interface AdminUserListResponse {
+    users: AdminUserModerationView[];
+    total: number;
+    page: number;
+    pages: number;
+}

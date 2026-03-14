@@ -20,6 +20,7 @@ import {
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
+import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 interface SocketIdentityPayload {
   playerId: string;
@@ -42,15 +43,15 @@ export default function HomePage() {
     }
   }, [router, status]);
 
-  const handleJoinOrCreate = (isCreate: boolean) => {
+  const handleJoinOrCreate = async (isCreate: boolean) => {
     const currentUsername = username.trim();
 
     if (!currentUsername) {
-      setError("Lütfen bir kullanıcı adı girin.");
+      setError("Lutfen bir kullanici adi girin.");
       return;
     }
     if (!isCreate && !roomCode.trim()) {
-      setError("Lütfen bir oda kodu girin.");
+      setError("Lutfen bir oda kodu girin.");
       return;
     }
 
@@ -58,46 +59,55 @@ export default function HomePage() {
     setError("");
 
     const guestToken = window.sessionStorage.getItem("tabu_guestToken") || undefined;
+    const captchaAction = isCreate ? "room_create" : "guest_join";
 
-    const socket = io({
-      path: "/api/socketio",
-      transports: ["websocket", "polling"],
-    });
+    try {
+      const { token } = await getCaptchaTokenForAction(captchaAction);
 
-    socket.on("connect", () => {
-      socket.emit("room:request", {
-        kullaniciAdi: currentUsername,
-        odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
-        ...(guestToken ? { guestToken } : {}),
+      const socket = io({
+        path: "/api/socketio",
+        transports: ["websocket", "polling"],
       });
-    });
 
-    socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
-      window.sessionStorage.setItem("tabu_playerId", playerId);
-      if (assignedGuestToken) {
-        window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
-      } else {
-        window.sessionStorage.removeItem("tabu_guestToken");
-      }
-    });
+      socket.on("connect", () => {
+        socket.emit("room:request", {
+          kullaniciAdi: currentUsername,
+          odaKodu: isCreate ? undefined : roomCode.trim().toUpperCase(),
+          ...(guestToken ? { guestToken } : {}),
+          ...(token ? { captchaToken: token } : {}),
+        });
+      });
 
-    socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
-      localStorage.setItem("tabu_username", currentUsername);
-      localStorage.setItem("tabu_roomCode", data.odaKodu);
-      socket.disconnect();
-      router.push(`/room/${data.odaKodu}`);
-    });
+      socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
+        window.sessionStorage.setItem("tabu_playerId", playerId);
+        if (assignedGuestToken) {
+          window.sessionStorage.setItem("tabu_guestToken", assignedGuestToken);
+        } else {
+          window.sessionStorage.removeItem("tabu_guestToken");
+        }
+      });
 
-    socket.on("hata", (message: string) => {
-      setError(message);
+      socket.on("lobiGuncelle", (data: { odaKodu: string }) => {
+        localStorage.setItem("tabu_username", currentUsername);
+        localStorage.setItem("tabu_roomCode", data.odaKodu);
+        socket.disconnect();
+        router.push(`/room/${data.odaKodu}`);
+      });
+
+      socket.on("hata", (message: string) => {
+        setError(message);
+        setIsConnecting(false);
+        socket.disconnect();
+      });
+
+      socket.on("connect_error", () => {
+        setError("Sunucuya baglanilamadi. Lutfen tekrar deneyin.");
+        setIsConnecting(false);
+      });
+    } catch {
+      setError("Guvenlik dogrulamasi baslatilamadi. Lutfen tekrar deneyin.");
       setIsConnecting(false);
-      socket.disconnect();
-    });
-
-    socket.on("connect_error", () => {
-      setError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
-      setIsConnecting(false);
-    });
+    }
   };
 
   if (status === "loading") {
@@ -248,3 +258,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+

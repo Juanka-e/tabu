@@ -35,6 +35,7 @@ function createPageResponse(req: NextRequest): NextResponse {
     const requestHeaders = new Headers(req.headers);
 
     requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("x-pathname", req.nextUrl.pathname);
     requestHeaders.set("Content-Security-Policy", csp);
 
     const response = NextResponse.next({
@@ -45,6 +46,7 @@ function createPageResponse(req: NextRequest): NextResponse {
 
     response.headers.set("Content-Security-Policy", csp);
     response.headers.set("x-nonce", nonce);
+    response.headers.set("x-pathname", req.nextUrl.pathname);
 
     return response;
 }
@@ -68,12 +70,28 @@ export default auth((req) => {
         );
     }
 
+    if (pathname === "/admin" && !isAuthed(req)) {
+        return NextResponse.redirect(new URL("/", req.url));
+    }
+
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-        if (!isAuthed(req) || role !== "admin") {
+        if (!isAuthed(req)) {
             const loginUrl = new URL("/admin/login", req.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
             return NextResponse.redirect(loginUrl);
         }
+
+        if (role !== "admin") {
+            return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+    }
+
+    if (pathname.startsWith("/admin/login") && isAuthed(req)) {
+        if (role === "admin") {
+            return NextResponse.redirect(new URL("/admin", req.url));
+        }
+
+        return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     if (pathname.startsWith("/api/admin")) {
