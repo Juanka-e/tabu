@@ -1093,3 +1093,16 @@ Critical Findings
 - Because auth still uses JWT sessions, `proxy.ts` cannot independently verify suspension state at the edge.
 - Protection is enforced in the server entry points that actually execute user operations.
 - If full edge-time suspension invalidation is later required, the next step is a session-version or database-session design.
+## Dependency Hotfix - Undici Advisory (March 14, 2026)
+
+- `npm audit --omit=dev` release prep sirasinda `undici` icin high severity advisory verdi.
+- Kaynak zincir:
+  - `isomorphic-dompurify`
+  - `jsdom`
+  - `undici`
+- Hotfix yaklasimi:
+  - dogrudan uygulama kodunu degistirmek yerine `package.json` icinde `overrides.undici = 7.24.2` tanimlandi
+  - lockfile bu surume sabitlendi
+- Sonuc:
+  - `npm audit --omit=dev` tekrar `0 vulnerabilities`
+  - `npm run lint`, `npx tsc --noEmit`, `npm run build` gecti
