@@ -379,6 +379,13 @@ Reference:
 - [x] Fix coupon preview behavior for zero-priced targets
 - [x] Add smoke test: `npm run test:economy-liveops`
 - [x] Verification completed: `npm run test:system-settings`, `npm run test:economy-liveops`, `npm run test:store-pricing`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm audit --omit=dev`
+
+### Phase 17 Update (March 14, 2026 - Dependency Security Hotfix)
+- [x] Create isolated branch `fix/dependency-undici-audit`
+- [x] Investigate release-prep `npm audit --omit=dev` failure path (`isomorphic-dompurify -> jsdom -> undici`)
+- [x] Pin `undici` through `package.json` override to `7.24.2`
+- [x] Refresh lockfile with the patched transitive dependency
+- [x] Verification completed: `npm audit --omit=dev`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
 - [x] Verification completed: `npm run test:admin-table-foundation`, `npm run lint`, `npx tsc --noEmit`, `npm run build`
 
 ### Phase 16 Update (March 13, 2026 - Moderation Foundation)
