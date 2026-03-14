@@ -56,17 +56,23 @@
 - pagination ve metadata ozet gorunumu
 - verification: `test:admin-audit-viewer`, lint, tsc, build, audit
 
+### `feature/coin-grant-campaigns`
+- `/admin/coin-grants` ekranı
+- campaign/code admin API'leri
+- `/api/coin-grants/redeem` kullanici claim akisi
+- verification: `test:coin-grant-campaigns`, prisma push, prisma generate, lint, tsc, build, audit
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap / planning copleri temizlendi
   - aktif docs seti sadelestirildi
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/coin-grant-campaigns`
-2. `feature/support-desk-foundation`
-3. `feature/system-notifications-foundation`
-4. `feature/admin-access-gateway`
-5. `feature/branding-seo-settings`
+1. `feature/support-desk-foundation`
+2. `feature/system-notifications-foundation`
+3. `feature/admin-access-gateway`
+4. `feature/branding-seo-settings`
+5. `feature/integration-hub`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

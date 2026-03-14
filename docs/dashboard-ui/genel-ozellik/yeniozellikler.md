@@ -18,6 +18,7 @@
 6. `feature/user-email-foundation`
 7. `feature/admin-user-operations`
 8. `feature/admin-audit-viewer`
+9. `feature/coin-grant-campaigns`
 
 ## Aktif Teknik Kararlar
 
@@ -43,8 +44,15 @@
 - Store discount coupon ile coin dagitim sistemi ayridir.
 - Wallet'a deger enjekte eden her akista transaction, actor audit, reason, duplicate claim korumasi, limit ve budget kontrolu zorunludur.
 
+### Gelecek Odeme Stratejisi
+- Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
+- Uygun zamanda `wallet ledger` omurgasi kurulacak.
+- Olası ileriki branch'ler:
+  - `feature/wallet-ledger-foundation`
+  - `feature/payment-orders-foundation`
+- Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
+
 ## Sonraki Oncelikli Branch'ler
-9. `feature/coin-grant-campaigns`
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
 12. `feature/admin-access-gateway`
@@ -85,15 +93,22 @@
 - Metadata alanlari okunabilir ozet formatinda gosteriliyor.
 - Admin sidebar'a audit ekranina hizli erisim eklendi.
 
+## Coin Grant Campaigns Slice (14 March 2026)
+- Coin dagitimi, store coupon domaininden ayrilarak campaign + code + claim modeli ile kuruldu.
+- Admin `/admin/coin-grants` ekranindan campaign olusturma, guncelleme ve code batch uretimi yapilabilir hale geldi.
+- Login kullanici shop ekranindan influencer veya etkinlik kodunu redeem ederek wallet bakiyesine coin ekleyebiliyor.
+- Claim akisinda campaign budget, code claim limiti ve user bazli claim limiti transaction icinde korunuyor.
+- Coin redemption isleri rate limit ve audit log ile izlenebilir hale getirildi.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 8
+- Tamamlanan feature branch sayisi: 9
 - Planli toplam branch sayisi: 25
-- Kalan branch sayisi: 17
+- Kalan branch sayisi: 16
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

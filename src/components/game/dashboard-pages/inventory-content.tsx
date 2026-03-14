@@ -5,6 +5,7 @@ import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { PackageOpen } from "lucide-react";
 import { CoinBadge } from "@/components/ui/coin-badge";
+import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import type {
     EquippedSlots,
     InventoryItemView,
@@ -104,6 +105,15 @@ export function InventoryContent() {
         };
 
         void load();
+
+        const handleWalletUpdated = () => {
+            void load();
+        };
+
+        window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        return () => {
+            window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        };
     }, [session]);
 
     useEffect(() => {
