@@ -9,6 +9,7 @@ import {
 import {
     getSupportStatusAfterAdminMessage,
     getSupportStatusAfterUserReply,
+    SUPPORT_TICKET_REPLY_COOLDOWN_SECONDS,
 } from "../src/lib/support/service";
 
 const createInput = supportTicketCreateSchema.parse({
@@ -52,8 +53,9 @@ assert.equal(adminListQuery.search, "tema");
 assert.equal(adminListQuery.status, "in_progress");
 
 assert.equal(getSupportStatusAfterUserReply("open"), "open");
-assert.equal(getSupportStatusAfterUserReply("resolved"), "open");
+assert.equal(getSupportStatusAfterUserReply("resolved"), null);
 assert.equal(getSupportStatusAfterUserReply("closed"), null);
+assert.equal(SUPPORT_TICKET_REPLY_COOLDOWN_SECONDS, 30);
 
 assert.equal(getSupportStatusAfterAdminMessage("open", false), "in_progress");
 assert.equal(getSupportStatusAfterAdminMessage("resolved", false), "in_progress");

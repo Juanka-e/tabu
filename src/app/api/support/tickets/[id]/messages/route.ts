@@ -66,16 +66,28 @@ export async function POST(
             const messages: Record<string, string> = {
                 ticket_not_found: "Destek talebi bulunamadi.",
                 forbidden: "Bu talebe erisim yetkin yok.",
-                ticket_closed: "Kapali destek talebine yeni mesaj eklenemez.",
+                ticket_closed: "Cozuldu veya kapatildi durumundaki talebe yeni mesaj eklenemez.",
                 invalid_assignee: "Gecersiz islem.",
+                reply_cooldown: `Cok hizli mesaj gonderiyorsun. Lutfen ${error.retryAfterSeconds ?? 30} saniye bekle.`,
             };
             const status =
                 error.code === "ticket_not_found"
                     ? 404
                     : error.code === "forbidden"
                       ? 403
+                      : error.code === "reply_cooldown"
+                        ? 429
                       : 409;
-            return NextResponse.json({ error: messages[error.code] }, { status });
+            return NextResponse.json(
+                { error: messages[error.code] },
+                {
+                    status,
+                    headers:
+                        error.code === "reply_cooldown" && error.retryAfterSeconds
+                            ? { "Retry-After": String(error.retryAfterSeconds) }
+                            : undefined,
+                }
+            );
         }
 
         if (error instanceof z.ZodError) {
@@ -89,4 +101,3 @@ export async function POST(
         return NextResponse.json({ error: "Destek mesaji gonderilemedi." }, { status: 500 });
     }
 }
-

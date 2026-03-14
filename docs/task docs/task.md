@@ -78,6 +78,9 @@
 - kullanici support sheet'i sol alttaki `Help` girisine baglandi
 - `/admin/support` kuyrugu eklendi
 - status, priority, assignee, internal note ve public reply akislari kuruldu
+- user reply icin 30 saniyelik cooldown eklendi
+- kullanici support sheet'i arka planda yenilenir hale getirildi; admin cevabi F5 istemeden gorunur oldu
+- `resolved` ticket'a kullanici reply ile yeniden acma davranisi kapatildi
 - verification: `test:support-desk-foundation`, prisma push, prisma generate, lint, tsc, build, audit
 
 ## Aktif Sonraki Branch Adaylari

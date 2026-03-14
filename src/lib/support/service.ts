@@ -51,16 +51,23 @@ type SupportTicketRecord = {
 };
 
 export class SupportDeskWorkflowError extends Error {
+    public readonly retryAfterSeconds?: number;
+
     constructor(
         public readonly code:
             | "ticket_not_found"
             | "forbidden"
             | "ticket_closed"
             | "invalid_assignee"
+            | "reply_cooldown",
+        options?: { retryAfterSeconds?: number }
     ) {
         super(code);
+        this.retryAfterSeconds = options?.retryAfterSeconds;
     }
 }
+
+export const SUPPORT_TICKET_REPLY_COOLDOWN_SECONDS = 30;
 
 function mapActor(actor: { id: number; username: string; role: string } | null): SupportTicketActorView | null {
     if (!actor) {
@@ -103,12 +110,8 @@ function mapTicket(ticket: SupportTicketRecord): SupportTicketView {
 }
 
 function buildUserReplyNextStatus(status: SupportTicketStatus): SupportTicketStatus | null {
-    if (status === "closed") {
+    if (status === "closed" || status === "resolved") {
         return null;
-    }
-
-    if (status === "resolved") {
-        return "open";
     }
 
     return status;
@@ -279,6 +282,32 @@ export async function addSupportReplyForUser(
     const nextStatus = buildUserReplyNextStatus(ticket.status as SupportTicketStatus);
     if (!nextStatus) {
         throw new SupportDeskWorkflowError("ticket_closed");
+    }
+
+    const lastUserMessage = await prisma.supportTicketMessage.findFirst({
+        where: {
+            ticketId,
+            authorUserId: userId,
+            isInternal: false,
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: {
+            createdAt: true,
+        },
+    });
+
+    if (lastUserMessage) {
+        const elapsedMs = Date.now() - lastUserMessage.createdAt.getTime();
+        const cooldownMs = SUPPORT_TICKET_REPLY_COOLDOWN_SECONDS * 1000;
+
+        if (elapsedMs < cooldownMs) {
+            throw new SupportDeskWorkflowError("reply_cooldown", {
+                retryAfterSeconds: Math.max(
+                    1,
+                    Math.ceil((cooldownMs - elapsedMs) / 1000)
+                ),
+            });
+        }
     }
 
     const now = new Date();
@@ -549,4 +578,3 @@ export async function addSupportMessageByAdmin(
 
     return mapTicket(updated as SupportTicketRecord);
 }
-

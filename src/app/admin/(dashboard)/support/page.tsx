@@ -432,6 +432,9 @@ export default function AdminSupportPage() {
                                 </h2>
                                 <p className="mt-2 text-sm text-muted-foreground">
                                     Kullanici: @{selectedTicket.user.username} - Acilis: {formatDateTime(selectedTicket.createdAt)}
+                                    {selectedTicket.assignedAdmin
+                                        ? ` - Atanan yetkili: @${selectedTicket.assignedAdmin.username}`
+                                        : ""}
                                 </p>
                             </div>
 

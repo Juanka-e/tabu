@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     BadgeAlert,
     Headset,
@@ -71,17 +71,18 @@ export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
         [selectedTicketId, tickets]
     );
 
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
+    const loadTickets = useCallback(
+        async (options?: { silent?: boolean }) => {
+            if (!options?.silent) {
+                setLoading(true);
+            }
 
-        const load = async () => {
-            setLoading(true);
             try {
                 const response = await fetch("/api/support/tickets", { cache: "no-store" });
                 if (!response.ok) {
-                    toast.error("Destek talepleri yuklenemedi.");
+                    if (!options?.silent) {
+                        toast.error("Destek talepleri yuklenemedi.");
+                    }
                     return;
                 }
 
@@ -89,14 +90,49 @@ export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
                 setTickets(payload.tickets);
                 setSelectedTicketId((current) => current ?? payload.tickets[0]?.id ?? null);
             } catch {
-                toast.error("Destek talepleri yuklenemedi.");
+                if (!options?.silent) {
+                    toast.error("Destek talepleri yuklenemedi.");
+                }
             } finally {
-                setLoading(false);
+                if (!options?.silent) {
+                    setLoading(false);
+                }
+            }
+        },
+        []
+    );
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        void loadTickets();
+    }, [isOpen, loadTickets]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void loadTickets({ silent: true });
+        }, 10_000);
+
+        const visibilityHandler = () => {
+            if (document.visibilityState === "visible") {
+                void loadTickets({ silent: true });
             }
         };
 
-        void load();
-    }, [isOpen]);
+        window.addEventListener("focus", visibilityHandler);
+        document.addEventListener("visibilitychange", visibilityHandler);
+
+        return () => {
+            window.clearInterval(intervalId);
+            window.removeEventListener("focus", visibilityHandler);
+            document.removeEventListener("visibilitychange", visibilityHandler);
+        };
+    }, [isOpen, loadTickets]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -385,7 +421,7 @@ export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
                                     <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                         Talep #{selectedTicket.id} - {formatDateTime(selectedTicket.createdAt)}
                                         {selectedTicket.assignedAdmin
-                                            ? ` - Atanan admin: @${selectedTicket.assignedAdmin.username}`
+                                            ? ` - Atanan yetkili: @${selectedTicket.assignedAdmin.username}`
                                             : ""}
                                     </div>
                                 </div>
@@ -419,9 +455,11 @@ export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
                                 </div>
 
                                 <div className="border-t border-amber-200/60 px-6 py-5 dark:border-amber-900/20">
-                                    {selectedTicket.status === "closed" ? (
+                                    {selectedTicket.status === "closed" || selectedTicket.status === "resolved" ? (
                                         <div className="rounded-2xl border border-dashed border-zinc-300/70 bg-white/70 px-4 py-4 text-sm text-slate-500 dark:border-zinc-700/70 dark:bg-zinc-950/30 dark:text-slate-400">
-                                            Bu talep kapatildi. Yeni bir durum varsa yeni bir destek talebi ac.
+                                            {selectedTicket.status === "resolved"
+                                                ? "Bu talep cozuldu olarak isaretlendi. Yeni bir durum varsa yeni bir destek talebi ac."
+                                                : "Bu talep kapatildi. Yeni bir durum varsa yeni bir destek talebi ac."}
                                         </div>
                                     ) : (
                                         <div className="space-y-3">

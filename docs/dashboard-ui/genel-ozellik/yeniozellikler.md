@@ -112,6 +112,9 @@
   - kendi ticket'larini gorme
   - kapali olmayan ticket'a reply gonderme
   mumkun hale getirildi.
+- User reply akisina 30 saniyelik cooldown eklendi; art arda spam mesaj gonderimi bloklandi.
+- Kullanici support sheet'i arka planda periyodik yenilenir hale getirildi; admin cevabi F5 atmadan gorunur oldu.
+- `resolved` durumundaki ticket'a kullanici reply ile tekrar `open` donusu kapatildi; yeni durum icin yeni ticket acilmasi zorunlu tutuldu.
 - Admin tarafinda `/admin/support` kuyrugu eklendi:
   - status guncelleme
   - priority guncelleme
