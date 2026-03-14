@@ -336,7 +336,13 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
     const [user, wallet, { profile, inventory }] = await Promise.all([
         prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, username: true, role: true },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                emailVerifiedAt: true,
+                role: true,
+            },
         }),
         prisma.wallet.findUnique({ where: { userId } }),
         getProfileData(userId),
@@ -375,6 +381,8 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
     return {
         id: user?.id ?? userId,
         name: user?.username ?? "",
+        email: user?.email ?? null,
+        emailVerifiedAt: user?.emailVerifiedAt?.toISOString() ?? null,
         role: user?.role ?? "user",
         wallet: {
             coinBalance: wallet?.coinBalance ?? 0,

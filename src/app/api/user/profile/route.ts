@@ -9,10 +9,27 @@ import {
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+  areEmailsEqual,
+  isEmailWithinLimit,
+  normalizeEmail,
+  sanitizeEmail,
+} from "@/lib/users/email";
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
   bio: z.string().trim().max(300).optional(),
+  email: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmedValue = value.trim();
+      return trimmedValue.length === 0 ? undefined : trimmedValue;
+    },
+    z.email("Gecerli bir e-posta adresi girilmelidir.").optional()
+  ),
 });
 
 export async function PATCH(req: Request) {
@@ -37,21 +54,64 @@ export async function PATCH(req: Request) {
 
     const body = await req.json();
     const parsed = profileSchema.parse(body);
+    const sanitizedEmail = parsed.email !== undefined ? sanitizeEmail(parsed.email) : undefined;
+    const normalizedEmail = sanitizedEmail !== undefined ? normalizeEmail(sanitizedEmail) : undefined;
+
+    if (sanitizedEmail !== undefined && !isEmailWithinLimit(sanitizedEmail)) {
+      return NextResponse.json({ error: "E-posta adresi cok uzun." }, { status: 422 });
+    }
 
     await ensureUserCore(sessionUser.id);
 
-    const updated = await prisma.userProfile.update({
-      where: { userId: sessionUser.id },
-      data: {
-        ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
-        ...(parsed.bio !== undefined ? { bio: parsed.bio } : {}),
+    const currentUser = await prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        email: true,
+        normalizedEmail: true,
       },
-      include: {
-        avatarItem: true,
-        frameItem: true,
-        cardBackItem: true,
-        cardFaceItem: true,
-      },
+    });
+    if (!currentUser) {
+      return NextResponse.json({ error: "Kullanici bulunamadi." }, { status: 404 });
+    }
+
+    if (
+      normalizedEmail !== undefined &&
+      !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)
+    ) {
+      const existingEmailUser = await prisma.user.findUnique({
+        where: { normalizedEmail },
+        select: { id: true },
+      });
+      if (existingEmailUser && existingEmailUser.id !== sessionUser.id) {
+        return NextResponse.json({ error: "Bu e-posta adresi zaten kullaniliyor." }, { status: 409 });
+      }
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)) {
+        await tx.user.update({
+          where: { id: sessionUser.id },
+          data: {
+            email: sanitizedEmail,
+            normalizedEmail,
+            emailVerifiedAt: null,
+          },
+        });
+      }
+
+      return tx.userProfile.update({
+        where: { userId: sessionUser.id },
+        data: {
+          ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
+          ...(parsed.bio !== undefined ? { bio: parsed.bio } : {}),
+        },
+        include: {
+          avatarItem: true,
+          frameItem: true,
+          cardBackItem: true,
+          cardFaceItem: true,
+        },
+      });
     });
 
     await writeAuditLog({
@@ -63,6 +123,8 @@ export async function PATCH(req: Request) {
       metadata: {
         hasDisplayName: updated.displayName !== null,
         hasBio: updated.bio !== null,
+        hasEmail: normalizedEmail !== undefined ? true : currentUser.email !== null,
+        emailChanged: normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null),
       },
       request: req,
     });
