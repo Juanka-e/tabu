@@ -44,6 +44,17 @@
 - settings ve admin users email gorunumu
 - verification: `test:user-email-foundation`, prisma push, prisma generate, lint, tsc, build, audit
 
+### `feature/admin-user-operations`
+- admin coin ekle / dus operasyonlari
+- `wallet_adjustments` modeli
+- audit ve reason zorunlulugu
+- verification: `test:admin-user-operations`, prisma push, prisma generate, lint, tsc, build, audit
+
+## Tamamlanan Docs-Only Branch'ler
+- `docs/cleanup-roadmap-and-encoding`
+  - stale roadmap / planning copleri temizlendi
+  - aktif docs seti sadeleştirildi
+
 ## Aktif Sonraki Branch Adaylari
 1. `feature/admin-user-operations`
 2. `feature/admin-audit-viewer`

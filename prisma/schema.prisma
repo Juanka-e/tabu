@@ -54,6 +54,11 @@ enum ModerationActionType {
   note
 }
 
+enum WalletAdjustmentType {
+  credit
+  debit
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -78,6 +83,8 @@ model User {
   systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
   moderationActionsAuthored UserModerationEvent[] @relation("ModerationActor")
   moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
+  walletAdjustmentsAuthored WalletAdjustment[] @relation("WalletAdjustmentActor")
+  walletAdjustmentsReceived WalletAdjustment[] @relation("WalletAdjustmentTarget")
 
   @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
@@ -165,6 +172,26 @@ model Wallet {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model WalletAdjustment {
+  id            Int                  @id @default(autoincrement())
+  targetUserId  Int                  @map("target_user_id")
+  actorUserId   Int?                 @map("actor_user_id")
+  adjustmentType WalletAdjustmentType @map("adjustment_type")
+  amount        Int
+  reason        String               @db.VarChar(500)
+  balanceBefore Int                  @map("balance_before")
+  balanceAfter  Int                  @map("balance_after")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  targetUser User  @relation("WalletAdjustmentTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  actorUser  User? @relation("WalletAdjustmentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([adjustmentType, createdAt])
+  @@map("wallet_adjustments")
 }
 
 model ShopItem {
