@@ -142,7 +142,10 @@ export default function AdminCoinGrantsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
     const [editingCampaignId, setEditingCampaignId] = useState<number | null>(null);
+    const [deactivatingCampaignId, setDeactivatingCampaignId] = useState<number | null>(null);
+    const [deactivatingCodeId, setDeactivatingCodeId] = useState<number | null>(null);
     const [campaignForm, setCampaignForm] = useState<CampaignFormState>(emptyCampaignForm);
     const [codeForm, setCodeForm] = useState<CodeFormState>(emptyCodeForm);
 
@@ -198,6 +201,7 @@ export default function AdminCoinGrantsPage() {
 
     const submitCampaign = async () => {
         setSaving(true);
+        setNotice(null);
         try {
             const payload = {
                 code: campaignForm.code.trim().toUpperCase(),
@@ -229,6 +233,7 @@ export default function AdminCoinGrantsPage() {
 
             setEditingCampaignId(null);
             setCampaignForm(emptyCampaignForm);
+            setNotice(editingCampaignId ? "Campaign guncellendi." : "Campaign olusturuldu.");
             await loadCampaigns();
         } finally {
             setSaving(false);
@@ -237,6 +242,7 @@ export default function AdminCoinGrantsPage() {
 
     const submitCodes = async () => {
         setSaving(true);
+        setNotice(null);
         try {
             const payload = {
                 campaignId: Number.parseInt(codeForm.campaignId, 10),
@@ -262,6 +268,7 @@ export default function AdminCoinGrantsPage() {
             }
 
             setCodeForm((current) => ({ ...emptyCodeForm, campaignId: current.campaignId }));
+            setNotice("Kodlar olusturuldu.");
             await loadCampaigns();
         } finally {
             setSaving(false);
@@ -284,17 +291,70 @@ export default function AdminCoinGrantsPage() {
         });
     };
 
-    const deactivateCampaign = async (campaignId: number) => {
-        const response = await fetch(`/api/admin/coin-grants/campaigns/${campaignId}`, { method: "DELETE" });
-        if (response.ok) {
+    const deactivateCampaign = async (campaign: CoinGrantCampaignView) => {
+        if (!campaign.isActive) {
+            setNotice("Bu campaign zaten pasif.");
+            return;
+        }
+
+        setNotice(null);
+        setDeactivatingCampaignId(campaign.id);
+        try {
+            const response = await fetch(`/api/admin/coin-grants/campaigns/${campaign.id}`, { method: "DELETE" });
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({ error: "Campaign kapatilamadi." }))) as { error?: string };
+                setError(errorPayload.error || "Campaign kapatilamadi.");
+                return;
+            }
+
+            setCampaigns((current) =>
+                current.map((entry) =>
+                    entry.id === campaign.id
+                        ? { ...entry, isActive: false, updatedAt: new Date().toISOString() }
+                        : entry
+                )
+            );
+            setNotice(`${campaign.name} pasife alindi.`);
             await loadCampaigns();
+        } finally {
+            setDeactivatingCampaignId(null);
         }
     };
 
-    const deactivateCode = async (codeId: number) => {
-        const response = await fetch(`/api/admin/coin-grants/codes/${codeId}`, { method: "DELETE" });
-        if (response.ok) {
+    const deactivateCode = async (campaignId: number, codeId: number) => {
+        const parentCampaign = campaigns.find((campaign) => campaign.id === campaignId);
+        const code = parentCampaign?.codes.find((entry) => entry.id === codeId);
+        if (code && !code.isActive) {
+            setNotice("Bu kod zaten pasif.");
+            return;
+        }
+
+        setNotice(null);
+        setDeactivatingCodeId(codeId);
+        try {
+            const response = await fetch(`/api/admin/coin-grants/codes/${codeId}`, { method: "DELETE" });
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({ error: "Kod kapatilamadi." }))) as { error?: string };
+                setError(errorPayload.error || "Kod kapatilamadi.");
+                return;
+            }
+
+            setCampaigns((current) =>
+                current.map((campaign) =>
+                    campaign.id === campaignId
+                        ? {
+                            ...campaign,
+                            codes: campaign.codes.map((entry) =>
+                                entry.id === codeId ? { ...entry, isActive: false } : entry
+                            ),
+                        }
+                        : campaign
+                )
+            );
+            setNotice("Kod pasife alindi.");
             await loadCampaigns();
+        } finally {
+            setDeactivatingCodeId(null);
         }
     };
 
@@ -323,6 +383,11 @@ export default function AdminCoinGrantsPage() {
             {error ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                     {error}
+                </div>
+            ) : null}
+            {notice ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {notice}
                 </div>
             ) : null}
 
@@ -362,8 +427,14 @@ export default function AdminCoinGrantsPage() {
                                         <Button variant="outline" size="sm" onClick={() => editCampaign(campaign)}>
                                             Duzenle
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => void deactivateCampaign(campaign.id)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            disabled={deactivatingCampaignId === campaign.id || !campaign.isActive}
+                                            onClick={() => void deactivateCampaign(campaign)}
+                                        >
                                             <Trash2 size={14} />
+                                            <span className="ml-2">{campaign.isActive ? "Pasife al" : "Pasif"}</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -418,8 +489,13 @@ export default function AdminCoinGrantsPage() {
                                                     </span>
                                                     {code.label ? <span className="text-muted-foreground">{code.label}</span> : null}
                                                     {!code.isActive ? <span className="text-amber-600">pasif</span> : null}
-                                                    <button type="button" onClick={() => void deactivateCode(code.id)} className="font-semibold text-red-500">
-                                                        kapat
+                                                    <button
+                                                        type="button"
+                                                        disabled={deactivatingCodeId === code.id || !code.isActive}
+                                                        onClick={() => void deactivateCode(campaign.id, code.id)}
+                                                        className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                    >
+                                                        {code.isActive ? (deactivatingCodeId === code.id ? "kapatiliyor" : "kapat") : "pasif"}
                                                     </button>
                                                 </div>
                                             ))
