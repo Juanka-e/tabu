@@ -17,6 +17,7 @@ import {
     Activity,
     Users,
     Gift,
+    Headset,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +30,7 @@ const navItems = [
     { href: "/admin/promotions", icon: TicketPercent, label: "Promosyonlar" },
     { href: "/admin/coin-grants", icon: Gift, label: "Coin Grants" },
     { href: "/admin/users", icon: Users, label: "Kullanicilar" },
+    { href: "/admin/support", icon: Headset, label: "Support" },
     { href: "/admin/audit", icon: Activity, label: "Audit" },
     { href: "/admin/system-settings", icon: SlidersHorizontal, label: "Sistem Ayarlari" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },

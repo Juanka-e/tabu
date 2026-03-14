@@ -24,7 +24,9 @@
 ## En Kritik Acik Isler
 
 ### 1. Support Desk
+- aktif branch: `feature/support-desk-foundation`
 - ticket, ticket message, assignee, internal note, status transitions
+- help icon entrypoint ve admin queue kuruluyor
 
 ### 2. Notifications
 - in-app inbox
