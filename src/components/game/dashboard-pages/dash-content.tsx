@@ -11,6 +11,7 @@ import {
     TrendingUp,
 } from "lucide-react";
 import type { DashboardDataResponse } from "@/types/economy";
+import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 
 const statCardStyles = {
     blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
@@ -54,6 +55,15 @@ export function DashContent() {
         };
 
         void load();
+
+        const handleWalletUpdated = () => {
+            void load();
+        };
+
+        window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        return () => {
+            window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+        };
     }, [session]);
 
     const recentWins = data?.recentMatches.filter((match) => match.won).length ?? 0;
