@@ -47,6 +47,17 @@
 - legacy hesap uyumu
 - profile ve admin users email gorunumu
 
+### 7. `feature/admin-user-operations`
+- admin coin ekle / dus operasyonu
+- wallet adjustment kayit modeli
+- reason zorunlulugu ve audit baglantisi
+- negatif bakiye korumasi
+
+## Tamamlanan Docs-Only Branch'ler
+- `docs/cleanup-roadmap-and-encoding`
+  - stale roadmap ve tarihsel planning copleri temizlendi
+  - aktif dokumanlar sadeleştirildi ve karar odakli hale getirildi
+
 ## Tamamlanan Onemli Fix Branch'leri
 - room regression fix zinciri
 - dependency `undici` advisory hotfix

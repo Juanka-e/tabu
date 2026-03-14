@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
+import { ChevronDown, Coins, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import type {
     AdminUserModerationView,
     ModerationActionType,
 } from "@/types/moderation";
+import type { WalletAdjustmentType } from "@/types/admin-user-operations";
 
 type StatusFilter = "all" | "active" | "suspended";
 type ActionMode = ModerationActionType;
@@ -78,10 +79,15 @@ export default function AdminUsersPage() {
     const [saving, setSaving] = useState(false);
     const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
     const [selectedUser, setSelectedUser] = useState<AdminUserModerationView | null>(null);
+    const [selectedWalletUser, setSelectedWalletUser] = useState<AdminUserModerationView | null>(null);
     const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
     const [actionMode, setActionMode] = useState<ActionMode>("suspend");
+    const [walletAdjustmentType, setWalletAdjustmentType] = useState<WalletAdjustmentType>("credit");
+    const [walletAmount, setWalletAmount] = useState("100");
+    const [walletReason, setWalletReason] = useState("");
     const [reason, setReason] = useState("");
     const [suspendedUntil, setSuspendedUntil] = useState("");
+    const [walletSaving, setWalletSaving] = useState(false);
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -148,6 +154,20 @@ export default function AdminUsersPage() {
         setSuspendedUntil("");
     }, []);
 
+    const openWalletModal = useCallback((user: AdminUserModerationView) => {
+        setSelectedWalletUser(user);
+        setWalletAdjustmentType("credit");
+        setWalletAmount("100");
+        setWalletReason("");
+    }, []);
+
+    const closeWalletModal = useCallback(() => {
+        setSelectedWalletUser(null);
+        setWalletAdjustmentType("credit");
+        setWalletAmount("100");
+        setWalletReason("");
+    }, []);
+
     const submitAction = useCallback(async () => {
         if (!selectedUser) {
             return;
@@ -209,6 +229,45 @@ export default function AdminUsersPage() {
             setDeletingEventId(null);
         }
     }, [loadUsers]);
+
+    const submitWalletAdjustment = useCallback(async () => {
+        if (!selectedWalletUser) {
+            return;
+        }
+
+        setWalletSaving(true);
+        try {
+            const response = await fetch(`/api/admin/users/${selectedWalletUser.id}/wallet-adjustment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    adjustmentType: walletAdjustmentType,
+                    amount: Number(walletAmount),
+                    reason: walletReason,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({
+                    error: "Coin operasyonu tamamlanamadi.",
+                }))) as { error?: string };
+                toast.error(errorPayload.error ?? "Coin operasyonu tamamlanamadi.");
+                return;
+            }
+
+            toast.success(
+                `${selectedWalletUser.username} icin ${
+                    walletAdjustmentType === "credit" ? "coin ekleme" : "coin dusme"
+                } islemi tamamlandi.`
+            );
+            closeWalletModal();
+            await loadUsers();
+        } catch {
+            toast.error("Coin operasyonu tamamlanamadi.");
+        } finally {
+            setWalletSaving(false);
+        }
+    }, [closeWalletModal, loadUsers, selectedWalletUser, walletAdjustmentType, walletAmount, walletReason]);
 
     return (
         <div className="space-y-6">
@@ -426,6 +485,14 @@ export default function AdminUsersPage() {
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
+                                                    onClick={() => openWalletModal(user)}
+                                                >
+                                                    Coin
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => openActionModal(user, "note")}
                                                 >
                                                     Ic Not
@@ -518,6 +585,104 @@ export default function AdminUsersPage() {
                                 className="gap-2"
                             >
                                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                Kaydet
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {selectedWalletUser ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-xl rounded-3xl border border-border bg-card shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">Coin Operasyonu</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    @{selectedWalletUser.username} icin kontrollu bakiye islemi uygulanacak.
+                                </p>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={closeWalletModal}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-5 p-5">
+                            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
+                                <div className="flex items-start gap-3">
+                                    <Coins className="mt-0.5 h-5 w-5 text-amber-500" />
+                                    <div className="space-y-1">
+                                        <div className="font-semibold text-foreground">
+                                            Mevcut bakiye: {selectedWalletUser.coinBalance.toLocaleString("tr-TR")} coin
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Her coin islemi audit log ve wallet adjustment kaydi ile saklanir.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Islem Turu
+                                    </label>
+                                    <select
+                                        value={walletAdjustmentType}
+                                        onChange={(event) =>
+                                            setWalletAdjustmentType(event.target.value as WalletAdjustmentType)
+                                        }
+                                        className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none"
+                                    >
+                                        <option value="credit">Coin Ekle</option>
+                                        <option value="debit">Coin Dus</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Miktar
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={1000000}
+                                        value={walletAmount}
+                                        onChange={(event) => setWalletAmount(event.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                    Gerekce
+                                </label>
+                                <textarea
+                                    value={walletReason}
+                                    onChange={(event) => setWalletReason(event.target.value)}
+                                    rows={4}
+                                    className="min-h-[110px] w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary resize-y"
+                                    placeholder="Coin operasyon gerekcesini yazin..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+                            <Button type="button" variant="outline" onClick={closeWalletModal}>
+                                Iptal
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => void submitWalletAdjustment()}
+                                disabled={
+                                    walletSaving ||
+                                    walletReason.trim().length < 3 ||
+                                    !Number.isInteger(Number(walletAmount)) ||
+                                    Number(walletAmount) < 1
+                                }
+                                className="gap-2"
+                            >
+                                {walletSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                 Kaydet
                             </Button>
                         </div>

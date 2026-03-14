@@ -16,6 +16,7 @@
 4. `feature/moderation-foundation`
 5. `feature/economy-liveops-controls`
 6. `feature/user-email-foundation`
+7. `feature/admin-user-operations`
 
 ## Aktif Teknik Kararlar
 
@@ -70,10 +71,23 @@
 - Admin `/admin/users` ekraninda email ve dogrulama durumu gorunur hale geldi.
 - Email degistiginde `emailVerifiedAt` sifirlanacak sekilde foundation kuruldu.
 
+## Admin User Operations Slice (14 March 2026)
+- Admin `/admin/users` ekranina kontrollu coin operasyon modal'i eklendi.
+- Yeni `wallet_adjustments` veri modeli ile actor, hedef kullanici, islem tipi, miktar, reason ve onceki/sonraki bakiye kaydi tutuluyor.
+- `credit` ve `debit` islemleri transaction icinde uygulanir hale getirildi.
+- Negatif bakiye olusturacak `debit` islemleri server tarafinda engelleniyor.
+- Her coin operasyonu hem `wallet_adjustments` tablosuna hem de `audit_logs` icine yaziliyor.
+- Coin operasyon route'u admin auth + rate limit ile korunuyor.
+
+## Tamamlanan Docs-Only Branch'ler
+- `docs/cleanup-roadmap-and-encoding`
+  - eski brainstorming/cop roadmap bloklari temizlendi
+  - aktif roadmap, completed ve remaining/task dokumanlari sadeleştirildi
+
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 6
+- Tamamlanan feature branch sayisi: 7
 - Planli toplam branch sayisi: 25
-- Kalan branch sayisi: 19
+- Kalan branch sayisi: 18
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
