@@ -29,6 +29,7 @@
     "test:economy-liveops": "tsx scripts/test-economy-liveops.ts",
     "test:user-email-foundation": "tsx scripts/test-user-email-foundation.ts",
     "test:admin-user-operations": "tsx scripts/test-admin-user-operations.ts",
+    "test:admin-audit-viewer": "tsx scripts/test-admin-audit-viewer.ts",
     "test:admin-table-foundation": "tsx scripts/test-admin-table-foundation.ts",
     "test:moderation-foundation": "tsx scripts/test-moderation-foundation.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",

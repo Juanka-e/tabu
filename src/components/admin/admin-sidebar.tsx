@@ -14,6 +14,7 @@ import {
     ShoppingBag,
     TicketPercent,
     SlidersHorizontal,
+    Activity,
     Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,10 @@ const navItems = [
     { href: "/admin/shop-items", icon: ShoppingBag, label: "Kozmetikler" },
     { href: "/admin/promotions", icon: TicketPercent, label: "Promosyonlar" },
     { href: "/admin/users", icon: Users, label: "Kullanicilar" },
+    { href: "/admin/audit", icon: Activity, label: "Audit" },
     { href: "/admin/system-settings", icon: SlidersHorizontal, label: "Sistem Ayarlari" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
-    { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yükleme" },
+    { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yukleme" },
 ];
 
 interface AdminSidebarProps {
@@ -39,10 +41,9 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 border-r border-border bg-card/50 flex flex-col h-screen sticky top-0">
-            {/* Header */}
-            <div className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center">
+        <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-border bg-card/50">
+            <div className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-blue-600">
                     <Gamepad2 className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -53,22 +54,19 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
 
             <Separator />
 
-            {/* Navigation */}
-            <nav className="flex-1 p-3 space-y-1">
+            <nav className="flex-1 space-y-1 p-3">
                 {navItems.map(({ href, icon: Icon, label }) => {
-                    const isActive =
-                        href === "/admin"
-                            ? pathname === "/admin"
-                            : pathname.startsWith(href);
+                    const isActive = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
                     return (
                         <Link
                             key={href}
                             href={href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                                ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                }`}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                                isActive
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            }`}
                         >
                             <Icon className="h-4 w-4" />
                             {label}
@@ -79,7 +77,6 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
 
             <Separator />
 
-            {/* Footer */}
             <div className="p-3">
                 <Link href="/">
                     <Button
@@ -87,7 +84,7 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
                         className="w-full justify-start gap-3 text-sm text-muted-foreground"
                     >
                         <Gamepad2 className="h-4 w-4" />
-                        Oyuna Dön
+                        Oyuna Don
                     </Button>
                 </Link>
                 <Button
@@ -96,7 +93,7 @@ export function AdminSidebar({ username }: AdminSidebarProps) {
                     onClick={() => signOut({ callbackUrl: "/admin/login" })}
                 >
                     <LogOut className="h-4 w-4" />
-                    Çıkış Yap
+                    Cikis Yap
                 </Button>
             </div>
         </aside>

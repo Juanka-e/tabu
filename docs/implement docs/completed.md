@@ -16,6 +16,8 @@
 - moderation foundation
 - economy liveops controls
 - user email foundation
+- admin user operations
+- admin audit viewer
 
 ## Tamamlanan Feature Branch'ler
 
@@ -53,10 +55,15 @@
 - reason zorunlulugu ve audit baglantisi
 - negatif bakiye korumasi
 
+### 8. `feature/admin-audit-viewer`
+- `/admin/audit` ekrani
+- action / resource / role / search filtreleri
+- audit metadata ozet gorunumu
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
-  - aktif dokumanlar sadeleştirildi ve karar odakli hale getirildi
+  - aktif dokumanlar sadelestirildi ve karar odakli hale getirildi
 
 ## Tamamlanan Onemli Fix Branch'leri
 - room regression fix zinciri
