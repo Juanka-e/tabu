@@ -60,6 +60,8 @@
 - `/admin/coin-grants` ekranı
 - campaign/code admin API'leri
 - `/api/coin-grants/redeem` kullanici claim akisi
+- redeem sonrasi wallet live update
+- kullanilmis kayitlar icin pasif / arsiv modeli
 - verification: `test:coin-grant-campaigns`, prisma push, prisma generate, lint, tsc, build, audit
 
 ## Tamamlanan Docs-Only Branch'ler
@@ -73,6 +75,7 @@
 3. `feature/admin-access-gateway`
 4. `feature/branding-seo-settings`
 5. `feature/integration-hub`
+6. `feature/progression-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

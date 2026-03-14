@@ -214,6 +214,7 @@ model CoinGrantCampaign {
   startsAt          DateTime? @map("starts_at")
   endsAt            DateTime? @map("ends_at")
   isActive          Boolean   @default(true) @map("is_active")
+  archivedAt        DateTime? @map("archived_at")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
@@ -221,7 +222,7 @@ model CoinGrantCampaign {
   claims     CoinGrantClaim[]
   userClaims CoinGrantCampaignUser[]
 
-  @@index([isActive, startsAt, endsAt])
+  @@index([isActive, archivedAt, startsAt, endsAt])
   @@map("coin_grant_campaigns")
 }
 
@@ -234,12 +235,13 @@ model CoinGrantCode {
   claimCount Int       @default(0) @map("claim_count")
   expiresAt  DateTime? @map("expires_at")
   isActive   Boolean   @default(true) @map("is_active")
+  archivedAt DateTime? @map("archived_at")
   createdAt  DateTime  @default(now()) @map("created_at")
 
   campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   claims   CoinGrantClaim[]
 
-  @@index([campaignId, isActive])
+  @@index([campaignId, isActive, archivedAt])
   @@map("coin_grant_codes")
 }
 

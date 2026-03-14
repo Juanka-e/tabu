@@ -49,6 +49,7 @@ function mapCoinGrantCode(code: {
     claimCount: number;
     expiresAt: Date | null;
     isActive: boolean;
+    archivedAt: Date | null;
     createdAt: Date;
 }): CoinGrantCodeView {
     return {
@@ -60,6 +61,7 @@ function mapCoinGrantCode(code: {
         claimCount: code.claimCount,
         expiresAt: toIsoString(code.expiresAt),
         isActive: code.isActive,
+        archivedAt: toIsoString(code.archivedAt),
         createdAt: code.createdAt.toISOString(),
     };
 }
@@ -78,6 +80,7 @@ function mapCoinGrantCampaign(campaign: {
     startsAt: Date | null;
     endsAt: Date | null;
     isActive: boolean;
+    archivedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
     codes: Array<{
@@ -89,6 +92,7 @@ function mapCoinGrantCampaign(campaign: {
         claimCount: number;
         expiresAt: Date | null;
         isActive: boolean;
+        archivedAt: Date | null;
         createdAt: Date;
     }>;
 }): CoinGrantCampaignView {
@@ -106,6 +110,7 @@ function mapCoinGrantCampaign(campaign: {
         startsAt: toIsoString(campaign.startsAt),
         endsAt: toIsoString(campaign.endsAt),
         isActive: campaign.isActive,
+        archivedAt: toIsoString(campaign.archivedAt),
         createdAt: campaign.createdAt.toISOString(),
         updatedAt: campaign.updatedAt.toISOString(),
         codes: campaign.codes.map(mapCoinGrantCode),
@@ -348,6 +353,7 @@ export async function createCoinGrantCampaign(input: CoinGrantCampaignWriteInput
             startsAt: parseOptionalDate(input.startsAt),
             endsAt: parseOptionalDate(input.endsAt),
             isActive: input.isActive,
+            archivedAt: null,
         },
         include: {
             codes: true,
@@ -376,6 +382,7 @@ export async function updateCoinGrantCampaign(id: number, input: CoinGrantCampai
             startsAt: parseOptionalDate(input.startsAt),
             endsAt: parseOptionalDate(input.endsAt),
             isActive: input.isActive,
+            archivedAt: null,
         },
         include: {
             codes: {
@@ -489,6 +496,7 @@ export async function createCoinGrantCodes(input: CoinGrantCodeBatchCreateInput)
             maxClaims: input.maxClaims ?? null,
             expiresAt: parseOptionalDate(input.expiresAt),
             isActive: input.isActive,
+            archivedAt: null,
         })),
     });
 
@@ -530,6 +538,70 @@ export async function deactivateCoinGrantCode(id: number): Promise<"deleted" | "
     });
 
     return "deactivated";
+}
+
+export async function archiveCoinGrantCampaign(id: number): Promise<"archived" | null | "conflict"> {
+    const existing = await prisma.coinGrantCampaign.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            isActive: true,
+            archivedAt: true,
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    if (existing.archivedAt) {
+        return "archived";
+    }
+
+    if (existing.isActive) {
+        return "conflict";
+    }
+
+    await prisma.coinGrantCampaign.update({
+        where: { id },
+        data: {
+            archivedAt: new Date(),
+        },
+    });
+
+    return "archived";
+}
+
+export async function archiveCoinGrantCode(id: number): Promise<"archived" | null | "conflict"> {
+    const existing = await prisma.coinGrantCode.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            isActive: true,
+            archivedAt: true,
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    if (existing.archivedAt) {
+        return "archived";
+    }
+
+    if (existing.isActive) {
+        return "conflict";
+    }
+
+    await prisma.coinGrantCode.update({
+        where: { id },
+        data: {
+            archivedAt: new Date(),
+        },
+    });
+
+    return "archived";
 }
 
 export async function redeemCoinGrantCode(input: {

@@ -11,6 +11,7 @@ export interface CoinGrantCodeView {
     claimCount: number;
     expiresAt: string | null;
     isActive: boolean;
+    archivedAt: string | null;
     createdAt: string;
 }
 
@@ -28,6 +29,7 @@ export interface CoinGrantCampaignView {
     startsAt: string | null;
     endsAt: string | null;
     isActive: boolean;
+    archivedAt: string | null;
     createdAt: string;
     updatedAt: string;
     codes: CoinGrantCodeView[];

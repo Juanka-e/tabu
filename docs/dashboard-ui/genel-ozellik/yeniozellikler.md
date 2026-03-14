@@ -99,6 +99,22 @@
 - Login kullanici shop ekranindan influencer veya etkinlik kodunu redeem ederek wallet bakiyesine coin ekleyebiliyor.
 - Claim akisinda campaign budget, code claim limiti ve user bazli claim limiti transaction icinde korunuyor.
 - Coin redemption isleri rate limit ve audit log ile izlenebilir hale getirildi.
+- Wallet degisimi event tabanli dinlenir hale getirildi; redeem sonrasi F5 zorunlulugu kalkti.
+- Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
+- `/admin/coin-grants` ekranina `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri ve coin grant gecmisi paneli eklendi.
+
+## Gelecek Progression Stratejisi
+- XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
+- OlasÄ± ileriki branch:
+  - `feature/progression-foundation`
+- Bu yapida seviye odulleri su kaynak tipleriyle modellenebilir:
+  - coin reward
+  - badge unlock
+  - cosmetic unlock
+  - title / profile flair
+  - seasonal track milestone
+  - bundle / code claim entitlement
+- Seviye odulu mantigi ileride eklendiginde admin panelden sadece odul tablolarini ve carpanlari yonetmek yeterli olmali; mevcut economy ve audit zinciri korunmali.
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
