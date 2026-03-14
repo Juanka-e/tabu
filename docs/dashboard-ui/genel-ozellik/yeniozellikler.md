@@ -103,6 +103,27 @@
 - Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
 - `/admin/coin-grants` ekraninda `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri, acilir/kapanir campaign kartlari ve sade operasyon gorunumu benimsendi.
 
+## Support Desk Foundation Slice (14 March 2026, in progress)
+- Support girisi full-page dashboard ve in-game dashboard icinde sol alttaki `Help` ikonu uzerinden acilir hale getirildi.
+- Guest oyunculara support girisi acilmadi; support sadece login kullaniciya acik tutuldu.
+- `support_tickets` ve `support_ticket_messages` veri modeli eklendi.
+- Kullanici tarafinda support sheet icinden:
+  - yeni ticket acma
+  - kendi ticket'larini gorme
+  - kapali olmayan ticket'a reply gonderme
+  mumkun hale getirildi.
+- User reply akisina 30 saniyelik cooldown eklendi; art arda spam mesaj gonderimi bloklandi.
+- Kullanici support sheet'i arka planda periyodik yenilenir hale getirildi; admin cevabi F5 atmadan gorunur oldu.
+- `resolved` durumundaki ticket'a kullanici reply ile tekrar `open` donusu kapatildi; yeni durum icin yeni ticket acilmasi zorunlu tutuldu.
+- Admin tarafinda `/admin/support` kuyrugu eklendi:
+  - status guncelleme
+  - priority guncelleme
+  - assignee secimi
+  - public reply
+  - internal note
+- Ticket create/reply/admin update/admin message aksiyonlari audit log'a baglandi.
+- Realtime bildirim ve inbox bu branch'e alinmadi; sonraki `feature/system-notifications-foundation` icin birakildi.
+
 ## Gelecek Progression Stratejisi
 - XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
 - Olasi ileriki branch:

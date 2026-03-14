@@ -70,10 +70,18 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Fix Branch'ler
-- `fix/coin-grants-workflow-guards`
-  - arsivli campaign edit guard'i
-  - pasif/arsivli campaign icin code creation guard'i
-  - shop coin code feedback / usage UX duzeltmeleri
+- aktif fix branch yok
+
+## Aktif Branch
+### `feature/support-desk-foundation`
+- support ticket ve message veri modeli eklendi
+- kullanici support sheet'i sol alttaki `Help` girisine baglandi
+- `/admin/support` kuyrugu eklendi
+- status, priority, assignee, internal note ve public reply akislari kuruldu
+- user reply icin 30 saniyelik cooldown eklendi
+- kullanici support sheet'i arka planda yenilenir hale getirildi; admin cevabi F5 istemeden gorunur oldu
+- `resolved` ticket'a kullanici reply ile yeniden acma davranisi kapatildi
+- verification: `test:support-desk-foundation`, prisma push, prisma generate, lint, tsc, build, audit
 
 ## Aktif Sonraki Branch Adaylari
 1. `feature/support-desk-foundation`

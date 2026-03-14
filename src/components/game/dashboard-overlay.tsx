@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, type ReactNode, type MouseEvent } from "react";
-import { X } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { DashboardNav, type DashboardTab } from "./dashboard-nav";
 import { DashboardProfileSidebar } from "./dashboard-profile-sidebar";
+import { SupportDeskSheet } from "./support-desk-sheet";
 
 interface DashboardOverlayProps {
     isOpen: boolean;
@@ -78,11 +80,20 @@ export function DashboardLayout({
     playContent?: ReactNode;
 }) {
     const [activeTab, setActiveTab] = useState<DashboardTab>(defaultTab);
+    const [supportOpen, setSupportOpen] = useState(false);
+    const { status } = useSession();
+    const supportEnabled = status === "authenticated";
 
     return (
-        <div className={`flex w-full h-full ${className}`}>
+        <div className={`relative flex w-full h-full ${className}`}>
             {/* Nav sidebar */}
-            <DashboardNav activeTab={activeTab} onTabChange={setActiveTab} showPlayTab={showPlayTab} />
+            <DashboardNav
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                showPlayTab={showPlayTab}
+                supportEnabled={supportEnabled}
+                onHelpClick={() => setSupportOpen(true)}
+            />
 
             {/* Main content */}
             <main className="flex-1 h-full overflow-y-auto relative scroll-smooth">
@@ -95,6 +106,18 @@ export function DashboardLayout({
 
             {/* Profile sidebar (hidden on mobile/tablet) */}
             <DashboardProfileSidebar onTabChange={setActiveTab} />
+            {supportEnabled ? (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => setSupportOpen(true)}
+                        className="absolute bottom-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-105 dark:bg-amber-200 dark:text-slate-900 md:hidden"
+                    >
+                        <HelpCircle className="h-5 w-5" />
+                    </button>
+                    <SupportDeskSheet isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
+                </>
+            ) : null}
         </div>
     );
 }
