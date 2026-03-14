@@ -1,4 +1,4 @@
-# Yeni Ozellikler Yol Haritasi
+﻿# Yeni Ozellikler Yol Haritasi
 
 > Son guncelleme: 14 March 2026
 > Durum: aktif roadmap dokumani
@@ -47,7 +47,7 @@
 ### Gelecek Odeme Stratejisi
 - Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
 - Uygun zamanda `wallet ledger` omurgasi kurulacak.
-- Olası ileriki branch'ler:
+- Olasi ileriki branch'ler:
   - `feature/wallet-ledger-foundation`
   - `feature/payment-orders-foundation`
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
@@ -101,11 +101,11 @@
 - Coin redemption isleri rate limit ve audit log ile izlenebilir hale getirildi.
 - Wallet degisimi event tabanli dinlenir hale getirildi; redeem sonrasi F5 zorunlulugu kalkti.
 - Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
-- `/admin/coin-grants` ekranina `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri ve coin grant gecmisi paneli eklendi.
+- `/admin/coin-grants` ekraninda `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri, acilir/kapanir campaign kartlari ve sade operasyon gorunumu benimsendi.
 
 ## Gelecek Progression Stratejisi
 - XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
-- OlasÄ± ileriki branch:
+- Olasi ileriki branch:
   - `feature/progression-foundation`
 - Bu yapida seviye odulleri su kaynak tipleriyle modellenebilir:
   - coin reward
@@ -130,3 +130,5 @@
 - `fix/*` branch'ler bu sayiya dahil degildir.
 - Room regression ve dependency hotfix gibi duzeltmeler roadmap count icinde tutulmaz.
 - Bu dosya karar dokumanidir; eski brainstorming metinleri burada tutulmaz.
+
+

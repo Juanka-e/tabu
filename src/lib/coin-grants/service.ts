@@ -16,9 +16,16 @@ import type {
 const COIN_GRANT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 type RedeemFailureCode = Exclude<CoinGrantRedeemResult, { ok: true }>['code'];
+type CoinGrantWorkflowErrorCode = "campaign_archived" | "campaign_inactive" | "campaign_not_found";
 
 class CoinGrantRedeemFailure extends Error {
     constructor(public readonly code: RedeemFailureCode) {
+        super(code);
+    }
+}
+
+export class CoinGrantWorkflowError extends Error {
+    constructor(public readonly code: CoinGrantWorkflowErrorCode) {
         super(code);
     }
 }
@@ -167,9 +174,13 @@ function parseOptionalDate(value: string | null | undefined): Date | null {
 
 function buildCampaignAvailabilityError(campaign: {
     isActive: boolean;
+    archivedAt?: Date | null;
     startsAt: Date | null;
     endsAt: Date | null;
 }, now: Date): RedeemFailureCode | null {
+    if (campaign.archivedAt) {
+        return "inactive";
+    }
     if (!campaign.isActive) {
         return "inactive";
     }
@@ -184,8 +195,12 @@ function buildCampaignAvailabilityError(campaign: {
 
 function buildCodeAvailabilityError(code: {
     isActive: boolean;
+    archivedAt?: Date | null;
     expiresAt: Date | null;
 }, now: Date): RedeemFailureCode | null {
+    if (code.archivedAt) {
+        return "inactive";
+    }
     if (!code.isActive) {
         return "inactive";
     }
@@ -364,9 +379,15 @@ export async function createCoinGrantCampaign(input: CoinGrantCampaignWriteInput
 }
 
 export async function updateCoinGrantCampaign(id: number, input: CoinGrantCampaignWriteInput): Promise<CoinGrantCampaignView | null> {
-    const existing = await prisma.coinGrantCampaign.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.coinGrantCampaign.findUnique({
+        where: { id },
+        select: { id: true, archivedAt: true },
+    });
     if (!existing) {
         return null;
+    }
+    if (existing.archivedAt) {
+        throw new CoinGrantWorkflowError("campaign_archived");
     }
 
     const campaign = await prisma.coinGrantCampaign.update({
@@ -382,7 +403,6 @@ export async function updateCoinGrantCampaign(id: number, input: CoinGrantCampai
             startsAt: parseOptionalDate(input.startsAt),
             endsAt: parseOptionalDate(input.endsAt),
             isActive: input.isActive,
-            archivedAt: null,
         },
         include: {
             codes: {
@@ -437,11 +457,21 @@ export async function deactivateCoinGrantCampaign(id: number): Promise<"deleted"
 export async function createCoinGrantCodes(input: CoinGrantCodeBatchCreateInput): Promise<CoinGrantCodeView[]> {
     const campaign = await prisma.coinGrantCampaign.findUnique({
         where: { id: input.campaignId },
-        select: { id: true },
+        select: {
+            id: true,
+            isActive: true,
+            archivedAt: true,
+        },
     });
 
     if (!campaign) {
-        return [];
+        throw new CoinGrantWorkflowError("campaign_not_found");
+    }
+    if (campaign.archivedAt) {
+        throw new CoinGrantWorkflowError("campaign_archived");
+    }
+    if (!campaign.isActive) {
+        throw new CoinGrantWorkflowError("campaign_inactive");
     }
 
     const quantity = input.quantity;

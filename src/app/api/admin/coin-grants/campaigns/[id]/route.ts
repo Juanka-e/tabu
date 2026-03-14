@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { coinGrantCampaignWriteSchema } from "@/lib/coin-grants/schema";
-import { deactivateCoinGrantCampaign, updateCoinGrantCampaign } from "@/lib/coin-grants/service";
+import { CoinGrantWorkflowError, deactivateCoinGrantCampaign, updateCoinGrantCampaign } from "@/lib/coin-grants/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
@@ -61,6 +61,16 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
         return NextResponse.json(campaign);
     } catch (error) {
+        if (error instanceof CoinGrantWorkflowError) {
+            const messages: Record<string, string> = {
+                campaign_archived: "Arsivli campaign duzenlenemez.",
+                campaign_inactive: "Pasif campaign bu islem icin uygun degil.",
+                campaign_not_found: "Campaign bulunamadi.",
+            };
+            const status = error.code === "campaign_not_found" ? 404 : 409;
+            return NextResponse.json({ error: messages[error.code] || "Campaign guncellenemedi." }, { status });
+        }
+
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
             return NextResponse.json({ error: "Ayni kod ile bir campaign zaten var." }, { status: 409 });
         }
