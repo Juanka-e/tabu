@@ -33,6 +33,7 @@ import { dispatchWalletUpdated } from "@/lib/wallet-events";
 type ShopCategory = "all" | StoreItemType;
 type BusyTarget = { kind: "shop_item" | "bundle"; id: number } | null;
 type LayoutMode = "dashboard" | "page";
+type FeedbackTone = "success" | "error";
 
 interface ShopContentProps {
     layout?: LayoutMode;
@@ -81,6 +82,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
     const [coinGrantCode, setCoinGrantCode] = useState("");
     const [coinGrantFeedback, setCoinGrantFeedback] = useState<string | null>(null);
+    const [coinGrantFeedbackTone, setCoinGrantFeedbackTone] = useState<FeedbackTone>("success");
     const [redeemingCoinGrant, setRedeemingCoinGrant] = useState(false);
     const [busyTarget, setBusyTarget] = useState<BusyTarget>(null);
 
@@ -289,6 +291,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
         }
 
         setRedeemingCoinGrant(true);
+        setCoinGrantFeedback(null);
         try {
             const response = await fetch("/api/coin-grants/redeem", {
                 method: "POST",
@@ -298,11 +301,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
             const payload = (await response.json()) as CoinGrantRedeemResult | { error?: string };
             if (!response.ok || !("ok" in payload)) {
+                setCoinGrantFeedbackTone("error");
                 setCoinGrantFeedback(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanilamadi.");
                 return;
             }
 
             if (!payload.ok) {
+                setCoinGrantFeedbackTone("error");
                 setCoinGrantFeedback("Coin kodu kullanilamadi.");
                 return;
             }
@@ -316,8 +321,10 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 source: "coin_grant",
             });
             setCoinGrantCode("");
+            setCoinGrantFeedbackTone("success");
             setCoinGrantFeedback(`${payload.coinAmount} coin eklendi: ${payload.code.code}`);
         } catch {
+            setCoinGrantFeedbackTone("error");
             setCoinGrantFeedback("Coin kodu istegi tamamlanamadi.");
         } finally {
             setRedeemingCoinGrant(false);
@@ -425,8 +432,20 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                             <div className="flex gap-2">
                                 <input
                                     value={coinGrantCode}
-                                    onChange={(event) => setCoinGrantCode(event.target.value.toUpperCase())}
+                                    onChange={(event) => {
+                                        setCoinGrantCode(event.target.value.toUpperCase());
+                                        if (coinGrantFeedback) {
+                                            setCoinGrantFeedback(null);
+                                        }
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            event.preventDefault();
+                                            void handleRedeemCoinGrant();
+                                        }
+                                    }}
                                     placeholder="CREATOR-AB12CD"
+                                    maxLength={80}
                                     className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-amber-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                                 />
                                 <button
@@ -435,11 +454,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                     disabled={redeemingCoinGrant || !coinGrantCode.trim()}
                                     className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
                                 >
-                                    {redeemingCoinGrant ? "..." : "Redeem"}
+                                    {redeemingCoinGrant ? "..." : "Kullan"}
                                 </button>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Etkinlik veya influencer kodu ile dogrudan wallet bakiyene coin eklenir.
+                                Etkinlik veya influencer kodunu burada kullan. Onaylanirsa coin bakiyen hemen guncellenir.
                             </p>
                         </div>
                     </div>
@@ -452,7 +471,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 </div>
             )}
             {coinGrantFeedback && (
-                <div className="mb-6 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-800 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                <div
+                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
+                        coinGrantFeedbackTone === "success"
+                            ? "border-amber-200/70 bg-amber-50/80 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
+                            : "border-rose-200/70 bg-rose-50/80 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200"
+                    }`}
+                >
                     {coinGrantFeedback}
                 </div>
             )}

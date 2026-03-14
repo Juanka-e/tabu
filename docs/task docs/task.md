@@ -1,4 +1,4 @@
-# Gorev Kaydi
+﻿# Gorev Kaydi
 
 > Son guncelleme: 14 March 2026
 > Durum: aktif execution log
@@ -57,7 +57,7 @@
 - verification: `test:admin-audit-viewer`, lint, tsc, build, audit
 
 ### `feature/coin-grant-campaigns`
-- `/admin/coin-grants` ekranı
+- `/admin/coin-grants` ekrani
 - campaign/code admin API'leri
 - `/api/coin-grants/redeem` kullanici claim akisi
 - redeem sonrasi wallet live update
@@ -68,6 +68,12 @@
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap / planning copleri temizlendi
   - aktif docs seti sadelestirildi
+
+## Aktif Fix Branch'ler
+- `fix/coin-grants-workflow-guards`
+  - arsivli campaign edit guard'i
+  - pasif/arsivli campaign icin code creation guard'i
+  - shop coin code feedback / usage UX duzeltmeleri
 
 ## Aktif Sonraki Branch Adaylari
 1. `feature/support-desk-foundation`
@@ -82,3 +88,5 @@ Bu dosyadan sunlar kaldirildi:
 - artik karar aldirma degeri olmayan ilk migration checklist'leri
 - bozuk encoding'li eski durum notlari
 - tarihsel ama operasyonel olmayan uzun tekrarlar
+
+

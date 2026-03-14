@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -186,10 +186,24 @@ export default function AdminCoinGrantsPage() {
 
             const payload = (await response.json()) as CoinGrantCampaignView[];
             setCampaigns(payload);
-            setCodeForm((current) => ({
-                ...current,
-                campaignId: current.campaignId || (payload[0] ? String(payload[0].id) : ""),
-            }));
+            setCodeForm((current) => {
+                const currentStillEligible = payload.some(
+                    (campaign) =>
+                        String(campaign.id) === current.campaignId &&
+                        campaign.isActive &&
+                        !campaign.archivedAt
+                );
+                const nextEligible = payload.find((campaign) => campaign.isActive && !campaign.archivedAt);
+
+                return {
+                    ...current,
+                    campaignId: currentStillEligible
+                        ? current.campaignId
+                        : nextEligible
+                            ? String(nextEligible.id)
+                            : "",
+                };
+            });
         } catch {
             setError("Coin grant verileri yuklenemedi.");
         } finally {
@@ -231,6 +245,11 @@ export default function AdminCoinGrantsPage() {
             }
         });
     }, [campaigns, search, viewFilter]);
+
+    const eligibleCodeCampaigns = useMemo(
+        () => campaigns.filter((campaign) => campaign.isActive && !campaign.archivedAt),
+        [campaigns]
+    );
 
     const stats = useMemo(
         () => [
@@ -283,8 +302,14 @@ export default function AdminCoinGrantsPage() {
     };
 
     const submitCodes = async () => {
+        if (!eligibleCodeCampaigns.some((campaign) => String(campaign.id) === codeForm.campaignId)) {
+            setError("Kod uretimi icin aktif ve arsivlenmemis bir campaign sec.");
+            return;
+        }
+
         setSaving(true);
         setNotice(null);
+        setError(null);
         try {
             const payload = {
                 campaignId: Number.parseInt(codeForm.campaignId, 10),
@@ -318,6 +343,11 @@ export default function AdminCoinGrantsPage() {
     };
 
     const editCampaign = (campaign: CoinGrantCampaignView) => {
+        if (campaign.archivedAt) {
+            setError("Arsivli campaign duzenlenemez.");
+            return;
+        }
+
         setEditingCampaignId(campaign.id);
         setCampaignForm({
             code: campaign.code,
@@ -613,7 +643,12 @@ export default function AdminCoinGrantsPage() {
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                                 <span>{isExpanded ? "Detayi kapat" : "Detayi ac"}</span>
                                             </Button>
-                                            <Button variant="outline" size="sm" onClick={() => editCampaign(campaign)}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={Boolean(campaign.archivedAt)}
+                                                onClick={() => editCampaign(campaign)}
+                                            >
                                                 Duzenle
                                             </Button>
                                             <Button
@@ -654,7 +689,7 @@ export default function AdminCoinGrantsPage() {
 
                                     <div className="mt-3 text-sm text-muted-foreground">
                                         {visibleCodes.length} gorunen kod
-                                        {archivedCodeCount > 0 ? ` • ${archivedCodeCount} arsivli` : ""}
+                                        {archivedCodeCount > 0 ? ` | ${archivedCodeCount} arsivli` : ""}
                                     </div>
 
                                     {isExpanded ? (
@@ -801,10 +836,15 @@ export default function AdminCoinGrantsPage() {
                                 <SectionLabel title="Hedef campaign" description="Kodlar claim oldugunda coin miktarini secilen campaign belirler." />
                                 <select className={inputClassName} value={codeForm.campaignId} onChange={(event) => setCodeForm((current) => ({ ...current, campaignId: event.target.value }))}>
                                     <option value="">Campaign sec</option>
-                                    {campaigns.map((campaign) => (
+                                    {eligibleCodeCampaigns.map((campaign) => (
                                         <option key={campaign.id} value={campaign.id}>{campaign.name} ({campaign.code})</option>
                                     ))}
                                 </select>
+                                {eligibleCodeCampaigns.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Kod uretmek icin once aktif ve arsivlenmemis bir campaign olustur.
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div className={sectionClassName}>
@@ -831,7 +871,10 @@ export default function AdminCoinGrantsPage() {
                                 </label>
                             </div>
 
-                            <Button onClick={() => void submitCodes()} disabled={saving || !codeForm.campaignId}>
+                            <Button
+                                onClick={() => void submitCodes()}
+                                disabled={saving || !codeForm.campaignId || eligibleCodeCampaigns.length === 0}
+                            >
                                 Kodlari uret
                             </Button>
                         </div>
@@ -842,3 +885,4 @@ export default function AdminCoinGrantsPage() {
         </div>
     );
 }
+

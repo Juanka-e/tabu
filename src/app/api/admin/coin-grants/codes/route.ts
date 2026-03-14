@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { coinGrantCodeBatchCreateSchema } from "@/lib/coin-grants/schema";
-import { createCoinGrantCodes } from "@/lib/coin-grants/service";
+import { CoinGrantWorkflowError, createCoinGrantCodes } from "@/lib/coin-grants/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
@@ -56,6 +56,16 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(codes, { status: 201 });
     } catch (error) {
+        if (error instanceof CoinGrantWorkflowError) {
+            const messages: Record<string, string> = {
+                campaign_archived: "Arsivli campaign icin yeni kod uretilemez.",
+                campaign_inactive: "Pasif campaign once aktif edilmeli.",
+                campaign_not_found: "Campaign bulunamadi.",
+            };
+            const status = error.code === "campaign_not_found" ? 404 : 409;
+            return NextResponse.json({ error: messages[error.code] || "Kodlar olusturulamadi." }, { status });
+        }
+
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
             return NextResponse.json({ error: "Uretilen kodlardan biri zaten kullanimda." }, { status: 409 });
         }
