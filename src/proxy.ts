@@ -145,6 +145,8 @@ export const config = {
             ],
         },
         "/api/admin/:path*",
+        "/api/support/:path*",
+        "/api/coin-grants/:path*",
         "/api/user/:path*",
         "/api/store/:path*",
         "/api/game/:path*",

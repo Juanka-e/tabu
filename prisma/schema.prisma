@@ -585,11 +585,12 @@ model WordCategory {
 }
 
 model Announcement {
-  id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(255)
-  content   String   @db.Text
-  type      String   @default("guncelleme") @db.VarChar(20)
-  isVisible Boolean  @default(true) @map("is_visible")
+    id        Int      @id @default(autoincrement())
+    title     String   @db.VarChar(255)
+    content   String   @db.Text
+    contentBlocks Json? @map("content_blocks")
+    type      String   @default("guncelleme") @db.VarChar(20)
+    isVisible Boolean  @default(true) @map("is_visible")
   isPinned  Boolean  @default(false) @map("is_pinned")
   version   String?  @db.VarChar(50)
   tags      String?  @db.Text

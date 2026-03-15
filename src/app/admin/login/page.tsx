@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2 } from "lucide-react";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import { resolveSafeCallbackUrl } from "@/lib/security/safe-callback-url";
 
 export default function AdminLoginPage() {
     const [username, setUsername] = useState("");
@@ -41,7 +42,10 @@ export default function AdminLoginPage() {
 
             const callbackUrl =
                 typeof window !== "undefined"
-                    ? new URLSearchParams(window.location.search).get("callbackUrl") || "/admin"
+                    ? resolveSafeCallbackUrl(
+                          new URLSearchParams(window.location.search).get("callbackUrl"),
+                          "/admin"
+                      )
                     : "/admin";
             router.push(callbackUrl);
             router.refresh();
