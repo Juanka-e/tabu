@@ -137,6 +137,30 @@
   - bundle / code claim entitlement
 - Seviye odulu mantigi ileride eklendiginde admin panelden sadece odul tablolarini ve carpanlari yonetmek yeterli olmali; mevcut economy ve audit zinciri korunmali.
 
+## Captcha Provider Policy Karari (15 March 2026)
+- Tek aktif provider modeli benimsendi.
+  - ayni anda sadece bir captcha provider aktif olur
+  - operatör gerekirse admin panelden provider degistirir
+- Production davranisi:
+  - `strict` enforcement zorunlu
+  - prod ortaminda `soft_fail` ile korumayi dusurme serbestligi yok
+- Onerilen varsayilan:
+  - provider: `turnstile`
+  - mode: `invisible`
+  - register: acik
+  - room create: acik
+  - guest join: ihtiyaca gore
+  - login: ihtiyaca gore
+- `reCAPTCHA v3` ayni anda ikinci katman olarak calismaz.
+  - sadece alternatif / yedek provider olarak tutulur
+- Admin panel sadelestirme ilkesi:
+  - provider secimi
+  - korunan akislar
+  - turnstile mode
+  - provider readiness
+  - production strict bilgisi
+  - riskli `failMode` secicisini UI'dan kaldirma
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi

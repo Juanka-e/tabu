@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
     CAPTCHA_FAIL_MODES,
     CAPTCHA_PROVIDERS,
+    CAPTCHA_TURNSTILE_MODES,
     type SystemSettings,
 } from "@/types/system-settings";
 
@@ -39,12 +40,13 @@ const economySettingsSchema = z.object({
 
 const captchaSettingsSchema = z.object({
     enabled: z.boolean().default(false),
-    provider: z.enum(CAPTCHA_PROVIDERS).default("none"),
+    provider: z.enum(CAPTCHA_PROVIDERS).default("turnstile"),
     onRegister: z.boolean().default(true),
     onGuestJoin: z.boolean().default(false),
     onRoomCreate: z.boolean().default(true),
     onLogin: z.boolean().default(false),
-    failMode: z.enum(CAPTCHA_FAIL_MODES).default("soft_fail"),
+    failMode: z.enum(CAPTCHA_FAIL_MODES).default("hard_fail"),
+    turnstileMode: z.enum(CAPTCHA_TURNSTILE_MODES).default("invisible"),
     recaptchaScoreThreshold: z.number().min(0).max(1).default(0.5),
     turnstileInteractiveFallback: z.boolean().default(true),
 });
@@ -79,5 +81,20 @@ export const SYSTEM_SETTINGS_NAMESPACES = [
 export const DEFAULT_SYSTEM_SETTINGS = systemSettingsSchema.parse({}) satisfies SystemSettings;
 
 export function normalizeSystemSettings(input: unknown): SystemSettings {
-    return systemSettingsSchema.parse(input);
+    const parsed = systemSettingsSchema.parse(input);
+
+    if (parsed.security.captcha.provider === "none") {
+        return {
+            ...parsed,
+            security: {
+                ...parsed.security,
+                captcha: {
+                    ...parsed.security.captcha,
+                    provider: "turnstile",
+                },
+            },
+        };
+    }
+
+    return parsed;
 }

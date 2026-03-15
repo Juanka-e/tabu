@@ -1,4 +1,5 @@
 import type { CaptchaFailMode, CaptchaProvider } from "@/types/system-settings";
+import type { CaptchaTurnstileMode } from "@/types/system-settings";
 
 export const CAPTCHA_ACTIONS = [
     "register",
@@ -15,6 +16,7 @@ export interface PublicCaptchaConfig {
     provider: CaptchaProvider;
     siteKey: string | null;
     failMode: CaptchaFailMode;
+    turnstileMode: CaptchaTurnstileMode;
     turnstileInteractiveFallback: boolean;
 }
 

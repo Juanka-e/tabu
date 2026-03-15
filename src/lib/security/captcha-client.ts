@@ -79,7 +79,12 @@ async function fetchCaptchaConfig(action: CaptchaAction): Promise<PublicCaptchaC
     return (await response.json()) as PublicCaptchaConfig;
 }
 
-async function executeTurnstile(siteKey: string, action: CaptchaAction): Promise<string> {
+async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaAction): Promise<string> {
+    const siteKey = config.siteKey;
+    if (!siteKey) {
+        throw new Error("Turnstile site key eksik.");
+    }
+
     await ensureTurnstileLoaded();
 
     if (!window.turnstile) {
@@ -97,8 +102,15 @@ async function executeTurnstile(siteKey: string, action: CaptchaAction): Promise
             const widgetId = window.turnstile!.render(container, {
                 sitekey: siteKey,
                 action,
-                appearance: "interaction-only",
+                appearance:
+                    config.turnstileMode === "managed"
+                        ? "interaction-only"
+                        : "execute",
                 execution: "execute",
+                size:
+                    config.turnstileMode === "invisible"
+                        ? "invisible"
+                        : "normal",
                 callback: (value: string) => resolve(value),
                 "error-callback": () => reject(new Error("Turnstile token alinamadi.")),
                 "expired-callback": () => reject(new Error("Turnstile token suresi doldu.")),
@@ -155,7 +167,7 @@ export async function getCaptchaTokenForAction(action: CaptchaAction): Promise<{
 
     const token =
         config.provider === "turnstile"
-            ? await executeTurnstile(config.siteKey, action)
+            ? await executeTurnstile(config, action)
             : await executeRecaptcha(config.siteKey, action);
 
     return {
