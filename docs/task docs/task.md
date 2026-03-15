@@ -70,26 +70,27 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Fix Branch'ler
-- aktif fix branch yok
+- `fix/security-review-remediation`
+  - `callbackUrl` redirect sink kapatildi
+  - announcement sistemi structured content modeline tasindi
+  - oyuncu tarafinda announcement `dangerouslySetInnerHTML` kaldirildi
+  - store/admin/public agir GET endpoint'lere read rate limit eklendi
+  - AI raporundaki Prisma field false positive'i smoke test ile dogrulandi
 
 ## Aktif Branch
-### `feature/support-desk-foundation`
-- support ticket ve message veri modeli eklendi
-- kullanici support sheet'i sol alttaki `Help` girisine baglandi
-- `/admin/support` kuyrugu eklendi
-- status, priority, assignee, internal note ve public reply akislari kuruldu
-- user reply icin 30 saniyelik cooldown eklendi
-- kullanici support sheet'i arka planda yenilenir hale getirildi; admin cevabi F5 istemeden gorunur oldu
-- `resolved` ticket'a kullanici reply ile yeniden acma davranisi kapatildi
-- verification: `test:support-desk-foundation`, prisma push, prisma generate, lint, tsc, build, audit
+### `fix/security-review-remediation`
+- `docs/security/aiagentssecurityreview.md` icindeki AI bulgulari tekrar dogrulandi
+- gercek yuksek guven bulgu olarak sadece auth redirect sink dogrulandi ve kapatildi
+- structured announcement refactor'u ayni fix diliminde tamamlandi
+- verification: `test:auth-redirect-security`, `test:announcement-security`, `test:announcement-structure`, `test:promotion-field-references`, prisma push, prisma generate, lint, tsc, build, audit
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/support-desk-foundation`
-2. `feature/system-notifications-foundation`
-3. `feature/admin-access-gateway`
-4. `feature/branding-seo-settings`
-5. `feature/integration-hub`
-6. `feature/progression-foundation`
+1. `feature/system-notifications-foundation`
+2. `feature/admin-access-gateway`
+3. `feature/branding-seo-settings`
+4. `feature/integration-hub`
+5. `feature/progression-foundation`
+6. `feature/wallet-ledger-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

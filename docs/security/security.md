@@ -1106,3 +1106,23 @@ Critical Findings
 - Sonuc:
   - `npm audit --omit=dev` tekrar `0 vulnerabilities`
   - `npm run lint`, `npx tsc --noEmit`, `npm run build` gecti
+
+## 15 March 2026 Update - Security Review Remediation
+
+- Login ve admin login ekranlarindaki `callbackUrl` sink'i kapatildi.
+  - sadece internal / same-origin callback path'leri kabul ediliyor
+- Duyuru sistemi structured content modeline tasindi.
+  - `announcements.content_blocks` JSON alani eklendi
+  - admin create/update artik blok semasi uzerinden calisiyor
+  - oyuncu tarafi duyuru render zincirinden `dangerouslySetInnerHTML` kaldirildi
+  - eski HTML duyurular legacy uyumlulukla okunuyor
+- Abuse hardening genisletildi:
+  - `/api/store/catalog`
+  - `/api/admin/words`
+  - `/api/admin/categories`
+  - `/api/admin/announcements`
+  - `/api/announcements/visible`
+  read rate limit altina alindi
+- `/api/support/*` ve `/api/coin-grants/*` state-changing endpoint'leri proxy origin kontrol kapsaminda tutuluyor
+- AI raporunda kritik diye yazilan Prisma `fields.usageLimit` iddiasi repo icinde smoke test ile yanlislandi
+  - `test:promotion-field-references`
