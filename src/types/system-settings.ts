@@ -4,6 +4,13 @@ export type CaptchaProvider = (typeof CAPTCHA_PROVIDERS)[number];
 export const CAPTCHA_FAIL_MODES = ["soft_fail", "hard_fail"] as const;
 export type CaptchaFailMode = (typeof CAPTCHA_FAIL_MODES)[number];
 
+export const CAPTCHA_TURNSTILE_MODES = [
+    "invisible",
+    "non_interactive",
+    "managed",
+] as const;
+export type CaptchaTurnstileMode = (typeof CAPTCHA_TURNSTILE_MODES)[number];
+
 export interface PlatformSettings {
     maintenanceEnabled: boolean;
     maintenanceMessage: string;
@@ -41,6 +48,7 @@ export interface CaptchaSettings {
     onRoomCreate: boolean;
     onLogin: boolean;
     failMode: CaptchaFailMode;
+    turnstileMode: CaptchaTurnstileMode;
     recaptchaScoreThreshold: number;
     turnstileInteractiveFallback: boolean;
 }

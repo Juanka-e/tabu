@@ -76,13 +76,18 @@
   - oyuncu tarafinda announcement `dangerouslySetInnerHTML` kaldirildi
   - store/admin/public agir GET endpoint'lere read rate limit eklendi
   - AI raporundaki Prisma field false positive'i smoke test ile dogrulandi
+- `fix/captcha-provider-policy`
+  - tek aktif provider politikasi netlestiriliyor
+  - production strict enforcement zorunlu hale getiriliyor
+  - Turnstile mode runtime ayari ekleniyor
+  - admin captcha ayarlari sadeleştiriliyor
 
 ## Aktif Branch
-### `fix/security-review-remediation`
-- `docs/security/aiagentssecurityreview.md` icindeki AI bulgulari tekrar dogrulandi
-- gercek yuksek guven bulgu olarak sadece auth redirect sink dogrulandi ve kapatildi
-- structured announcement refactor'u ayni fix diliminde tamamlandi
-- verification: `test:auth-redirect-security`, `test:announcement-security`, `test:announcement-structure`, `test:promotion-field-references`, prisma push, prisma generate, lint, tsc, build, audit
+### `fix/captcha-provider-policy`
+- default captcha provider `turnstile` olarak normalize edildi
+- production strict enforcement captcha verification tarafinda zorunlu hale getirildi
+- admin panelden `failMode` secimi kaldiriliyor; provider + flow + Turnstile mode uzerinden sade yapi kuruluyor
+- verification: `test:captcha-security`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
 1. `feature/system-notifications-foundation`

@@ -1126,3 +1126,20 @@ Critical Findings
 - `/api/support/*` ve `/api/coin-grants/*` state-changing endpoint'leri proxy origin kontrol kapsaminda tutuluyor
 - AI raporunda kritik diye yazilan Prisma `fields.usageLimit` iddiasi repo icinde smoke test ile yanlislandi
   - `test:promotion-field-references`
+
+## 15 March 2026 Update - Captcha Provider Policy
+
+- Captcha politikasi tek aktif provider modeline cekildi.
+  - ayni anda sadece bir provider aktif kalir
+  - provider degisimi admin panelden operator kontrollu yapilir
+- Varsayilan provider normalize edildi:
+  - `turnstile`
+- Production ortaminda effective captcha fail mode zorunlu olarak `hard_fail`
+  - saved `soft_fail` degeri production'da savunmayi gevsetmez
+- Turnstile deneyimi icin runtime `turnstileMode` ayari eklendi:
+  - `invisible`
+  - `non_interactive`
+  - `managed`
+- Admin panel captcha karti sadeleştirildi:
+  - fail mode secicisi kaldirildi
+  - provider secimi + korunan akislar + turnstile mode + readiness + production policy bilgisi korunuyor

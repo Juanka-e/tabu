@@ -1,6 +1,6 @@
 ﻿# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 14 March 2026
+> Son guncelleme: 15 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -19,6 +19,7 @@
 7. `feature/admin-user-operations`
 8. `feature/admin-audit-viewer`
 9. `feature/coin-grant-campaigns`
+10. `feature/support-desk-foundation`
 
 ## Aktif Teknik Kararlar
 
@@ -53,7 +54,6 @@
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
 ## Sonraki Oncelikli Branch'ler
-10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
 12. `feature/admin-access-gateway`
 13. `feature/branding-seo-settings`
@@ -69,6 +69,7 @@
 23. `feature/word-analytics-liveops`
 24. `feature/release-ops-docs`
 25. `docs/encoding-cleanup`
+26. `feature/wallet-ledger-foundation`
 
 ## User Email Foundation Slice (14 March 2026)
 - Yeni kayit akisinda email zorunlu hale getirildi.
@@ -103,7 +104,7 @@
 - Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
 - `/admin/coin-grants` ekraninda `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri, acilir/kapanir campaign kartlari ve sade operasyon gorunumu benimsendi.
 
-## Support Desk Foundation Slice (14 March 2026, in progress)
+## Support Desk Foundation Slice (14 March 2026)
 - Support girisi full-page dashboard ve in-game dashboard icinde sol alttaki `Help` ikonu uzerinden acilir hale getirildi.
 - Guest oyunculara support girisi acilmadi; support sadece login kullaniciya acik tutuldu.
 - `support_tickets` ve `support_ticket_messages` veri modeli eklendi.
@@ -137,14 +138,38 @@
   - bundle / code claim entitlement
 - Seviye odulu mantigi ileride eklendiginde admin panelden sadece odul tablolarini ve carpanlari yonetmek yeterli olmali; mevcut economy ve audit zinciri korunmali.
 
+## Captcha Provider Policy Karari (15 March 2026)
+- Tek aktif provider modeli benimsendi.
+  - ayni anda sadece bir captcha provider aktif olur
+  - operatör gerekirse admin panelden provider degistirir
+- Production davranisi:
+  - `strict` enforcement zorunlu
+  - prod ortaminda `soft_fail` ile korumayi dusurme serbestligi yok
+- Onerilen varsayilan:
+  - provider: `turnstile`
+  - mode: `invisible`
+  - register: acik
+  - room create: acik
+  - guest join: ihtiyaca gore
+  - login: ihtiyaca gore
+- `reCAPTCHA v3` ayni anda ikinci katman olarak calismaz.
+  - sadece alternatif / yedek provider olarak tutulur
+- Admin panel sadelestirme ilkesi:
+  - provider secimi
+  - korunan akislar
+  - turnstile mode
+  - provider readiness
+  - production strict bilgisi
+  - riskli `failMode` secicisini UI'dan kaldirma
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 9
-- Planli toplam branch sayisi: 25
+- Tamamlanan feature branch sayisi: 10
+- Planli toplam branch sayisi: 26
 - Kalan branch sayisi: 16
 
 ## Notlar

@@ -54,6 +54,7 @@ function ProviderBadge({ enabled, label }: { enabled: boolean; label: string }) 
 }
 
 export default function SystemSettingsPage() {
+    const isProductionBuild = process.env.NODE_ENV === "production";
     const [payload, setPayload] = useState<SystemSettingsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -311,34 +312,63 @@ export default function SystemSettingsPage() {
                         <ProviderBadge enabled={payload.captchaReadiness.turnstileConfigured} label="Turnstile" />
                         <ProviderBadge enabled={payload.captchaReadiness.recaptchaConfigured} label="reCAPTCHA" />
                     </div>
+                    <div className="rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                        <span className="font-semibold text-foreground">Aktif provider:</span>{" "}
+                        {payload.settings.security.captcha.provider === "recaptcha_v3" ? "reCAPTCHA v3" : "Turnstile"}
+                        <span className="mx-2 text-border">•</span>
+                        <span className="font-semibold text-foreground">Policy:</span>{" "}
+                        {isProductionBuild
+                            ? "Production strict enforced"
+                            : `Non-production ${payload.settings.security.captcha.failMode}`}
+                    </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         <ToggleField checked={payload.settings.security.captcha.enabled} label="Captcha Aktif" description="Captcha enforcement register, login ve room entry akislarina baglidir. Buradan runtime davranisini yonetirsin." onChange={(checked) => updateCaptcha("enabled", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onRegister} label="Register'da Kullan" description="Kayit akisinda captcha zorunlulugu." onChange={(checked) => updateCaptcha("onRegister", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onRoomCreate} label="Oda Olusturmada Kullan" description="Abuse dalgasinda create akisina uygulanir." onChange={(checked) => updateCaptcha("onRoomCreate", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onGuestJoin} label="Guest Join'de Kullan" description="Misafir katilim akisinda acar/kapatir." onChange={(checked) => updateCaptcha("onGuestJoin", checked)} />
                         <ToggleField checked={payload.settings.security.captcha.onLogin} label="Login'de Kullan" description="Supheli giris dalgasinda sonradan devreye alinabilir." onChange={(checked) => updateCaptcha("onLogin", checked)} />
-                        <ToggleField checked={payload.settings.security.captcha.turnstileInteractiveFallback} label="Interactive Fallback" description="Skor supheli ise interaktif challenge fallback kullanir." onChange={(checked) => updateCaptcha("turnstileInteractiveFallback", checked)} />
+                        {payload.settings.security.captcha.provider === "turnstile" ? (
+                            <ToggleField checked={payload.settings.security.captcha.turnstileInteractiveFallback} label="Interactive Fallback" description="Turnstile managed modda supheli isteklerde interaktif challenge fallback kullanir." onChange={(checked) => updateCaptcha("turnstileInteractiveFallback", checked)} />
+                        ) : null}
                     </div>
                     <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                             <FieldLabel label="Provider" helper="Ayni anda tek provider aktif tutulur." />
                             <select className={inputClassName} value={payload.settings.security.captcha.provider} onChange={(event) => updateCaptcha("provider", event.target.value as SystemSettingsResponse["settings"]["security"]["captcha"]["provider"])}>
-                                <option value="none">none</option>
                                 <option value="turnstile">turnstile</option>
                                 <option value="recaptcha_v3">recaptcha_v3</option>
                             </select>
                         </div>
-                        <div className="space-y-2">
-                            <FieldLabel label="Fail Mode" helper="Provider erisilemezse nasil davranilacagini belirler." />
-                            <select className={inputClassName} value={payload.settings.security.captcha.failMode} onChange={(event) => updateCaptcha("failMode", event.target.value as SystemSettingsResponse["settings"]["security"]["captcha"]["failMode"])}>
-                                <option value="soft_fail">soft_fail</option>
-                                <option value="hard_fail">hard_fail</option>
-                            </select>
-                        </div>
-                        <div className="space-y-2">
+                        {payload.settings.security.captcha.provider === "turnstile" ? (
+                            <div className="space-y-2">
+                                <FieldLabel label="Turnstile Modu" helper="Invisible varsayilan dusuk surtunmeli akistir. Production'da provider bozulursa strict fail uygulanir." />
+                                <select className={inputClassName} value={payload.settings.security.captcha.turnstileMode} onChange={(event) => updateCaptcha("turnstileMode", event.target.value as SystemSettingsResponse["settings"]["security"]["captcha"]["turnstileMode"])}>
+                                    <option value="invisible">invisible</option>
+                                    <option value="non_interactive">non_interactive</option>
+                                    <option value="managed">managed</option>
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <FieldLabel label="Provider Policy" helper="reCAPTCHA seciliyken production ortaminda strict enforcement uygulanir." />
+                                <div className="rounded-xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                                    Yedek provider olarak saklanir. Gerektiginde operatör bilincli sekilde Turnstile yerine buna gecer.
+                                </div>
+                            </div>
+                        )}
+                        {payload.settings.security.captcha.provider === "recaptcha_v3" ? (
+                            <div className="space-y-2">
                             <FieldLabel label="reCAPTCHA Score" helper="0 ile 1 arasinda skor esigi." />
                             <input className={inputClassName} type="number" min="0" max="1" step="0.05" value={payload.settings.security.captcha.recaptchaScoreThreshold} onChange={(event) => updateCaptcha("recaptchaScoreThreshold", Number(event.target.value))} />
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <FieldLabel label="Provider Health" helper="Turnstile seciliyken gizli key/site key hazirligi ayrica kontrol edilmelidir." />
+                                <div className="rounded-xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                                    Invisible mod, oyuncuya checkbox gostermeden token almaya calisir. Gerekirse operator managed moda gecebilir.
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
