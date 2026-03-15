@@ -19,6 +19,7 @@ export interface NotificationView {
     actionHref: string | null;
     isRead: boolean;
     readAt: string | null;
+    archivedAt: string | null;
     createdAt: string;
 }
 

@@ -133,12 +133,15 @@
   - unread count
   - tekil okundu isaretleme
   - tumunu okundu yapma
+  - tekil temizleme
+  - toplu temizleme
   - support admin public reply bildirimleri
   - support resolved/closed durum bildirimleri
 - Tasarim karari:
   - websocket / realtime yok
   - dusuk frekansli fetch + panel acilisinda yenileme
   - sistemi yormayan inbox modeli
+  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisir
 - Sonraki branch'te eklenecekler:
   - hedefli admin/system notification authoring
   - email / push / websocket dagitimi

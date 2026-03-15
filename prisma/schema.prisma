@@ -366,12 +366,13 @@ model Notification {
   actionHref  String?          @map("action_href") @db.VarChar(255)
   isRead      Boolean          @default(false) @map("is_read")
   readAt      DateTime?        @map("read_at")
+  archivedAt  DateTime?        @map("archived_at")
   metadata    Json?            @db.Json
   createdAt   DateTime         @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, isRead, createdAt])
+  @@index([userId, isRead, archivedAt, createdAt])
   @@index([userId, type, createdAt])
   @@index([resourceType, resourceId])
   @@map("notifications")

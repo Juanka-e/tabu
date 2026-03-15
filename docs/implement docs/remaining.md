@@ -46,6 +46,7 @@
 ### `feature/system-notifications-foundation`
 - `notifications` veri modeli
 - unread count + mark as read + read all
+- tekil temizleme + toplu temizleme
 - support reply / support status notification entegrasyonu
 - dashboard bell/inbox merkezi
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { Bell, Check, CheckCheck, LifeBuoy, X } from "lucide-react";
+import { Archive, Bell, Check, CheckCheck, LifeBuoy, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { NotificationListResponse, NotificationType, NotificationView } from "@/types/notifications";
@@ -183,6 +183,55 @@ export function NotificationsSheet({
         }
     }, [onUnreadCountChange]);
 
+    const archiveOne = useCallback(
+        async (notification: NotificationView) => {
+            try {
+                const response = await fetch(`/api/notifications/${notification.id}/read`, {
+                    method: "DELETE",
+                });
+
+                if (!response.ok) {
+                    toast.error("Bildirim kaldirilamadi.");
+                    return;
+                }
+
+                setNotifications((current) =>
+                    current.filter((entry) => entry.id !== notification.id)
+                );
+                if (!notification.isRead) {
+                    onUnreadCountChange((current) => Math.max(0, current - 1));
+                }
+                dispatchNotificationsUpdated();
+            } catch {
+                toast.error("Bildirim kaldirilamadi.");
+            }
+        },
+        [onUnreadCountChange]
+    );
+
+    const archiveAll = useCallback(async () => {
+        setSaving(true);
+        try {
+            const response = await fetch("/api/notifications/archive-all", {
+                method: "POST",
+            });
+
+            if (!response.ok) {
+                toast.error("Bildirimler kaldirilamadi.");
+                return;
+            }
+
+            setNotifications([]);
+            onUnreadCountChange(0);
+            dispatchNotificationsUpdated();
+            toast.success("Bildirim kutusu temizlendi.");
+        } catch {
+            toast.error("Bildirimler kaldirilamadi.");
+        } finally {
+            setSaving(false);
+        }
+    }, [onUnreadCountChange]);
+
     const visibleNotifications = useMemo(
         () => (filter === "unread" ? notifications.filter((notification) => !notification.isRead) : notifications),
         [filter, notifications]
@@ -268,6 +317,17 @@ export function NotificationsSheet({
                             <CheckCheck className="h-4 w-4" />
                             Tumunu oku
                         </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void archiveAll()}
+                            disabled={saving || notifications.length === 0}
+                            className="gap-2"
+                        >
+                            <Archive className="h-4 w-4" />
+                            Tumunu temizle
+                        </Button>
                     </div>
                 </div>
 
@@ -346,6 +406,16 @@ export function NotificationsSheet({
                                                     Okundu yap
                                                 </Button>
                                             ) : null}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => void archiveOne(notification)}
+                                                className="gap-2"
+                                            >
+                                                <Archive className="h-4 w-4" />
+                                                Temizle
+                                            </Button>
                                             {notification.resourceType === "support_ticket" ? (
                                                 <Button
                                                     type="button"

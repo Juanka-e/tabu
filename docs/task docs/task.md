@@ -78,7 +78,7 @@
 ## Aktif Branch
 ### `feature/system-notifications-foundation`
 - `notifications` veri modeli eklendi
-- kullanici API'leri: listeleme, unread count, mark read, read all
+- kullanici API'leri: listeleme, unread count, mark read, read all, archive one, archive all
 - dashboard bell/inbox arayuzu ekleniyor
 - support admin public reply ve resolved/closed status bildirimleri notif sistemine baglaniyor
 - verification: `test:system-notifications`, prisma push, lint, tsc, build

@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { notificationParamsSchema } from "@/lib/notifications/schema";
-import { markNotificationReadForUser } from "@/lib/notifications/service";
+import {
+    archiveNotificationForUser,
+    markNotificationReadForUser,
+} from "@/lib/notifications/service";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
@@ -63,4 +66,39 @@ export async function PATCH(
             { status: 500 }
         );
     }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
+    }
+
+    const params = notificationParamsSchema.safeParse(await context.params);
+    if (!params.success) {
+        return NextResponse.json({ error: "Gecersiz bildirim." }, { status: 422 });
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "notifications-archive-one",
+        key: `user:${sessionUser.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 40,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla istek gonderildi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
+    const result = await archiveNotificationForUser(params.data.id, sessionUser.id);
+    if (!result.updated) {
+        return NextResponse.json({ error: "Bildirim bulunamadi." }, { status: 404 });
+    }
+
+    return NextResponse.json(result, { headers: buildRateLimitHeaders(rateLimit) });
 }

@@ -53,6 +53,7 @@ type NotificationRecord = {
     actionHref: string | null;
     isRead: boolean;
     readAt: Date | null;
+    archivedAt: Date | null;
     createdAt: Date;
 };
 
@@ -87,6 +88,7 @@ function mapNotification(notification: NotificationRecord): NotificationView {
         actionHref: notification.actionHref,
         isRead: notification.isRead,
         readAt: notification.readAt?.toISOString() ?? null,
+        archivedAt: notification.archivedAt?.toISOString() ?? null,
         createdAt: notification.createdAt.toISOString(),
     };
 }
@@ -120,6 +122,7 @@ export async function listNotificationsForUser(
     const notificationClient = prisma as unknown as NotificationQueryClient;
     const where = {
         userId,
+        archivedAt: null,
         ...(query.filter === "unread" ? { isRead: false } : {}),
     };
 
@@ -139,6 +142,7 @@ export async function listNotificationsForUser(
                 actionHref: true,
                 isRead: true,
                 readAt: true,
+                archivedAt: true,
                 createdAt: true,
             },
         }),
@@ -146,6 +150,7 @@ export async function listNotificationsForUser(
             where: {
                 userId,
                 isRead: false,
+                archivedAt: null,
             },
         }),
     ]);
@@ -167,6 +172,7 @@ export async function getNotificationUnreadCountForUser(
         where: {
             userId,
             isRead: false,
+            archivedAt: null,
         },
     });
 
@@ -183,6 +189,7 @@ export async function markNotificationReadForUser(
             id: notificationId,
             userId,
             isRead: false,
+            archivedAt: null,
         },
         data: {
             isRead: true,
@@ -199,6 +206,7 @@ export async function markAllNotificationsReadForUser(userId: number): Promise<n
         where: {
             userId,
             isRead: false,
+            archivedAt: null,
         },
         data: {
             isRead: true,
@@ -207,4 +215,86 @@ export async function markAllNotificationsReadForUser(userId: number): Promise<n
     });
 
     return result.count;
+}
+
+export async function archiveNotificationForUser(
+    notificationId: number,
+    userId: number
+): Promise<{ updated: boolean; unreadArchived: boolean }> {
+    const notificationClient = prisma as unknown as NotificationQueryClient;
+    const records = await notificationClient.notification.findMany({
+        where: {
+            id: notificationId,
+            userId,
+            archivedAt: null,
+        },
+        orderBy: [{ createdAt: "desc" }],
+        take: 1,
+        select: {
+            id: true,
+            type: true,
+            title: true,
+            body: true,
+            resourceType: true,
+            resourceId: true,
+            actionLabel: true,
+            actionHref: true,
+            isRead: true,
+            readAt: true,
+            archivedAt: true,
+            createdAt: true,
+        },
+    });
+
+    const target = records[0] as NotificationRecord | undefined;
+    if (!target) {
+        return { updated: false, unreadArchived: false };
+    }
+
+    const result = await notificationClient.notification.updateMany({
+        where: {
+            id: notificationId,
+            userId,
+            archivedAt: null,
+        },
+        data: {
+            archivedAt: new Date(),
+            ...(target.isRead ? {} : { isRead: true, readAt: new Date() }),
+        },
+    });
+
+    return {
+        updated: result.count === 1,
+        unreadArchived: !target.isRead,
+    };
+}
+
+export async function archiveAllNotificationsForUser(
+    userId: number
+): Promise<{ archivedCount: number; unreadArchivedCount: number }> {
+    const notificationClient = prisma as unknown as NotificationQueryClient;
+    const unreadArchivedCount = await notificationClient.notification.count({
+        where: {
+            userId,
+            isRead: false,
+            archivedAt: null,
+        },
+    });
+
+    const result = await notificationClient.notification.updateMany({
+        where: {
+            userId,
+            archivedAt: null,
+        },
+        data: {
+            archivedAt: new Date(),
+            isRead: true,
+            readAt: new Date(),
+        },
+    });
+
+    return {
+        archivedCount: result.count,
+        unreadArchivedCount,
+    };
 }

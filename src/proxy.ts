@@ -149,6 +149,7 @@ export const config = {
         "/api/support/:path*",
         "/api/coin-grants/:path*",
         "/api/notifications/:path*",
+        "/api/notifications/archive-all",
         "/api/user/:path*",
         "/api/store/:path*",
         "/api/game/:path*",
