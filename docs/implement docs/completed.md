@@ -1,6 +1,6 @@
 # Tamamlanan Isler
 
-> Son guncelleme: 14 March 2026
+> Son guncelleme: 15 March 2026
 > Durum: aktif completed log
 
 ## Yayinda Olan Temel Sistemler
@@ -19,6 +19,7 @@
 - admin user operations
 - admin audit viewer
 - coin grant campaigns
+- support desk foundation
 
 ## Tamamlanan Feature Branch'ler
 
@@ -65,6 +66,12 @@
 - `/admin/coin-grants` campaign ve code yonetimi
 - login kullanici coin code redeem akisi
 - budget / duplicate claim / code limit korumalari
+
+### 10. `feature/support-desk-foundation`
+- full-page dashboard ve in-game overlay icin ortak support girisi
+- kullanici ticket olusturma ve reply akisi
+- admin support kuyrugu, assignee, public reply ve internal note
+- support aksiyonlari icin audit log baglantisi
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
