@@ -53,9 +53,10 @@ function formatDateTime(value: string): string {
 interface SupportDeskSheetProps {
     isOpen: boolean;
     onClose: () => void;
+    initialTicketId?: number | null;
 }
 
-export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
+export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: SupportDeskSheetProps) {
     const [tickets, setTickets] = useState<SupportTicketView[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
@@ -150,6 +151,15 @@ export function SupportDeskSheet({ isOpen, onClose }: SupportDeskSheetProps) {
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
     }, [isOpen, onClose]);
+
+    useEffect(() => {
+        if (!isOpen || !initialTicketId) {
+            return;
+        }
+
+        setComposeMode(false);
+        setSelectedTicketId(initialTicketId);
+    }, [initialTicketId, isOpen]);
 
     const submitTicket = async () => {
         setSaving(true);

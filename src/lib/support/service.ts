@@ -15,6 +15,10 @@ import type {
     SupportTicketCreateInput,
     SupportTicketReplyInput,
 } from "@/lib/support/schema";
+import {
+    createUserNotificationWithClient,
+    shouldCreateSupportStatusNotification,
+} from "@/lib/notifications/service";
 
 type SupportTicketRecord = {
     id: number;
@@ -443,7 +447,7 @@ export async function updateSupportTicketByAdmin(
     ticketId: number,
     input: SupportTicketAdminUpdateInput
 ): Promise<SupportTicketView> {
-    await getTicketOrThrow(ticketId);
+    const existingTicket = await getTicketOrThrow(ticketId);
 
     if (input.assignedAdminUserId !== undefined && input.assignedAdminUserId !== null) {
         const assignee = await prisma.user.findUnique({
@@ -504,6 +508,24 @@ export async function updateSupportTicketByAdmin(
         },
     });
 
+    if (
+        input.status &&
+        shouldCreateSupportStatusNotification(existingTicket.status, input.status)
+    ) {
+        await createUserNotificationWithClient(prisma, {
+            userId: existingTicket.userId,
+            type: "support_status",
+            title: input.status === "resolved" ? "Destek talebin cozuldu" : "Destek talebin kapatildi",
+            body:
+                input.status === "resolved"
+                    ? `#${ticket.id} numarali destek talebin cozuldu olarak isaretlendi. Gerekirse yardim merkezinden yeni bir talep acabilirsin.`
+                    : `#${ticket.id} numarali destek talebin kapatildi. Yeni bir konu varsa yardim merkezinden yeni talep acabilirsin.`,
+            resourceType: "support_ticket",
+            resourceId: ticket.id,
+            actionLabel: "Yardim merkezinde ac",
+        });
+    }
+
     return mapTicket(ticket as SupportTicketRecord);
 }
 
@@ -542,6 +564,18 @@ export async function addSupportMessageByAdmin(
                 closedAt: nextStatus === "closed" ? now : null,
             },
         });
+
+        if (!input.isInternal) {
+            await createUserNotificationWithClient(tx, {
+                userId: ticket.userId,
+                type: "support_reply",
+                title: "Destek ekibinden yeni cevap var",
+                body: input.body,
+                resourceType: "support_ticket",
+                resourceId: ticketId,
+                actionLabel: "Yardim merkezinde ac",
+            });
+        }
 
         return tx.supportTicket.findUniqueOrThrow({
             where: { id: ticketId },

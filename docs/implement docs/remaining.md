@@ -1,6 +1,6 @@
 # Kalan Isler
 
-> Son guncelleme: 15 March 2026
+> Son guncelleme: 16 March 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
@@ -27,6 +27,8 @@
 - in-app inbox
 - unread state
 - support reply ve system message bildirimi
+- dusuk frekansli polling; realtime yok
+- support'tan ayrik bell/inbox girisi
 
 ### 2. Admin Access Gateway
 - prod admin erisim modelini netlestirme
@@ -39,6 +41,13 @@
 - kullanici ticket ve reply akisi eklendi
 - admin support kuyrugu, public reply ve internal note eklendi
 - reply cooldown, stale UI giderimi ve workflow guard'lari tamamlandi
+
+## Aktif Dilim
+### `feature/system-notifications-foundation`
+- `notifications` veri modeli
+- unread count + mark as read + read all
+- support reply / support status notification entegrasyonu
+- dashboard bell/inbox merkezi
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:
