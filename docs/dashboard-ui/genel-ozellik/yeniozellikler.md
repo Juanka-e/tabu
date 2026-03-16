@@ -183,6 +183,22 @@
   - production strict bilgisi
   - riskli `failMode` secicisini UI'dan kaldirma
 
+## Admin Access Gateway Karari (16 March 2026, in progress)
+- Admin yuzeyi icin env tabanli merkezi access policy katmani kuruluyor.
+- Hedef modlar:
+  - `public_login`
+  - `restricted_login`
+  - `external_gateway`
+- Local/dev ortami:
+  - localhost icin rahat gelistirme bypass'i
+- Production ortami:
+  - `fail_closed` davranisi destekleniyor
+  - policy eksikse admin login ve admin API kapatilabilir
+- Gateway kanit turleri:
+  - sabit header + value
+  - email header + allowlist / allow-domain
+- Bu tasarim ileride Cloudflare Zero Trust gibi edge access sistemleri ile uyumlu olacak sekilde kuruluyor.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi

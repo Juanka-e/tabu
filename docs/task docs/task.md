@@ -76,12 +76,12 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `feature/system-notifications-foundation`
-- `notifications` veri modeli eklendi
-- kullanici API'leri: listeleme, unread count, mark read, read all, archive one, archive all
-- dashboard bell/inbox arayuzu ekleniyor
-- support admin public reply ve resolved/closed status bildirimleri notif sistemine baglaniyor
-- verification: `test:system-notifications`, prisma push, lint, tsc, build
+### `feature/admin-access-gateway`
+- env tabanli admin access policy helper eklendi
+- proxy seviyesinde `/admin`, `/admin/login`, `/api/admin/*` policy kontrolu kuruluyor
+- local-dev bypass + production fail-closed davranisi ekleniyor
+- Zero Trust uyumlu header/email allowlist modeli kuruluyor
+- verification: `test:admin-access-gateway`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
 1. `feature/system-notifications-foundation`

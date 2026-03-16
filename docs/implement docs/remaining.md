@@ -34,6 +34,7 @@
 - prod admin erisim modelini netlestirme
 - `/admin/login` gorunurluk ve allowlist politikalari
 - ayrik admin access/gateway stratejisi
+- Zero Trust uyumlu header/email policy katmani
 
 ## Son Tamamlanan Dilim
 ### `feature/support-desk-foundation`
