@@ -117,6 +117,7 @@ export default auth((req) => {
 
     if (
         pathname.startsWith("/api/user") ||
+        pathname.startsWith("/api/notifications") ||
         pathname.startsWith("/api/store") ||
         pathname.startsWith("/api/game")
     ) {
@@ -147,6 +148,8 @@ export const config = {
         "/api/admin/:path*",
         "/api/support/:path*",
         "/api/coin-grants/:path*",
+        "/api/notifications/:path*",
+        "/api/notifications/archive-all",
         "/api/user/:path*",
         "/api/store/:path*",
         "/api/game/:path*",

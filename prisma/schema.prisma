@@ -86,6 +86,14 @@ enum SupportTicketCategory {
   other
 }
 
+enum NotificationType {
+  system
+  support_reply
+  support_status
+  economy
+  moderation
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -117,6 +125,7 @@ model User {
   supportTicketsOwned      SupportTicket[]        @relation("SupportTicketOwner")
   supportTicketsAssigned   SupportTicket[]        @relation("SupportTicketAssignee")
   supportMessagesAuthored  SupportTicketMessage[] @relation("SupportMessageAuthor")
+  notifications            Notification[]
 
   @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
@@ -343,6 +352,30 @@ model SupportTicketMessage {
   @@index([ticketId, createdAt])
   @@index([authorUserId, createdAt])
   @@map("support_ticket_messages")
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  type        NotificationType
+  title       String           @db.VarChar(160)
+  body        String           @db.VarChar(500)
+  resourceType String?         @map("resource_type") @db.VarChar(80)
+  resourceId  String?          @map("resource_id") @db.VarChar(120)
+  actionLabel String?          @map("action_label") @db.VarChar(40)
+  actionHref  String?          @map("action_href") @db.VarChar(255)
+  isRead      Boolean          @default(false) @map("is_read")
+  readAt      DateTime?        @map("read_at")
+  archivedAt  DateTime?        @map("archived_at")
+  metadata    Json?            @db.Json
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, archivedAt, createdAt])
+  @@index([userId, type, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("notifications")
 }
 
 model ShopItem {

@@ -1,6 +1,6 @@
 ﻿# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 15 March 2026
+> Son guncelleme: 16 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -124,6 +124,27 @@
   - internal note
 - Ticket create/reply/admin update/admin message aksiyonlari audit log'a baglandi.
 - Realtime bildirim ve inbox bu branch'e alinmadi; sonraki `feature/system-notifications-foundation` icin birakildi.
+
+## System Notifications Foundation Slice (16 March 2026, in progress)
+- Yeni `notifications` veri modeli ile kullaniciya bagli in-app bildirim omurgasi kuruluyor.
+- Dashboard tarafinda support'tan ayrik bir `Inbox` / bell girisi ekleniyor.
+- Ilk dilim kapsami:
+  - bildirim listeleme
+  - unread count
+  - tekil okundu isaretleme
+  - tumunu okundu yapma
+  - tekil temizleme
+  - toplu temizleme
+  - support admin public reply bildirimleri
+  - support resolved/closed durum bildirimleri
+- Tasarim karari:
+  - websocket / realtime yok
+  - dusuk frekansli fetch + panel acilisinda yenileme
+  - sistemi yormayan inbox modeli
+  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisir
+- Sonraki branch'te eklenecekler:
+  - hedefli admin/system notification authoring
+  - email / push / websocket dagitimi
 
 ## Gelecek Progression Stratejisi
 - XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
