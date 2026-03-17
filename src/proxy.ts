@@ -80,7 +80,10 @@ export default auth((req) => {
     }
 
     if (
-        (pathname === "/admin" || pathname.startsWith("/admin/login") || pathname.startsWith("/api/admin")) &&
+        (pathname === "/admin" ||
+            pathname.startsWith("/admin/") ||
+            pathname.startsWith("/admin/login") ||
+            pathname.startsWith("/api/admin")) &&
         !adminAccess.allowed
     ) {
         if (pathname.startsWith("/api/admin")) {
@@ -90,13 +93,7 @@ export default auth((req) => {
             );
         }
 
-        if (pathname.startsWith("/admin/login")) {
-            return NextResponse.redirect(new URL("/", req.url));
-        }
-
-        if (!isAuthed(req)) {
-            return NextResponse.redirect(new URL("/", req.url));
-        }
+        return NextResponse.redirect(new URL("/", req.url));
     }
 
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
