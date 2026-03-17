@@ -20,6 +20,7 @@
 8. `feature/admin-audit-viewer`
 9. `feature/coin-grant-campaigns`
 10. `feature/support-desk-foundation`
+11. `feature/system-notifications-foundation`
 
 ## Aktif Teknik Kararlar
 
@@ -54,22 +55,20 @@
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
 ## Sonraki Oncelikli Branch'ler
-11. `feature/system-notifications-foundation`
-12. `feature/admin-access-gateway`
-13. `feature/branding-seo-settings`
-14. `feature/integration-hub`
-15. `feature/dashboard-visual-polish`
-16. `feature/store-merchandising`
-17. `feature/admin-shop-ux`
-18. `feature/admin-promotions-ux`
-19. `feature/cosmetic-render-upgrade`
-20. `feature/admin-cosmetic-authoring`
-21. `feature/gameplay-ui-polish`
-22. `feature/analytics-event-foundation`
-23. `feature/word-analytics-liveops`
-24. `feature/release-ops-docs`
-25. `docs/encoding-cleanup`
-26. `feature/wallet-ledger-foundation`
+12. `feature/branding-seo-settings`
+13. `feature/integration-hub`
+14. `feature/dashboard-visual-polish`
+15. `feature/store-merchandising`
+16. `feature/admin-shop-ux`
+17. `feature/admin-promotions-ux`
+18. `feature/cosmetic-render-upgrade`
+19. `feature/admin-cosmetic-authoring`
+20. `feature/gameplay-ui-polish`
+21. `feature/analytics-event-foundation`
+22. `feature/word-analytics-liveops`
+23. `feature/release-ops-docs`
+24. `docs/encoding-cleanup`
+25. `feature/wallet-ledger-foundation`
 
 ## User Email Foundation Slice (14 March 2026)
 - Yeni kayit akisinda email zorunlu hale getirildi.
@@ -125,10 +124,10 @@
 - Ticket create/reply/admin update/admin message aksiyonlari audit log'a baglandi.
 - Realtime bildirim ve inbox bu branch'e alinmadi; sonraki `feature/system-notifications-foundation` icin birakildi.
 
-## System Notifications Foundation Slice (16 March 2026, in progress)
-- Yeni `notifications` veri modeli ile kullaniciya bagli in-app bildirim omurgasi kuruluyor.
-- Dashboard tarafinda support'tan ayrik bir `Inbox` / bell girisi ekleniyor.
-- Ilk dilim kapsami:
+## System Notifications Foundation Slice (16 March 2026, completed)
+- Kullaniciya bagli `notifications` veri modeli eklendi.
+- Dashboard icine support'tan ayrik `Inbox` / bell girisi eklendi.
+- Ilk dilimde tamamlananlar:
   - bildirim listeleme
   - unread count
   - tekil okundu isaretleme
@@ -140,11 +139,7 @@
 - Tasarim karari:
   - websocket / realtime yok
   - dusuk frekansli fetch + panel acilisinda yenileme
-  - sistemi yormayan inbox modeli
-  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisir
-- Sonraki branch'te eklenecekler:
-  - hedefli admin/system notification authoring
-  - email / push / websocket dagitimi
+  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisiyor
 
 ## Gelecek Progression Stratejisi
 - XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
@@ -205,9 +200,9 @@
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 10
+- Tamamlanan feature branch sayisi: 11
 - Planli toplam branch sayisi: 26
-- Kalan branch sayisi: 16
+- Kalan branch sayisi: 15
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
