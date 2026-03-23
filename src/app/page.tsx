@@ -174,13 +174,13 @@ export default function HomePage() {
             <Card className="relative z-10 w-full max-w-md border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl">
                 <CardHeader className="space-y-4 pb-2 text-center">
                     {branding.logoUrl ? (
-                        <div className="mx-auto flex min-h-16 items-center justify-center rounded-2xl border border-border/70 bg-background/80 px-4 py-3 shadow-lg">
+                        <div className="mx-auto flex w-full max-w-[320px] items-center justify-center rounded-2xl border border-border/70 bg-background/90 px-3 py-2 shadow-lg">
                             <Image
                                 src={branding.logoUrl}
                                 alt={`${branding.siteName} logo`}
-                                width={220}
-                                height={88}
-                                className="h-14 w-auto object-contain"
+                                width={320}
+                                height={96}
+                                className="h-16 w-auto max-w-full object-contain sm:h-20"
                                 unoptimized
                                 priority
                             />

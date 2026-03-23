@@ -54,7 +54,6 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
 function getBrandingManagedAssetValues(settings: SystemSettings): string[] {
     return [
         settings.branding.logoUrl,
-        settings.branding.brandIconUrl,
         settings.branding.faviconUrl,
         settings.branding.ogImageUrl,
     ]

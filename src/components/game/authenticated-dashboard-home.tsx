@@ -203,14 +203,14 @@ export function AuthenticatedDashboardHome({
         <div className="flex items-center justify-between px-4 py-2.5 md:px-6">
           <div className="flex items-center gap-2.5">
             {branding.logoUrl ? (
-              <div className="hidden items-center overflow-hidden rounded-2xl border border-white/50 bg-white/85 px-4 py-2 shadow-md dark:border-slate-700/60 dark:bg-slate-900/80 sm:flex">
+              <div className="hidden min-w-0 items-center overflow-hidden rounded-2xl border border-white/50 bg-white/90 px-3 py-2 shadow-md dark:border-slate-700/60 dark:bg-slate-900/85 sm:flex">
                 <Image
                   src={branding.logoUrl}
                   alt={`${branding.siteName} logo`}
-                  width={168}
-                  height={56}
+                  width={240}
+                  height={72}
                   unoptimized
-                  className="h-8 w-auto max-w-[168px] object-contain"
+                  className="h-10 w-auto max-w-[240px] object-contain"
                 />
               </div>
             ) : (
@@ -246,12 +246,7 @@ export function AuthenticatedDashboardHome({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                void signOut({ redirect: false }).then(() => {
-                  router.push("/");
-                  router.refresh();
-                });
-              }}
+              onClick={() => void signOut({ callbackUrl: "/" })}
               className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />

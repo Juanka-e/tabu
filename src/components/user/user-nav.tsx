@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +18,6 @@ const navItems = [
 export function UserNav({ username }: UserNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const activeTab = searchParams.get("tab");
 
   return (
@@ -47,11 +46,7 @@ export function UserNav({ username }: UserNavProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              await signOut({ redirect: false });
-              router.push("/");
-              router.refresh();
-            }}
+            onClick={() => void signOut({ callbackUrl: "/" })}
           >
             Cikis
           </Button>

@@ -22,7 +22,6 @@ export interface BrandingSettings {
     siteName: string;
     siteShortName: string;
     logoUrl: string;
-    brandIconUrl: string;
     defaultTitle: string;
     titleTemplate: string;
     defaultDescription: string;

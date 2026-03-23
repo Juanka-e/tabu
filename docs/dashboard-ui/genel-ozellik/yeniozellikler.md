@@ -237,13 +237,12 @@
 ## Branding Assets Upload Slice (23 March 2026, in progress)
 - Branding icin ayri upload route'u kuruluyor:
   - `logo`
-  - `brand_icon`
   - `favicon`
   - `og`
 - Upload edilen dosyalar root-relative guvenli branding path'lerine yaziliyor.
 - System settings ekranina media picker benzeri upload aksiyonlari ekleniyor.
 - Yuklenen logo artik public ana sayfa ile login/register yuzeylerinde gorunur hale getiriliyor.
-- Dashboard yuzeylerinde `brand_icon` zorunlulugu geri cekiliyor; dar alanlar sade fallback branding ile calisiyor.
+- Dashboard yuzeylerinde ek compact asset zorunlulugu kaldiriliyor; dar alanlar sade fallback branding ile calisiyor.
 - Branding save sonrasi client-side branding event ile logo, favicon ve theme-color anlik senkronize ediliyor.
 - Branding asset alanlarina `Varsayilana don` aksiyonu ekleniyor.
 - In-game dashboard kucuk ekranlarda mobile nav ile responsive kullanilir hale getiriliyor.

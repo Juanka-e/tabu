@@ -71,13 +71,13 @@ export default function LoginPage() {
                 <CardHeader className="space-y-4">
                     <div className="flex flex-col items-center gap-3 text-center">
                         {branding.logoUrl ? (
-                            <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
+                            <div className="flex w-full max-w-[260px] items-center justify-center rounded-2xl border border-border/70 bg-background/90 px-3 py-2">
                                 <Image
                                     src={branding.logoUrl}
                                     alt={`${branding.siteName} logo`}
-                                    width={180}
-                                    height={72}
-                                    className="h-12 w-auto object-contain"
+                                    width={260}
+                                    height={78}
+                                    className="h-14 w-auto max-w-full object-contain sm:h-16"
                                     unoptimized
                                 />
                             </div>

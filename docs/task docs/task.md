@@ -94,7 +94,6 @@
 - logo / favicon / og image icin upload aksiyonlari
 - system settings branding alanina media picker mantigi baglaniyor
 - logoUrl branding namespace'ine ekleniyor
-- brandIconUrl branding namespace'ine ekleniyor
 - yuklenen logo public ana sayfa ve auth yuzeylerinde kullaniliyor
 - dashboard'da compact icon zorunlulugu geri cekiliyor; dar yuzeyler guvenli fallback glyph ile calisiyor
 - branding save sonrasi client-side favicon ve theme-color sync ekleniyor

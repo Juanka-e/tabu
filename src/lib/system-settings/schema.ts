@@ -26,7 +26,6 @@ const brandingSettingsSchema = z.object({
     siteName: z.string().trim().min(2).max(80).default("Tabu Oyunu"),
     siteShortName: z.string().trim().min(2).max(32).default("Tabu"),
     logoUrl: z.string().trim().max(255).default(""),
-    brandIconUrl: z.string().trim().max(255).default(""),
     defaultTitle: z
         .string()
         .trim()

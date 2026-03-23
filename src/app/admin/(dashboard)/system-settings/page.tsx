@@ -53,7 +53,6 @@ const sections = [
 ] as const;
 const defaultBrandingAssetValues = {
     logoUrl: "",
-    brandIconUrl: "",
     faviconUrl: "/favicon.ico",
     ogImageUrl: "",
 } as const;
@@ -119,11 +118,11 @@ function BrandingAssetField({
     placeholder: string;
     value: string;
     previewAlt: string;
-    assetType: "logo" | "brand_icon" | "favicon" | "og";
+    assetType: "logo" | "favicon" | "og";
     uploading: boolean;
     defaultValue: string;
     onChange: (value: string) => void;
-    onUpload: (file: File, assetType: "logo" | "brand_icon" | "favicon" | "og") => void;
+    onUpload: (file: File, assetType: "logo" | "favicon" | "og") => void;
 }) {
     const sizeHint = "Maksimum 4 MB.";
 
@@ -181,9 +180,7 @@ function BrandingAssetField({
                             className={`rounded-xl border border-border/70 bg-muted/30 object-contain ${
                                 assetType === "favicon"
                                     ? "h-16 w-16"
-                                    : assetType === "brand_icon"
-                                      ? "h-20 w-20"
-                                      : assetType === "logo"
+                                    : assetType === "logo"
                                       ? "h-24 w-full"
                                       : "aspect-[1200/630] w-full"
                             }`}
@@ -204,7 +201,7 @@ export default function SystemSettingsPage() {
     const [payload, setPayload] = useState<SystemSettingsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [uploadingAsset, setUploadingAsset] = useState<"logo" | "brand_icon" | "favicon" | "og" | null>(null);
+    const [uploadingAsset, setUploadingAsset] = useState<"logo" | "favicon" | "og" | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [activeSection, setActiveSection] = useState<"platform" | "branding" | "economy" | "security">("branding");
@@ -314,7 +311,7 @@ export default function SystemSettingsPage() {
 
     const handleBrandingAssetUpload = async (
         file: File,
-        assetType: "logo" | "brand_icon" | "favicon" | "og"
+        assetType: "logo" | "favicon" | "og"
     ) => {
         setUploadingAsset(assetType);
         setError("");
@@ -337,8 +334,6 @@ export default function SystemSettingsPage() {
 
             if (assetType === "logo") {
                 updatePayload("branding", "logoUrl", payload.url);
-            } else if (assetType === "brand_icon") {
-                updatePayload("branding", "brandIconUrl", payload.url);
             } else if (assetType === "favicon") {
                 updatePayload("branding", "faviconUrl", payload.url);
             } else {

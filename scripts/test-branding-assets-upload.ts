@@ -16,14 +16,11 @@ function main() {
         branding: {
             ...DEFAULT_SYSTEM_SETTINGS.branding,
             logoUrl: "/branding/logo/tabu-logo.webp",
-            brandIconUrl: "/branding/brand-icon/tabu-icon.webp",
         },
     });
 
     assert.equal(settings.branding.logoUrl, "/branding/logo/tabu-logo.webp");
-    assert.equal(settings.branding.brandIconUrl, "/branding/brand-icon/tabu-icon.webp");
     assert.equal(isBrandingAssetType("logo"), true);
-    assert.equal(isBrandingAssetType("brand_icon"), true);
     assert.equal(isBrandingAssetType("favicon"), true);
     assert.equal(isBrandingAssetType("og"), true);
     assert.equal(isBrandingAssetType("video"), false);
