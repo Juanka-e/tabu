@@ -84,6 +84,13 @@
 - localhost uzerinde `NODE_ENV=production` ile test yapilacaksa `AUTH_TRUST_HOST=true` gerekir; aksi halde Auth.js `UntrustedHost` hatasi verir
 - verification: `test:admin-access-gateway`, lint, tsc, build
 
+## Aktif Fix Branch
+### `fix/dependency-audit-advisories`
+- `next` ve `eslint-config-next` `16.2.1`'e yukseltiliyor
+- `effect` ve `socket.io-parser` audit override'lari guncelleniyor
+- amac: release-prep oncesi `npm audit --omit=dev` sonucunu temizlemek
+- verification: lint, tsc, build, audit, `test:admin-access-gateway`
+
 ## Aktif Sonraki Branch Adaylari
 1. `feature/branding-seo-settings`
 2. `feature/integration-hub`
