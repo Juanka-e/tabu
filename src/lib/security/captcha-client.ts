@@ -122,16 +122,10 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
 
         return token;
     } finally {
-        if (widgetId && window.turnstile) {
-            try {
-                window.turnstile.remove(widgetId);
-            } catch {
-                // Ignore widget cleanup issues during navigation/unmount.
-            }
-        }
-
-        if (container.parentNode) {
-            container.parentNode.removeChild(container);
+        // Turnstile's remove() can race with route changes and emit noisy DOM errors.
+        // For our one-shot hidden widget flow, dropping the temporary container is sufficient.
+        if (container.isConnected) {
+            container.remove();
         }
     }
 }

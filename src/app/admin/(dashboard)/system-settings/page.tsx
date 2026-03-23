@@ -166,7 +166,7 @@ function BrandingAssetField({
                     Varsayilana don
                 </button>
                 <div className="text-xs text-muted-foreground">
-                    PNG, JPEG veya WebP kullan. {sizeHint} Yatay wordmark icin `Logo`, kucuk alanlar icin `Compact Icon` kullan. Root-relative path otomatik preview edilir.
+                    PNG, JPEG veya WebP kullan. {sizeHint} Yatay wordmark icin `Logo` kullan. Root-relative path otomatik preview edilir.
                 </div>
             </div>
 
@@ -481,15 +481,6 @@ export default function SystemSettingsPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <FieldLabel label="Compact Icon Yolu" helper="Sidebar, mobile nav ve kucuk alanlarda kullanilacak icon." />
-                            <input
-                                className={inputClassName}
-                                placeholder="/branding/brand-icon/..."
-                                value={payload.settings.branding.brandIconUrl}
-                                onChange={(event) => updatePayload("branding", "brandIconUrl", event.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
                             <FieldLabel label="Theme Color" helper="Tarayici ve platform meta theme color degeri." />
                             <input
                                 className={inputClassName}
@@ -535,10 +526,10 @@ export default function SystemSettingsPage() {
                         />
                     </div>
 
-                    <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
+                    <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
                         <BrandingAssetField
                             label="Logo Asset"
-                            helper="Genis wordmark veya yatay logo. Ana sayfa, login/register ve buyuk header yuzeylerinde kullanilir."
+                            helper="Genis wordmark veya yatay logo. Ana sayfa, login/register ve desktop header gibi yatay yuzeylerde kullanilir."
                             placeholder="/branding/logo/..."
                             value={payload.settings.branding.logoUrl}
                             previewAlt="Logo preview"
@@ -546,18 +537,6 @@ export default function SystemSettingsPage() {
                             uploading={uploadingAsset === "logo"}
                             defaultValue={defaultBrandingAssetValues.logoUrl}
                             onChange={(value) => updatePayload("branding", "logoUrl", value)}
-                            onUpload={handleBrandingAssetUpload}
-                        />
-                        <BrandingAssetField
-                            label="Compact Icon Asset"
-                            helper="Sidebar, mobile nav ve dar alanlar icin kucuk marka ikonu."
-                            placeholder="/branding/brand-icon/..."
-                            value={payload.settings.branding.brandIconUrl}
-                            previewAlt="Compact icon preview"
-                            assetType="brand_icon"
-                            uploading={uploadingAsset === "brand_icon"}
-                            defaultValue={defaultBrandingAssetValues.brandIconUrl}
-                            onChange={(value) => updatePayload("branding", "brandIconUrl", value)}
                             onUpload={handleBrandingAssetUpload}
                         />
                         <BrandingAssetField
@@ -598,7 +577,7 @@ export default function SystemSettingsPage() {
                                         {payload.settings.branding.siteName}
                                     </div>
                                     <div className="mt-1 truncate text-xs text-muted-foreground">
-                                        {payload.settings.branding.logoUrl || payload.settings.branding.brandIconUrl || payload.settings.branding.faviconUrl || "/favicon.ico"}
+                                        {payload.settings.branding.logoUrl || payload.settings.branding.faviconUrl || "/favicon.ico"}
                                     </div>
                                 </div>
                                 <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">

@@ -91,17 +91,19 @@
 ## Aktif Branch
 ### `feature/branding-assets-upload`
 - branding upload route'u ekleniyor
-- logo / brand icon / favicon / og image icin upload aksiyonlari
+- logo / favicon / og image icin upload aksiyonlari
 - system settings branding alanina media picker mantigi baglaniyor
 - logoUrl branding namespace'ine ekleniyor
 - brandIconUrl branding namespace'ine ekleniyor
 - yuklenen logo public ana sayfa ve auth yuzeylerinde kullaniliyor
-- compact brand icon dar dashboard yuzeylerinde kullaniliyor
+- dashboard'da compact icon zorunlulugu geri cekiliyor; dar yuzeyler guvenli fallback glyph ile calisiyor
 - branding save sonrasi client-side favicon ve theme-color sync ekleniyor
 - branding asset alanlarina varsayilana don aksiyonu ekleniyor
 - in-game dashboard mobile nav gercekten render edilip responsive akisa aliniyor
 - save sonrasi kullanilmayan eski branding asset dosyalari temizleniyor
 - ana sayfa hero logosu `priority` ile yukleniyor
+- desktop dashboard header'da wordmark icin yatay container kullaniliyor
+- Turnstile cleanup logout/navigation sirasinda DOM hatasi uretmeyecek sekilde sadeleştiriliyor
 - guvenlik:
   - PNG / JPEG / WebP
   - signature kontrolu

@@ -46,7 +46,6 @@ export function AuthenticatedDashboardHome({
   const router = useRouter();
   const { data: session } = useSession();
   const branding = useBranding();
-  const compactBrandAsset = branding.brandIconUrl || "";
 
   if (!session?.user) {
     return null;
@@ -203,27 +202,24 @@ export function AuthenticatedDashboardHome({
       <header className="z-40 shrink-0 border-b border-white/30 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-slate-900/60">
         <div className="flex items-center justify-between px-4 py-2.5 md:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-white/85 shadow-md dark:border-slate-700/60 dark:bg-slate-900/80">
-              {compactBrandAsset ? (
+            {branding.logoUrl ? (
+              <div className="hidden items-center overflow-hidden rounded-2xl border border-white/50 bg-white/85 px-4 py-2 shadow-md dark:border-slate-700/60 dark:bg-slate-900/80 sm:flex">
                 <Image
-                  src={compactBrandAsset}
+                  src={branding.logoUrl}
                   alt={`${branding.siteName} logo`}
-                  width={32}
-                  height={32}
+                  width={168}
+                  height={56}
                   unoptimized
-                  className="h-8 w-8 object-contain"
+                  className="h-8 w-auto max-w-[168px] object-contain"
                 />
-              ) : (
-                <Gamepad2 className="h-4 w-4 text-slate-900 dark:text-white" />
-              )}
-            </div>
-            {!compactBrandAsset ? (
+              </div>
+            ) : (
               <div className="min-w-0">
                 <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">
                   {branding.siteShortName.toUpperCase()}
                 </div>
               </div>
-            ) : null}
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">

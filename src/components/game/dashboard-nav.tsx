@@ -1,6 +1,4 @@
 "use client";
-
-import Image from "next/image";
 import {
     LayoutDashboard,
     Backpack,
@@ -9,6 +7,7 @@ import {
     HelpCircle,
     Bell,
     Play,
+    Gamepad2,
 } from "lucide-react";
 import { useBranding } from "@/components/providers/branding-provider";
 
@@ -43,7 +42,6 @@ export function DashboardNav({
     onHelpClick,
 }: DashboardNavProps) {
     const branding = useBranding();
-    const compactBrandAsset = branding.brandIconUrl || "";
     const compactLabel = branding.siteShortName.trim().charAt(0).toUpperCase() || "T";
 
     return (
@@ -65,20 +63,9 @@ export function DashboardNav({
                     </button>
                 ) : (
                     <div className="flex h-12 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-1 shadow-lg dark:border-slate-700/60 dark:bg-slate-900/70">
-                        {compactBrandAsset ? (
-                            <Image
-                                src={compactBrandAsset}
-                                alt={`${branding.siteName} logo`}
-                                width={40}
-                                height={40}
-                                unoptimized
-                                className="h-9 w-9 object-contain"
-                            />
-                        ) : (
-                            <span className="bg-gradient-to-tr from-red-500 to-blue-500 bg-clip-text text-lg font-black text-transparent">
-                                {compactLabel}
-                            </span>
-                        )}
+                        <span className="bg-gradient-to-tr from-red-500 to-blue-500 bg-clip-text text-lg font-black text-transparent">
+                            {compactLabel}
+                        </span>
                     </div>
                 )}
             </div>
@@ -146,8 +133,6 @@ export function DashboardNavMobile({
     showPlayTab,
 }: DashboardNavProps) {
     const branding = useBranding();
-    const compactBrandAsset = branding.brandIconUrl || "";
-    const compactLabel = branding.siteShortName.trim().charAt(0).toUpperCase() || "T";
     const allItems = showPlayTab
         ? [{ id: "play" as DashboardTab, icon: Play, label: "Oyna" }, ...navItems]
         : navItems;
@@ -155,27 +140,14 @@ export function DashboardNavMobile({
     return (
         <nav className="flex w-full items-center justify-between gap-3 border-b border-slate-200/50 bg-white/75 px-3 py-2 backdrop-blur-md dark:border-slate-700/50 dark:bg-black/40 md:hidden">
             <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/50 bg-white/70 px-2.5 py-2 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/70">
-                {compactBrandAsset ? (
-                    <Image
-                        src={compactBrandAsset}
-                        alt={`${branding.siteName} logo`}
-                        width={32}
-                        height={32}
-                        unoptimized
-                        className="h-8 w-8 flex-shrink-0 object-contain"
-                    />
-                ) : (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-blue-500 text-xs font-black text-white">
-                        {compactLabel}
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-blue-500 text-white">
+                    <Gamepad2 size={14} />
+                </div>
+                <div className="min-w-0">
+                    <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
+                        {branding.siteShortName}
                     </div>
-                )}
-                {!compactBrandAsset ? (
-                    <div className="min-w-0">
-                        <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
-                            {branding.siteShortName}
-                        </div>
-                    </div>
-                ) : null}
+                </div>
             </div>
 
             <div className="scrollbar-hide flex flex-1 items-center justify-end gap-1 overflow-x-auto">
