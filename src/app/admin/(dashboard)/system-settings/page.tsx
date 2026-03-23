@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAutomaticBrandingPreviewUrl } from "@/lib/branding/assets";
+import { dispatchBrandingUpdated } from "@/lib/branding/events";
 import type { SystemSettingsResponse } from "@/types/system-settings";
 
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
@@ -50,6 +51,11 @@ const sections = [
         icon: ShieldCheck,
     },
 ] as const;
+const defaultBrandingAssetValues = {
+    logoUrl: "",
+    faviconUrl: "/favicon.ico",
+    ogImageUrl: "",
+} as const;
 
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
@@ -103,6 +109,7 @@ function BrandingAssetField({
     previewAlt,
     assetType,
     uploading,
+    defaultValue,
     onChange,
     onUpload,
 }: {
@@ -113,6 +120,7 @@ function BrandingAssetField({
     previewAlt: string;
     assetType: "logo" | "favicon" | "og";
     uploading: boolean;
+    defaultValue: string;
     onChange: (value: string) => void;
     onUpload: (file: File, assetType: "logo" | "favicon" | "og") => void;
 }) {
@@ -153,6 +161,14 @@ function BrandingAssetField({
                         }}
                     />
                 </label>
+                <button
+                    type="button"
+                    onClick={() => onChange(defaultValue)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground transition hover:border-amber-500/40 hover:text-amber-600"
+                >
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Varsayilana don
+                </button>
                 <div className="text-xs text-muted-foreground">
                     PNG, JPEG veya WebP kullan. {sizeHint} Root-relative path otomatik preview edilir.
                 </div>
@@ -289,6 +305,7 @@ export default function SystemSettingsPage() {
             }
 
             setPayload(nextPayload);
+            dispatchBrandingUpdated(nextPayload.settings.branding);
             setSuccess("Sistem ayarlari kaydedildi.");
         } catch (saveError) {
             setError(saveError instanceof Error ? saveError.message : "Sistem ayarlari kaydedilemedi.");
@@ -518,6 +535,7 @@ export default function SystemSettingsPage() {
                             previewAlt="Logo preview"
                             assetType="logo"
                             uploading={uploadingAsset === "logo"}
+                            defaultValue={defaultBrandingAssetValues.logoUrl}
                             onChange={(value) => updatePayload("branding", "logoUrl", value)}
                             onUpload={handleBrandingAssetUpload}
                         />
@@ -529,6 +547,7 @@ export default function SystemSettingsPage() {
                             previewAlt="Favicon preview"
                             assetType="favicon"
                             uploading={uploadingAsset === "favicon"}
+                            defaultValue={defaultBrandingAssetValues.faviconUrl}
                             onChange={(value) => updatePayload("branding", "faviconUrl", value)}
                             onUpload={handleBrandingAssetUpload}
                         />
@@ -540,6 +559,7 @@ export default function SystemSettingsPage() {
                             previewAlt="Open Graph preview"
                             assetType="og"
                             uploading={uploadingAsset === "og"}
+                            defaultValue={defaultBrandingAssetValues.ogImageUrl}
                             onChange={(value) => updatePayload("branding", "ogImageUrl", value)}
                             onUpload={handleBrandingAssetUpload}
                         />

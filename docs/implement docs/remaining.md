@@ -4,22 +4,21 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `fix/system-settings-hardening`
-2. `feature/branding-assets-upload`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/integration-hub`
-5. `feature/dashboard-visual-polish`
-6. `feature/store-merchandising`
-7. `feature/admin-shop-ux`
-8. `feature/admin-promotions-ux`
-9. `feature/cosmetic-render-upgrade`
-10. `feature/admin-cosmetic-authoring`
-11. `feature/gameplay-ui-polish`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `feature/branding-assets-upload`
+2. `feature/cache-and-rate-limit-foundation`
+3. `feature/integration-hub`
+4. `feature/dashboard-visual-polish`
+5. `feature/store-merchandising`
+6. `feature/admin-shop-ux`
+7. `feature/admin-promotions-ux`
+8. `feature/cosmetic-render-upgrade`
+9. `feature/admin-cosmetic-authoring`
+10. `feature/gameplay-ui-polish`
+11. `feature/analytics-event-foundation`
+12. `feature/word-analytics-liveops`
+13. `feature/release-ops-docs`
+14. `docs/encoding-cleanup`
+15. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
@@ -40,6 +39,8 @@
 - guvenli dosya dogrulama
 - medya secici ile branding paneline baglama
 - root-relative branding asset path standardi
+- dashboard branding gorunumu
+- favicon live update ve reset-to-default davranisi
 
 ### 4. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
@@ -53,24 +54,21 @@
 - sonraki ops entegrasyonlarina hazir omurga
 
 ## Son Tamamlanan Dilim
-### `feature/admin-access-gateway`
-- env tabanli admin access policy
-- `/admin`, `/admin/login`, `/api/admin/*` policy entegrasyonu
-- local-dev bypass + production fail-closed
-- Zero Trust uyumlu header/email allowlist modeli
-- localhost production-benzeri test icin `AUTH_TRUST_HOST` destegi
-
-## Aktif Dilim
 ### `fix/system-settings-hardening`
 - admin `system-settings` write route'una ayri rate limit
 - branding preview'da dis URL'leri otomatik yuklememe
 - sadece root-relative guvenli asset preview davranisi
 - upload slice oncesi guvenlik sertlestirmesi
 
+## Aktif Dilim
 ### `feature/branding-assets-upload`
 - branding upload route'u
 - logo / favicon / og asset upload
 - admin system settings icinde upload aksiyonlari
+- varsayilana don butonlari
+- branding save sonrasi logo/favicon/theme-color senkronu
+- dashboard full-page ve in-game dashboard branding gorunumu
+- in-game dashboard mobile nav ve responsive overlay duzenlemesi
 - ilk asset guvenlik kurallari:
   - PNG / JPEG / WebP
   - mime + signature kontrolu

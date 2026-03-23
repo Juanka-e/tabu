@@ -22,6 +22,7 @@
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
 12. `feature/admin-access-gateway`
+13. `feature/branding-seo-settings`
 
 ## Aktif Teknik Kararlar
 
@@ -63,7 +64,6 @@
   - `docs/cache-and-storage-strategy.md`
 
 ## Sonraki Oncelikli Branch'ler
-13. `fix/system-settings-hardening`
 14. `feature/branding-assets-upload`
 15. `feature/cache-and-rate-limit-foundation`
 16. `feature/integration-hub`
@@ -242,6 +242,10 @@
 - Upload edilen dosyalar root-relative guvenli branding path'lerine yaziliyor.
 - System settings ekranina media picker benzeri upload aksiyonlari ekleniyor.
 - Yuklenen logo artik public ana sayfa ile login/register yuzeylerinde gorunur hale getiriliyor.
+- Yuklenen logo dashboard full-page ve in-game dashboard branding alanlarina da tasiniyor.
+- Branding save sonrasi client-side branding event ile logo, favicon ve theme-color anlik senkronize ediliyor.
+- Branding asset alanlarina `Varsayilana don` aksiyonu ekleniyor.
+- In-game dashboard kucuk ekranlarda mobile nav ile responsive kullanilir hale getiriliyor.
 - Ilk dilim guvenlikleri:
   - PNG / JPEG / WebP
   - signature kontrolu
@@ -255,9 +259,9 @@
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 12
+- Tamamlanan feature branch sayisi: 13
 - Planli toplam branch sayisi: 28
-- Kalan branch sayisi: 16
+- Kalan branch sayisi: 15
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

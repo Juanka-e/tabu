@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ import { useSession, signOut } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
+import { useBranding } from "@/components/providers/branding-provider";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 interface SocketIdentityPayload {
@@ -43,6 +45,7 @@ export function AuthenticatedDashboardHome({
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
+  const branding = useBranding();
 
   if (!session?.user) {
     return null;
@@ -199,10 +202,28 @@ export function AuthenticatedDashboardHome({
       <header className="z-40 shrink-0 border-b border-white/30 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-slate-900/60">
         <div className="flex items-center justify-between px-4 py-2.5 md:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-md">
-              <Gamepad2 className="h-4 w-4 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-white/85 shadow-md dark:border-slate-700/60 dark:bg-slate-900/80">
+              {branding.logoUrl ? (
+                <Image
+                  src={branding.logoUrl}
+                  alt={`${branding.siteName} logo`}
+                  width={32}
+                  height={32}
+                  unoptimized
+                  className="h-8 w-8 object-contain"
+                />
+              ) : (
+                <Gamepad2 className="h-4 w-4 text-slate-900 dark:text-white" />
+              )}
             </div>
-            <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">TABU</span>
+            <div className="min-w-0">
+              <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">
+                {branding.siteShortName.toUpperCase()}
+              </div>
+              <div className="truncate text-[11px] font-medium text-muted-foreground">
+                {branding.siteName}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">

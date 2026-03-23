@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     LayoutDashboard,
     Backpack,
@@ -9,6 +10,7 @@ import {
     Bell,
     Play,
 } from "lucide-react";
+import { useBranding } from "@/components/providers/branding-provider";
 
 export type DashboardTab = "play" | "dash" | "inventory" | "shop" | "settings";
 
@@ -40,6 +42,8 @@ export function DashboardNav({
     onNotificationsClick,
     onHelpClick,
 }: DashboardNavProps) {
+    const branding = useBranding();
+
     return (
         <nav className="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md z-10 max-md:hidden">
             {/* Logo or Play button */}
@@ -58,8 +62,21 @@ export function DashboardNav({
                         </span>
                     </button>
                 ) : (
-                    <div className="w-10 h-10 bg-gradient-to-tr from-red-500 to-blue-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">
-                        T
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/80 shadow-lg dark:border-slate-700/60 dark:bg-slate-900/70">
+                        {branding.logoUrl ? (
+                            <Image
+                                src={branding.logoUrl}
+                                alt={`${branding.siteName} logo`}
+                                width={40}
+                                height={40}
+                                unoptimized
+                                className="h-10 w-10 object-contain"
+                            />
+                        ) : (
+                            <span className="bg-gradient-to-tr from-red-500 to-blue-500 bg-clip-text text-lg font-black text-transparent">
+                                {branding.siteShortName.trim().charAt(0).toUpperCase() || "T"}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -126,12 +143,36 @@ export function DashboardNavMobile({
     onTabChange,
     showPlayTab,
 }: DashboardNavProps) {
+    const branding = useBranding();
     const allItems = showPlayTab
         ? [{ id: "play" as DashboardTab, icon: Play, label: "Oyna" }, ...navItems]
         : navItems;
 
     return (
-        <nav className="w-full border-b border-slate-200/50 dark:border-slate-700/50 flex items-center py-2 px-4 bg-white/50 dark:bg-black/30 backdrop-blur-md justify-evenly md:hidden">
+        <nav className="flex w-full items-center justify-between gap-3 border-b border-slate-200/50 bg-white/75 px-3 py-2 backdrop-blur-md dark:border-slate-700/50 dark:bg-black/40 md:hidden">
+            <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/50 bg-white/70 px-2.5 py-2 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/70">
+                {branding.logoUrl ? (
+                    <Image
+                        src={branding.logoUrl}
+                        alt={`${branding.siteName} logo`}
+                        width={28}
+                        height={28}
+                        unoptimized
+                        className="h-7 w-7 flex-shrink-0 object-contain"
+                    />
+                ) : (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-blue-500 text-xs font-black text-white">
+                        {branding.siteShortName.trim().charAt(0).toUpperCase() || "T"}
+                    </div>
+                )}
+                <div className="min-w-0">
+                    <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
+                        {branding.siteShortName}
+                    </div>
+                </div>
+            </div>
+
+            <div className="scrollbar-hide flex flex-1 items-center justify-end gap-1 overflow-x-auto">
             {allItems.map((item) => {
                 const isActive = activeTab === item.id;
                 const Icon = item.icon;
@@ -139,7 +180,7 @@ export function DashboardNavMobile({
                     <button
                         key={item.id}
                         onClick={() => onTabChange(item.id)}
-                        className={`py-2 px-3 flex flex-col items-center justify-center gap-1 transition-all rounded-lg ${isActive
+                        className={`flex min-w-[58px] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 transition-all ${isActive
                             ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                             : "text-slate-500 dark:text-slate-400"
                             }`}
@@ -149,6 +190,7 @@ export function DashboardNavMobile({
                     </button>
                 );
             })}
+            </div>
         </nav>
     );
 }

@@ -1,9 +1,52 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { BRANDING_UPDATED_EVENT } from "@/lib/branding/events";
 import type { BrandingSettings } from "@/types/system-settings";
 
 const BrandingContext = createContext<BrandingSettings | null>(null);
+
+function applyThemeColor(themeColor: string): void {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeColorMeta) {
+        themeColorMeta = document.createElement("meta");
+        themeColorMeta.setAttribute("name", "theme-color");
+        document.head.appendChild(themeColorMeta);
+    }
+
+    themeColorMeta.setAttribute("content", themeColor);
+}
+
+function applyFavicon(faviconUrl: string): void {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    const normalizedUrl = faviconUrl.trim() || "/favicon.ico";
+    const cacheBustToken = Date.now().toString(36);
+    const faviconHref = `${normalizedUrl}${normalizedUrl.includes("?") ? "&" : "?"}v=${cacheBustToken}`;
+    const iconDefinitions = [
+        { rel: "icon", type: "image/x-icon" },
+        { rel: "shortcut icon", type: "image/x-icon" },
+        { rel: "apple-touch-icon", type: "image/png" },
+    ] as const;
+
+    for (const definition of iconDefinitions) {
+        let link = document.querySelector(`link[rel="${definition.rel}"]`) as HTMLLinkElement | null;
+        if (!link) {
+            link = document.createElement("link");
+            link.rel = definition.rel;
+            document.head.appendChild(link);
+        }
+
+        link.type = definition.type;
+        link.href = faviconHref;
+    }
+}
 
 export function BrandingProvider({
     branding,
@@ -12,8 +55,33 @@ export function BrandingProvider({
     branding: BrandingSettings;
     children: React.ReactNode;
 }) {
+    const [currentBranding, setCurrentBranding] = useState(branding);
+
+    useEffect(() => {
+        setCurrentBranding(branding);
+    }, [branding]);
+
+    useEffect(() => {
+        const handleBrandingUpdated = (event: Event) => {
+            const nextBranding = (event as CustomEvent<BrandingSettings>).detail;
+            if (nextBranding) {
+                setCurrentBranding(nextBranding);
+            }
+        };
+
+        window.addEventListener(BRANDING_UPDATED_EVENT, handleBrandingUpdated);
+        return () => {
+            window.removeEventListener(BRANDING_UPDATED_EVENT, handleBrandingUpdated);
+        };
+    }, []);
+
+    useEffect(() => {
+        applyThemeColor(currentBranding.themeColor);
+        applyFavicon(currentBranding.faviconUrl);
+    }, [currentBranding]);
+
     return (
-        <BrandingContext.Provider value={branding}>
+        <BrandingContext.Provider value={currentBranding}>
             {children}
         </BrandingContext.Provider>
     );

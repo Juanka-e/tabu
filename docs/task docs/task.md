@@ -95,6 +95,10 @@
 - system settings branding alanina media picker mantigi baglaniyor
 - logoUrl branding namespace'ine ekleniyor
 - yuklenen logo public ana sayfa ve auth yuzeylerinde kullaniliyor
+- yuklenen logo dashboard full-page ve in-game dashboard yuzeylerine de tasiniyor
+- branding save sonrasi client-side favicon ve theme-color sync ekleniyor
+- branding asset alanlarina varsayilana don aksiyonu ekleniyor
+- in-game dashboard mobile nav gercekten render edilip responsive akisa aliniyor
 - guvenlik:
   - PNG / JPEG / WebP
   - signature kontrolu
@@ -107,11 +111,11 @@
   - lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
-1. `fix/system-settings-hardening`
-2. `feature/branding-assets-upload`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/integration-hub`
-5. `feature/dashboard-visual-polish`
+1. `feature/cache-and-rate-limit-foundation`
+2. `feature/integration-hub`
+3. `feature/dashboard-visual-polish`
+4. `feature/store-merchandising`
+5. `feature/admin-shop-ux`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:
