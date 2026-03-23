@@ -197,6 +197,24 @@
 - `/admin` shell acilip API'de 403'e dusme yerine, policy fail durumunda sayfa duzeyinde temiz redirect davranisi tamamlandi.
 - localhost production-benzeri testlerde Auth.js `UntrustedHost` hatasini onlemek icin `AUTH_TRUST_HOST` destegi eklendi.
 
+## Branding / SEO Settings Slice (23 March 2026, in progress)
+- Yeni `branding` namespace'i ile runtime metadata ayarlari system settings modeline ekleniyor.
+- Root ve room metadata bu ayarlardan uretiliyor.
+- Kapsam:
+  - default title
+  - title template
+  - default description
+  - Open Graph image URL
+  - favicon URL
+  - theme color
+  - twitter handle
+  - canonical URL
+  - `robots.ts`
+  - `sitemap.ts`
+- Login, register ve store gibi yuzeylerde page-specific metadata eklenecek.
+- Admin system settings ekrani section button'lari ile kisitli gorunum moduna aliniyor.
+- Open Graph alani icin kisa format ogreticisi ve onizleme kutusu ekleniyor.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi

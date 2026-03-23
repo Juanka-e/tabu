@@ -92,7 +92,11 @@
 ### `feature/branding-seo-settings`
 - `branding` namespace'i system settings modeline ekleniyor
 - root ve room metadata runtime branding ayarlarina baglaniyor
+- canonical, `robots.ts` ve `sitemap.ts` ekleniyor
+- login/register/store icin page-specific metadata geliyor
 - favicon, og image, theme color ve title/description panelden yonetiliyor
+- admin panel ayni sayfada section button'lari ile sade operasyon gorunumu aliyor
+- OG image alani icin onizleme ve kisa format ogreticisi ekleniyor
 - verification: `test:branding-seo-settings`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari

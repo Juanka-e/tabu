@@ -43,7 +43,9 @@
 ### `feature/branding-seo-settings`
 - `branding` system settings namespace'i
 - runtime metadata / Open Graph / favicon / theme color
-- admin panelde branding ve SEO alanlari
+- canonical, `robots.ts` ve `sitemap.ts`
+- auth/store icin page-specific metadata
+- admin panelde branding ve SEO alanlari + OG preview
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:

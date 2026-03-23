@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { buildRootMetadata, buildRoomMetadata } from "@/lib/branding/metadata";
+import {
+    buildRootMetadata,
+    buildRootViewport,
+    buildRoomMetadata,
+} from "@/lib/branding/metadata";
 import {
     DEFAULT_SYSTEM_SETTINGS,
     normalizeSystemSettings,
@@ -23,6 +27,7 @@ function main() {
     });
 
     const rootMetadata = buildRootMetadata(settings.branding);
+    const rootViewport = buildRootViewport(settings.branding);
     const roomMetadata = buildRoomMetadata(settings.branding);
     const titleConfig =
         typeof rootMetadata.title === "object" && rootMetadata.title
@@ -35,7 +40,7 @@ function main() {
 
     assert.equal(settings.branding.siteName, "Tabu Arena");
     assert.equal(rootMetadata.applicationName, "Arena");
-    assert.equal(rootMetadata.themeColor, "#123456");
+    assert.equal(rootViewport.themeColor, "#123456");
     assert.equal(titleConfig?.template, "%s | Tabu Arena");
     assert.equal(rootMetadata.openGraph?.siteName, "Tabu Arena");
     assert.equal(rootMetadata.twitter?.creator, "@tabuarena");

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { BrandingSettings } from "@/types/system-settings";
 
-function resolveSiteUrl(): URL | undefined {
+export function resolveSiteUrl(): URL | undefined {
     const rawUrl =
         process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
         process.env.NEXTAUTH_URL?.trim() ||
@@ -12,6 +12,15 @@ function resolveSiteUrl(): URL | undefined {
     } catch {
         return undefined;
     }
+}
+
+export function buildCanonicalUrl(pathname: string): string | undefined {
+    const metadataBase = resolveSiteUrl();
+    if (!metadataBase) {
+        return undefined;
+    }
+
+    return new URL(pathname, metadataBase).toString();
 }
 
 function normalizeTwitterHandle(handle: string): string | undefined {
@@ -54,6 +63,9 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
             template: branding.titleTemplate,
         },
         description: branding.defaultDescription,
+        alternates: {
+            canonical: buildCanonicalUrl("/"),
+        },
         openGraph: {
             title: branding.defaultTitle,
             description: branding.defaultDescription,
@@ -92,6 +104,14 @@ export function buildRoomMetadata(branding: BrandingSettings): Metadata {
     return {
         title: roomTitle,
         description: roomDescription,
+        robots: {
+            index: false,
+            follow: false,
+            googleBot: {
+                index: false,
+                follow: false,
+            },
+        },
         openGraph: {
             title: branding.defaultTitle,
             description: branding.defaultDescription,
@@ -103,6 +123,49 @@ export function buildRoomMetadata(branding: BrandingSettings): Metadata {
             card: ogImage ? "summary_large_image" : "summary",
             title: branding.defaultTitle,
             description: branding.defaultDescription,
+            images: ogImage ? [ogImage] : undefined,
+        },
+    };
+}
+
+export function buildUtilityPageMetadata(options: {
+    branding: BrandingSettings;
+    title: string;
+    description: string;
+    pathname: string;
+    noIndex?: boolean;
+}): Metadata {
+    const { branding, title, description, pathname, noIndex = false } = options;
+    const metadataBase = resolveSiteUrl();
+    const ogImage = resolveAssetUrl(branding.ogImageUrl, metadataBase);
+
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: buildCanonicalUrl(pathname),
+        },
+        robots: noIndex
+            ? {
+                  index: false,
+                  follow: false,
+                  googleBot: {
+                      index: false,
+                      follow: false,
+                  },
+              }
+            : undefined,
+        openGraph: {
+            title,
+            description,
+            type: "website",
+            siteName: branding.siteName,
+            images: ogImage ? [{ url: ogImage }] : undefined,
+        },
+        twitter: {
+            card: ogImage ? "summary_large_image" : "summary",
+            title,
+            description,
             images: ogImage ? [ogImage] : undefined,
         },
     };
