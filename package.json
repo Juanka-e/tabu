@@ -27,6 +27,7 @@
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",
     "test:captcha-security": "tsx scripts/test-captcha-security.ts",
+    "test:turnstile-smoke": "tsx scripts/test-turnstile-smoke.ts",
     "test:economy-liveops": "tsx scripts/test-economy-liveops.ts",
     "test:user-email-foundation": "tsx scripts/test-user-email-foundation.ts",
     "test:admin-user-operations": "tsx scripts/test-admin-user-operations.ts",

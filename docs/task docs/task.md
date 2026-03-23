@@ -104,6 +104,7 @@
 - desktop dashboard header'da wordmark icin yatay container kullaniliyor
 - Turnstile cleanup logout/navigation sirasinda DOM hatasi uretmeyecek sekilde sadeleştiriliyor
 - guide dokumanlari `docs/guides/` altinda toplanmaya baslaniyor
+- resmi Cloudflare dummy key'leri ile kalici `test:turnstile-smoke` komutu ekleniyor
 - guvenlik:
   - PNG / JPEG / WebP
   - signature kontrolu
