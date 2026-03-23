@@ -43,6 +43,8 @@ export function DashboardNav({
     onHelpClick,
 }: DashboardNavProps) {
     const branding = useBranding();
+    const compactBrandAsset = branding.brandIconUrl || "";
+    const compactLabel = branding.siteShortName.trim().charAt(0).toUpperCase() || "T";
 
     return (
         <nav className="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md z-10 max-md:hidden">
@@ -63,18 +65,18 @@ export function DashboardNav({
                     </button>
                 ) : (
                     <div className="flex h-12 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-1 shadow-lg dark:border-slate-700/60 dark:bg-slate-900/70">
-                        {branding.logoUrl ? (
+                        {compactBrandAsset ? (
                             <Image
-                                src={branding.logoUrl}
+                                src={compactBrandAsset}
                                 alt={`${branding.siteName} logo`}
-                                width={56}
-                                height={32}
+                                width={40}
+                                height={40}
                                 unoptimized
-                                className="h-8 w-full object-contain"
+                                className="h-9 w-9 object-contain"
                             />
                         ) : (
                             <span className="bg-gradient-to-tr from-red-500 to-blue-500 bg-clip-text text-lg font-black text-transparent">
-                                {branding.siteShortName.trim().charAt(0).toUpperCase() || "T"}
+                                {compactLabel}
                             </span>
                         )}
                     </div>
@@ -144,6 +146,8 @@ export function DashboardNavMobile({
     showPlayTab,
 }: DashboardNavProps) {
     const branding = useBranding();
+    const compactBrandAsset = branding.brandIconUrl || "";
+    const compactLabel = branding.siteShortName.trim().charAt(0).toUpperCase() || "T";
     const allItems = showPlayTab
         ? [{ id: "play" as DashboardTab, icon: Play, label: "Oyna" }, ...navItems]
         : navItems;
@@ -151,21 +155,21 @@ export function DashboardNavMobile({
     return (
         <nav className="flex w-full items-center justify-between gap-3 border-b border-slate-200/50 bg-white/75 px-3 py-2 backdrop-blur-md dark:border-slate-700/50 dark:bg-black/40 md:hidden">
             <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/50 bg-white/70 px-2.5 py-2 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/70">
-                {branding.logoUrl ? (
+                {compactBrandAsset ? (
                     <Image
-                        src={branding.logoUrl}
+                        src={compactBrandAsset}
                         alt={`${branding.siteName} logo`}
-                        width={96}
-                        height={28}
+                        width={32}
+                        height={32}
                         unoptimized
-                        className="h-7 w-auto max-w-[96px] flex-shrink-0 object-contain"
+                        className="h-8 w-8 flex-shrink-0 object-contain"
                     />
                 ) : (
                     <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-blue-500 text-xs font-black text-white">
-                        {branding.siteShortName.trim().charAt(0).toUpperCase() || "T"}
+                        {compactLabel}
                     </div>
                 )}
-                {!branding.logoUrl ? (
+                {!compactBrandAsset ? (
                     <div className="min-w-0">
                         <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
                             {branding.siteShortName}

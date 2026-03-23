@@ -35,12 +35,13 @@
 - upload gelene kadar sadece guvenli preview davranisi
 
 ### 3. Branding Assets Upload
-- logo / favicon / og image upload
+- logo / brand icon / favicon / og image upload
 - guvenli dosya dogrulama
 - medya secici ile branding paneline baglama
 - root-relative branding asset path standardi
 - dashboard branding gorunumu
 - favicon live update ve reset-to-default davranisi
+- stale branding asset cleanup
 
 ### 4. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
@@ -63,12 +64,14 @@
 ## Aktif Dilim
 ### `feature/branding-assets-upload`
 - branding upload route'u
-- logo / favicon / og asset upload
+- logo / brand icon / favicon / og asset upload
 - admin system settings icinde upload aksiyonlari
 - varsayilana don butonlari
 - branding save sonrasi logo/favicon/theme-color senkronu
 - dashboard full-page ve in-game dashboard branding gorunumu
 - in-game dashboard mobile nav ve responsive overlay duzenlemesi
+- wordmark ve compact icon ayrimi
+- stale branding asset cleanup
 - ilk asset guvenlik kurallari:
   - PNG / JPEG / WebP
   - mime + signature kontrolu

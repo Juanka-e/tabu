@@ -1,4 +1,4 @@
-export const BRANDING_ASSET_TYPES = ["logo", "favicon", "og"] as const;
+export const BRANDING_ASSET_TYPES = ["logo", "brand_icon", "favicon", "og"] as const;
 export type BrandingAssetType = (typeof BRANDING_ASSET_TYPES)[number];
 
 const IMAGE_MIME_TO_EXTENSION: Record<string, string> = {
@@ -26,6 +26,12 @@ export function getBrandingAssetUploadConfig(type: BrandingAssetType): {
         case "favicon":
             return {
                 directory: "favicon",
+                maxSize: 4 * 1024 * 1024,
+                allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
+            };
+        case "brand_icon":
+            return {
+                directory: "brand-icon",
                 maxSize: 4 * 1024 * 1024,
                 allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
             };

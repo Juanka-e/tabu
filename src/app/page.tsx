@@ -182,6 +182,7 @@ export default function HomePage() {
                                 height={88}
                                 className="h-14 w-auto object-contain"
                                 unoptimized
+                                priority
                             />
                         </div>
                     ) : (
