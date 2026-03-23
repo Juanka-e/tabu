@@ -228,6 +228,12 @@
   - `feature/branding-assets-upload`
   - `feature/cache-and-rate-limit-foundation`
 
+## System Settings Hardening Slice (23 March 2026, in progress)
+- Admin `system-settings` update route'una ayri write rate limit ekleniyor.
+- Branding preview alani dis URL'leri admin tarayicisindan otomatik yuklemeyecek.
+- Sadece root-relative guvenli asset path'leri otomatik preview edilecek.
+- Upload slice gelene kadar dis URL'ler sadece yeni sekmede acilabilecek.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi

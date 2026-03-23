@@ -4,23 +4,22 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/branding-seo-settings`
-2. `fix/system-settings-hardening`
-3. `feature/branding-assets-upload`
-4. `feature/cache-and-rate-limit-foundation`
-5. `feature/integration-hub`
-6. `feature/dashboard-visual-polish`
-7. `feature/store-merchandising`
-8. `feature/admin-shop-ux`
-9. `feature/admin-promotions-ux`
-10. `feature/cosmetic-render-upgrade`
-11. `feature/admin-cosmetic-authoring`
-12. `feature/gameplay-ui-polish`
-13. `feature/analytics-event-foundation`
-14. `feature/word-analytics-liveops`
-15. `feature/release-ops-docs`
-16. `docs/encoding-cleanup`
-17. `feature/wallet-ledger-foundation`
+1. `fix/system-settings-hardening`
+2. `feature/branding-assets-upload`
+3. `feature/cache-and-rate-limit-foundation`
+4. `feature/integration-hub`
+5. `feature/dashboard-visual-polish`
+6. `feature/store-merchandising`
+7. `feature/admin-shop-ux`
+8. `feature/admin-promotions-ux`
+9. `feature/cosmetic-render-upgrade`
+10. `feature/admin-cosmetic-authoring`
+11. `feature/gameplay-ui-polish`
+12. `feature/analytics-event-foundation`
+13. `feature/word-analytics-liveops`
+14. `feature/release-ops-docs`
+15. `docs/encoding-cleanup`
+16. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
@@ -61,14 +60,11 @@
 - localhost production-benzeri test icin `AUTH_TRUST_HOST` destegi
 
 ## Aktif Dilim
-### `feature/branding-seo-settings`
-- `branding` system settings namespace'i
-- runtime metadata / Open Graph / favicon / theme color
-- canonical, `robots.ts` ve `sitemap.ts`
-- auth/store icin page-specific metadata
-- admin panelde branding ve SEO alanlari + OG preview
-- sonraki tamamlayici not:
-  - `docs/cache-and-storage-strategy.md`
+### `fix/system-settings-hardening`
+- admin `system-settings` write route'una ayri rate limit
+- branding preview'da dis URL'leri otomatik yuklememe
+- sadece root-relative guvenli asset preview davranisi
+- upload slice oncesi guvenlik sertlestirmesi
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:
