@@ -250,6 +250,7 @@
 - Ana sayfa hero logosu `priority` ile yukleniyor.
 - Desktop dashboard header yatay wordmark container'i ile guncelleniyor.
 - Logout/navigation sirasinda Turnstile cleanup DOM hatasi vermeyecek sekilde sadeleştiriliyor.
+- tekrar kullanilacak rehberler `docs/guides/` altinda toplanmaya baslaniyor.
 - Ilk dilim guvenlikleri:
   - PNG / JPEG / WebP
   - signature kontrolu
