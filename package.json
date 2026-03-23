@@ -38,6 +38,7 @@
     "test:promotion-field-references": "tsx scripts/test-promotion-field-references.ts",
     "test:admin-table-foundation": "tsx scripts/test-admin-table-foundation.ts",
     "test:moderation-foundation": "tsx scripts/test-moderation-foundation.ts",
+    "test:admin-access-gateway": "tsx scripts/test-admin-access-gateway.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push",

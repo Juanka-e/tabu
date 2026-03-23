@@ -1,4 +1,4 @@
-﻿# Gorev Kaydi
+# Gorev Kaydi
 
 > Son guncelleme: 16 March 2026
 > Durum: aktif execution log
@@ -76,25 +76,26 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `feature/system-notifications-foundation`
-- `notifications` veri modeli eklendi
-- kullanici API'leri: listeleme, unread count, mark read, read all, archive one, archive all
-- dashboard bell/inbox arayuzu ekleniyor
-- support admin public reply ve resolved/closed status bildirimleri notif sistemine baglaniyor
-- verification: `test:system-notifications`, prisma push, lint, tsc, build
+### `feature/admin-access-gateway`
+- env tabanli admin access policy helper eklendi
+- proxy seviyesinde `/admin`, `/admin/login`, `/api/admin/*` policy kontrolu kuruluyor
+- local-dev bypass + production fail-closed davranisi ekleniyor
+- Zero Trust uyumlu header/email allowlist modeli kuruluyor
+- localhost uzerinde `NODE_ENV=production` ile test yapilacaksa `AUTH_TRUST_HOST=true` gerekir; aksi halde Auth.js `UntrustedHost` hatasi verir
+- verification: `test:admin-access-gateway`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/system-notifications-foundation`
-2. `feature/admin-access-gateway`
-3. `feature/branding-seo-settings`
-4. `feature/integration-hub`
-5. `feature/progression-foundation`
-6. `feature/wallet-ledger-foundation`
+1. `feature/branding-seo-settings`
+2. `feature/integration-hub`
+3. `feature/dashboard-visual-polish`
+4. `feature/progression-foundation`
+5. `feature/wallet-ledger-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:
 - artik karar aldirma degeri olmayan ilk migration checklist'leri
 - bozuk encoding'li eski durum notlari
 - tarihsel ama operasyonel olmayan uzun tekrarlar
+
 
 
