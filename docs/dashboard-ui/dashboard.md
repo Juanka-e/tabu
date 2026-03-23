@@ -360,7 +360,7 @@ Bu plana gore sonraki uygulama dalgasi su alanlari kapsar:
   - more distinct rarity styling
 - Admin shop-item editor now includes a stronger JSON example flow for template cosmetics.
 - Authoring reference added:
-  - `docs/dashboard-ui/cosmetic-authoring-spec.md`
+  - `docs/guides/card-design-guide.md`
 
 ## 9 March 2026 Update - Shop Radar and Product Merchandising
 

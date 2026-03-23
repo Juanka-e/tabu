@@ -70,6 +70,7 @@ export async function PUT(req: NextRequest) {
                 namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
                 maintenanceEnabled: updatedSettings.platform.maintenanceEnabled,
                 siteName: updatedSettings.branding.siteName,
+                logoUrl: updatedSettings.branding.logoUrl,
                 faviconUrl: updatedSettings.branding.faviconUrl,
                 ogImageUrlConfigured: updatedSettings.branding.ogImageUrl.length > 0,
                 storeEnabled: updatedSettings.features.storeEnabled,

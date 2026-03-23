@@ -89,24 +89,40 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `fix/system-settings-hardening`
-- admin `system-settings` write route'una ayri rate limit
-- branding preview'da dis URL'leri otomatik yuklememe
-- sadece root-relative guvenli asset preview davranisi
-- branding upload slice oncesi guvenlik sertlestirmesi
-- sonraki altyapi notu:
-  - `docs/cache-and-storage-strategy.md`
+### `feature/branding-assets-upload`
+- branding upload route'u ekleniyor
+- logo / favicon / og image icin upload aksiyonlari
+- system settings branding alanina media picker mantigi baglaniyor
+- logoUrl branding namespace'ine ekleniyor
+- yuklenen logo public ana sayfa ve auth yuzeylerinde kullaniliyor
+- dashboard'da compact icon zorunlulugu geri cekiliyor; dar yuzeyler guvenli fallback glyph ile calisiyor
+- branding save sonrasi client-side favicon ve theme-color sync ekleniyor
+- branding asset alanlarina varsayilana don aksiyonu ekleniyor
+- in-game dashboard mobile nav gercekten render edilip responsive akisa aliniyor
+- save sonrasi kullanilmayan eski branding asset dosyalari temizleniyor
+- ana sayfa hero logosu `priority` ile yukleniyor
+- desktop dashboard header'da wordmark icin yatay container kullaniliyor
+- Turnstile cleanup logout/navigation sirasinda DOM hatasi uretmeyecek sekilde sadeleştiriliyor
+- guide dokumanlari `docs/guides/` altinda toplanmaya baslaniyor
+- resmi Cloudflare dummy key'leri ile kalici `test:turnstile-smoke` komutu ekleniyor
+- guvenlik:
+  - PNG / JPEG / WebP
+  - signature kontrolu
+  - tum branding asset'leri icin 4 MB boyut limiti
+  - admin auth + rate limit
+- logo kare olmak zorunda degil; yatay wordmark guvenli container'larla destekleniyor
 - verification hedefi:
   - `test:branding-seo-settings`
   - `test:system-settings-hardening`
+  - `test:branding-assets-upload`
   - lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
-1. `fix/system-settings-hardening`
-2. `feature/branding-assets-upload`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/integration-hub`
-5. `feature/dashboard-visual-polish`
+1. `feature/cache-and-rate-limit-foundation`
+2. `feature/integration-hub`
+3. `feature/dashboard-visual-polish`
+4. `feature/store-merchandising`
+5. `feature/admin-shop-ux`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

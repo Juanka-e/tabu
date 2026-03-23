@@ -22,6 +22,7 @@
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
 12. `feature/admin-access-gateway`
+13. `feature/branding-seo-settings`
 
 ## Aktif Teknik Kararlar
 
@@ -63,7 +64,6 @@
   - `docs/cache-and-storage-strategy.md`
 
 ## Sonraki Oncelikli Branch'ler
-13. `fix/system-settings-hardening`
 14. `feature/branding-assets-upload`
 15. `feature/cache-and-rate-limit-foundation`
 16. `feature/integration-hub`
@@ -234,15 +234,40 @@
 - Sadece root-relative guvenli asset path'leri otomatik preview edilecek.
 - Upload slice gelene kadar dis URL'ler sadece yeni sekmede acilabilecek.
 
+## Branding Assets Upload Slice (23 March 2026, in progress)
+- Branding icin ayri upload route'u kuruluyor:
+  - `logo`
+  - `favicon`
+  - `og`
+- Upload edilen dosyalar root-relative guvenli branding path'lerine yaziliyor.
+- System settings ekranina media picker benzeri upload aksiyonlari ekleniyor.
+- Yuklenen logo artik public ana sayfa ile login/register yuzeylerinde gorunur hale getiriliyor.
+- Dashboard yuzeylerinde ek compact asset zorunlulugu kaldiriliyor; dar alanlar sade fallback branding ile calisiyor.
+- Branding save sonrasi client-side branding event ile logo, favicon ve theme-color anlik senkronize ediliyor.
+- Branding asset alanlarina `Varsayilana don` aksiyonu ekleniyor.
+- In-game dashboard kucuk ekranlarda mobile nav ile responsive kullanilir hale getiriliyor.
+- Save sonrasi kullanilmayan eski branding asset dosyalari temizleniyor.
+- Ana sayfa hero logosu `priority` ile yukleniyor.
+- Desktop dashboard header yatay wordmark container'i ile guncelleniyor.
+- Logout/navigation sirasinda Turnstile cleanup DOM hatasi vermeyecek sekilde sadeleştiriliyor.
+- tekrar kullanilacak rehberler `docs/guides/` altinda toplanmaya baslaniyor.
+- Ilk dilim guvenlikleri:
+  - PNG / JPEG / WebP
+  - signature kontrolu
+  - tum branding asset'leri icin 4 MB boyut limiti
+  - admin auth
+  - rate limit
+- Logo kare olmak zorunda degil; yatay wordmark kullanimi guvenli container'larla destekleniyor.
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 12
+- Tamamlanan feature branch sayisi: 13
 - Planli toplam branch sayisi: 28
-- Kalan branch sayisi: 16
+- Kalan branch sayisi: 15
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

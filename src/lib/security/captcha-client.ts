@@ -96,10 +96,11 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
     container.style.left = "-9999px";
     container.style.top = "0";
     document.body.appendChild(container);
+    let widgetId: string | null = null;
 
     try {
         const token = await new Promise<string>((resolve, reject) => {
-            const widgetId = window.turnstile!.render(container, {
+            widgetId = window.turnstile!.render(container, {
                 sitekey: siteKey,
                 action,
                 appearance:
@@ -121,7 +122,11 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
 
         return token;
     } finally {
-        document.body.removeChild(container);
+        // Turnstile's remove() can race with route changes and emit noisy DOM errors.
+        // For our one-shot hidden widget flow, dropping the temporary container is sufficient.
+        if (container.isConnected) {
+            container.remove();
+        }
     }
 }
 

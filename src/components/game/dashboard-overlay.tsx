@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, type ReactNode, type MouseEvent } from "react";
 import { Bell, HelpCircle, X } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { DashboardNav, type DashboardTab } from "./dashboard-nav";
+import { DashboardNav, DashboardNavMobile, type DashboardTab } from "./dashboard-nav";
 import { DashboardProfileSidebar } from "./dashboard-profile-sidebar";
 import { SupportDeskSheet } from "./support-desk-sheet";
 import { NotificationsSheet } from "./notifications-sheet";
@@ -49,10 +49,10 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8 glass-overlay"
+            className="fixed inset-0 z-[100] flex items-stretch justify-center p-0 glass-overlay sm:items-center sm:p-6 md:p-8"
             onClick={handleBackdrop}
         >
-            <div className="glass-panel w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden relative flex animate-fade-in-up">
+            <div className="glass-panel relative flex h-[100dvh] w-full animate-fade-in-up overflow-hidden rounded-none shadow-2xl sm:h-[85vh] sm:max-w-6xl sm:rounded-3xl">
                 {/* Close button */}
                 <button
                     onClick={onClose}
@@ -154,7 +154,7 @@ export function DashboardLayout({
     }, []);
 
     return (
-        <div className={`relative flex w-full h-full ${className}`}>
+        <div className={`relative flex h-full w-full flex-col md:flex-row ${className}`}>
             {/* Nav sidebar */}
             <DashboardNav
                 activeTab={activeTab}
@@ -167,14 +167,22 @@ export function DashboardLayout({
                 onHelpClick={() => setSupportOpen(true)}
             />
 
-            {/* Main content */}
-            <main className="flex-1 h-full overflow-y-auto relative scroll-smooth">
-                {activeTab === "play" && playContent ? (
-                    playContent
-                ) : (
-                    <DashboardContent activeTab={activeTab} />
-                )}
-            </main>
+            <div className="flex min-h-0 flex-1 flex-col">
+                <DashboardNavMobile
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    showPlayTab={showPlayTab}
+                />
+
+                {/* Main content */}
+                <main className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
+                    {activeTab === "play" && playContent ? (
+                        playContent
+                    ) : (
+                        <DashboardContent activeTab={activeTab} />
+                    )}
+                </main>
+            </div>
 
             {/* Profile sidebar (hidden on mobile/tablet) */}
             <DashboardProfileSidebar onTabChange={setActiveTab} />

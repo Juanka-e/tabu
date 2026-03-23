@@ -17,6 +17,7 @@ function main() {
             ...DEFAULT_SYSTEM_SETTINGS.branding,
             siteName: "Tabu Arena",
             siteShortName: "Arena",
+            logoUrl: "/branding/logo/tabu-arena.webp",
             defaultTitle: "Tabu Arena | Online Oyun",
             titleTemplate: "%s | Tabu Arena",
             defaultDescription: "Modern online Tabu deneyimi.",
@@ -40,6 +41,7 @@ function main() {
             : null;
 
     assert.equal(settings.branding.siteName, "Tabu Arena");
+    assert.equal(settings.branding.logoUrl, "/branding/logo/tabu-arena.webp");
     assert.equal(rootMetadata.applicationName, "Arena");
     assert.equal(rootViewport.themeColor, "#123456");
     assert.equal(titleConfig?.template, "%s | Tabu Arena");

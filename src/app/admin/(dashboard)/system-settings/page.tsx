@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
     AlertTriangle,
     Coins,
+    ImagePlus,
     Paintbrush2,
     RefreshCcw,
     Save,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAutomaticBrandingPreviewUrl } from "@/lib/branding/assets";
+import { dispatchBrandingUpdated } from "@/lib/branding/events";
 import type { SystemSettingsResponse } from "@/types/system-settings";
 
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
@@ -49,6 +51,11 @@ const sections = [
         icon: ShieldCheck,
     },
 ] as const;
+const defaultBrandingAssetValues = {
+    logoUrl: "",
+    faviconUrl: "/favicon.ico",
+    ogImageUrl: "",
+} as const;
 
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
@@ -94,11 +101,107 @@ function ProviderBadge({ enabled, label }: { enabled: boolean; label: string }) 
     );
 }
 
+function BrandingAssetField({
+    label,
+    helper,
+    placeholder,
+    value,
+    previewAlt,
+    assetType,
+    uploading,
+    defaultValue,
+    onChange,
+    onUpload,
+}: {
+    label: string;
+    helper: string;
+    placeholder: string;
+    value: string;
+    previewAlt: string;
+    assetType: "logo" | "favicon" | "og";
+    uploading: boolean;
+    defaultValue: string;
+    onChange: (value: string) => void;
+    onUpload: (file: File, assetType: "logo" | "favicon" | "og") => void;
+}) {
+    const sizeHint = "Maksimum 4 MB.";
+
+    return (
+        <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+            <div className="space-y-2">
+                <FieldLabel label={label} helper={helper} />
+                <input
+                    className={inputClassName}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition hover:border-blue-500/40 hover:text-blue-600">
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    {uploading ? "Yukleniyor" : "Dosya yukle"}
+                    <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={uploading}
+                        className="hidden"
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                                onUpload(file, assetType);
+                            }
+                            event.target.value = "";
+                        }}
+                    />
+                </label>
+                <button
+                    type="button"
+                    onClick={() => onChange(defaultValue)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground transition hover:border-amber-500/40 hover:text-amber-600"
+                >
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Varsayilana don
+                </button>
+                <div className="text-xs text-muted-foreground">
+                    PNG, JPEG veya WebP kullan. {sizeHint} Yatay wordmark icin `Logo` kullan. Root-relative path otomatik preview edilir.
+                </div>
+            </div>
+
+            {value.trim() ? (
+                <div className="rounded-xl border border-border/70 bg-background p-3">
+                    {isAutomaticBrandingPreviewUrl(value) ? (
+                        // Root-relative branding assets are uploaded into the same app and are safe to preview directly.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={value}
+                            alt={previewAlt}
+                            className={`rounded-xl border border-border/70 bg-muted/30 object-contain ${
+                                assetType === "favicon"
+                                    ? "h-16 w-16"
+                                    : assetType === "logo"
+                                      ? "h-24 w-full"
+                                      : "aspect-[1200/630] w-full"
+                            }`}
+                        />
+                    ) : (
+                        <div className="text-xs text-muted-foreground">
+                            Dis URL kaydedildi. Guvenlik nedeniyle otomatik preview kapali.
+                        </div>
+                    )}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 export default function SystemSettingsPage() {
     const isProductionBuild = process.env.NODE_ENV === "production";
     const [payload, setPayload] = useState<SystemSettingsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingAsset, setUploadingAsset] = useState<"logo" | "favicon" | "og" | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [activeSection, setActiveSection] = useState<"platform" | "branding" | "economy" | "security">("branding");
@@ -197,11 +300,51 @@ export default function SystemSettingsPage() {
             }
 
             setPayload(nextPayload);
+            dispatchBrandingUpdated(nextPayload.settings.branding);
             setSuccess("Sistem ayarlari kaydedildi.");
         } catch (saveError) {
             setError(saveError instanceof Error ? saveError.message : "Sistem ayarlari kaydedilemedi.");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleBrandingAssetUpload = async (
+        file: File,
+        assetType: "logo" | "favicon" | "og"
+    ) => {
+        setUploadingAsset(assetType);
+        setError("");
+        setSuccess("");
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("assetType", assetType);
+
+            const response = await fetch("/api/admin/branding-assets/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const payload = (await response.json()) as { url?: string; error?: string };
+            if (!response.ok || !payload.url) {
+                throw new Error(payload.error || "Branding asset yuklenemedi.");
+            }
+
+            if (assetType === "logo") {
+                updatePayload("branding", "logoUrl", payload.url);
+            } else if (assetType === "favicon") {
+                updatePayload("branding", "faviconUrl", payload.url);
+            } else {
+                updatePayload("branding", "ogImageUrl", payload.url);
+            }
+
+            setSuccess("Branding asset yuklendi. Kaydet ile kalici hale getirebilirsin.");
+        } catch (uploadError) {
+            setError(uploadError instanceof Error ? uploadError.message : "Branding asset yuklenemedi.");
+        } finally {
+            setUploadingAsset(null);
         }
     };
 
@@ -324,6 +467,15 @@ export default function SystemSettingsPage() {
                             />
                         </div>
                         <div className="space-y-2">
+                            <FieldLabel label="Logo Yolu" helper="Public yuzeylerde kullanilacak ana marka gorseli." />
+                            <input
+                                className={inputClassName}
+                                placeholder="/branding/logo/..."
+                                value={payload.settings.branding.logoUrl}
+                                onChange={(event) => updatePayload("branding", "logoUrl", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
                             <FieldLabel label="Theme Color" helper="Tarayici ve platform meta theme color degeri." />
                             <input
                                 className={inputClassName}
@@ -369,25 +521,43 @@ export default function SystemSettingsPage() {
                         />
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <FieldLabel label="Open Graph Gorseli" helper="Bos birakirsan varsayilan text-only share metadata calisir." />
-                            <input
-                                className={inputClassName}
-                                placeholder="https://... veya /og-cover.png"
-                                value={payload.settings.branding.ogImageUrl}
-                                onChange={(event) => updatePayload("branding", "ogImageUrl", event.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <FieldLabel label="Favicon Yolu" helper="Varsayilan fallback `/favicon.ico` olarak kalir." />
-                            <input
-                                className={inputClassName}
-                                placeholder="/favicon.ico"
-                                value={payload.settings.branding.faviconUrl}
-                                onChange={(event) => updatePayload("branding", "faviconUrl", event.target.value)}
-                            />
-                        </div>
+                    <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+                        <BrandingAssetField
+                            label="Logo Asset"
+                            helper="Genis wordmark veya yatay logo. Ana sayfa, login/register ve desktop header gibi yatay yuzeylerde kullanilir."
+                            placeholder="/branding/logo/..."
+                            value={payload.settings.branding.logoUrl}
+                            previewAlt="Logo preview"
+                            assetType="logo"
+                            uploading={uploadingAsset === "logo"}
+                            defaultValue={defaultBrandingAssetValues.logoUrl}
+                            onChange={(value) => updatePayload("branding", "logoUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
+                        <BrandingAssetField
+                            label="Favicon Asset"
+                            helper="Varsayilan fallback `/favicon.ico` olarak kalir."
+                            placeholder="/favicon.ico"
+                            value={payload.settings.branding.faviconUrl}
+                            previewAlt="Favicon preview"
+                            assetType="favicon"
+                            uploading={uploadingAsset === "favicon"}
+                            defaultValue={defaultBrandingAssetValues.faviconUrl}
+                            onChange={(value) => updatePayload("branding", "faviconUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
+                        <BrandingAssetField
+                            label="Open Graph Asset"
+                            helper="Bos birakirsan varsayilan text-only share metadata calisir."
+                            placeholder="https://... veya /branding/og/..."
+                            value={payload.settings.branding.ogImageUrl}
+                            previewAlt="Open Graph preview"
+                            assetType="og"
+                            uploading={uploadingAsset === "og"}
+                            defaultValue={defaultBrandingAssetValues.ogImageUrl}
+                            onChange={(value) => updatePayload("branding", "ogImageUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-[1.25fr_0.85fr]">
@@ -402,7 +572,7 @@ export default function SystemSettingsPage() {
                                         {payload.settings.branding.siteName}
                                     </div>
                                     <div className="mt-1 truncate text-xs text-muted-foreground">
-                                        {payload.settings.branding.faviconUrl || "/favicon.ico"}
+                                        {payload.settings.branding.logoUrl || payload.settings.branding.faviconUrl || "/favicon.ico"}
                                     </div>
                                 </div>
                                 <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
