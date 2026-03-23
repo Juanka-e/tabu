@@ -21,6 +21,7 @@ export interface PlatformSettings {
 export interface BrandingSettings {
     siteName: string;
     siteShortName: string;
+    logoUrl: string;
     defaultTitle: string;
     titleTemplate: string;
     defaultDescription: string;

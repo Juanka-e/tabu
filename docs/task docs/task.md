@@ -89,16 +89,20 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `fix/system-settings-hardening`
-- admin `system-settings` write route'una ayri rate limit
-- branding preview'da dis URL'leri otomatik yuklememe
-- sadece root-relative guvenli asset preview davranisi
-- branding upload slice oncesi guvenlik sertlestirmesi
-- sonraki altyapi notu:
-  - `docs/cache-and-storage-strategy.md`
+### `feature/branding-assets-upload`
+- branding upload route'u ekleniyor
+- logo / favicon / og image icin upload aksiyonlari
+- system settings branding alanina media picker mantigi baglaniyor
+- logoUrl branding namespace'ine ekleniyor
+- guvenlik:
+  - PNG / JPEG / WebP
+  - signature kontrolu
+  - asset tipine gore boyut limiti
+  - admin auth + rate limit
 - verification hedefi:
   - `test:branding-seo-settings`
   - `test:system-settings-hardening`
+  - `test:branding-assets-upload`
   - lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari

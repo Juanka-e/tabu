@@ -39,6 +39,7 @@
 - logo / favicon / og image upload
 - guvenli dosya dogrulama
 - medya secici ile branding paneline baglama
+- root-relative branding asset path standardi
 
 ### 4. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
@@ -65,6 +66,15 @@
 - branding preview'da dis URL'leri otomatik yuklememe
 - sadece root-relative guvenli asset preview davranisi
 - upload slice oncesi guvenlik sertlestirmesi
+
+### `feature/branding-assets-upload`
+- branding upload route'u
+- logo / favicon / og asset upload
+- admin system settings icinde upload aksiyonlari
+- ilk asset guvenlik kurallari:
+  - PNG / JPEG / WebP
+  - mime + signature kontrolu
+  - asset tipine gore boyut limiti
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:

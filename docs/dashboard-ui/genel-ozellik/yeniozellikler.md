@@ -234,6 +234,20 @@
 - Sadece root-relative guvenli asset path'leri otomatik preview edilecek.
 - Upload slice gelene kadar dis URL'ler sadece yeni sekmede acilabilecek.
 
+## Branding Assets Upload Slice (23 March 2026, in progress)
+- Branding icin ayri upload route'u kuruluyor:
+  - `logo`
+  - `favicon`
+  - `og`
+- Upload edilen dosyalar root-relative guvenli branding path'lerine yaziliyor.
+- System settings ekranina media picker benzeri upload aksiyonlari ekleniyor.
+- Ilk dilim guvenlikleri:
+  - PNG / JPEG / WebP
+  - signature kontrolu
+  - asset tipine gore boyut limiti
+  - admin auth
+  - rate limit
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
