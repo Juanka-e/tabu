@@ -72,7 +72,8 @@
 - ilk asset guvenlik kurallari:
   - PNG / JPEG / WebP
   - mime + signature kontrolu
-  - asset tipine gore boyut limiti
+  - tum branding asset'leri icin 4 MB boyut limiti
+- yatay logo / wordmark destegi, serbest boyut yerine guvenli sabit container'larla veriliyor
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:

@@ -249,9 +249,10 @@
 - Ilk dilim guvenlikleri:
   - PNG / JPEG / WebP
   - signature kontrolu
-  - asset tipine gore boyut limiti
+  - tum branding asset'leri icin 4 MB boyut limiti
   - admin auth
   - rate limit
+- Logo kare olmak zorunda degil; yatay wordmark kullanimi guvenli container'larla destekleniyor.
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

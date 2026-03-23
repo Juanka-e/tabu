@@ -102,8 +102,9 @@
 - guvenlik:
   - PNG / JPEG / WebP
   - signature kontrolu
-  - asset tipine gore boyut limiti
+  - tum branding asset'leri icin 4 MB boyut limiti
   - admin auth + rate limit
+- logo kare olmak zorunda degil; yatay wordmark guvenli container'larla destekleniyor
 - verification hedefi:
   - `test:branding-seo-settings`
   - `test:system-settings-hardening`

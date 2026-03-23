@@ -124,12 +124,7 @@ function BrandingAssetField({
     onChange: (value: string) => void;
     onUpload: (file: File, assetType: "logo" | "favicon" | "og") => void;
 }) {
-    const sizeHint =
-        assetType === "favicon"
-            ? "Maksimum 2 MB."
-            : assetType === "logo"
-              ? "Maksimum 2 MB."
-              : "Maksimum 4 MB.";
+    const sizeHint = "Maksimum 4 MB.";
 
     return (
         <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
@@ -170,7 +165,7 @@ function BrandingAssetField({
                     Varsayilana don
                 </button>
                 <div className="text-xs text-muted-foreground">
-                    PNG, JPEG veya WebP kullan. {sizeHint} Root-relative path otomatik preview edilir.
+                    PNG, JPEG veya WebP kullan. {sizeHint} Logo kare olmak zorunda degil; yatay wordmark kullanabilirsin. Root-relative path otomatik preview edilir.
                 </div>
             </div>
 

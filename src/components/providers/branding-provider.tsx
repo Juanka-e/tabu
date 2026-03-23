@@ -45,22 +45,27 @@ function applyFavicon(faviconUrl: string): void {
     const cacheBustToken = Date.now().toString(36);
     const faviconHref = `${normalizedUrl}${normalizedUrl.includes("?") ? "&" : "?"}v=${cacheBustToken}`;
     const iconType = getIconMimeType(normalizedUrl);
+    const existingIcons = document.querySelectorAll(
+        'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
+    );
+    existingIcons.forEach((icon) => icon.remove());
+
     const iconDefinitions = [
-        { rel: "icon", type: iconType },
-        { rel: "shortcut icon", type: iconType },
-        { rel: "apple-touch-icon", type: "image/png" },
+        { rel: "icon", type: iconType, sizes: undefined },
+        { rel: "shortcut icon", type: iconType, sizes: undefined },
+        { rel: "apple-touch-icon", type: "image/png", sizes: "180x180" },
     ] as const;
 
     for (const definition of iconDefinitions) {
-        let link = document.querySelector(`link[rel="${definition.rel}"]`) as HTMLLinkElement | null;
-        if (!link) {
-            link = document.createElement("link");
-            link.rel = definition.rel;
-            document.head.appendChild(link);
-        }
-
+        const link = document.createElement("link");
+        link.rel = definition.rel;
         link.type = definition.type;
         link.href = faviconHref;
+        if (definition.sizes) {
+            link.sizes = definition.sizes;
+        }
+        link.setAttribute("data-branding-managed", "true");
+        document.head.appendChild(link);
     }
 }
 

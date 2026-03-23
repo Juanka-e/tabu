@@ -62,15 +62,15 @@ export function DashboardNav({
                         </span>
                     </button>
                 ) : (
-                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/80 shadow-lg dark:border-slate-700/60 dark:bg-slate-900/70">
+                    <div className="flex h-12 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-1 shadow-lg dark:border-slate-700/60 dark:bg-slate-900/70">
                         {branding.logoUrl ? (
                             <Image
                                 src={branding.logoUrl}
                                 alt={`${branding.siteName} logo`}
-                                width={40}
-                                height={40}
+                                width={56}
+                                height={32}
                                 unoptimized
-                                className="h-10 w-10 object-contain"
+                                className="h-8 w-full object-contain"
                             />
                         ) : (
                             <span className="bg-gradient-to-tr from-red-500 to-blue-500 bg-clip-text text-lg font-black text-transparent">
@@ -155,10 +155,10 @@ export function DashboardNavMobile({
                     <Image
                         src={branding.logoUrl}
                         alt={`${branding.siteName} logo`}
-                        width={28}
+                        width={96}
                         height={28}
                         unoptimized
-                        className="h-7 w-7 flex-shrink-0 object-contain"
+                        className="h-7 w-auto max-w-[96px] flex-shrink-0 object-contain"
                     />
                 ) : (
                     <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-blue-500 text-xs font-black text-white">

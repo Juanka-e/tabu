@@ -20,13 +20,13 @@ export function getBrandingAssetUploadConfig(type: BrandingAssetType): {
         case "logo":
             return {
                 directory: "logo",
-                maxSize: 2 * 1024 * 1024,
+                maxSize: 4 * 1024 * 1024,
                 allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
             };
         case "favicon":
             return {
                 directory: "favicon",
-                maxSize: 2 * 1024 * 1024,
+                maxSize: 4 * 1024 * 1024,
                 allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
             };
         case "og":
