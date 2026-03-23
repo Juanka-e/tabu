@@ -216,14 +216,13 @@ export function AuthenticatedDashboardHome({
                 <Gamepad2 className="h-4 w-4 text-slate-900 dark:text-white" />
               )}
             </div>
-            <div className="min-w-0">
-              <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">
-                {branding.siteShortName.toUpperCase()}
+            {!branding.logoUrl ? (
+              <div className="min-w-0">
+                <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">
+                  {branding.siteShortName.toUpperCase()}
+                </div>
               </div>
-              <div className="truncate text-[11px] font-medium text-muted-foreground">
-                {branding.siteName}
-              </div>
-            </div>
+            ) : null}
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">

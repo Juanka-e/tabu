@@ -6,6 +6,21 @@ import type { BrandingSettings } from "@/types/system-settings";
 
 const BrandingContext = createContext<BrandingSettings | null>(null);
 
+function getIconMimeType(url: string): string {
+    const cleanedUrl = url.split("?")[0].toLowerCase();
+    if (cleanedUrl.endsWith(".png")) {
+        return "image/png";
+    }
+    if (cleanedUrl.endsWith(".webp")) {
+        return "image/webp";
+    }
+    if (cleanedUrl.endsWith(".jpg") || cleanedUrl.endsWith(".jpeg")) {
+        return "image/jpeg";
+    }
+
+    return "image/x-icon";
+}
+
 function applyThemeColor(themeColor: string): void {
     if (typeof document === "undefined") {
         return;
@@ -29,9 +44,10 @@ function applyFavicon(faviconUrl: string): void {
     const normalizedUrl = faviconUrl.trim() || "/favicon.ico";
     const cacheBustToken = Date.now().toString(36);
     const faviconHref = `${normalizedUrl}${normalizedUrl.includes("?") ? "&" : "?"}v=${cacheBustToken}`;
+    const iconType = getIconMimeType(normalizedUrl);
     const iconDefinitions = [
-        { rel: "icon", type: "image/x-icon" },
-        { rel: "shortcut icon", type: "image/x-icon" },
+        { rel: "icon", type: iconType },
+        { rel: "shortcut icon", type: iconType },
         { rel: "apple-touch-icon", type: "image/png" },
     ] as const;
 

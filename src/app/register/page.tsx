@@ -87,9 +87,9 @@ export default function RegisterPage() {
                                 <UserPlus className="h-5 w-5 text-primary" />
                                 Kayit Ol
                             </CardTitle>
-                            <CardDescription>
-                                {branding.siteName} icin yeni bir hesap olustur.
-                            </CardDescription>
+                            {!branding.logoUrl ? (
+                                <CardDescription>Yeni hesabini olustur.</CardDescription>
+                            ) : null}
                         </div>
                     </div>
                 </CardHeader>

@@ -91,9 +91,9 @@ export default function LoginPage() {
                                 <LogIn className="h-5 w-5 text-primary" />
                                 Giris Yap
                             </CardTitle>
-                            <CardDescription>
-                                {branding.siteName} hesabinla giris yapip profil ve magazayi ac.
-                            </CardDescription>
+                            {!branding.logoUrl ? (
+                                <CardDescription>Hesabina giris yap.</CardDescription>
+                            ) : null}
                         </div>
                     </div>
                 </CardHeader>

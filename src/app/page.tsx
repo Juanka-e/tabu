@@ -190,12 +190,11 @@ export default function HomePage() {
                         </div>
                     )}
                     <div>
-                        <CardTitle className="bg-gradient-to-r from-blue-400 to-emerald-500 bg-clip-text text-3xl font-bold text-transparent">
-                            {branding.siteShortName.toUpperCase()}
-                        </CardTitle>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {branding.defaultDescription}
-                        </p>
+                        {!branding.logoUrl ? (
+                            <CardTitle className="bg-gradient-to-r from-blue-400 to-emerald-500 bg-clip-text text-3xl font-bold text-transparent">
+                                {branding.siteShortName.toUpperCase()}
+                            </CardTitle>
+                        ) : null}
                     </div>
                 </CardHeader>
 
@@ -296,10 +295,6 @@ export default function HomePage() {
                     ) : null}
                 </CardContent>
             </Card>
-
-            <p className="relative z-10 mt-6 text-xs text-muted-foreground">
-                {branding.siteName} - Arkadaslarinla online oynayip hizli odalarda bulus.
-            </p>
 
             <AnnouncementsModal
                 isOpen={showAnnouncements}

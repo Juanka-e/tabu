@@ -49,10 +49,26 @@ function resolveAssetUrl(value: string, metadataBase?: URL): string | undefined 
     return trimmed;
 }
 
+function getIconType(url: string): string {
+    const cleanedUrl = url.split("?")[0].toLowerCase();
+    if (cleanedUrl.endsWith(".png")) {
+        return "image/png";
+    }
+    if (cleanedUrl.endsWith(".webp")) {
+        return "image/webp";
+    }
+    if (cleanedUrl.endsWith(".jpg") || cleanedUrl.endsWith(".jpeg")) {
+        return "image/jpeg";
+    }
+
+    return "image/x-icon";
+}
+
 export function buildRootMetadata(branding: BrandingSettings): Metadata {
     const metadataBase = resolveSiteUrl();
     const ogImage = resolveAssetUrl(branding.ogImageUrl, metadataBase);
     const favicon = resolveAssetUrl(branding.faviconUrl, metadataBase) ?? "/favicon.ico";
+    const faviconType = getIconType(favicon);
     const twitterHandle = normalizeTwitterHandle(branding.twitterHandle);
 
     return {
@@ -82,9 +98,9 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
             images: ogImage ? [ogImage] : undefined,
         },
         icons: {
-            icon: favicon,
-            shortcut: favicon,
-            apple: favicon,
+            icon: [{ url: favicon, type: faviconType }],
+            shortcut: [{ url: favicon, type: faviconType }],
+            apple: [{ url: favicon, type: "image/png" }],
         },
     };
 }

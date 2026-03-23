@@ -165,11 +165,13 @@ export function DashboardNavMobile({
                         {branding.siteShortName.trim().charAt(0).toUpperCase() || "T"}
                     </div>
                 )}
-                <div className="min-w-0">
-                    <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
-                        {branding.siteShortName}
+                {!branding.logoUrl ? (
+                    <div className="min-w-0">
+                        <div className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-800 dark:text-slate-100">
+                            {branding.siteShortName}
+                        </div>
                     </div>
-                </div>
+                ) : null}
             </div>
 
             <div className="scrollbar-hide flex flex-1 items-center justify-end gap-1 overflow-x-auto">
