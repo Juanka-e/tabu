@@ -89,17 +89,17 @@
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `feature/branding-seo-settings`
-- `branding` namespace'i system settings modeline ekleniyor
-- root ve room metadata runtime branding ayarlarina baglaniyor
-- canonical, `robots.ts` ve `sitemap.ts` ekleniyor
-- login/register/store icin page-specific metadata geliyor
-- favicon, og image, theme color ve title/description panelden yonetiliyor
-- admin panel ayni sayfada section button'lari ile sade operasyon gorunumu aliyor
-- OG image alani icin onizleme ve kisa format ogreticisi ekleniyor
-- Redis/Valkey ve MySQL gorev ayrimi icin not dosyasi eklendi:
+### `fix/system-settings-hardening`
+- admin `system-settings` write route'una ayri rate limit
+- branding preview'da dis URL'leri otomatik yuklememe
+- sadece root-relative guvenli asset preview davranisi
+- branding upload slice oncesi guvenlik sertlestirmesi
+- sonraki altyapi notu:
   - `docs/cache-and-storage-strategy.md`
-- verification: `test:branding-seo-settings`, lint, tsc, build
+- verification hedefi:
+  - `test:branding-seo-settings`
+  - `test:system-settings-hardening`
+  - lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
 1. `fix/system-settings-hardening`

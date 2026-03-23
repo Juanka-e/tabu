@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isAutomaticBrandingPreviewUrl } from "@/lib/branding/assets";
 import type { SystemSettingsResponse } from "@/types/system-settings";
 
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
@@ -207,6 +208,9 @@ export default function SystemSettingsPage() {
     if (loading || !payload) {
         return <div className="p-6 text-sm text-muted-foreground">Sistem ayarlari yukleniyor...</div>;
     }
+
+    const ogImageUrl = payload.settings.branding.ogImageUrl.trim();
+    const canAutoPreviewOgImage = isAutomaticBrandingPreviewUrl(ogImageUrl);
 
     return (
         <div className="space-y-6">
@@ -423,15 +427,32 @@ export default function SystemSettingsPage() {
 
                             <div className="rounded-[28px] border border-border/70 bg-background p-3 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.6)]">
                                 <div className="rounded-[22px] border border-border/70 bg-muted/20 p-3">
-                                    {payload.settings.branding.ogImageUrl.trim() ? (
+                                    {ogImageUrl && canAutoPreviewOgImage ? (
                                         // External preview URLs are operator-controlled and may not be in Next image remotePatterns.
-                                        // A plain img tag keeps preview friction low inside the admin tool.
+                                        // Only root-relative app assets are previewed automatically.
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
-                                            src={payload.settings.branding.ogImageUrl}
+                                            src={ogImageUrl}
                                             alt="Open Graph preview"
                                             className="aspect-[1200/630] w-full rounded-2xl object-cover"
                                         />
+                                    ) : ogImageUrl ? (
+                                        <div className="space-y-3 rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4 text-left text-xs text-muted-foreground">
+                                            <div className="font-semibold uppercase tracking-[0.16em] text-foreground">
+                                                Otomatik preview kapali
+                                            </div>
+                                            <div>
+                                                Dis URL gorselleri admin tarayicisindan otomatik yuklenmez. Upload slice gelene kadar sadece root-relative app asset&apos;leri burada otomatik preview edilir.
+                                            </div>
+                                            <a
+                                                href={ogImageUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground transition hover:border-blue-500/40 hover:text-blue-600"
+                                            >
+                                                Gorseli yeni sekmede ac
+                                            </a>
+                                        </div>
                                     ) : (
                                         <div className="flex aspect-[1200/630] w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/40 text-center text-xs text-muted-foreground">
                                             OG gorseli girildiginde burada onizleme gorunur.
@@ -462,7 +483,7 @@ export default function SystemSettingsPage() {
                                     </div>
                                 ))}
                                 <div className="rounded-xl border border-border/70 bg-background px-3 py-3 text-xs text-muted-foreground">
-                                    Root-relative yol (`/og-cover.png`) veya tam URL kullanabilirsin. Upload slice geldikten sonra bu alanlar dogrudan medya secicisine baglanacak.
+                                    Root-relative yol (`/og-cover.png`) otomatik preview edilir. Tam URL kaydedilebilir ama guvenlik nedeniyle admin panelde otomatik yuklenmez. Upload slice geldikten sonra bu alanlar dogrudan medya secicisine baglanacak.
                                 </div>
                             </div>
                         </div>

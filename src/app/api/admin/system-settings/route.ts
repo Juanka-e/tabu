@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     systemSettingsWriteSchema,
@@ -10,6 +10,11 @@ import {
     updateSystemSettings,
 } from "@/lib/system-settings/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +32,27 @@ export async function GET() {
     });
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-system-settings-write",
+        key: `${adminSession.id}:${getRequestIp(req)}`,
+        windowMs: 5 * 60_000,
+        maxRequests: 20,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla sistem ayari guncellemesi gonderildi. Lutfen bekleyin." },
+            {
+                status: 429,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
+        );
     }
 
     try {
@@ -65,11 +87,14 @@ export async function PUT(req: Request) {
             settings: updatedSettings,
             captchaReadiness: getCaptchaProviderReadiness(),
             namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
-        });
+        }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         return NextResponse.json(
             { error: error instanceof Error ? error.message : "Sistem ayarlari guncellenemedi." },
-            { status: 422 }
+            {
+                status: 422,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
         );
     }
 }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isAutomaticBrandingPreviewUrl } from "@/lib/branding/assets";
 import {
     buildRootMetadata,
     buildRootViewport,
@@ -47,6 +48,8 @@ function main() {
     assert.equal(iconsConfig?.icon, "http://localhost:3000/brand/favicon.ico");
     assert.equal(roomMetadata.title, "Oyun Odasi | Tabu Arena");
     assert.equal(roomMetadata.openGraph?.title, "Tabu Arena | Online Oyun");
+    assert.equal(isAutomaticBrandingPreviewUrl("/og/tabu-arena.png"), true);
+    assert.equal(isAutomaticBrandingPreviewUrl("https://cdn.example.com/tabu.png"), false);
 
     console.log("branding seo settings smoke test passed");
 }
