@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
+import { buildRoomMetadata } from "@/lib/branding/metadata";
+import { getSystemSettings } from "@/lib/system-settings/service";
 
-export const metadata: Metadata = {
-    title: "Oyun Odası | Tabu Oyunu",
-    description:
-        "Online Tabu oyun odası. Takımlarınla birlikte yasaklı kelimelere dikkat ederek anlatmaya çalış!",
-    openGraph: {
-        title: "Tabu Oyunu — Online Sözcük Tahmin Oyunu",
-        description:
-            "Arkadaşlarınla online Tabu oyna! Modern arayüzüyle yeni nesil Tabu deneyimi.",
-        type: "website",
-    },
-    twitter: {
-        card: "summary_large_image",
-        title: "Tabu Oyunu — Online Sözcük Tahmin Oyunu",
-        description:
-            "Arkadaşlarınla online Tabu oyna! Yasaklı kelimelere dikkat ederek anlatmaya çalış.",
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const settings = await getSystemSettings();
+    return buildRoomMetadata(settings.branding);
+}
 
 export default function RoomLayout({
     children,

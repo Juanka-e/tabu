@@ -229,6 +229,109 @@ export default function SystemSettingsPage() {
 
             <Card className="border-border/70">
                 <CardHeader>
+                    <CardTitle className="text-xl">Branding ve SEO</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2">
+                            <FieldLabel label="Site Adi" helper="Open Graph, title template ve genel marka adi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteName}
+                                onChange={(event) => updatePayload("branding", "siteName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Kisa Ad" helper="Uygulama adi ve kisaltilmis marka etiketi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteShortName}
+                                onChange={(event) => updatePayload("branding", "siteShortName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Theme Color" helper="Tarayici ve platform meta theme color degeri." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.themeColor}
+                                onChange={(event) => updatePayload("branding", "themeColor", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Twitter Handle" helper="Opsiyonel. @ olmadan da girilebilir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.twitterHandle}
+                                onChange={(event) => updatePayload("branding", "twitterHandle", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <FieldLabel label="Varsayilan Title" helper="Ana sayfa ve share kartlari icin ana baslik." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.defaultTitle}
+                                onChange={(event) => updatePayload("branding", "defaultTitle", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Title Template" helper="Sayfa bazli title varsa `%s` yerine gelir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.titleTemplate}
+                                onChange={(event) => updatePayload("branding", "titleTemplate", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <FieldLabel label="Varsayilan Description" helper="SEO description, Open Graph ve Twitter kartlarinda kullanilir." />
+                        <textarea
+                            className={`${inputClassName} min-h-24 resize-y`}
+                            value={payload.settings.branding.defaultDescription}
+                            onChange={(event) => updatePayload("branding", "defaultDescription", event.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <FieldLabel label="Open Graph Gorseli" helper="Bos birakirsan varsayilan text-only share metadata calisir." />
+                            <input
+                                className={inputClassName}
+                                placeholder="https://... veya /og-cover.png"
+                                value={payload.settings.branding.ogImageUrl}
+                                onChange={(event) => updatePayload("branding", "ogImageUrl", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Favicon Yolu" helper="Varsayilan fallback `/favicon.ico` olarak kalir." />
+                            <input
+                                className={inputClassName}
+                                placeholder="/favicon.ico"
+                                value={payload.settings.branding.faviconUrl}
+                                onChange={(event) => updatePayload("branding", "faviconUrl", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                        <div>
+                            <span className="font-semibold text-foreground">Preview:</span>{" "}
+                            {payload.settings.branding.defaultTitle}
+                        </div>
+                        <div className="mt-1">
+                            <span className="font-semibold text-foreground">Template:</span>{" "}
+                            {payload.settings.branding.titleTemplate}
+                        </div>
+                        <div className="mt-1 line-clamp-2">{payload.settings.branding.defaultDescription}</div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="border-border/70">
+                <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><SlidersHorizontal className="h-5 w-5" />Feature Gate&apos;ler</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

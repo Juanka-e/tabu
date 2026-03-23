@@ -70,33 +70,37 @@
 - admin support kuyrugu ve note/reply sistemi
 - verification: `test:support-desk-foundation`, prisma push, prisma generate, lint, tsc, build, audit
 
+### `feature/system-notifications-foundation`
+- dashboard bell/inbox merkezi
+- support reply ve support status notification akisi
+- read / archive kontrolu
+- verification: `test:system-notifications`, prisma generate, lint, tsc, build
+
+### `feature/admin-access-gateway`
+- env tabanli admin access policy helper
+- `/admin`, `/admin/login`, `/api/admin/*` policy enforcement
+- Zero Trust uyumlu header/email allowlist modeli
+- `AUTH_TRUST_HOST` ile localhost production-benzeri test destegi
+- verification: `test:admin-access-gateway`, lint, tsc, build
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap / planning copleri temizlendi
   - aktif docs seti sadelestirildi
 
 ## Aktif Branch
-### `feature/admin-access-gateway`
-- env tabanli admin access policy helper eklendi
-- proxy seviyesinde `/admin`, `/admin/login`, `/api/admin/*` policy kontrolu kuruluyor
-- local-dev bypass + production fail-closed davranisi ekleniyor
-- Zero Trust uyumlu header/email allowlist modeli kuruluyor
-- localhost uzerinde `NODE_ENV=production` ile test yapilacaksa `AUTH_TRUST_HOST=true` gerekir; aksi halde Auth.js `UntrustedHost` hatasi verir
-- verification: `test:admin-access-gateway`, lint, tsc, build
-
-## Aktif Fix Branch
-### `fix/dependency-audit-advisories`
-- `next` ve `eslint-config-next` `16.2.1`'e yukseltiliyor
-- `effect` ve `socket.io-parser` audit override'lari guncelleniyor
-- amac: release-prep oncesi `npm audit --omit=dev` sonucunu temizlemek
-- verification: lint, tsc, build, audit, `test:admin-access-gateway`
+### `feature/branding-seo-settings`
+- `branding` namespace'i system settings modeline ekleniyor
+- root ve room metadata runtime branding ayarlarina baglaniyor
+- favicon, og image, theme color ve title/description panelden yonetiliyor
+- verification: `test:branding-seo-settings`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/branding-seo-settings`
-2. `feature/integration-hub`
-3. `feature/dashboard-visual-polish`
-4. `feature/progression-foundation`
-5. `feature/wallet-ledger-foundation`
+1. `feature/integration-hub`
+2. `feature/dashboard-visual-polish`
+3. `feature/progression-foundation`
+4. `feature/wallet-ledger-foundation`
+5. `feature/store-merchandising`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:
