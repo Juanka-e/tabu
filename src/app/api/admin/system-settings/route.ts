@@ -47,6 +47,9 @@ export async function PUT(req: Request) {
             metadata: {
                 namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
                 maintenanceEnabled: updatedSettings.platform.maintenanceEnabled,
+                siteName: updatedSettings.branding.siteName,
+                faviconUrl: updatedSettings.branding.faviconUrl,
+                ogImageUrlConfigured: updatedSettings.branding.ogImageUrl.length > 0,
                 storeEnabled: updatedSettings.features.storeEnabled,
                 registrationsEnabled: updatedSettings.features.registrationsEnabled,
                 bundlesEnabled: updatedSettings.economy.bundlesEnabled,

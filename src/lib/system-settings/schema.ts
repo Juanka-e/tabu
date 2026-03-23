@@ -16,6 +16,34 @@ const platformSettingsSchema = z.object({
     motdText: trimmedShortText.default(""),
 });
 
+const hexColorSchema = z
+    .string()
+    .trim()
+    .regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, "Gecerli bir hex renk gir.")
+    .default("#101828");
+
+const brandingSettingsSchema = z.object({
+    siteName: z.string().trim().min(2).max(80).default("Tabu Oyunu"),
+    siteShortName: z.string().trim().min(2).max(32).default("Tabu"),
+    defaultTitle: z
+        .string()
+        .trim()
+        .min(5)
+        .max(120)
+        .default("Tabu Oyunu | Online Sozcuk Tahmin Oyunu"),
+    titleTemplate: z.string().trim().min(3).max(80).default("%s | Tabu Oyunu"),
+    defaultDescription: z
+        .string()
+        .trim()
+        .min(12)
+        .max(240)
+        .default("Arkadaslarinla online Tabu oyna. Modern arayuz, hizli odalar ve yeni nesil kelime tahmin deneyimi."),
+    ogImageUrl: z.string().trim().max(255).default(""),
+    faviconUrl: z.string().trim().max(255).default("/favicon.ico"),
+    themeColor: hexColorSchema,
+    twitterHandle: z.string().trim().max(50).default(""),
+});
+
 const featureSettingsSchema = z.object({
     registrationsEnabled: z.boolean().default(true),
     guestGameplayEnabled: z.boolean().default(true),
@@ -57,6 +85,7 @@ const securitySettingsSchema = z.object({
 
 export const systemSettingsSchema = z.object({
     platform: platformSettingsSchema.default(platformSettingsSchema.parse({})),
+    branding: brandingSettingsSchema.default(brandingSettingsSchema.parse({})),
     features: featureSettingsSchema.default(featureSettingsSchema.parse({})),
     economy: economySettingsSchema.default(economySettingsSchema.parse({})),
     security: securitySettingsSchema.default(securitySettingsSchema.parse({})),
@@ -64,6 +93,7 @@ export const systemSettingsSchema = z.object({
 
 export const systemSettingsWriteSchema = z.object({
     platform: platformSettingsSchema,
+    branding: brandingSettingsSchema,
     features: featureSettingsSchema,
     economy: economySettingsSchema,
     security: securitySettingsSchema,
@@ -73,6 +103,7 @@ export type SystemSettingsNamespace = keyof SystemSettings;
 
 export const SYSTEM_SETTINGS_NAMESPACES = [
     "platform",
+    "branding",
     "features",
     "economy",
     "security",

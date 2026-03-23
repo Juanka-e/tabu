@@ -1,6 +1,6 @@
 ﻿# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 16 March 2026
+> Son guncelleme: 23 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -21,6 +21,7 @@
 9. `feature/coin-grant-campaigns`
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
+12. `feature/admin-access-gateway`
 
 ## Aktif Teknik Kararlar
 
@@ -54,21 +55,30 @@
   - `feature/payment-orders-foundation`
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
+### Cache ve Veri Ayrimi Stratejisi
+- MySQL kalici `source of truth` olarak kalir.
+- Redis veya Valkey sadece cache, rate limit ve gecici koordinasyon verisi icin kullanilir.
+- Room/lobi state'i PM2 multi-instance uretim ortaminda saf process-memory olarak birakilmayacak.
+- Bu konu icin ayri mimari not:
+  - `docs/cache-and-storage-strategy.md`
+
 ## Sonraki Oncelikli Branch'ler
-12. `feature/branding-seo-settings`
-13. `feature/integration-hub`
-14. `feature/dashboard-visual-polish`
-15. `feature/store-merchandising`
-16. `feature/admin-shop-ux`
-17. `feature/admin-promotions-ux`
-18. `feature/cosmetic-render-upgrade`
-19. `feature/admin-cosmetic-authoring`
-20. `feature/gameplay-ui-polish`
-21. `feature/analytics-event-foundation`
-22. `feature/word-analytics-liveops`
-23. `feature/release-ops-docs`
-24. `docs/encoding-cleanup`
-25. `feature/wallet-ledger-foundation`
+13. `fix/system-settings-hardening`
+14. `feature/branding-assets-upload`
+15. `feature/cache-and-rate-limit-foundation`
+16. `feature/integration-hub`
+17. `feature/dashboard-visual-polish`
+18. `feature/store-merchandising`
+19. `feature/admin-shop-ux`
+20. `feature/admin-promotions-ux`
+21. `feature/cosmetic-render-upgrade`
+22. `feature/admin-cosmetic-authoring`
+23. `feature/gameplay-ui-polish`
+24. `feature/analytics-event-foundation`
+25. `feature/word-analytics-liveops`
+26. `feature/release-ops-docs`
+27. `docs/encoding-cleanup`
+28. `feature/wallet-ledger-foundation`
 
 ## User Email Foundation Slice (14 March 2026)
 - Yeni kayit akisinda email zorunlu hale getirildi.
@@ -178,7 +188,7 @@
   - production strict bilgisi
   - riskli `failMode` secicisini UI'dan kaldirma
 
-## Admin Access Gateway Karari (16 March 2026, in progress)
+## Admin Access Gateway Karari (16 March 2026, completed)
 - Admin yuzeyi icin env tabanli merkezi access policy katmani kuruluyor.
 - Hedef modlar:
   - `public_login`
@@ -193,6 +203,30 @@
   - sabit header + value
   - email header + allowlist / allow-domain
 - Bu tasarim ileride Cloudflare Zero Trust gibi edge access sistemleri ile uyumlu olacak sekilde kuruluyor.
+- `/admin` shell acilip API'de 403'e dusme yerine, policy fail durumunda sayfa duzeyinde temiz redirect davranisi tamamlandi.
+- localhost production-benzeri testlerde Auth.js `UntrustedHost` hatasini onlemek icin `AUTH_TRUST_HOST` destegi eklendi.
+
+## Branding / SEO Settings Slice (23 March 2026, in progress)
+- Yeni `branding` namespace'i ile runtime metadata ayarlari system settings modeline ekleniyor.
+- Root ve room metadata bu ayarlardan uretiliyor.
+- Kapsam:
+  - default title
+  - title template
+  - default description
+  - Open Graph image URL
+  - favicon URL
+  - theme color
+  - twitter handle
+  - canonical URL
+  - `robots.ts`
+  - `sitemap.ts`
+- Login, register ve store gibi yuzeylerde page-specific metadata eklenecek.
+- Admin system settings ekrani section button'lari ile kisitli gorunum moduna aliniyor.
+- Open Graph alani icin kisa format ogreticisi ve onizleme kutusu ekleniyor.
+- Sonraki tamamlayici dilimler:
+  - `fix/system-settings-hardening`
+  - `feature/branding-assets-upload`
+  - `feature/cache-and-rate-limit-foundation`
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
@@ -200,9 +234,9 @@
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 11
-- Planli toplam branch sayisi: 26
-- Kalan branch sayisi: 15
+- Tamamlanan feature branch sayisi: 12
+- Planli toplam branch sayisi: 28
+- Kalan branch sayisi: 16
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

@@ -1,13 +1,53 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, RefreshCcw, Save, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import {
+    AlertTriangle,
+    Coins,
+    Paintbrush2,
+    RefreshCcw,
+    Save,
+    ShieldCheck,
+    SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SystemSettingsResponse } from "@/types/system-settings";
 
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
 const helperClassName = "text-xs text-muted-foreground";
+const brandingGuide = [
+    "Open Graph gorseli, link paylasildiginda gorulen buyuk kart gorselidir.",
+    "Tavsiye edilen olcu: 1200x630 px.",
+    "Desteklenecek hedef formatlar: PNG, JPG/JPEG, WEBP.",
+    "Mutlaka okunur tipografi ve guclu kontrast kullan.",
+];
+const sections = [
+    {
+        key: "platform",
+        label: "Platform",
+        description: "Bakim, feature gate ve operasyon davranislari.",
+        icon: SlidersHorizontal,
+    },
+    {
+        key: "branding",
+        label: "Branding & SEO",
+        description: "Title, OG, favicon, canonical ve arama motoru sinyalleri.",
+        icon: Paintbrush2,
+    },
+    {
+        key: "economy",
+        label: "Ekonomi",
+        description: "Coin, odul ve magaza carpani davranislari.",
+        icon: Coins,
+    },
+    {
+        key: "security",
+        label: "Guvenlik",
+        description: "Captcha policy ve provider hazirligi.",
+        icon: ShieldCheck,
+    },
+] as const;
 
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
@@ -60,6 +100,7 @@ export default function SystemSettingsPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [activeSection, setActiveSection] = useState<"platform" | "branding" | "economy" | "security">("branding");
 
     const loadSettings = useCallback(async () => {
         setLoading(true);
@@ -189,6 +230,33 @@ export default function SystemSettingsPage() {
             {error ? <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
             {success ? <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
 
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {sections.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.key;
+
+                    return (
+                        <button
+                            key={section.key}
+                            type="button"
+                            onClick={() => setActiveSection(section.key)}
+                            className={`rounded-2xl border px-4 py-4 text-left transition ${
+                                isActive
+                                    ? "border-blue-500/40 bg-blue-500/10 shadow-[0_12px_40px_-24px_rgba(59,130,246,0.7)]"
+                                    : "border-border/70 bg-background hover:border-blue-500/30 hover:bg-muted/30"
+                            }`}
+                        >
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <Icon className="h-4 w-4" />
+                                {section.label}
+                            </div>
+                            <div className="mt-2 text-xs leading-5 text-muted-foreground">{section.description}</div>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {activeSection === "platform" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><AlertTriangle className="h-5 w-5" />Platform Durumu</CardTitle>
@@ -226,7 +294,185 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "branding" ? (
+            <Card className="border-border/70">
+                <CardHeader>
+                    <CardTitle className="text-xl">Branding ve SEO</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2">
+                            <FieldLabel label="Site Adi" helper="Open Graph, title template ve genel marka adi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteName}
+                                onChange={(event) => updatePayload("branding", "siteName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Kisa Ad" helper="Uygulama adi ve kisaltilmis marka etiketi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteShortName}
+                                onChange={(event) => updatePayload("branding", "siteShortName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Theme Color" helper="Tarayici ve platform meta theme color degeri." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.themeColor}
+                                onChange={(event) => updatePayload("branding", "themeColor", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Twitter Handle" helper="Opsiyonel. @ olmadan da girilebilir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.twitterHandle}
+                                onChange={(event) => updatePayload("branding", "twitterHandle", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <FieldLabel label="Varsayilan Title" helper="Ana sayfa ve share kartlari icin ana baslik." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.defaultTitle}
+                                onChange={(event) => updatePayload("branding", "defaultTitle", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Title Template" helper="Sayfa bazli title varsa `%s` yerine gelir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.titleTemplate}
+                                onChange={(event) => updatePayload("branding", "titleTemplate", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <FieldLabel label="Varsayilan Description" helper="SEO description, Open Graph ve Twitter kartlarinda kullanilir." />
+                        <textarea
+                            className={`${inputClassName} min-h-24 resize-y`}
+                            value={payload.settings.branding.defaultDescription}
+                            onChange={(event) => updatePayload("branding", "defaultDescription", event.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <FieldLabel label="Open Graph Gorseli" helper="Bos birakirsan varsayilan text-only share metadata calisir." />
+                            <input
+                                className={inputClassName}
+                                placeholder="https://... veya /og-cover.png"
+                                value={payload.settings.branding.ogImageUrl}
+                                onChange={(event) => updatePayload("branding", "ogImageUrl", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Favicon Yolu" helper="Varsayilan fallback `/favicon.ico` olarak kalir." />
+                            <input
+                                className={inputClassName}
+                                placeholder="/favicon.ico"
+                                value={payload.settings.branding.faviconUrl}
+                                onChange={(event) => updatePayload("branding", "faviconUrl", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-[1.25fr_0.85fr]">
+                        <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div
+                                    className="h-11 w-11 rounded-2xl border border-border/70 bg-background"
+                                    style={{ backgroundColor: payload.settings.branding.themeColor }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate text-sm font-semibold text-foreground">
+                                        {payload.settings.branding.siteName}
+                                    </div>
+                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                        {payload.settings.branding.faviconUrl || "/favicon.ico"}
+                                    </div>
+                                </div>
+                                <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                    Theme {payload.settings.branding.themeColor}
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-border/70 bg-background p-4">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                    Tarayici sekmesi / title
+                                </div>
+                                <div className="mt-3 truncate text-base font-semibold text-foreground">
+                                    {payload.settings.branding.defaultTitle}
+                                </div>
+                                <div className="mt-2 text-xs text-muted-foreground">
+                                    Template: {payload.settings.branding.titleTemplate}
+                                </div>
+                                <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                                    {payload.settings.branding.defaultDescription}
+                                </div>
+                            </div>
+
+                            <div className="rounded-[28px] border border-border/70 bg-background p-3 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.6)]">
+                                <div className="rounded-[22px] border border-border/70 bg-muted/20 p-3">
+                                    {payload.settings.branding.ogImageUrl.trim() ? (
+                                        // External preview URLs are operator-controlled and may not be in Next image remotePatterns.
+                                        // A plain img tag keeps preview friction low inside the admin tool.
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={payload.settings.branding.ogImageUrl}
+                                            alt="Open Graph preview"
+                                            className="aspect-[1200/630] w-full rounded-2xl object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex aspect-[1200/630] w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/40 text-center text-xs text-muted-foreground">
+                                            OG gorseli girildiginde burada onizleme gorunur.
+                                        </div>
+                                    )}
+                                    <div className="mt-3 rounded-2xl bg-background/90 p-3 backdrop-blur">
+                                        <div className="truncate text-sm font-semibold text-foreground">
+                                            {payload.settings.branding.defaultTitle}
+                                        </div>
+                                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                            {payload.settings.branding.defaultDescription}
+                                        </div>
+                                        <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                                            Open Graph share preview
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-4">
+                            <div className="text-sm font-semibold text-foreground">Kisa Ogretici</div>
+                            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                                {brandingGuide.map((item) => (
+                                    <div key={item} className="flex gap-2">
+                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                        <span>{item}</span>
+                                    </div>
+                                ))}
+                                <div className="rounded-xl border border-border/70 bg-background px-3 py-3 text-xs text-muted-foreground">
+                                    Root-relative yol (`/og-cover.png`) veya tam URL kullanabilirsin. Upload slice geldikten sonra bu alanlar dogrudan medya secicisine baglanacak.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </CardContent>
+            </Card>
+            ) : null}
+
+            {activeSection === "platform" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><SlidersHorizontal className="h-5 w-5" />Feature Gate&apos;ler</CardTitle>
@@ -239,7 +485,9 @@ export default function SystemSettingsPage() {
                     <ToggleField checked={payload.settings.features.storeEnabled} label="Magaza Acik" description="Store catalog, purchase, bundle ve equip akisini kontrol eder." onChange={(checked) => updatePayload("features", "storeEnabled", checked)} />
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "economy" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="text-xl">Ekonomi Temeli</CardTitle>
@@ -302,7 +550,9 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "security" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck className="h-5 w-5" />Captcha Hazirligi</CardTitle>
@@ -315,7 +565,7 @@ export default function SystemSettingsPage() {
                     <div className="rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                         <span className="font-semibold text-foreground">Aktif provider:</span>{" "}
                         {payload.settings.security.captcha.provider === "recaptcha_v3" ? "reCAPTCHA v3" : "Turnstile"}
-                        <span className="mx-2 text-border">•</span>
+                        <span className="mx-2 text-border">|</span>
                         <span className="font-semibold text-foreground">Policy:</span>{" "}
                         {isProductionBuild
                             ? "Production strict enforced"
@@ -352,7 +602,7 @@ export default function SystemSettingsPage() {
                             <div className="space-y-2">
                                 <FieldLabel label="Provider Policy" helper="reCAPTCHA seciliyken production ortaminda strict enforcement uygulanir." />
                                 <div className="rounded-xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                                    Yedek provider olarak saklanir. Gerektiginde operatör bilincli sekilde Turnstile yerine buna gecer.
+                                    Yedek provider olarak saklanir. Gerektiginde operator bilincli sekilde Turnstile yerine buna gecer.
                                 </div>
                             </div>
                         )}
@@ -372,9 +622,12 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
         </div>
     );
 }
+
+
 
 
 

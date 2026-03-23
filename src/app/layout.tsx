@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -6,36 +6,25 @@ import { AuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalRuntimeBanner } from "@/components/system/global-runtime-banner";
+import { buildRootMetadata, buildRootViewport } from "@/lib/branding/metadata";
 import { getSystemSettings } from "@/lib/system-settings/service";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: "swap", // Prevent blocking if font fails to load
+  display: "swap",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Tabu Oyunu — Online Sözcük Tahmin Oyunu",
-    template: "%s | Tabu Oyunu",
-  },
-  description:
-    "Arkadaşlarınla online Tabu oyna! Modern arayüzüyle yeni nesil Tabu deneyimi. Yasaklı kelimelere dikkat ederek anlatmaya çalış.",
-  openGraph: {
-    title: "Tabu Oyunu — Online Sözcük Tahmin Oyunu",
-    description:
-      "Arkadaşlarınla online Tabu oyna! Modern arayüzüyle yeni nesil Tabu deneyimi.",
-    type: "website",
-    locale: "tr_TR",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tabu Oyunu — Online Sözcük Tahmin Oyunu",
-    description:
-      "Arkadaşlarınla online Tabu oyna! Yasaklı kelimelere dikkat ederek anlatmaya çalış.",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSystemSettings();
+  return buildRootMetadata(settings.branding);
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const settings = await getSystemSettings();
+  return buildRootViewport(settings.branding);
+}
 
 export default async function RootLayout({
   children,
@@ -47,7 +36,8 @@ export default async function RootLayout({
   const pathname = requestHeaders.get("x-pathname") ?? "/";
   const settings = await getSystemSettings();
   const isAdminPath = pathname.startsWith("/admin");
-  const showMaintenanceBanner = settings.platform.maintenanceEnabled && !isAdminPath;
+  const showMaintenanceBanner =
+    settings.platform.maintenanceEnabled && !isAdminPath;
   const showMotdBanner =
     settings.platform.motdEnabled &&
     settings.platform.motdText.trim().length > 0 &&
