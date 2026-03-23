@@ -96,10 +96,11 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
     container.style.left = "-9999px";
     container.style.top = "0";
     document.body.appendChild(container);
+    let widgetId: string | null = null;
 
     try {
         const token = await new Promise<string>((resolve, reject) => {
-            const widgetId = window.turnstile!.render(container, {
+            widgetId = window.turnstile!.render(container, {
                 sitekey: siteKey,
                 action,
                 appearance:
@@ -121,7 +122,17 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
 
         return token;
     } finally {
-        document.body.removeChild(container);
+        if (widgetId && window.turnstile) {
+            try {
+                window.turnstile.remove(widgetId);
+            } catch {
+                // Ignore widget cleanup issues during navigation/unmount.
+            }
+        }
+
+        if (container.parentNode) {
+            container.parentNode.removeChild(container);
+        }
     }
 }
 

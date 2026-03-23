@@ -46,6 +46,7 @@ export function AuthenticatedDashboardHome({
   const router = useRouter();
   const { data: session } = useSession();
   const branding = useBranding();
+  const compactBrandAsset = branding.brandIconUrl || "";
 
   if (!session?.user) {
     return null;
@@ -203,9 +204,9 @@ export function AuthenticatedDashboardHome({
         <div className="flex items-center justify-between px-4 py-2.5 md:px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-white/85 shadow-md dark:border-slate-700/60 dark:bg-slate-900/80">
-              {branding.logoUrl ? (
+              {compactBrandAsset ? (
                 <Image
-                  src={branding.logoUrl}
+                  src={compactBrandAsset}
                   alt={`${branding.siteName} logo`}
                   width={32}
                   height={32}
@@ -216,7 +217,7 @@ export function AuthenticatedDashboardHome({
                 <Gamepad2 className="h-4 w-4 text-slate-900 dark:text-white" />
               )}
             </div>
-            {!branding.logoUrl ? (
+            {!compactBrandAsset ? (
               <div className="min-w-0">
                 <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">
                   {branding.siteShortName.toUpperCase()}
