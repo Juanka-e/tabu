@@ -1,6 +1,6 @@
 # Gorev Kaydi
 
-> Son guncelleme: 16 March 2026
+> Son guncelleme: 23 March 2026
 > Durum: aktif execution log
 
 ## Cekirdek Kurallar
@@ -97,14 +97,16 @@
 - favicon, og image, theme color ve title/description panelden yonetiliyor
 - admin panel ayni sayfada section button'lari ile sade operasyon gorunumu aliyor
 - OG image alani icin onizleme ve kisa format ogreticisi ekleniyor
+- Redis/Valkey ve MySQL gorev ayrimi icin not dosyasi eklendi:
+  - `docs/cache-and-storage-strategy.md`
 - verification: `test:branding-seo-settings`, lint, tsc, build
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/integration-hub`
-2. `feature/dashboard-visual-polish`
-3. `feature/progression-foundation`
-4. `feature/wallet-ledger-foundation`
-5. `feature/store-merchandising`
+1. `fix/system-settings-hardening`
+2. `feature/branding-assets-upload`
+3. `feature/cache-and-rate-limit-foundation`
+4. `feature/integration-hub`
+5. `feature/dashboard-visual-polish`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

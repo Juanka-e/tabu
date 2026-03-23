@@ -1,6 +1,6 @@
 ﻿# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 16 March 2026
+> Son guncelleme: 23 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -55,21 +55,30 @@
   - `feature/payment-orders-foundation`
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
+### Cache ve Veri Ayrimi Stratejisi
+- MySQL kalici `source of truth` olarak kalir.
+- Redis veya Valkey sadece cache, rate limit ve gecici koordinasyon verisi icin kullanilir.
+- Room/lobi state'i PM2 multi-instance uretim ortaminda saf process-memory olarak birakilmayacak.
+- Bu konu icin ayri mimari not:
+  - `docs/cache-and-storage-strategy.md`
+
 ## Sonraki Oncelikli Branch'ler
-13. `feature/branding-seo-settings`
-14. `feature/integration-hub`
-15. `feature/dashboard-visual-polish`
-16. `feature/store-merchandising`
-17. `feature/admin-shop-ux`
-18. `feature/admin-promotions-ux`
-19. `feature/cosmetic-render-upgrade`
-20. `feature/admin-cosmetic-authoring`
-21. `feature/gameplay-ui-polish`
-22. `feature/analytics-event-foundation`
-23. `feature/word-analytics-liveops`
-24. `feature/release-ops-docs`
-25. `docs/encoding-cleanup`
-26. `feature/wallet-ledger-foundation`
+13. `fix/system-settings-hardening`
+14. `feature/branding-assets-upload`
+15. `feature/cache-and-rate-limit-foundation`
+16. `feature/integration-hub`
+17. `feature/dashboard-visual-polish`
+18. `feature/store-merchandising`
+19. `feature/admin-shop-ux`
+20. `feature/admin-promotions-ux`
+21. `feature/cosmetic-render-upgrade`
+22. `feature/admin-cosmetic-authoring`
+23. `feature/gameplay-ui-polish`
+24. `feature/analytics-event-foundation`
+25. `feature/word-analytics-liveops`
+26. `feature/release-ops-docs`
+27. `docs/encoding-cleanup`
+28. `feature/wallet-ledger-foundation`
 
 ## User Email Foundation Slice (14 March 2026)
 - Yeni kayit akisinda email zorunlu hale getirildi.
@@ -214,6 +223,10 @@
 - Login, register ve store gibi yuzeylerde page-specific metadata eklenecek.
 - Admin system settings ekrani section button'lari ile kisitli gorunum moduna aliniyor.
 - Open Graph alani icin kisa format ogreticisi ve onizleme kutusu ekleniyor.
+- Sonraki tamamlayici dilimler:
+  - `fix/system-settings-hardening`
+  - `feature/branding-assets-upload`
+  - `feature/cache-and-rate-limit-foundation`
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
@@ -222,8 +235,8 @@
 
 ## Sayisal Durum
 - Tamamlanan feature branch sayisi: 12
-- Planli toplam branch sayisi: 26
-- Kalan branch sayisi: 14
+- Planli toplam branch sayisi: 28
+- Kalan branch sayisi: 16
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
