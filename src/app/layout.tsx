@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { BrandingProvider } from "@/components/providers/branding-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalRuntimeBanner } from "@/components/system/global-runtime-banner";
 import { buildRootMetadata, buildRootViewport } from "@/lib/branding/metadata";
@@ -47,22 +48,24 @@ export default async function RootLayout({
     <html lang="tr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
-          <ThemeProvider nonce={nonce}>
-            {showMaintenanceBanner ? (
-              <GlobalRuntimeBanner
-                tone="warning"
-                message={settings.platform.maintenanceMessage}
-              />
-            ) : null}
-            {showMotdBanner ? (
-              <GlobalRuntimeBanner
-                tone="info"
-                message={settings.platform.motdText}
-              />
-            ) : null}
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          <BrandingProvider branding={settings.branding}>
+            <ThemeProvider nonce={nonce}>
+              {showMaintenanceBanner ? (
+                <GlobalRuntimeBanner
+                  tone="warning"
+                  message={settings.platform.maintenanceMessage}
+                />
+              ) : null}
+              {showMotdBanner ? (
+                <GlobalRuntimeBanner
+                  tone="info"
+                  message={settings.platform.motdText}
+                />
+              ) : null}
+              {children}
+              <Toaster />
+            </ThemeProvider>
+          </BrandingProvider>
         </AuthProvider>
       </body>
     </html>

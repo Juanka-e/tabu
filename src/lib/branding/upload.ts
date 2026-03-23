@@ -26,7 +26,7 @@ export function getBrandingAssetUploadConfig(type: BrandingAssetType): {
         case "favicon":
             return {
                 directory: "favicon",
-                maxSize: 1 * 1024 * 1024,
+                maxSize: 2 * 1024 * 1024,
                 allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
             };
         case "og":

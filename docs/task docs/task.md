@@ -94,6 +94,7 @@
 - logo / favicon / og image icin upload aksiyonlari
 - system settings branding alanina media picker mantigi baglaniyor
 - logoUrl branding namespace'ine ekleniyor
+- yuklenen logo public ana sayfa ve auth yuzeylerinde kullaniliyor
 - guvenlik:
   - PNG / JPEG / WebP
   - signature kontrolu

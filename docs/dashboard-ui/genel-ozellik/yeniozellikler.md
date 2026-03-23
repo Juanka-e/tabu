@@ -241,6 +241,7 @@
   - `og`
 - Upload edilen dosyalar root-relative guvenli branding path'lerine yaziliyor.
 - System settings ekranina media picker benzeri upload aksiyonlari ekleniyor.
+- Yuklenen logo artik public ana sayfa ile login/register yuzeylerinde gorunur hale getiriliyor.
 - Ilk dilim guvenlikleri:
   - PNG / JPEG / WebP
   - signature kontrolu

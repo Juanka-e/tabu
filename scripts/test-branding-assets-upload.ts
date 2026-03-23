@@ -25,7 +25,7 @@ function main() {
     assert.equal(isBrandingAssetType("og"), true);
     assert.equal(isBrandingAssetType("video"), false);
     assert.equal(getBrandingAssetFileExtension("image/webp"), "webp");
-    assert.equal(getBrandingAssetUploadConfig("favicon").maxSize, 1 * 1024 * 1024);
+    assert.equal(getBrandingAssetUploadConfig("favicon").maxSize, 2 * 1024 * 1024);
     assert.equal(
         hasValidBrandingAssetSignature(
             Buffer.from([
