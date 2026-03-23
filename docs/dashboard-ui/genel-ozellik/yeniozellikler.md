@@ -1,1088 +1,212 @@
-   
-   "Web Ayarları" Menüsü Beyin Fırtınası
+﻿# Yeni Ozellikler Yol Haritasi
 
+> Son guncelleme: 16 March 2026
+> Durum: aktif roadmap dokumani
 
-  Şu an bir admin panelimiz var ama daha çok içerik (kelime, kategori, kozmetik) yönetiyor. Gerçekten
-  profesyonel ve ölçeklenebilir bir platform olmak istiyorsak, "Web Ayarları" (Global Settings) adında
-  bir sidebar menüsü eklemek muazzam bir adım olur.
-
-
-  Dürüst bir yazılımcı gözüyle söylüyorum: Şu an birçok kritik değer kodun içine gömülü (hardcoded)
-  veya .env dosyasında. Bunları veritabanına taşıyıp admine vermek bizi "basit bir oyun" olmaktan
-  çıkarıp "yönetilebilir bir SaaS (Platform)" yapar.
-
-  İşte "Web Ayarları" altında olması gereken, yaratıcı ve realist 5 alt sekme:
-
-
-  1. Platform Durumu (Platform State)
-   * Bakım Modu (Maintenance Toggle): Büyük bir güncelleme yaparken tek tuşla tüm siteyi "Bakımdayız"
-     sayfasına yönlendirme. (Aktif oyunları bitirmelerine izin verip, yeni lobi açılmasını
-     engelleriz). bakım moduna toggle seçenekler koyarız örneğin bakım modunda beta testi için kuponlar oluşturulur o kupon kodunu giren oyuna girebilir veya farklı bir toggle e-mail toplamak için açıp kapatmaya yarar.
-   * MOTD (Günün Mesajı): Ana sayfada login ekranının hemen üstünde çıkacak, acil durumları (örn:
-     "Sunucularda anlık bir yavaşlama var, çözüyoruz") bildiren basit bir banner metni. (Duyurular
-     modalından farklı, daha agresif ve görünür).
-
-
-  2. Ekonomi ve Oyun Değişkenleri (Economy Tuning)
-  bütün ekonomiyi admin panelden ayarlanır yapmalıyız.
-  Dürüst olalım: Şu an maç kazanınca 120 coin, kaybedince 40 coin veriyoruz ve bu kodun içine yazılmış
-  durumda. Bunu buradan değiştirebilmeliyiz!
-   * Başlangıç Bakiyesi: Yeni kayıt olan bir kullanıcıya verilecek hoşgeldin coin miktarı.
-   * Maç Ödülleri: Kazanana, kaybedene ve berabere kalana verilecek taban coin miktarları.
-   * Hafta Sonu Çarpanı (Multiplier): Tek tuşla "Bu hafta sonu %50 daha fazla XP/Coin" etkinliği
-     başlatabilmek için bir çarpan değeri (Örn: 1.5x).
-     ileride farklı etkinlikler yapıldığında her ekonomik ve etkinlik ayarını admin panelden yapılır yapmalıyız.
-
-
-  3. Marka ve SEO (Branding & SEO)
-   * Dinamik OpenGraph (OG) Görseli: Biri WhatsApp veya Discord'da sitemizin linkini paylaştığında
-     çıkacak olan kapak fotoğrafını kod güncellemeden değiştirebilme (Örn: Cadılar Bayramı temalı bir
-     kapak koymak).
-   * Ana Sayfa Meta Açıklaması: Google'da aratıldığında çıkacak site açıklamasını dinamik yönetme.
-   * Global Tema Zorlaması: Normalde kullanıcılar dark/light mode seçebiliyor, ancak özel bir etkinlik
-     (Örn: Karanlık Gece Etkinliği) varsa tüm siteyi herkese zorunlu "Dark Mode" yapabilme şalteri.
-
-
-  4. Dış Entegrasyonlar (Integrations)
-   * Google Analytics / Meta Pixel ID: Pazarlama yapmaya başladığımızda analitik kodlarını koda
-     dokunmadan direkt buradan yapıştırmak.
-
-  5. Güvenlik ve Limitler (Security & Limits)
-   * Oda / Oyuncu Limitleri: Sunucu zorlandığında maksimum oda açma kapasitesini veya bir odaya
-     girebilecek maksimum izleyici sayısını anlık olarak düşürme/artırma.
-   * Küfür Filtresi (Profanity Filter): Kullanıcı adlarında veya oyun içi sohbet (ileride gelirse)
-     için otomatik sansürlenecek yasaklı kelimeler listesi (virgülle ayrılmış bir text area).
-
-
-  Tasarımcı & Developer Olarak Yorumum:
-  Eğer bu menüyü yaparsak, arka planda bu ayarları tutacak tek satırlık bir SystemSettings Prisma
-  tablosu kurarım ve Node.js bu değerleri memory'de (cache) tutarak 0 ms gecikme ile tüm oyuna
-  uygular. çok oyuncuda sistemi yormamalı oluşturacağımız yapı.
-   
-    1. Kullanıcı ve Misafir Yönetimi (Admin Panel)
-  "Kayıtlı kullanıcıları (ban, kick, coin yönetimi) ve aynı page içinde filtreye göre guest
-  kullanıcıları, lobby içindeyse lobby code göstermeli."
-
-
-  Geliştirici Yorumu (Realist):
-  Bu teknik olarak yapılabilir ama mimari açıdan iki farklı veri kaynağını birleştirmeyi gerektirir:
-   1. Veritabanı (Prisma): Kullanıcının adı, coin'i, ban durumu burada durur.
-   2. RAM (Socket.IO): Oyuncunun "şu an hangi odada olduğu" (Lobby Code) veritabanında değil, anlık
-      sunucu belleğindedir.
-  Bunları admin ekranda tek tabloda birleştirmek için arka planda zekice bir köprü (bridge) yazmamız
-  gerekir. Bu harika bir meydan okuma.
-  cache için redis altyapısını oluşturabiliriz. pm2 ile senkron çalışır.(geliştirme sürecinde redis ve pm2'yi kendi bilgisayarıma kurmadan da oyun sorunsuz çalışmalı gerektiğinde basitce redis ve pm2'yi açıp kapatabilmeliyim.)
-
-
-  UX ve Genişletme Fikirleri (Yaratıcı):
-   * Tablo Tasarımı: Ekranda yan yana iki sekme olmalı: [ Kayıtlı Oyuncular ] ve [ Anlık Misafirler ].
-   * Aksiyon Butonları (Hızlı Menü): Bir kullanıcının satırındaki üç noktaya (kebab menu) basıldığında
-     şunlar açılmalı:
-       * Coin Ekle/Sil: (+/-) Popup açılır. (Bunu yaparken sisteme kesinlikle AuditLog atılmalı.
-         "Hangi admin, kime, neden 1000 coin verdi?" kaydı tutulmazsa içeride yolsuzluk olur).
-       * Sunucudan Kickle: Oyuncu o an odadaysa bağlantısı anında koparılır ve ana sayfaya atılır.
-       * Hesabı Banla: Kalıcı DB flag'i (isBanned: true).
-       * Odayı İzle (Spectate): Madem hangi odada (Lobby Code) olduğunu görüyoruz, admin "İzle"
-         butonuna basarak odaya hayalet (gizli) olarak girip küfür/trol var mı diye canlı denetim
-         yapabilmeli!
-
-
-  ---
-
-  2. Dinamik SSS (FAQ) Sistemi
-  "Dashboard ui içinde sol alttaki soru işaretine tıklandığında FAQ bölümü olmalı. FAQ sorular admin
-  panelden eklenir çıkarılır yapıda olmalı."
-
-
-  Geliştirici Yorumu (Realist):
-  Dashboard mimarimizde halihazırda sol menüde bir Help ikonumuz var. Oraya tıklayınca ana ekranda
-  (Main Content) açılacak bir sayfa kurgulamak çok kolay. Admin paneli için basit bir CRUD
-  (Oluştur/Oku/Güncelle/Sil) işlemi gerektirir.
-
-
-  UX ve Genişletme Fikirleri (Yaratıcı):
-   * Kategorizasyon: SSS listesi çok uzadığında oyuncu sıkılır. Admin panelden SSS eklerken "Oyun
-     Kuralları", "Mağaza & Coinler", "Hesap İşlemleri" gibi kategoriler seçilebilmeli.
-   * Tasarım: Oyun içi lobideki "Duyurular" modalında kullandığımız Accordion (Açılır/Kapanır)
-     yapısını burada birebir kullanabiliriz. Hem kod tekrarından kurtuluruz hem de UI tutarlılığı
-     sağlanır.
-
-  ---
-
-  3. Profesyonel Ticket (Destek) Yönetimi
-  "Altında destek talebi (ticket açma) bölümü olmalı. Yönetimi profesyonel standartlarda olmalı ve
-  kullanıcı ticketin durumunu görebilmeli."
-
-
-  Geliştirici Yorumu (Dürüst):
-  Bu cümlenin içindeki "profesyonel standartlarda" kısmı yazılım dünyasında en ağır işlerden biridir.
-  Bir Zendesk veya Jira klonu yazmak oyunu yazmaktan daha uzun sürebilir. Bu yüzden Aşama 1 (MVP)
-  mantığıyla, sistemi boğmayacak ama profesyonel hissettirecek bir yapı kurmalıyız.
-
-
-  UX ve Genişletme Fikirleri (Yaratıcı):
-   * Oyuncu Tarafı (Dashboard UI):
-       * Form sormamalıyız, sohbet (chat) başlatıyor gibi hissettirmeliyiz. "Yeni Talep Aç" deyince
-         Konu ve Kategori seçer (Örn: Küfür Bildirimi, Satın Alma Sorunu, Bug bu kategorileri de admin panelde ayarlanabilir yaparız. her şey dinamik olur.).
-       * Durum Rozetleri: Ticketların yanında sadece renkli, net rozetler olmalı: 🟢 Açık, 🟡 Yanıt
-         Bekliyor, 🔴 Kapatıldı.
-       * İçine girdiğinde WhatsApp gibi bir mesajlaşma arayüzü görmeli (Sağda kendisi, solda yetkili).
-   * Admin Tarafı (Ticket Desk):
-       * Kanban veya Liste Görünümü: Admin panele "Destek Masası" diye bir sekme eklenir. Sadece Açık
-         veya Müdahale Bekleyen ticketlar kırmızı bir rozetle (Notification badge) adminin gözüne
-         sokulur.
-       * Hazır Yanıtlar (Canned Responses): Profesyonelliğin zirvesi budur. Admin, sık sorulan
-         ticketlar için tek tuşla "Merhaba, coin yüklemeniz incelenmiş ve hesabınıza yansıtılmıştır.
-         İyi oyunlar." gibi hazır şablonları basabilmeli. Aksi takdirde adminler yorgunluktan tükenir.
-       * Oto-Kapanma: Eğer admin cevap yazmış ve kullanıcı 48 saat dönmemişse, sistemin cron job'ı
-         ticketi otomatik "Çözüldü" olarak kapatmalı.
-
-  Özetle
-
-  Bahsettiğiniz özellik seti, projenin "Oyuncu Destek ve Moderasyon" (Player Support & Moderation)
-  iskeletini oluşturuyor.
-
-
-  Eğer bu kurguyu hayata geçirmeye karar verirseniz; ilk işimiz Veritabanına (Prisma) Ticket,
-  TicketMessage ve FaqItem modellerini eklemek, ardından Admin Panel'e çok yetenekli bir
-  "Kullanıcılar" tablosu (socket.io bağlantılı) inşa etmek olur.
-
-
-
-    A. Dinamik Logo ve Markalama (Branding)
-   * Harika Fikir: Sadece logo değil; favicon, og:image (link paylaşıldığında çıkan görsel) ve hatta
-     "Ana Tema Rengi" (Primary Color Hex Kodu) admin panelden değiştirilebilmeli.
-   * Senaryo: Yılbaşında admin panele girip logoya karlı bir versiyon yüklersiniz, ana rengi de
-     kırmızı yaparsınız. Tüm site anında güncellenir. Yeniden kod derlemeye (build almaya) gerek
-     kalmaz.
-
-
-  B. Güvenlik ve Analitik Entegrasyonları (Integration Hub)
-   * Geliştirici Yorumu (Dürüst): GA4, Meta Pixel, reCAPTCHA v3 veya Turnstile gibi araçların Public
-     (Site) Key'lerini veritabanında (SystemSettings tablosunda) tutmak mükemmeldir. Admin panelden
-     bunları açıp kapatabilirsiniz (Toggle).
-   * Uyarı: Sadece bu servislerin Secret Key'lerini (sunucu tarafında doğrulama yapan gizli şifreleri)
-     güvenlik gereği .env içinde tutmalıyız. 
-
-
-  C. Profesyonel ve Dinamik SEO Motoru
-   * Next.js 15 Avantajı: Next.js Server Components sayesinde SEO'yu dinamik yapmak çok kolaydır.
-   * Kurgu: Admin panele bir "SEO Ayarları" sayfası ekleriz.
-       * Global Title Format: (Örn: Tabu Oyunu | %page_title%)
-       * Meta Keywords: (Admin virgülle kelimeler ekler: "online tabu, arkadaşla oynanacak oyunlar,
-         vb.")
-       * Meta Description: Sitenin arama motoru açıklaması.
-       * Bu ayarlar anında Google'a yansır. Yeni bir "Oyun Modu" eklendiğinde hemen keyword
-         ekleyebilirsiniz.
-
-
-  D. Oyun İçi Meta Veri ve Kelime Analitiği
-   * En Değerli Fikir: Bu sadece eğlence değil, Oyun Dengesi (Game Balance) için kritik!
-   * Şu anki sistemde maç sonucunu tutuyoruz. Ama tur bitimlerinde "Hangi kelime ne oldu?" sorusunun
-     logunu da WordAnalytics tablosuna basarsak Admin Panel'de şunları görürüz:
-       * En Çok Pas Geçilen: "Demek ki bu kelime çok zor, zorluk derecesini 3 yapalım."
-       * En Çok Tabu Yapılan: "Oyuncular bu kelimede sürekli hataya düşüyor."
-       * Global İstatistikler: "Bugüne kadar 1.5 Milyon kelime bilindi!" (Bunu ana sayfada canlı bir
-         sayaç olarak göstermek oyunculara çok "yaşayan bir oyun" hissi verir).
-         ayrıca toplam şu kadar tabu yapıldı, şu kadar kelime bilindi şu kadar pas geçildi şu kadar hesap var vb. detaylı verileri de görsel olarak görürüz ileride landing page'de gösterebiliriz.
-
-  ---
-
-
-  2. Benim Beyin Fırtınası Eklemelerim (Başka Neler Olabilir?)
-
-  Sistemi gerçek bir LiveOps platformuna çevirmek için admin panele şunları da ekleyebiliriz:
-
-
-  E. "Kill Switch" (Özellik Şalterleri)
-  Yeni bir özellik eklediniz ama canlıda bir bug (hata) patladı. Geliştiriciyi arayıp kodu geri
-  almasını (rollback) beklemek yerine Admin Panel'de "Feature Flags" (Özellik Şalterleri) olmalı:
-   * [ ] Kayıtları Geçici Durdur (Sunucu dolduğunda)
-   * [ ] Mağazayı Kapat (Ekonomide bir bug çıkarsa anında dondurmak için)
-   * [ ] Misafir Girişini Kapat (Sadece kayıtlı kullanıcılar oynayabilsin diye)
-   bakım modu özeliği bu kısma eklenebilir (bakım modunda alt özellikler var ona göre ui yapmalıyız)
-
-
-  F. Canlı Anons / FOMO Ticker (Sosyal Kanıt Motoru)
-  Ana sayfada veya Lobi'de ekranın üstünden kayan ince bir şerit (Ticker).
-   * Sistem otomatik olarak: "Erdal az önce Efsanevi Neon Çerçeve satın aldı!"
-   * Admin manuel olarak: "Bu akşam 20:00'da etkinlik başlıyor, sunucuda yerinizi alın!"
-  gibi bildirimler atabilir. Bu, içeride "canlı bir hayat" olduğu algısını (FOMO - Fırsatı Kaçırma
-  Korkusu) zirveye taşır.
-
-
-  G. Dinamik "Ana Sayfa Hero" Yönetimi
-  Kullanıcı siteye girdiğinde gördüğü ilk büyük alan (Hero Section).
-  Admin panelinden buradaki Başlık (H1), Alt Başlık (Subtitle) ve "Oyna" butonunun yanına
-  eklenebilecek ikincil butonun linkini (Örn: "Yeni Sezonu İncele" butonu) değiştirebilmeliyiz.
-  Pazarlama yaparken Landing Page'i koda dokunmadan A/B testine sokmamızı sağlar.
-
-
-  H. Sansür ve Otomatik Moderasyon Sözlüğü
-  Lobilerde kullanıcı adlarında veya ileride sohbet (chat) eklendiğinde kullanılacak bir Yasaklı
-  Kelimeler Sözlüğü. Admin panelden virgülle kelime eklediğiniz an (örn: küfürler, siyasi kelimeler),
-  sistem bunları otomatik olarak yıldızlar (***) veya kullanıcının o isimle odaya girmesini engeller.
-
-
-  I. Global "Oyun Kuralları" Yönetimi
-  Oyuncuların oyuna girmeden önce ayarını yapabildiği "Tur Süresi" veya "Kazanma Skoru" gibi
-  limitlerin Min/Max değerlerini belirleme. (Örn: Eskiden max 120 saniye seçilebiliyordu, admin
-  panelden bunu 180'e çıkardınız. Veya sunucuyu yormasın diye maksimum skor limitini aşağı çektiniz).
-
-  ---
-
-
-  Özet ve Yol Haritası
-
-  Eğer bu dinamik yapıyı kuracaksak, Prisma Veritabanımıza tek bir SystemConfig modeli ekleriz. Bu
-  model tüm siteyi yöneten dev bir JSON objesi tutar.
-
-
-  Mimarimiz şuna dönüşür:
-  Site ayağa kalkarken önce DB'ye bakar:
-   * Logom ne?
-   * SEO kelimelerim ne?
-   * Google Analytics ID'm var mı?
-   * Mağaza açık mı?
-  Bunları okur ve kendini ona göre inşa eder.
-  
-  
-  1. SEO Sadece Admin Panelden Yapmak Yeterli mi?
-
-
-  Kısa cevap: İçerik için evet yeterlidir, ancak teknik altyapıyı kodda bir kez doğru kurmamız
-  şarttır.
-
-
-  Detaylı Açıklama:
-  Next.js 15 kullanıyoruz. Bu motor SEO için dünyadaki en iyi araçlardan biridir (Server-Side
-  Rendering sayesinde). Admin panele ekleyeceğimiz başlık, açıklama ve kelimeler "İçerik"tir. Bu
-  içeriğin Google tarafından kusursuz okunması için kodda şunları bir kez kurmalıyız:
-
-
-   * generateMetadata Kullanımı: src/app/layout.tsx ve src/app/page.tsx dosyalarımızda Next.js'in
-     generateMetadata fonksiyonunu kullanarak, veritabanındaki (Admin panelden girdiğiniz) SEO
-     verilerini anlık olarak HTML'in <head> kısmına basmalıyız.
-   * sitemap.xml ve robots.txt: Google botları sitenize geldiğinde bir harita ister. Next.js'te
-     app/sitemap.ts adında bir dosya oluşturup, veritabanındaki kategorileri ve sayfaları otomatik
-     listeleyen dinamik bir harita sunmalıyız.
-   * OpenGraph (OG) Kartları: Biri sitenizi WhatsApp'ta paylaştığında görünen resim ve başlıktır.
-     Admin panelden yüklediğiniz "SEO Kapak Görseli"ni buraya bağlamalıyız.
-
-
-  Özetle: Kod tarafında "SEO Tesisatını" bir kez kuracağız, sonrasında siz ömür boyu sadece Admin
-  Panel'den kelimeleri ve yazıları değiştirerek SEO'yu yönetebileceksiniz.
-
-  ---
-
-  2. CAPTCHA / Cloudflare Turnstile Nereye Konmalı?
-
-
-  Halihazırda Cloudflare kullanıyorsanız, size kesinlikle Google reCAPTCHA yerine Cloudflare Turnstile
-  kullanmanızı öneririm. Kullanıcıya saçma sapan "Trafik lambalarını seç" eziyetini yaşatmaz, arka
-  planda görünmez çalışır (Invisible) ve çok daha performanslıdır.
-
-
-  Admin panele koyacağımız "Güvenlik Doğrulamasını Aç/Kapat" şalterini şu sayfalara ve inputlara
-  kesinlikle bağlamalıyız:
-
-
-   1. Kayıt Ol (/register) Sayfası: (En kritiği) Botların saniyede binlerce sahte hesap açıp
-      veritabanınızı çökertmesini engeller.
-   2. Giriş Yap (/login) Sayfası: Şifre deneme (Brute-force) saldırılarını durdurur.
-   3. Ana Sayfadaki "Oda Oluştur / Odaya Katıl" Inputu: Burası oyunun kalbi. Eğer burayı korumazsak,
-      bir bot scripti saniyede 10.000 tane boş oda oluşturup Socket.IO sunucunuzun RAM'ini doldurarak
-      sistemi çökertebilir (DDoS). Odaya girerken veya oluştururken arkada görünmez Turnstile
-      çalışmalı.
-   4. Admin Login: Sizin giriş yaptığınız ekran.
-
-  Sistem Nasıl Çalışacak: Admin panelden "Turnstile Kapat" derseniz, frontend'deki doğrulama
-  bileşenleri anında gizlenir ve backend API'leri bu token'ı beklemeyi bırakır.
-
-  ---
-
-  3. Google Analytics ve Search Console Nereye Eklenmeli?
-
-  Bu iki araç sitenizin nabzıdır, ancak eklenme şekilleri farklıdır.
-
-
-  A. Google Analytics (GA4) / Meta Pixel:
-   * Nereye Eklenmeli? Sitenin her sayfasında çalışması gerektiği için src/app/layout.tsx (Root
-     Layout) dosyasına eklenmelidir.
-   * Next.js Yaklaşımı: Next.js 15, üçüncü parti scriptler için @next/third-parties adında özel bir
-     paket sunar. Admin panelden gireceğiniz G-XXXXXXX kodunu veritabanından çekeriz ve
-     <GoogleAnalytics gaId={db.gaId} /> şeklinde en performanslı (siteyi yavaşlatmayacak) yöntemle
-     sisteme dahil ederiz.
-
-
-  B. Google Search Console (GSC):
-   * Geliştirici Tavsiyesi: GSC'yi site koduna (HTML etiketine) eklemenize hiç gerek yok!
-   * Madem Cloudflare kullanıyorsunuz, Google Search Console'a girip "Alan Adı Doğrulaması (Domain
-     Verification)" seçeneğini seçin. Size bir TXT kaydı verecek. Bunu Cloudflare DNS ayarlarınıza
-     yapıştırın.
-   * Faydası: Sitenin kodunu hiç kirletmemiş olursunuz. Siteniz 0.1 ms bile yavaşlamaz ve Google tüm
-     domaininizi (alt domainler dahil) anında doğrular.
-
-  Mimarideki Son Durum Vizyonu
-
-
-  Eğer bu dediklerimizi yaparsak, platformun akışı şu mükemmelliğe ulaşır:
-  Bir gece bir saldırı alırsanız, koda dokunmadan admin panele telefondan girip "Turnstile Aktif"
-  şalterini açarsınız, saldırı biter.
-  Ertesi gün yeni bir rakip çıkarsa, admin panele girip "SEO Kelimeleri" kısmına o rakibin adını
-  eklersiniz, Google aramalarında hemen onlarla yarışmaya başlarsınız.
-
-  mağazadaki kupon kodu yerine, bakım modundaki oyuncu girişi için oluşturulan kupon kodu yerlerine rate limiting, bot koruma eklemeliyiz.
-
-  Branch Kuralı
-
-  - Her branch tek konu taşısın.
-  - Bir branch içinde:
-      - tek problem alanı
-      - tek PR hedefi
-      - tek test odağı
-  - Karışık branch açmayacağız.
-
-  Önerdiğim İş Sırası
-
-  1. feature/dashboard-visual-polish
-
-  - dashboard full page görünümünü iyileştirme
-  - shop radar görsel dili
-  - rarity renk sistemi
-  - kart/mağaza kartlarının premium görünümü
-  - sadece UI, davranış değiştirmeden
-
-  2. feature/admin-shop-ux
-
-  - admin shop-items ekranı kullanım kolaylığı
-  - filtreler
-  - quick actions
-  - bulk işlemler
-  - preview deneyimi iyileştirme
-
-  3. feature/admin-promotions-ux
-
-  - bundle / coupon / discount formlarını daha net hale getirme
-  - alan bazlı validation mesajları
-  - admin tarafında hata/debug görünürlüğü
-  - kullanım limiti yönetimi UX
-
-  4. feature/store-merchandising
-
-  - featured ürün akışı
-  - badge görünümü
-  - sıralama kuralları
-  - yeni ürün etiketi
-  - dashboard sağ panel ürün kaydırma alanını iyileştirme
-
-  5. feature/cosmetic-render-upgrade
-
-  - kart önü / kart arkası görsel kalitesini artırma
-  - frame / effect / pattern çeşitleri
-  - kozmetik render dilini güçlendirme
-  - sadece görsel katman, ekonomi değil
-
-  6. feature/admin-cosmetic-authoring
-
-  - admin panelden JSON authoring akışını daha güvenli ve rahat hale getirme
-  - preset’ler
-  - template örnekleri
-  - canlı preview geliştirme
-
-  7. feature/gameplay-ui-polish
-
-  - oyun içi role badge’leri
-  - timer sunumu
-  - transition ekranı
-  - narrator / gözetmen / tahminci görünüm dengesi
-  - sadece oyun ekranı UX
-
-  8. feature/admin-audit-viewer
-
-  - audit log’u admin panelde görünür hale getirme
-  - filtreleme
-  - işlem geçmişi
-  - operasyonel izleme
-
-  9. feature/security-hardening-phase-2
-
-  - rate limit storage iyileştirmesi
-  - prod-grade log/monitoring
-  - CSP reporting
-  - kalan güvenlik sertleştirmeleri
-
-  Branch İsim Kuralı
-
-  - feature/... yeni ürün/arayüz işi
-  - fix/... bugfix
-  - refactor/... davranış değiştirmeyen temizlik
-  - docs/... sadece doküman
-
-  PR Kuralı
-
-  - 1 PR = 1 konu
-  - PR açıklamasında:
-      - kapsam
-      - etkilenen ekranlar
-      - test listesi
-      - riskler
-  - CI geçmeden merge yok
-
----
-
-## Uygulanabilir Yol Haritasi ve Branch Stratejisi (13 March 2026)
-
-### Calisma Kurali
+## Kullanim Kurali
 - Her branch tek konu tasir.
-- Her branch icin once plan ve kapsam netlesir.
-- Onay almadan implementasyona gecilmez.
-- Her branch kapanisinda zorunlu ciktilar:
-  - review
-  - test
-  - refactor
-  - docs guncellemesi
-  - hata ve cozum notlari
+- Her branch icin `review`, `test`, `refactor`, `docs` kapanisi zorunludur.
+- Is baslamadan once kapsam netlestirilir.
+- Merge sonrasi sayisal durum bu dosyada guncellenir.
 
-### Kategori Bazli Is Gruplari
-
-#### A. Platform Yonetimi / LiveOps Foundation
-Bu grup tum diger dinamik ayarlarin temelidir. Once bunu kurmak gerekir.
-
-1. `feature/liveops-system-settings-foundation`
-- `SystemSettings` veya `SystemConfig` veri modeli
-- cache katmani
-- admin panelde `Web Ayarlari` ana menusu
-- feature flag ve global config okuma altyapisi
-- maintenance mode temel iskeleti
-- MOTD temel banner yapisi
-
-2. `feature/security-entry-gates`
-- Turnstile / bot protection altyapisi
-- login / register / room create / room join korumasi
-- maintenance mode giris kurallari
-- bak�m modu allowlist / beta access code mantigi
-- rate limit konfiglerinin admin tarafindan yonetilmesi
-
-3. `feature/economy-liveops-controls`
-- baslangic coin
-- mac odulleri
-- weekend multiplier / event multiplier
-- store toggle
-- guest entry toggle
-- dynamic economy constants
-
-#### B. Admin Operasyon ve Moderasyon
-Bu grup canli operasyonu yonetmek icin gerekli.
-
-4. `feature/admin-user-operations`
-- kayitli kullanicilar tablosu
-- guest kullanicilar / aktif lobby bridge gorunumu
-- coin ekle / sil
-- ban / kick
-- audit log baglantisi
-- oda izle (spectate) icin altyapi plan� veya MVP
-
-5. `feature/support-desk-foundation`
-- FAQ modeli ve admin CRUD
-- dashboard icinde FAQ sayfasi
-- ticket modeli
-- ticket message modeli
-- oyuncu tarafi ticket listesi ve durum rozeti
-- admin destek masasi MVP
-
-#### C. Branding / SEO / Integrations
-Platform dis gorunumu ve pazarlama tarafini yonetir.
-
-6. `feature/branding-seo-settings`
-- logo
-- favicon
-- og image
-- primary color
-- global hero content
-- meta title / description / keywords
-- metadata altyapisinin config tabanli hale gelmesi
-
-7. `feature/integration-hub`
-- GA4
-- Meta Pixel
-- Search / verification related config placeholders
-- Turnstile public key config
-- external integration toggles
-
-#### D. Dashboard / Store / Cosmetic Experience
-UI agirlikli ama artik mevcut foundation ustune oturacak grup.
-
-8. `feature/dashboard-visual-polish`
-- full page dashboard polish
-- section hiyerarsisi
-- oyuncu hub gorsel guclendirme
-- rarity dilinin dashboard tarafina yayilmasi
-- mevcut tasarimi bozmadan premiumlastirma
-
-9. `feature/store-merchandising`
-- featured urun akisi
-- badge / yeni urun sistemi
-- dashboard sag panel product rail iyilestirmesi
-- rarity vitrin dili
-- spotlight / discovery UX
-
-10. `feature/admin-shop-ux`
-- admin shop-items akisi
-- filtreler
-- quick actions
-- bulk islemler
-- siralama UX iyilestirmesi
-
-11. `feature/admin-promotions-ux`
-- coupon / bundle / discount formlarini ayristirma
-- validation ve hata gorunurlugu
-- kullanim limiti UX
-- promosyon durum gorunurlugu
-
-12. `feature/cosmetic-render-upgrade`
-- card face / back premium gorsel kalite artisi
-- frame / pattern / glow / motion varyasyonlari
-- narrator card presentation polish
-- gameplay okunurlugunu bozmadan render guclendirme
-
-13. `feature/admin-cosmetic-authoring`
-- preset yapisi
-- template snippet library
-- gelismis canli preview
-- admin JSON authoring guvenlik / UX iyilestirmesi
-
-14. `feature/gameplay-ui-polish`
-- role badge sunumu
-- timer / active team visual polish
-- transition ekranlari
-- narrator / inspector / guesser state clarity
-
-#### E. Analitik ve Dengeleme
-Sonradan en degerli operasyon katmani olacak.
-
-15. `feature/word-analytics-liveops`
-- word analytics modeli
-- pass / tabu / dogru loglama
-- admin panel analytics ekranlari
-- landing page icin aggregate counters
-
-### Oncelik Sirasi
-Asagidaki sirayi oneriyorum:
-
+## Tamamlanan Feature Branch'ler
 1. `feature/liveops-system-settings-foundation`
 2. `feature/security-entry-gates`
-3. `feature/economy-liveops-controls`
-4. `feature/admin-user-operations`
-5. `feature/support-desk-foundation`
-6. `feature/branding-seo-settings`
-7. `feature/integration-hub`
-8. `feature/dashboard-visual-polish`
-9. `feature/store-merchandising`
-10. `feature/admin-shop-ux`
-11. `feature/admin-promotions-ux`
-12. `feature/cosmetic-render-upgrade`
-13. `feature/admin-cosmetic-authoring`
-14. `feature/gameplay-ui-polish`
-15. `feature/word-analytics-liveops`
+3. `feature/admin-table-foundation`
+4. `feature/moderation-foundation`
+5. `feature/economy-liveops-controls`
+6. `feature/user-email-foundation`
+7. `feature/admin-user-operations`
+8. `feature/admin-audit-viewer`
+9. `feature/coin-grant-campaigns`
+10. `feature/support-desk-foundation`
+11. `feature/system-notifications-foundation`
+
+## Aktif Teknik Kararlar
+
+### Config Stratejisi
+- Secret ve infra baglantilari `.env` icinde kalir.
+- Runtime business ayarlari `system_settings` tablosundan yonetilir.
+- Kod guvenli fallback degerleri saglar.
+- Ayarlar cache ile okunur.
+
+### Captcha Stratejisi
+- Birincil provider: `Turnstile`
+- Alternatif provider: `reCAPTCHA v3`
+- Key'ler `.env` icinde kalir.
+- Admin panel sadece davranisi ve aktiflik durumunu yonetir.
+
+### Email Stratejisi
+- Yeni kayitlarda email zorunlu.
+- Legacy kullanicilar icin email nullable kalir.
+- `normalizedEmail` unique alan olarak kullanilir.
+- Email verification ve password reset sonraki branch'lere birakildi.
+
+### Coin Guvenligi Stratejisi
+- Store discount coupon ile coin dagitim sistemi ayridir.
+- Wallet'a deger enjekte eden her akista transaction, actor audit, reason, duplicate claim korumasi, limit ve budget kontrolu zorunludur.
+
+### Gelecek Odeme Stratejisi
+- Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
+- Uygun zamanda `wallet ledger` omurgasi kurulacak.
+- Olasi ileriki branch'ler:
+  - `feature/wallet-ledger-foundation`
+  - `feature/payment-orders-foundation`
+- Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
+
+## Sonraki Oncelikli Branch'ler
+12. `feature/branding-seo-settings`
+13. `feature/integration-hub`
+14. `feature/dashboard-visual-polish`
+15. `feature/store-merchandising`
+16. `feature/admin-shop-ux`
+17. `feature/admin-promotions-ux`
+18. `feature/cosmetic-render-upgrade`
+19. `feature/admin-cosmetic-authoring`
+20. `feature/gameplay-ui-polish`
+21. `feature/analytics-event-foundation`
+22. `feature/word-analytics-liveops`
+23. `feature/release-ops-docs`
+24. `docs/encoding-cleanup`
+25. `feature/wallet-ledger-foundation`
+
+## User Email Foundation Slice (14 March 2026)
+- Yeni kayit akisinda email zorunlu hale getirildi.
+- `users.email`, `users.normalized_email`, `users.email_verified_at` alanlari eklendi.
+- Legacy hesaplar bozulmasin diye email alani nullable tutuldu.
+- Kullanici ayarlarinda email goruntuleme ve guncelleme alani eklendi.
+- Admin `/admin/users` ekraninda email ve dogrulama durumu gorunur hale geldi.
+- Email degistiginde `emailVerifiedAt` sifirlanacak sekilde foundation kuruldu.
+
+## Admin User Operations Slice (14 March 2026)
+- Admin `/admin/users` ekranina kontrollu coin operasyon modal'i eklendi.
+- Yeni `wallet_adjustments` veri modeli ile actor, hedef kullanici, islem tipi, miktar, reason ve onceki/sonraki bakiye kaydi tutuluyor.
+- `credit` ve `debit` islemleri transaction icinde uygulanir hale getirildi.
+- Negatif bakiye olusturacak `debit` islemleri server tarafinda engelleniyor.
+- Her coin operasyonu hem `wallet_adjustments` tablosuna hem de `audit_logs` icine yaziliyor.
+- Coin operasyon route'u admin auth + rate limit ile korunuyor.
+
+## Admin Audit Viewer Slice (14 March 2026)
+- Yeni `/admin/audit` ekrani ile audit gecmisi tek panelde izlenebilir hale getirildi.
+- `action`, `resourceType`, `actorRole` ve serbest metin arama filtreleri eklendi.
+- Audit listeleme API'si admin auth ile korunuyor ve pagination destekliyor.
+- Metadata alanlari okunabilir ozet formatinda gosteriliyor.
+- Admin sidebar'a audit ekranina hizli erisim eklendi.
+
+## Coin Grant Campaigns Slice (14 March 2026)
+- Coin dagitimi, store coupon domaininden ayrilarak campaign + code + claim modeli ile kuruldu.
+- Admin `/admin/coin-grants` ekranindan campaign olusturma, guncelleme ve code batch uretimi yapilabilir hale geldi.
+- Login kullanici shop ekranindan influencer veya etkinlik kodunu redeem ederek wallet bakiyesine coin ekleyebiliyor.
+- Claim akisinda campaign budget, code claim limiti ve user bazli claim limiti transaction icinde korunuyor.
+- Coin redemption isleri rate limit ve audit log ile izlenebilir hale getirildi.
+- Wallet degisimi event tabanli dinlenir hale getirildi; redeem sonrasi F5 zorunlulugu kalkti.
+- Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
+- `/admin/coin-grants` ekraninda `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri, acilir/kapanir campaign kartlari ve sade operasyon gorunumu benimsendi.
+
+## Support Desk Foundation Slice (14 March 2026)
+- Support girisi full-page dashboard ve in-game dashboard icinde sol alttaki `Help` ikonu uzerinden acilir hale getirildi.
+- Guest oyunculara support girisi acilmadi; support sadece login kullaniciya acik tutuldu.
+- `support_tickets` ve `support_ticket_messages` veri modeli eklendi.
+- Kullanici tarafinda support sheet icinden:
+  - yeni ticket acma
+  - kendi ticket'larini gorme
+  - kapali olmayan ticket'a reply gonderme
+  mumkun hale getirildi.
+- User reply akisina 30 saniyelik cooldown eklendi; art arda spam mesaj gonderimi bloklandi.
+- Kullanici support sheet'i arka planda periyodik yenilenir hale getirildi; admin cevabi F5 atmadan gorunur oldu.
+- `resolved` durumundaki ticket'a kullanici reply ile tekrar `open` donusu kapatildi; yeni durum icin yeni ticket acilmasi zorunlu tutuldu.
+- Admin tarafinda `/admin/support` kuyrugu eklendi:
+  - status guncelleme
+  - priority guncelleme
+  - assignee secimi
+  - public reply
+  - internal note
+- Ticket create/reply/admin update/admin message aksiyonlari audit log'a baglandi.
+- Realtime bildirim ve inbox bu branch'e alinmadi; sonraki `feature/system-notifications-foundation` icin birakildi.
+
+## System Notifications Foundation Slice (16 March 2026, completed)
+- Kullaniciya bagli `notifications` veri modeli eklendi.
+- Dashboard icine support'tan ayrik `Inbox` / bell girisi eklendi.
+- Ilk dilimde tamamlananlar:
+  - bildirim listeleme
+  - unread count
+  - tekil okundu isaretleme
+  - tumunu okundu yapma
+  - tekil temizleme
+  - toplu temizleme
+  - support admin public reply bildirimleri
+  - support resolved/closed durum bildirimleri
+- Tasarim karari:
+  - websocket / realtime yok
+  - dusuk frekansli fetch + panel acilisinda yenileme
+  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisiyor
+
+## Gelecek Progression Stratejisi
+- XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
+- Olasi ileriki branch:
+  - `feature/progression-foundation`
+- Bu yapida seviye odulleri su kaynak tipleriyle modellenebilir:
+  - coin reward
+  - badge unlock
+  - cosmetic unlock
+  - title / profile flair
+  - seasonal track milestone
+  - bundle / code claim entitlement
+- Seviye odulu mantigi ileride eklendiginde admin panelden sadece odul tablolarini ve carpanlari yonetmek yeterli olmali; mevcut economy ve audit zinciri korunmali.
+
+## Captcha Provider Policy Karari (15 March 2026)
+- Tek aktif provider modeli benimsendi.
+  - ayni anda sadece bir captcha provider aktif olur
+  - operatör gerekirse admin panelden provider degistirir
+- Production davranisi:
+  - `strict` enforcement zorunlu
+  - prod ortaminda `soft_fail` ile korumayi dusurme serbestligi yok
+- Onerilen varsayilan:
+  - provider: `turnstile`
+  - mode: `invisible`
+  - register: acik
+  - room create: acik
+  - guest join: ihtiyaca gore
+  - login: ihtiyaca gore
+- `reCAPTCHA v3` ayni anda ikinci katman olarak calismaz.
+  - sadece alternatif / yedek provider olarak tutulur
+- Admin panel sadelestirme ilkesi:
+  - provider secimi
+  - korunan akislar
+  - turnstile mode
+  - provider readiness
+  - production strict bilgisi
+  - riskli `failMode` secicisini UI'dan kaldirma
+
+## Admin Access Gateway Karari (16 March 2026, in progress)
+- Admin yuzeyi icin env tabanli merkezi access policy katmani kuruluyor.
+- Hedef modlar:
+  - `public_login`
+  - `restricted_login`
+  - `external_gateway`
+- Local/dev ortami:
+  - localhost icin rahat gelistirme bypass'i
+- Production ortami:
+  - `fail_closed` davranisi destekleniyor
+  - policy eksikse admin login ve admin API kapatilabilir
+- Gateway kanit turleri:
+  - sabit header + value
+  - email header + allowlist / allow-domain
+- Bu tasarim ileride Cloudflare Zero Trust gibi edge access sistemleri ile uyumlu olacak sekilde kuruluyor.
+
+## Tamamlanan Docs-Only Branch'ler
+- `docs/cleanup-roadmap-and-encoding`
+  - eski brainstorming/cop roadmap bloklari temizlendi
+  - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
+
+## Sayisal Durum
+- Tamamlanan feature branch sayisi: 11
+- Planli toplam branch sayisi: 26
+- Kalan branch sayisi: 15
+
+## Notlar
+- `fix/*` branch'ler bu sayiya dahil degildir.
+- Room regression ve dependency hotfix gibi duzeltmeler roadmap count icinde tutulmaz.
+- Bu dosya karar dokumanidir; eski brainstorming metinleri burada tutulmaz.
 
-### Neden Bu Siralama
-- Once foundation kurulursa sonraki branchlerde hardcoded yapilar tekrar edilmez.
-- Once security ve liveops giris kontrolu kurulur.
-- Sonra admin operasyon ve support gelir.
-- Branding / SEO / integration katmani foundation ustune oturur.
-- En son genis UI polish ve ileri analitik gelir.
 
-### Her Branch Icin Zorunlu Checklist
-- kapsam netlestirildi mi
-- ilgili docs okundu mu
-- review plani yazildi mi
-- test plani yazildi mi
-- refactor hedefi belirlendi mi
-- docs update noktasi belirlendi mi
-- PR aciklamasi hazir mi
-
-### Uygulama Baslatma Kurali
-- Her yeni branch once birlikte tartisilir.
-- Ben kapsam, risk, test ve docs etkisini yazarim.
-- Sen onay verince branch acilir ve implementasyon baslar.
-
-## Eksik Yapisal Alanlar ve Ek Oneriler (13 March 2026)
-
-### 1. En kritik eksik: Config hierarchy yok
-Su an bircok kural ya kodda ya env'de ya da daginik route mantiginda duruyor.
-Eksik olan yapilar:
-- global system settings
-- feature flag registry
-- runtime cache invalidation
-- config versioning / change audit
-
-Oneri:
-- `SystemSetting` yerine tipli domain tablolari veya en azindan namespaced config yapisi kurulsun
-- ornek namespace'ler:
-  - `platform.*`
-  - `security.*`
-  - `economy.*`
-  - `seo.*`
-  - `integrations.*`
-  - `gameplay.*`
-
-### 2. En kritik operasyon eksigi: Background jobs / scheduler yok
-Ticket auto-close, seasonal resets, campaign windows, cache refresh, report generation gibi isler ileride cron/job gerektirecek.
-
-Oneri:
-- MVP seviyesinde job interface tanimlansin
-- daha sonra `node-cron`, queue worker veya hosted scheduler baglanabilsin
-- ilk adaylar:
-  - coupon / discount expiry sync
-  - ticket auto-close
-  - analytics aggregation
-  - stale guest cleanup
-
-### 3. Moderation modeli eksik
-Ban var ama tam moderation lifecycle yok.
-Eksikler:
-- mute / temporary ban
-- moderation reason taxonomy
-- punishment history
-- appeal state
-- shadow spectate policy
-
-Oneri:
-- `ModerationAction` modeli
-- reason code + free text
-- expiresAt / permanent
-- actor admin audit link
-
-### 4. Support sistemi icin SLA ve ownership eksik
-Ticket fikri var ama profesyonel destek icin su alanlar lazim:
-- assignee
-- priority
-- status transitions
-- first response time
-- resolution time
-- internal note / public reply ayrimi
-
-Oneri:
-- MVP'de bile bunlarin veri modeli basta konmali
-- UI sonra sade gelebilir ama model eksik olmamali
-
-### 5. Analytics tarafinda ham event modeli eksik
-Word analytics fikri guclu ama once event capture standardi lazim.
-Eksikler:
-- gameplay event table / stream
-- admin action analytics
-- store funnel analytics
-- support metrics
-
-Oneri:
-- ileride rapor uretmek icin once ham event standardi kurulsun
-- ornek event family:
-  - `room.created`
-  - `room.joined`
-  - `match.finished`
-  - `store.item_purchased`
-  - `ticket.created`
-  - `admin.user_coin_adjusted`
-
-### 6. Guest lifecycle tam degil
-Guest support var ama tam urun mantigi eksik.
-Eksikler:
-- guest retention policy
-- guest claim / account-link conflict policy
-- guest abuse limits
-- guest analytics
-
-Oneri:
-- guest state icin net policy yazilsin:
-  - ne kadar saklanir
-  - ne zaman silinir
-  - account'a ne aktarilir
-  - ayni cihaz / ayni tarayici davranisi ne olur
-
-### 7. Asset pipeline eksik
-Kozmetiklerde image ve template var ama asset governance eksik.
-Eksikler:
-- versioning
-- image optimization policy
-- safe dimensions contract
-- rollback strategy
-- deprecation / archive state
-
-Oneri:
-- `AssetSpec` / authoring policy dokumani technical pipeline ile baglansin
-- admin upload sadece dosya atma degil asset lifecycle mantigina baglansin
-
-### 8. Search / filtering foundation eksik
-Admin paneller buyudukce tablo UX tek basina yetmez.
-Eksikler:
-- ortak filter primitives
-- pagination strategy
-- server-side sorting contract
-- saved filters
-
-Oneri:
-- admin table standardi kurulmadan users / tickets / faq / settings ekranlari dagilir
-
-### 9. Release operations eksik
-Artik sistem buyuyor. Deploy ve rollback konulari da urunun parcasi.
-Eksikler:
-- release checklist
-- migration checklist
-- feature rollout checklist
-- production smoke checklist
-
-Oneri:
-- `docs/release/` altinda kalici release runbook acilsin
-
-### 10. Icerik kalitesi / governance eksik
-FAQ, MOTD, announcement, hero, SEO, ticket canned response gibi alanlar artis gosterecek.
-Eksikler:
-- draft / published ayrimi
-- scheduled publish
-- revision history
-- rollback to previous content
-
-Oneri:
-- ilk surumde bile en azindan `isPublished`, `updatedBy`, `publishedAt` gibi alanlar dusunulsun
-
-### 11. Notification center eksik
-Duyurular var ama sistematik notification modeli yok.
-Eksikler:
-- in-app notification inbox
-- unread state
-- per-user targeted notifications
-- admin broadcast vs system notification ayrimi
-
-Bu ileride dashboard deneyimini ciddi guclendirir.
-
-### 12. Multi-environment strategy eksik
-Config tabanli sisteme gecince staging/prod ayrimi kritik olur.
-Eksikler:
-- hangi ayar prod-only
-- hangi ayar local override
-- seed vs real config ayrimi
-
-Oneri:
-- ayar modelleri environment strategy ile tasarlansin
-
-### 13. Dokuman encoding sorunu var
-Bu dosyada ve bazi eski dashboard dokumanlarinda encoding bozulmasi goruluyor.
-Bu implementasyon blokeri degil ama docs kalitesini dusuruyor.
-
-Oneri:
-- ayri bir `docs/encoding-cleanup` veya uygun bir docs branch ile UTF-8 normalization yapilsin
-
-### Stratejik ek branch onerileri
-Mevcut listeye eklenmesi mantikli branch'ler:
-
-1. `feature/admin-table-foundation`
-- ortak admin filtre / arama / pagination / bulk action altyapisi
-
-2. `feature/moderation-foundation`
-- ban / kick / mute / moderation history veri modeli ve admin aksiyon iskeleti
-
-3. `feature/system-notifications-foundation`
-- inbox / unread / targeted notification modeli
-
-4. `feature/analytics-event-foundation`
-- ham event capture modeli ve ilk admin event raporlari
-
-5. `feature/release-ops-docs`
-- release checklist, migration checklist, prod smoke checklist
-
-6. `docs/encoding-cleanup`
-- dashboard / admin / security dokumanlarinda UTF-8 duzeltmesi
-
-### Revize edilmis oncelik notu
-Ben su revizyonu oneriyorum:
-- `feature/admin-table-foundation` erken gelmeli
-- `feature/moderation-foundation` `admin-user-operations`tan once dusunulmeli
-- `feature/analytics-event-foundation` support ve economy sonrasina alinmali
-- `docs/encoding-cleanup` buyuk featurelardan biriyle karistirilmamali
-
-## Env ve Dinamik Ayar Stratejisi (13 March 2026)
-
-Profesyonel standartta dogru model tam DB veya tam `.env` degildir. Dogru model hibrittir.
-
-### `.env` icinde kalmasi gerekenler
-
-Asla admin panelden degistirilmemesi gereken, gizli veya deployment'a ozel degerler:
-
-- `DATABASE_URL`
-- `AUTH_SECRET`
-- `GUEST_IDENTITY_SECRET`
-- e-posta servis secret'lari
-- webhook secret'lari
-- S3/R2/API secret key'leri
-- analytics/ads provider secret'lari
-- Redis/Upstash connection secret'lari
-- odeme altyapisi secret'lari
-- production host/proxy/infra toggle'lari
-
-Kural:
-- Secret olan sey DB'ye tasinmaz.
-- Infra baglantisi olan sey DB'ye tasinmaz.
-- Build/deploy sirasinda gerekli olan sey DB'ye tasinmaz.
-
-### DB / System Settings icinde tutulmasi gerekenler
-
-Adminin runtime'da degistirmesi gereken ama secret olmayan degerler:
-
-- maintenance mode
-- MOTD / global banner
-- feature flag'ler
-- guest girisi acik/kapali
-- magazanin acik/kapali olmasi
-- kayitlarin acik/kapali olmasi
-- economy tuning
-- room/player caps
-- profanity dictionary
-- branding ayarlari
-- SEO icerikleri
-- hero content
-- entegrasyonlarin acik/kapali olma durumu
-- public analytics IDs
-- support categories
-- canned response listeleri
-
-### Kodda sabit kalmasi gerekenler
-
-Runtime'da admin tarafindan degistirilmesi gerekmeyen yapisal kurallar:
-
-- authorization policy
-- security policy defaults
-- validator limitleri
-- enum/type sinirlari
-- audit zorunlulugu
-- database transaction kurallari
-
-### Onerilen config katmanlari
-
-1. `env`
-- secret + infra + deployment degerleri
-
-2. `system_settings`
-- admin tarafindan runtime guncellenen public/business config
-
-3. `code defaults`
-- DB bossa veya config hataliysa guvenli fallback
-
-4. `cache`
-- DB ayarlari memory/redis cache ile okunur
-
-### Onerilen namespace yapisi
-
-`SystemSettings` tek satir dev JSON yerine namespaced key-value veya typed domain tablolariyla ilerlemeli:
-
-- `platform.*`
-- `economy.*`
-- `security.*`
-- `limits.*`
-- `branding.*`
-- `seo.*`
-- `integrations.*`
-- `support.*`
-- `hero.*`
-
-Bu yapi:
-- migration'i kolaylastirir
-- tek alani rollback etmeyi kolaylastirir
-- audit'i anlasilir yapar
-- admin UI'yi bolumlemeyi kolaylastirir
-
-### Public env vs dynamic config
-
-`NEXT_PUBLIC_*` degerleri build-time veya runtime public degerlerdir ama gizli degildir.
-
-Bunlari sadece su durumlarda kullan:
-- uygulamanin ayaga kalkmasi icin zorunlu public host bilgisi
-- build-time davranis farki
-
-Sunlar icin `NEXT_PUBLIC_*` kullanma:
-- adminin panelden degistirmesi beklenen marketing/branding icerigi
-- dynamic theme/hero/banner ayarlari
-- campaign textleri
-
-### Sonuc
-
-Dogru model hibrittir:
-
-- `.env` = secret + infra
-- DB/SystemSettings = dinamik operasyonel ayarlar
-- code defaults = guvenli fallback
-- cache = hizli okuma
-
-## Captcha Config Stratejisi (13 March 2026)
-
-Captcha tarafinda dogru model de hibrittir.
-
-### `.env` icinde tutulacaklar
-
-Secret ve provider key'leri deploy/config seviyesinde kalir:
-
-- `TURNSTILE_SITE_KEY`
-- `TURNSTILE_SECRET_KEY`
-- `RECAPTCHA_SITE_KEY`
-- `RECAPTCHA_SECRET_KEY`
-
-Kural:
-- secret key asla admin panelden degistirilmez
-- key rotasyonu deploy/isletim sorumlulugudur
-- admin panelden key girisi ilk asamada acilmamali
-
-### System Settings tarafinda tutulacaklar
-
-Admin panelden sadece davranis ve aktiflik yonetilir:
-
-- `security.captcha.enabled`
-- `security.captcha.provider`
-- `security.captcha.on_register`
-- `security.captcha.on_guest_join`
-- `security.captcha.on_room_create`
-- `security.captcha.on_login` (opsiyonel)
-- `security.captcha.fail_mode`
-- `security.captcha.recaptcha_score_threshold`
-- `security.captcha.turnstile_interactive_fallback`
-
-### Onerilen davranis
-
-Kullaniciyi surekli challenge cozmeye zorlamayacagiz. Ilk surumde arka planda calisan, dusuk surtunmeli model kurulacak.
-
-1. Varsayilan provider
-- once `Cloudflare Turnstile`
-- gerekirse ikinci provider olarak `reCAPTCHA v3`
-
-2. Varsayilan aktif alanlar
-- `register`: acik
-- `guest_join`: kapali
-- `room_create`: acik
-- `login`: kapali
-
-3. Varsayilan UX modeli
-- once gorunmez/arka plan skorlamasi
-- yalniz supheli durumda interaktif fallback
-- normal kullanicidan surekli kutu tiklamasi istenmez
-
-4. Fail davranisi
-- production: `fail-closed` yerine kontrollu `soft-fail` + audit/log tercih edilebilir
-- ama abuse dalgasi varsa admin panelden daha sert moda gecilebilir
-
-### Profesyonel kullanim notlari
-
-- Tek anda tek provider aktif olmali.
-- `provider = none | turnstile | recaptcha_v3`
-- Turnstile veya reCAPTCHA servis kesintisinde admin tek toggle ile provider degistirebilmeli.
-- Challenge sonucu sadece server tarafinda dogrulanmali.
-- Skor esigi ve aktif oldugu akislari runtime'da degistirmek yeterlidir; key degistirmek runtime isi degildir.
-
-### Sonuc
-
-Dogru baslangic modeli:
-- key'ler `.env`
-- provider secimi ve aktiflik DB/settings
-- varsayilan UX gorunmez / dusuk surtunmeli
-- supheli trafikte daha sert moda gecis admin panelden yapilabilir
-
-## Captcha Enforcement Slice (13 March 2026)
-
-### Tamamlananlar
-- `turnstile` ve `recaptcha_v3` icin ortak server-side verification katmani eklendi.
-- Public captcha config route eklendi:
-  - `/api/security/captcha-config`
-- Client token toplama katmani eklendi; provider script'i sadece gerektiginde yukleniyor.
-- Captcha enforcement baglanan yuzeyler:
-  - register
-  - login
-  - room create
-  - guest join
-  - direct `/room/[code]` guest entry
-
-### Davranis modeli
-- `soft_fail` yalnizca su durumlarda gecerlidir:
-  - provider servis sorunu
-  - provider config eksigi
-- Su durumlar ise yine fail olur:
-  - token yok
-  - token gecersiz
-  - action mismatch
-  - reCAPTCHA score threshold alti
-
-### Test ve dogrulama
-- Yeni smoke test: `npm run test:captcha-security`
-- Gecen kontroller:
-  - `npm run test:captcha-security`
-  - `npm run lint`
-  - `npx tsc --noEmit`
-  - `npm run build`
-  - `npm audit --omit=dev`
-## Admin Table Foundation Slice (13 March 2026)
-
-### Tamamlananlar
-- Ortak admin liste omurgasi eklendi:
-  - AdminPageHeader
-  - AdminToolbar
-  - AdminToolbarStats
-  - AdminTableShell
-  - AdminEmptyState
-  - AdminPagination
-  - AdminSelectionBar
-- Ortak secim ve local pagination yardimcilari eklendi:
-  - src/lib/admin/admin-table.ts
-  - src/hooks/use-admin-selection.ts
-- admin/words sayfasi tamamen yeni omurgaya tasindi ve server-side pagination korundu.
-- admin/shop-items sayfasi yeni omurgaya tasindi; row selection ile toplu aktif et, pasif yap, spotlight aksiyonlari eklendi.
-- admin/promotions sayfasina ortak header, toolbar, global arama ve shared empty-state dili eklendi.
-
-### Bilincli olarak disarida birakilanlar
-- Bu branch bulk mutation API standardizasyonu getirmedi.
-- shop-items toplu aksiyonlari mevcut tekil update route'u uzerinden calisiyor.
-- promotions ekrani bu turda kart-editor yapisini korudu; tam tabloya zorlanmadi.
-
-### Sonraki dogal adimlar
-- feature/moderation-foundation
-- veya admin operasyon agirligini azaltmak istersek:
-  - feature/admin-user-operations
-  - feature/admin-shop-ux
-## Moderation Foundation Slice (13 March 2026)
-
-### Tamamlananlar
-- Kullanicilar icin ilk moderasyon veri modeli eklendi:
-  - users.is_suspended
-  - users.suspended_at
-  - users.suspended_until
-  - users.suspension_reason
-  - user_moderation_events
-- Guvenli admin API'leri eklendi:
-  - /api/admin/users
-  - /api/admin/users/[id]/moderation
-- Her suspend / reactivate / note islemi icin gerekce zorunlu hale getirildi.
-- /admin/users sayfasi ve admin sidebar girisi eklendi.
-- Askidaki kullanicilar su giris noktalarinda engelleniyor:
-  - login
-  - session-backed protected route ve API yuzeyleri
-  - socket room create/join akisi
-
-### Bilincli olarak disarida birakilanlar
-- Bu foundation branch'i bulk moderation API eklemedi.
-- Appeal / review workflow eklenmedi.
-- Admin-on-admin moderasyon desteklenmedi; operator lockout riskini azaltmak icin bilerek kapali tutuldu.
-
-### Sonraki dogal adimlar
-- feature/admin-user-operations
-- feature/system-notifications-foundation
-- veya guvenlik odagi devam edecekse feature/security-hardening-phase-2
-### Moderation Foundation Follow-up (13 March 2026)
-- Authenticated normal users artik /admin veya /admin/login uzerinde admin login formuna dusmuyor; /dashboard tarafina yonlendiriliyor.
-- Son olaylar alani sadele�tirildi:
-  - varsayilan olarak kisaltilmis gorunum
-  - daha fazla / daha az goster kontrolu
-  - sadece ic not kayitlarini silme destegi
-- Suspend/reactivate olaylari audit butunlugu icin silinemez tutuldu.
-## Progress Update - feature/economy-liveops-controls (13 March 2026)
-- Runtime ekonomi kontrollari genisletildi.
-- Admin panel artik baslangic coin, mac odulleri, global mac coin carpani, weekend boost, store fiyat carpani, bundle toggle, discount toggle ve coupon toggle yonetiyor.
-- Mac odulleri /api/game/match/finalize uzerinde runtime multiplier ile hesaplanir hale geldi.
-- Store katalogu artik liveops ozeti donuyor; dashboard magazasi bu state'i oyuncuya yansitiyor.
-- Bundle satislari, campaign discountlari ve coupon kullanimi ayri runtime kill-switch olarak calisiyor.
-- Bu branchte scheduler/sezon sistemi bilincli olarak eklenmedi; daha ileri liveops katmani sonraki branch'e birakildi.

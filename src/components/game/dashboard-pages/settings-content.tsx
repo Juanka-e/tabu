@@ -25,6 +25,8 @@ import type { UserInventoryResponse } from "@/types/economy";
 export function SettingsContent() {
     const { data: session } = useSession();
     const [displayName, setDisplayName] = useState("");
+    const [email, setEmail] = useState("");
+    const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
     const [bio, setBio] = useState("");
     const [settings, setSettings] = useState<DashboardSettingsState>(defaultDashboardSettings);
     const [saving, setSaving] = useState(false);
@@ -47,6 +49,8 @@ export function SettingsContent() {
 
                 const payload = (await response.json()) as UserInventoryResponse;
                 setDisplayName(payload.profile.displayName || payload.name || session.user.name || "");
+                setEmail(payload.email || "");
+                setEmailVerifiedAt(payload.emailVerifiedAt);
                 setBio(payload.profile.bio || "");
             } catch {
                 // Keep local fallbacks.
@@ -74,10 +78,15 @@ export function SettingsContent() {
         setSaved(false);
 
         try {
+            const trimmedEmail = email.trim();
             const response = await fetch("/api/user/profile", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ displayName, bio }),
+                body: JSON.stringify({
+                    displayName,
+                    email: trimmedEmail.length > 0 ? trimmedEmail : undefined,
+                    bio,
+                }),
             });
 
             if (response.ok) {
@@ -127,6 +136,30 @@ export function SettingsContent() {
                                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                     maxLength={60}
                                 />
+                            </div>
+                            <div>
+                                <label
+                                    className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5"
+                                    htmlFor="email"
+                                >
+                                    Email
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(event) => setEmail(event.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    maxLength={191}
+                                    autoComplete="email"
+                                />
+                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {email
+                                        ? emailVerifiedAt
+                                            ? "E-posta dogrulandi."
+                                            : "E-posta kayitli, dogrulama akisi daha sonra eklenecek."
+                                        : "Bu hesapta henuz e-posta tanimli degil."}
+                                </div>
                             </div>
                             <div>
                                 <label

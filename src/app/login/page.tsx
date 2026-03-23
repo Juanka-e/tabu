@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import { resolveSafeCallbackUrl } from "@/lib/security/safe-callback-url";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -24,7 +25,10 @@ export default function LoginPage() {
 
         const callbackUrl =
             typeof window !== "undefined"
-                ? new URLSearchParams(window.location.search).get("callbackUrl") || "/dashboard"
+                ? resolveSafeCallbackUrl(
+                      new URLSearchParams(window.location.search).get("callbackUrl"),
+                      "/dashboard"
+                  )
                 : "/dashboard";
 
         try {

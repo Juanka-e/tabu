@@ -54,9 +54,52 @@ enum ModerationActionType {
   note
 }
 
+enum WalletAdjustmentType {
+  credit
+  debit
+}
+
+enum CoinGrantClaimStatus {
+  completed
+}
+
+enum SupportTicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum SupportTicketPriority {
+  low
+  normal
+  high
+}
+
+enum SupportTicketCategory {
+  account
+  gameplay
+  store
+  rewards
+  bug
+  report
+  other
+}
+
+enum NotificationType {
+  system
+  support_reply
+  support_status
+  economy
+  moderation
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
+  email     String?  @db.VarChar(191)
+  normalizedEmail String? @unique @map("normalized_email") @db.VarChar(191)
+  emailVerifiedAt DateTime? @map("email_verified_at")
   password  String   @db.VarChar(255)
   role      String   @default("user") @db.VarChar(20)
   isSuspended Boolean @default(false) @map("is_suspended")
@@ -75,7 +118,16 @@ model User {
   systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
   moderationActionsAuthored UserModerationEvent[] @relation("ModerationActor")
   moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
+  walletAdjustmentsAuthored WalletAdjustment[] @relation("WalletAdjustmentActor")
+  walletAdjustmentsReceived WalletAdjustment[] @relation("WalletAdjustmentTarget")
+  coinGrantClaims          CoinGrantClaim[]
+  coinGrantCampaignUsage   CoinGrantCampaignUser[]
+  supportTicketsOwned      SupportTicket[]        @relation("SupportTicketOwner")
+  supportTicketsAssigned   SupportTicket[]        @relation("SupportTicketAssignee")
+  supportMessagesAuthored  SupportTicketMessage[] @relation("SupportMessageAuthor")
+  notifications            Notification[]
 
+  @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
   @@map("users")
 }
@@ -161,6 +213,169 @@ model Wallet {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model WalletAdjustment {
+  id            Int                  @id @default(autoincrement())
+  targetUserId  Int                  @map("target_user_id")
+  actorUserId   Int?                 @map("actor_user_id")
+  adjustmentType WalletAdjustmentType @map("adjustment_type")
+  amount        Int
+  reason        String               @db.VarChar(500)
+  balanceBefore Int                  @map("balance_before")
+  balanceAfter  Int                  @map("balance_after")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  targetUser User  @relation("WalletAdjustmentTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  actorUser  User? @relation("WalletAdjustmentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([adjustmentType, createdAt])
+  @@map("wallet_adjustments")
+}
+
+model CoinGrantCampaign {
+  id                Int       @id @default(autoincrement())
+  code              String    @unique @db.VarChar(80)
+  name              String    @db.VarChar(120)
+  description       String?   @db.VarChar(300)
+  coinAmount        Int       @map("coin_amount")
+  totalBudgetCoin   Int?      @map("total_budget_coin")
+  totalGrantedCoin  Int       @default(0) @map("total_granted_coin")
+  totalClaimLimit   Int?      @map("total_claim_limit")
+  totalClaimCount   Int       @default(0) @map("total_claim_count")
+  perUserClaimLimit Int       @default(1) @map("per_user_claim_limit")
+  startsAt          DateTime? @map("starts_at")
+  endsAt            DateTime? @map("ends_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  archivedAt        DateTime? @map("archived_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  codes      CoinGrantCode[]
+  claims     CoinGrantClaim[]
+  userClaims CoinGrantCampaignUser[]
+
+  @@index([isActive, archivedAt, startsAt, endsAt])
+  @@map("coin_grant_campaigns")
+}
+
+model CoinGrantCode {
+  id         Int       @id @default(autoincrement())
+  campaignId Int       @map("campaign_id")
+  code       String    @unique @db.VarChar(80)
+  label      String?   @db.VarChar(120)
+  maxClaims  Int?      @map("max_claims")
+  claimCount Int       @default(0) @map("claim_count")
+  expiresAt  DateTime? @map("expires_at")
+  isActive   Boolean   @default(true) @map("is_active")
+  archivedAt DateTime? @map("archived_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  claims   CoinGrantClaim[]
+
+  @@index([campaignId, isActive, archivedAt])
+  @@map("coin_grant_codes")
+}
+
+model CoinGrantCampaignUser {
+  campaignId  Int      @map("campaign_id")
+  userId      Int      @map("user_id")
+  claimCount  Int      @default(0) @map("claim_count")
+  grantedCoin Int      @default(0) @map("granted_coin")
+  lastClaimAt DateTime @default(now()) @map("last_claim_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, userId])
+  @@index([userId, lastClaimAt])
+  @@map("coin_grant_campaign_users")
+}
+
+model CoinGrantClaim {
+  id         Int                  @id @default(autoincrement())
+  campaignId Int                  @map("campaign_id")
+  codeId     Int                  @map("code_id")
+  userId     Int                  @map("user_id")
+  status     CoinGrantClaimStatus @default(completed)
+  coinAmount Int                  @map("coin_amount")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  campaign CoinGrantCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  code     CoinGrantCode     @relation(fields: [codeId], references: [id], onDelete: Restrict)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+  @@index([codeId, createdAt])
+  @@index([userId, createdAt])
+  @@map("coin_grant_claims")
+}
+
+model SupportTicket {
+  id                  Int                   @id @default(autoincrement())
+  userId              Int                   @map("user_id")
+  assignedAdminUserId Int?                  @map("assigned_admin_user_id")
+  category            SupportTicketCategory
+  priority            SupportTicketPriority @default(normal)
+  status              SupportTicketStatus   @default(open)
+  subject             String                @db.VarChar(160)
+  lastMessageAt       DateTime              @default(now()) @map("last_message_at")
+  lastPublicReplyAt   DateTime?             @map("last_public_reply_at")
+  closedAt            DateTime?             @map("closed_at")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  user          User                 @relation("SupportTicketOwner", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAdmin User?                @relation("SupportTicketAssignee", fields: [assignedAdminUserId], references: [id], onDelete: SetNull)
+  messages      SupportTicketMessage[]
+
+  @@index([userId, status, updatedAt])
+  @@index([assignedAdminUserId, status, updatedAt])
+  @@index([status, priority, lastMessageAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id           Int      @id @default(autoincrement())
+  ticketId     Int      @map("ticket_id")
+  authorUserId Int?     @map("author_user_id")
+  isInternal   Boolean  @default(false) @map("is_internal")
+  body         String   @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  ticket  SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author  User?         @relation("SupportMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([authorUserId, createdAt])
+  @@map("support_ticket_messages")
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  type        NotificationType
+  title       String           @db.VarChar(160)
+  body        String           @db.VarChar(500)
+  resourceType String?         @map("resource_type") @db.VarChar(80)
+  resourceId  String?          @map("resource_id") @db.VarChar(120)
+  actionLabel String?          @map("action_label") @db.VarChar(40)
+  actionHref  String?          @map("action_href") @db.VarChar(255)
+  isRead      Boolean          @default(false) @map("is_read")
+  readAt      DateTime?        @map("read_at")
+  archivedAt  DateTime?        @map("archived_at")
+  metadata    Json?            @db.Json
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, archivedAt, createdAt])
+  @@index([userId, type, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("notifications")
 }
 
 model ShopItem {
@@ -403,11 +618,12 @@ model WordCategory {
 }
 
 model Announcement {
-  id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(255)
-  content   String   @db.Text
-  type      String   @default("guncelleme") @db.VarChar(20)
-  isVisible Boolean  @default(true) @map("is_visible")
+    id        Int      @id @default(autoincrement())
+    title     String   @db.VarChar(255)
+    content   String   @db.Text
+    contentBlocks Json? @map("content_blocks")
+    type      String   @default("guncelleme") @db.VarChar(20)
+    isVisible Boolean  @default(true) @map("is_visible")
   isPinned  Boolean  @default(false) @map("is_pinned")
   version   String?  @db.VarChar(50)
   tags      String?  @db.Text

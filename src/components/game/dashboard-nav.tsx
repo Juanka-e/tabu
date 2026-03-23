@@ -6,6 +6,7 @@ import {
     ShoppingBag,
     Settings,
     HelpCircle,
+    Bell,
     Play,
 } from "lucide-react";
 
@@ -15,6 +16,11 @@ interface DashboardNavProps {
     activeTab: DashboardTab;
     onTabChange: (tab: DashboardTab) => void;
     showPlayTab?: boolean;
+    supportEnabled?: boolean;
+    notificationEnabled?: boolean;
+    notificationUnreadCount?: number;
+    onNotificationsClick?: () => void;
+    onHelpClick?: () => void;
 }
 
 const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string }[] = [
@@ -24,7 +30,16 @@ const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string 
     { id: "settings", icon: Settings, label: "Settings" },
 ];
 
-export function DashboardNav({ activeTab, onTabChange, showPlayTab }: DashboardNavProps) {
+export function DashboardNav({
+    activeTab,
+    onTabChange,
+    showPlayTab,
+    supportEnabled = false,
+    notificationEnabled = false,
+    notificationUnreadCount = 0,
+    onNotificationsClick,
+    onHelpClick,
+}: DashboardNavProps) {
     return (
         <nav className="w-20 min-w-[80px] h-full border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center py-8 bg-white/50 dark:bg-black/30 backdrop-blur-md z-10 max-md:hidden">
             {/* Logo or Play button */}
@@ -74,11 +89,33 @@ export function DashboardNav({ activeTab, onTabChange, showPlayTab }: DashboardN
             </div>
 
             {/* Help (bottom) */}
-            <div className="mt-auto flex flex-col gap-4 w-full">
-                <button className="w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-                    <HelpCircle size={20} />
-                </button>
-            </div>
+            {supportEnabled || notificationEnabled ? (
+                <div className="mt-auto flex flex-col gap-4 w-full">
+                    {notificationEnabled ? (
+                        <button
+                            type="button"
+                            onClick={onNotificationsClick}
+                            className="relative w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                        >
+                            <Bell size={20} />
+                            {notificationUnreadCount > 0 ? (
+                                <span className="absolute right-4 top-2 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white">
+                                    {notificationUnreadCount > 9 ? "9+" : notificationUnreadCount}
+                                </span>
+                            ) : null}
+                            <span className="text-[10px] font-medium">Inbox</span>
+                        </button>
+                    ) : null}
+                    <button
+                        type="button"
+                        onClick={onHelpClick}
+                        className="w-full py-3 flex flex-col items-center justify-center gap-1 transition-all text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                    >
+                        <HelpCircle size={20} />
+                        <span className="text-[10px] font-medium">Help</span>
+                    </button>
+                </div>
+            ) : null}
         </nav>
     );
 }

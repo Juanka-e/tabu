@@ -111,6 +111,8 @@ export interface UserInventoryProfile {
 export interface UserInventoryResponse {
     id: number;
     name: string;
+    email: string | null;
+    emailVerifiedAt: string | null;
     role: string;
     wallet: {
         coinBalance: number;

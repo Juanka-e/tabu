@@ -13,6 +13,7 @@ import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -28,19 +29,19 @@ export default function RegisterPage() {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, captchaToken: token }),
+                body: JSON.stringify({ username, email, password, captchaToken: token }),
             });
 
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.error || "KayÄ±t baÅŸarÄ±sÄ±z.");
+                setError(data.error || "Kayıt başarısız.");
             } else {
-                toast.success("KayÄ±t baÅŸarÄ±lÄ±! GiriÅŸ yapabilirsiniz.");
+                toast.success("Kayıt başarılı! Giriş yapabilirsiniz.");
                 router.push("/login");
             }
         } catch {
-            setError("Bir hata oluÅŸtu.");
+            setError("Bir hata oluştu.");
         } finally {
             setLoading(false);
         }
@@ -52,10 +53,10 @@ export default function RegisterPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
                         <UserPlus className="w-6 h-6 text-primary" />
-                        KayÄ±t Ol
+                        Kayıt Ol
                     </CardTitle>
                     <CardDescription>
-                        Yeni bir Tabu hesabÄ± oluÅŸtur
+                        Yeni bir Tabu hesabı oluştur
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -63,7 +64,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <Input
                                 type="text"
-                                placeholder="KullanÄ±cÄ± AdÄ±"
+                                placeholder="Kullanıcı Adı"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -72,8 +73,19 @@ export default function RegisterPage() {
                         </div>
                         <div className="space-y-2">
                             <Input
+                                type="email"
+                                placeholder="E-posta"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                maxLength={191}
+                                autoComplete="email"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
                                 type="password"
-                                placeholder="Åifre"
+                                placeholder="Şifre"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -86,13 +98,13 @@ export default function RegisterPage() {
                             </div>
                         )}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "KayÄ±t Olunuyor..." : "KayÄ±t Ol"}
+                            {loading ? "Kayıt Oluşturuluyor..." : "Kayıt Ol"}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Zaten hesabÄ±n var mÄ±? <Link href="/login" className="text-primary hover:underline">GiriÅŸ Yap</Link>
+                        Zaten hesabın var mı? <Link href="/login" className="text-primary hover:underline">Giriş Yap</Link>
                     </p>
                 </CardFooter>
             </Card>

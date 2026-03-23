@@ -1,6 +1,10 @@
 import NextAuth from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { sharedAuthConfig } from "@/lib/auth-shared";
+import {
+    evaluateAdminAccess,
+    getAdminAccessFailureMessage,
+} from "@/lib/admin/access-policy";
 import { isTrustedStateChangeRequest } from "@/lib/security/request-origin";
 import {
     buildContentSecurityPolicy,
@@ -54,6 +58,7 @@ function createPageResponse(req: NextRequest): NextResponse {
 export default auth((req) => {
     const { pathname } = req.nextUrl;
     const role = (req.auth?.user as { role?: string } | undefined)?.role;
+    const adminAccess = evaluateAdminAccess(req);
     const requestLike = {
         headers: req.headers,
         method: req.method,
@@ -71,6 +76,23 @@ export default auth((req) => {
     }
 
     if (pathname === "/admin" && !isAuthed(req)) {
+        return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    if (
+        (pathname === "/admin" ||
+            pathname.startsWith("/admin/") ||
+            pathname.startsWith("/admin/login") ||
+            pathname.startsWith("/api/admin")) &&
+        !adminAccess.allowed
+    ) {
+        if (pathname.startsWith("/api/admin")) {
+            return NextResponse.json(
+                { error: getAdminAccessFailureMessage(adminAccess) },
+                { status: 403 }
+            );
+        }
+
         return NextResponse.redirect(new URL("/", req.url));
     }
 
@@ -117,6 +139,7 @@ export default auth((req) => {
 
     if (
         pathname.startsWith("/api/user") ||
+        pathname.startsWith("/api/notifications") ||
         pathname.startsWith("/api/store") ||
         pathname.startsWith("/api/game")
     ) {
@@ -145,6 +168,10 @@ export const config = {
             ],
         },
         "/api/admin/:path*",
+        "/api/support/:path*",
+        "/api/coin-grants/:path*",
+        "/api/notifications/:path*",
+        "/api/notifications/archive-all",
         "/api/user/:path*",
         "/api/store/:path*",
         "/api/game/:path*",

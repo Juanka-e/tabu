@@ -13,9 +13,15 @@ import {
     isRegistrationAvailable,
 } from "@/lib/system-settings/policies";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
+import {
+    isEmailWithinLimit,
+    normalizeEmail,
+    sanitizeEmail,
+} from "@/lib/users/email";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
+    email: z.email("Gecerli bir e-posta adresi girilmelidir."),
     password: z.string().min(6, "Sifre en az 6 karakter olmalidir."),
     captchaToken: z.string().trim().min(1).optional().nullable(),
 });
@@ -36,8 +42,17 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { username, password, captchaToken } = registerSchema.parse(body);
+        const { username, email, password, captchaToken } = registerSchema.parse(body);
         const settings = await getSystemSettings();
+        const sanitizedEmail = sanitizeEmail(email);
+        const normalizedEmail = normalizeEmail(email);
+
+        if (!isEmailWithinLimit(sanitizedEmail)) {
+            return NextResponse.json(
+                { error: "E-posta adresi cok uzun." },
+                { status: 400 }
+            );
+        }
 
         if (!isRegistrationAvailable(settings)) {
             return NextResponse.json(
@@ -70,11 +85,24 @@ export async function POST(req: Request) {
             );
         }
 
+        const existingEmailUser = await prisma.user.findUnique({
+            where: { normalizedEmail },
+            select: { id: true },
+        });
+        if (existingEmailUser) {
+            return NextResponse.json(
+                { error: "Bu e-posta adresi zaten kullaniliyor." },
+                { status: 400 }
+            );
+        }
+
         const hashedPassword = await bcryptjs.hash(password, 10);
 
         const user = await prisma.user.create({
             data: {
                 username,
+                email: sanitizedEmail,
+                normalizedEmail,
                 password: hashedPassword,
                 role: "user",
                 wallet: {

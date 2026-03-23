@@ -3,14 +3,36 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { invalidateCategoryCache } from "@/lib/socket/category-service";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
 // GET - List categories
-export async function GET() {
+export async function GET(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-categories-read",
+        key: `${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 90,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla istek gonderildi. Lutfen bekleyin." },
+            {
+                status: 429,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
+        );
     }
 
     const categories = await prisma.category.findMany({
@@ -22,7 +44,9 @@ export async function GET() {
         where: { parentId: null },
     });
 
-    return NextResponse.json(categories);
+    return NextResponse.json(categories, {
+        headers: buildRateLimitHeaders(rateLimit),
+    });
 }
 
 // POST - Create a category

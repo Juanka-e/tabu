@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getSystemSettings } from "@/lib/system-settings/service";
-import type { SystemSettings } from "@/types/system-settings";
+import type { CaptchaFailMode, SystemSettings } from "@/types/system-settings";
 import type {
     CaptchaAction,
     CaptchaVerificationResult,
@@ -68,10 +68,21 @@ export function getPublicCaptchaConfigForAction(
         required: isCaptchaRequiredForAction(settings, action),
         provider,
         siteKey: getCaptchaSiteKey(provider),
-        failMode: settings.security.captcha.failMode,
+        failMode: getEffectiveCaptchaFailMode(settings),
+        turnstileMode: settings.security.captcha.turnstileMode,
         turnstileInteractiveFallback:
             settings.security.captcha.turnstileInteractiveFallback,
     };
+}
+
+export function getEffectiveCaptchaFailMode(
+    settings: SystemSettings
+): CaptchaFailMode {
+    if (process.env.NODE_ENV === "production") {
+        return "hard_fail";
+    }
+
+    return settings.security.captcha.failMode;
 }
 
 async function verifyTurnstileToken(options: {

@@ -1,14 +1,39 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-    sanitizeAnnouncementContent,
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
+import {
+    announcementBlocksToPreview,
+    normalizeAnnouncementBlocks,
+} from "@/lib/announcements/content";
+import {
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "announcements-visible-read",
+        key: getRequestIp(request),
+        windowMs: 60_000,
+        maxRequests: 50,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla istek gonderildi. Lutfen bekleyin." },
+            {
+                status: 429,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
+        );
+    }
+
     try {
         const announcements = await prisma.announcement.findMany({
             where: { isVisible: true },
@@ -17,6 +42,7 @@ export async function GET() {
                 id: true,
                 title: true,
                 content: true,
+                contentBlocks: true,
                 type: true,
                 createdAt: true,
                 isPinned: true,
@@ -27,17 +53,21 @@ export async function GET() {
             },
         });
 
-        // Map to snake_case for frontend compatibility
         const mapped = announcements.map((announcement) => {
             const sanitizedMedia = sanitizeAnnouncementMedia(
                 announcement.mediaUrl,
                 toAnnouncementMediaType(announcement.mediaType)
             );
+            const contentBlocks = normalizeAnnouncementBlocks(
+                announcement.contentBlocks,
+                announcement.content
+            );
 
             return {
                 id: announcement.id,
                 title: announcement.title,
-                content: sanitizeAnnouncementContent(announcement.content),
+                contentBlocks,
+                preview: announcementBlocksToPreview(contentBlocks),
                 type: announcement.type,
                 created_at: announcement.createdAt.toISOString(),
                 isPinned: announcement.isPinned,
@@ -48,7 +78,9 @@ export async function GET() {
             };
         });
 
-        return NextResponse.json(mapped);
+        return NextResponse.json(mapped, {
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         console.error("Failed to fetch announcements:", error);
         return NextResponse.json([], { status: 500 });

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +15,23 @@ export async function GET(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-words-read",
+        key: `${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 60,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla istek gonderildi. Lutfen bekleyin." },
+            {
+                status: 429,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
+        );
     }
 
     const { searchParams } = new URL(request.url);
@@ -49,12 +71,17 @@ export async function GET(request: NextRequest) {
         prisma.word.count({ where }),
     ]);
 
-    return NextResponse.json({
-        words,
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-    });
+    return NextResponse.json(
+        {
+            words,
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+        },
+        {
+            headers: buildRateLimitHeaders(rateLimit),
+        }
+    );
 }
 
 // POST - Create a new word
