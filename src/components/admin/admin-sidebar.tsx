@@ -18,6 +18,7 @@ import {
     Users,
     Gift,
     Headset,
+    PlugZap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -32,6 +33,7 @@ const navItems = [
     { href: "/admin/users", icon: Users, label: "Kullanicilar" },
     { href: "/admin/support", icon: Headset, label: "Support" },
     { href: "/admin/audit", icon: Activity, label: "Audit" },
+    { href: "/admin/integrations", icon: PlugZap, label: "Integrations" },
     { href: "/admin/system-settings", icon: SlidersHorizontal, label: "Sistem Ayarlari" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
     { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yukleme" },

@@ -26,10 +26,13 @@ function applyThemeColor(themeColor: string): void {
         return;
     }
 
-    let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    let themeColorMeta = document.querySelector<HTMLMetaElement>(
+        'meta[name="theme-color"][data-branding-managed="true"]'
+    );
     if (!themeColorMeta) {
         themeColorMeta = document.createElement("meta");
         themeColorMeta.setAttribute("name", "theme-color");
+        themeColorMeta.setAttribute("data-branding-managed", "true");
         document.head.appendChild(themeColorMeta);
     }
 
@@ -46,7 +49,7 @@ function applyFavicon(faviconUrl: string): void {
     const faviconHref = `${normalizedUrl}${normalizedUrl.includes("?") ? "&" : "?"}v=${cacheBustToken}`;
     const iconType = getIconMimeType(normalizedUrl);
     const existingIcons = document.querySelectorAll(
-        'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
+        'link[data-branding-managed="true"]'
     );
     existingIcons.forEach((icon) => icon.remove());
 

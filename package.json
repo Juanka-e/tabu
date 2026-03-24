@@ -43,6 +43,7 @@
     "test:branding-seo-settings": "tsx scripts/test-branding-seo-settings.ts",
     "test:system-settings-hardening": "tsx scripts/test-system-settings-hardening.ts",
     "test:branding-assets-upload": "tsx scripts/test-branding-assets-upload.ts",
+    "test:integration-hub": "tsx scripts/test-integration-hub.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push",
