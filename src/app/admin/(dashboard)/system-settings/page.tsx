@@ -612,7 +612,7 @@ export default function SystemSettingsPage() {
                                                 Otomatik preview kapali
                                             </div>
                                             <div>
-                                                Dis URL gorselleri admin tarayicisindan otomatik yuklenmez. Upload slice gelene kadar sadece root-relative app asset&apos;leri burada otomatik preview edilir.
+                                                Dis URL gorselleri admin tarayicisindan otomatik yuklenmez. Burada sadece root-relative app asset&apos;leri otomatik preview edilir.
                                             </div>
                                             <a
                                                 href={ogImageUrl}
@@ -653,7 +653,7 @@ export default function SystemSettingsPage() {
                                     </div>
                                 ))}
                                 <div className="rounded-xl border border-border/70 bg-background px-3 py-3 text-xs text-muted-foreground">
-                                    Root-relative yol (`/og-cover.png`) otomatik preview edilir. Tam URL kaydedilebilir ama guvenlik nedeniyle admin panelde otomatik yuklenmez. Upload slice geldikten sonra bu alanlar dogrudan medya secicisine baglanacak.
+                                    Root-relative yol (`/og-cover.png`) otomatik preview edilir. Tam URL kaydedilebilir ama guvenlik nedeniyle admin panelde otomatik yuklenmez.
                                 </div>
                             </div>
                         </div>

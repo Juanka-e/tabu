@@ -69,6 +69,7 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
     const ogImage = resolveAssetUrl(branding.ogImageUrl, metadataBase);
     const favicon = resolveAssetUrl(branding.faviconUrl, metadataBase) ?? "/favicon.ico";
     const faviconType = getIconType(favicon);
+    const appleIcons = faviconType === "image/png" ? [{ url: favicon, type: "image/png" }] : undefined;
     const twitterHandle = normalizeTwitterHandle(branding.twitterHandle);
 
     return {
@@ -100,7 +101,7 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
         icons: {
             icon: [{ url: favicon, type: faviconType }],
             shortcut: [{ url: favicon, type: faviconType }],
-            apple: [{ url: favicon, type: "image/png" }],
+            apple: appleIcons,
         },
     };
 }
