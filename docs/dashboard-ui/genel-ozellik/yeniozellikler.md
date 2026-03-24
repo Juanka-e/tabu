@@ -64,21 +64,20 @@
   - `docs/cache-and-storage-strategy.md`
 
 ## Sonraki Oncelikli Branch'ler
-14. `feature/branding-assets-upload`
-15. `feature/cache-and-rate-limit-foundation`
-16. `feature/integration-hub`
-17. `feature/dashboard-visual-polish`
-18. `feature/store-merchandising`
-19. `feature/admin-shop-ux`
-20. `feature/admin-promotions-ux`
-21. `feature/cosmetic-render-upgrade`
-22. `feature/admin-cosmetic-authoring`
-23. `feature/gameplay-ui-polish`
-24. `feature/analytics-event-foundation`
-25. `feature/word-analytics-liveops`
-26. `feature/release-ops-docs`
-27. `docs/encoding-cleanup`
-28. `feature/wallet-ledger-foundation`
+14. `feature/integration-hub`
+15. `feature/dashboard-visual-polish`
+16. `feature/cache-and-rate-limit-foundation`
+17. `feature/store-merchandising`
+18. `feature/admin-shop-ux`
+19. `feature/admin-promotions-ux`
+20. `feature/cosmetic-render-upgrade`
+21. `feature/admin-cosmetic-authoring`
+22. `feature/gameplay-ui-polish`
+23. `feature/analytics-event-foundation`
+24. `feature/word-analytics-liveops`
+25. `feature/release-ops-docs`
+26. `docs/encoding-cleanup`
+27. `feature/wallet-ledger-foundation`
 
 ## User Email Foundation Slice (14 March 2026)
 - Yeni kayit akisinda email zorunlu hale getirildi.
@@ -258,6 +257,21 @@
   - admin auth
   - rate limit
 - Logo kare olmak zorunda degil; yatay wordmark kullanimi guvenli container'larla destekleniyor.
+
+## Integration Hub Slice (24 March 2026, in progress)
+- Yeni `/admin/integrations` paneli ekleniyor.
+- Ilk dilimde gosterilecek bloklar:
+  - database
+  - auth core
+  - Turnstile
+  - reCAPTCHA
+  - admin access gateway
+  - branding asset storage
+  - email outbound
+  - Redis / Valkey
+- Secret degerler panelde gosterilmeyecek.
+- Provider readiness ve env wiring durumu gorunur olacak.
+- Henuz bagli olmayan entegrasyonlar `planned` olarak acik sekilde isaretlenecek.
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

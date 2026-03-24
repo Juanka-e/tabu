@@ -1,82 +1,63 @@
 # Kalan Isler
 
-> Son guncelleme: 23 March 2026
+> Son guncelleme: 24 March 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/branding-assets-upload`
-2. `feature/cache-and-rate-limit-foundation`
-3. `feature/integration-hub`
-4. `feature/dashboard-visual-polish`
-5. `feature/store-merchandising`
-6. `feature/admin-shop-ux`
-7. `feature/admin-promotions-ux`
-8. `feature/cosmetic-render-upgrade`
-9. `feature/admin-cosmetic-authoring`
-10. `feature/gameplay-ui-polish`
-11. `feature/analytics-event-foundation`
-12. `feature/word-analytics-liveops`
-13. `feature/release-ops-docs`
-14. `docs/encoding-cleanup`
-15. `feature/wallet-ledger-foundation`
+1. `feature/integration-hub`
+2. `feature/dashboard-visual-polish`
+3. `feature/cache-and-rate-limit-foundation`
+4. `feature/store-merchandising`
+5. `feature/admin-shop-ux`
+6. `feature/admin-promotions-ux`
+7. `feature/cosmetic-render-upgrade`
+8. `feature/admin-cosmetic-authoring`
+9. `feature/gameplay-ui-polish`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/release-ops-docs`
+13. `docs/encoding-cleanup`
+14. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
-### 1. Branding / SEO Runtime
-- public branding ayarlari
-- metadata / open graph / favicon runtime kontrolu
-- site identity paneli
-- canonical, robots ve sitemap metadata route'lari
-- system settings icinde responsive section-based kullanim
+### 1. Integration Hub
+- dis servis baglantilarini tek panelde toplama
+- provider readiness / secret guidance / status bloklari
+- runtime/env wiring gorunurlugu
+- sonraki ops entegrasyonlarina hazir omurga
 
-### 2. System Settings Hardening
-- admin system settings write rate limit
-- dis URL branding preview guvenligi
-- upload gelene kadar sadece guvenli preview davranisi
+### 2. Dashboard Visual Polish
+- full-page dashboard ve in-game overlay tutarliligi
+- spacing / density / hierarchy duzeltmeleri
+- mobile responsive pürüz temizligi
+- state yuzeyleri: loading / empty / error / success
 
-### 3. Branding Assets Upload
-- logo / favicon / og image upload
-- guvenli dosya dogrulama
-- medya secici ile branding paneline baglama
-- root-relative branding asset path standardi
-- dashboard branding gorunumu
-- favicon live update ve reset-to-default davranisi
-- stale branding asset cleanup
-
-### 4. Cache / Rate Limit Foundation
+### 3. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
 - development memory fallback
 - production shared cache and rate limit store
 - room/lobi multi-instance mimarisine hazirlik
-
-### 5. Integration Hub
-- dis servis baglantilarini tek panelde toplama
-- provider readiness / secret guidance / status bloklari
-- sonraki ops entegrasyonlarina hazir omurga
+- PM2 multi-instance ve websocket koordinasyon notlari:
+  - `docs/cache-and-storage-strategy.md`
 
 ## Son Tamamlanan Dilim
-### `fix/system-settings-hardening`
-- admin `system-settings` write route'una ayri rate limit
-- branding preview'da dis URL'leri otomatik yuklememe
-- sadece root-relative guvenli asset preview davranisi
-- upload slice oncesi guvenlik sertlestirmesi
-
-## Aktif Dilim
-### `feature/branding-assets-upload`
+### `feature/branding-assets-upload` + follow-up
 - branding upload route'u
 - logo / favicon / og asset upload
-- admin system settings icinde upload aksiyonlari
-- varsayilana don butonlari
-- branding save sonrasi logo/favicon/theme-color senkronu
-- dashboard full-page ve in-game dashboard branding gorunumu
-- in-game dashboard mobile nav ve responsive overlay duzenlemesi
-- compact icon zorunlulugunu geri cekip dashboard'da guvenli fallback branding kullanimi
+- branding save sonrasi live favicon/theme-color sync
 - stale branding asset cleanup
-- ilk asset guvenlik kurallari:
-  - PNG / JPEG / WebP
-  - mime + signature kontrolu
-  - tum branding asset'leri icin 4 MB boyut limiti
-- yatay logo / wordmark destegi, serbest boyut yerine guvenli sabit container'larla veriliyor
+- compact branding asset yolunun kaldirilmasi
+- guides klasoru altinda branding/card rehberlerinin toplanmasi
+- kalici `test:turnstile-smoke` komutu
+
+## Aktif Dilim
+### `feature/integration-hub`
+- `/admin/integrations`
+- runtime / security / access / messaging / storage entegrasyon kartlari
+- provider readiness ve env wiring ozetleri
+- olmayan provider'lari `planned` olarak acik gosteren ilk hub modeli
+- `test:integration-hub`
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:
