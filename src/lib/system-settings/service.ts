@@ -16,6 +16,7 @@ const SYSTEM_SETTINGS_CACHE_TTL_MS = 15_000;
 
 let cachedSystemSettings: SystemSettings | null = null;
 let cachedAt = 0;
+let warnedAboutSystemSettingsFallback = false;
 
 function isCaptchaProviderConfigured(siteKey: string | undefined, secretKey: string | undefined): boolean {
     return Boolean(siteKey && siteKey.trim() && secretKey && secretKey.trim());
@@ -114,6 +115,31 @@ function buildSettingsFromRows(
     });
 }
 
+function shouldFallbackToDefaultSettings(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+
+    return (
+        error.message.includes("Can't reach database server") ||
+        error.message.includes("Can't connect to database server") ||
+        error.message.includes("Connection refused") ||
+        error.message.includes("ECONNREFUSED")
+    );
+}
+
+function logSystemSettingsFallback(error: Error): void {
+    if (warnedAboutSystemSettingsFallback) {
+        return;
+    }
+
+    console.warn(
+        "[system-settings] Falling back to default settings because the database is unavailable.",
+        error.message
+    );
+    warnedAboutSystemSettingsFallback = true;
+}
+
 export async function getSystemSettings(options?: {
     forceRefresh?: boolean;
 }): Promise<SystemSettings> {
@@ -122,23 +148,36 @@ export async function getSystemSettings(options?: {
         return cachedSystemSettings as SystemSettings;
     }
 
-    const rows = await prisma.systemSetting.findMany({
-        where: {
-            key: {
-                in: [...SYSTEM_SETTINGS_NAMESPACES],
+    try {
+        const rows = await prisma.systemSetting.findMany({
+            where: {
+                key: {
+                    in: [...SYSTEM_SETTINGS_NAMESPACES],
+                },
             },
-        },
-        select: {
-            key: true,
-            value: true,
-        },
-    });
+            select: {
+                key: true,
+                value: true,
+            },
+        });
 
-    const settings = buildSettingsFromRows(rows);
-    cachedSystemSettings = settings;
-    cachedAt = Date.now();
+        const settings = buildSettingsFromRows(rows);
+        cachedSystemSettings = settings;
+        cachedAt = Date.now();
+        warnedAboutSystemSettingsFallback = false;
 
-    return settings;
+        return settings;
+    } catch (error) {
+        if (shouldFallbackToDefaultSettings(error)) {
+            logSystemSettingsFallback(error as Error);
+            const fallbackSettings = normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
+            cachedSystemSettings = fallbackSettings;
+            cachedAt = Date.now();
+            return fallbackSettings;
+        }
+
+        throw error;
+    }
 }
 
 export async function updateSystemSettings(
