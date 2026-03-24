@@ -56,7 +56,9 @@ function applyFavicon(faviconUrl: string): void {
     const iconDefinitions = [
         { rel: "icon", type: iconType, sizes: undefined },
         { rel: "shortcut icon", type: iconType, sizes: undefined },
-        { rel: "apple-touch-icon", type: "image/png", sizes: "180x180" },
+        ...(iconType === "image/png"
+            ? [{ rel: "apple-touch-icon", type: "image/png", sizes: "180x180" }]
+            : []),
     ] as const;
 
     for (const definition of iconDefinitions) {
@@ -101,8 +103,11 @@ export function BrandingProvider({
 
     useEffect(() => {
         applyThemeColor(currentBranding.themeColor);
+    }, [currentBranding.themeColor]);
+
+    useEffect(() => {
         applyFavicon(currentBranding.faviconUrl);
-    }, [currentBranding]);
+    }, [currentBranding.faviconUrl]);
 
     return (
         <BrandingContext.Provider value={currentBranding}>

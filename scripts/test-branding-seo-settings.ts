@@ -37,7 +37,7 @@ function main() {
             : null;
     const iconsConfig =
         typeof rootMetadata.icons === "object" && rootMetadata.icons
-            ? (rootMetadata.icons as { icon?: string })
+            ? (rootMetadata.icons as { icon?: Array<{ url: string; type?: string }>; apple?: Array<{ url: string; type?: string }> })
             : null;
 
     assert.equal(settings.branding.siteName, "Tabu Arena");
@@ -47,7 +47,9 @@ function main() {
     assert.equal(titleConfig?.template, "%s | Tabu Arena");
     assert.equal(rootMetadata.openGraph?.siteName, "Tabu Arena");
     assert.equal(rootMetadata.twitter?.creator, "@tabuarena");
-    assert.equal(iconsConfig?.icon, "http://localhost:3000/brand/favicon.ico");
+    assert.equal(iconsConfig?.icon?.[0]?.url, "http://localhost:3000/brand/favicon.ico");
+    assert.equal(iconsConfig?.icon?.[0]?.type, "image/x-icon");
+    assert.equal(iconsConfig?.apple, undefined);
     assert.equal(roomMetadata.title, "Oyun Odasi | Tabu Arena");
     assert.equal(roomMetadata.openGraph?.title, "Tabu Arena | Online Oyun");
     assert.equal(isAutomaticBrandingPreviewUrl("/og/tabu-arena.png"), true);

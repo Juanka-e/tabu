@@ -1,0 +1,283 @@
+# Deployment Security Guide
+
+Bu rehber production deployment icin minimum guvenli topolojiyi tarif eder.
+
+Amac:
+- Next.js / Node backend'i dogrudan internete acmamak
+- Nginx'i tek public giris noktasi yapmak
+- Auth.js `AUTH_TRUST_HOST` ayarini dogru topoloji ile kullanmak
+- MySQL, Redis/Valkey ve benzeri servisleri public internetten izole tutmak
+
+## 1. Dogru Topoloji
+
+Tavsiye edilen production akisi:
+
+1. Internet
+2. Nginx
+3. `127.0.0.1:3000` uzerindeki Next.js / Node backend
+4. `127.0.0.1` veya private network uzerindeki MySQL
+5. gerekiyorsa private Redis / Valkey
+
+Kural:
+- public olan sadece `80/443`
+- backend portlari public olmayacak
+
+## 2. Loopback Bind Nedir?
+
+Loopback bind, servisin sadece ayni makineden erisilebilir bir adrese baglanmasidir.
+
+Ornek:
+- `127.0.0.1:3000` -> sadece ayni sunucu erisebilir
+- `0.0.0.0:3000` -> firewall aciksa disaridan da erisilebilir
+
+Production hedefi:
+- Next backend: `127.0.0.1:3000`
+- MySQL: `127.0.0.1:3306` veya private interface
+- Redis/Valkey: `127.0.0.1` veya private interface
+
+## 3. Neden Backend Portu Public Olmamali?
+
+Node/Next portu dogrudan disariya acik olursa:
+
+1. Nginx bypass edilir
+2. reverse proxy uzerinden bekledigin host/header davranisi bozulur
+3. health endpoint ve benzeri runtime yuzeyler dogrudan erisilebilir olur
+4. TLS termination ve request normalization sadece proxy tarafinda kaldigi icin koruma modeli zayiflar
+
+Bu yuzden:
+- public traffic sadece Nginx'e gelsin
+- Node backend private kalsin
+
+## 4. `AUTH_TRUST_HOST` Nedir?
+
+Auth.js `Host` basligini kullanir.
+Self-hosted deployment'ta bu yuzden `trustHost` davranisi onemlidir.
+
+Bu projede:
+- `AUTH_TRUST_HOST=true` production'da sorun degil
+- yanlis topolojide risklidir
+
+Yanlis dusunce:
+- `AUTH_TRUST_HOST=false` yaparsam daha guvenli olur
+
+Bu dogru degil.
+Pratikte daha olasi sonuc:
+- `UntrustedHost` hatasi
+- login/session akisinin bozulmasi
+
+Dogru guvenlik modeli:
+
+1. `AUTH_TRUST_HOST=true`
+2. backend direct public degil
+3. Nginx tek giris noktasi
+4. Nginx dogru `Host` ve `X-Forwarded-*` header'larini geciyor
+5. firewall ile raw backend portu kapali
+
+## 5. Production Env Karari
+
+Tavsiye edilen ana ayarlar:
+
+```env
+NODE_ENV="production"
+HOST="127.0.0.1"
+PORT="3000"
+
+NEXTAUTH_URL="https://tabu.com"
+NEXT_PUBLIC_SITE_URL="https://tabu.com"
+AUTH_TRUST_HOST="true"
+
+HEALTHCHECK_TOKEN="replace_with_long_random_value"
+```
+
+Notlar:
+- `HOST="127.0.0.1"` backend'i private tutar
+- `NEXTAUTH_URL` canonical public origin olmali
+- `NEXT_PUBLIC_SITE_URL` da public canonical origin olmali
+- `HEALTHCHECK_TOKEN` production health endpoint korumasi icin kullanilir
+
+## 6. Nginx Reverse Proxy Kurallari
+
+Nginx'in gorevi:
+
+1. public TLS terminasyonu
+2. canonical host yonetimi
+3. backend'e request forwarding
+4. public origin ile internal backend arasinda tek giris noktasi olmak
+
+Ornek mantik:
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    server_name tabu.com www.tabu.com;
+    return 301 https://tabu.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name tabu.com;
+
+    ssl_certificate /etc/letsencrypt/live/tabu.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tabu.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+    }
+}
+```
+
+Minimum beklenti:
+- `Host` gecmeli
+- `X-Forwarded-Proto` gecmeli
+- websocket upgrade header'lari gecmeli
+
+## 7. Firewall / Port Politikasi
+
+Public acik olacak:
+- `80`
+- `443`
+
+Public kapali olacak:
+- `3000` (Next/Node)
+- `3306` (MySQL)
+- Redis / Valkey portlari
+- varsa admin/debug/internal baska portlar
+
+Sunucu seviyesinde kontrol et:
+- UFW
+- iptables/nftables
+- cloud security group
+- hosting panel firewall kurallari
+
+Kural:
+- sadece proxy public
+- uygulama servisleri private
+
+## 8. Health Endpoint Politikasi
+
+Bu projede `/api/health`:
+- development'ta acik
+- production'ta `x-health-token` + `HEALTHCHECK_TOKEN` ile korunur
+
+Beklenen production cagrisi:
+
+```http
+GET /api/health
+x-health-token: <HEALTHCHECK_TOKEN>
+```
+
+Token yoksa:
+- `404`
+
+Bu endpoint'i public monitoring endpoint gibi dusunme.
+Production'da private operasyon endpoint'i olarak ele al.
+
+## 9. Public API Yuzeyi Nasil Dusunulmeli?
+
+Public endpoint olmasi tek basina acik demek degildir.
+
+Bu projede bilincli public yuzeyler var:
+- auth flow
+- register
+- captcha public config
+- visible announcements
+
+Asil kritik ayrim:
+- public route olabilir
+- ama backend direct public olmamali
+
+Yani:
+- uygulama public route'lara sahip olabilir
+- Node process public internete dogrudan acilmamali
+
+## 10. Socket.IO ve CORS
+
+Bu projede Socket.IO:
+- development'ta `*`
+- production'ta `NEXT_PUBLIC_SITE_URL`
+
+Bu tek-origin deployment icin kabul edilebilir.
+
+Ama su durumlarda tekrar ele alinmali:
+- birden fazla public origin
+- ayri admin domain
+- staging/prod paralel origin
+- CDN veya farkli frontend hostlari
+
+O durumda tek string yerine allowlist gerekir.
+
+## 11. MySQL ve Redis / Valkey
+
+MySQL:
+- kalici veri
+- source of truth
+- public olmayacak
+
+Redis / Valkey:
+- shared cache
+- rate limit
+- transient coordination
+- public olmayacak
+
+Production kural:
+- DB ve cache servisleri private network veya loopback uzerinde kalacak
+
+## 12. Minimum Production Checklist
+
+Deploy oncesi kontrol:
+
+1. `AUTH_TRUST_HOST=true`
+2. `NEXTAUTH_URL` dogru
+3. `NEXT_PUBLIC_SITE_URL` dogru
+4. `HOST=127.0.0.1`
+5. Nginx tek public giris noktasi
+6. `3000` public kapali
+7. `3306` public kapali
+8. Redis/Valkey varsa public kapali
+9. `HEALTHCHECK_TOKEN` set
+10. canonical host disinda istekler redirect veya reject oluyor
+
+## 13. En Sik Yanlislar
+
+1. `AUTH_TRUST_HOST=false` yapip guvenligi arttirdigini sanmak
+- gercekte auth akisini bozabilir
+
+2. Nginx kurup backend portunu yine public birakmak
+- reverse proxy modelini bozar
+
+3. MySQL'i internetten acmak
+- cok kotu karar
+
+4. Redis/Valkey'i sifresiz veya public acmak
+- cok kotu karar
+
+5. `NEXTAUTH_URL` ve `NEXT_PUBLIC_SITE_URL` uyumsuz birakmak
+- callback/session/origin sorunlari cikarir
+
+## 14. Bu Rehberin Karari
+
+Bu proje icin guvenli production modeli:
+
+1. Nginx public
+2. Next backend private
+3. MySQL private
+4. Redis/Valkey private
+5. `AUTH_TRUST_HOST=true`
+6. Health endpoint token ile korunmus
+
+Bu model, host trust ve reverse proxy konusunu en dusuk operasyonel riskle yonetir.
