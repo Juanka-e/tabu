@@ -139,7 +139,6 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
               {initial}
             </div>
-            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-md border-2 border-white bg-green-500 dark:border-slate-800" />
           </div>
 
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
