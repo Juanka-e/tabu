@@ -144,7 +144,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
           <p className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-blue-500 dark:text-blue-400">
-            {profile?.totalMatches ?? 0} mac oynandi
+            {profile?.totalMatches ?? 0} maç oynandı
           </p>
 
           <div className="mb-6 w-full rounded-[24px] border border-slate-200/60 bg-slate-100/60 p-4 dark:border-slate-800/70 dark:bg-slate-900/70">
@@ -169,7 +169,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
           <div className="w-full text-left">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Hizli Kullanim
+              Hızlı Kullanım
             </h3>
             <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
               {quickEquipItems.map((item) => (
@@ -210,10 +210,10 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
               <div>
                 <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
                   <Sparkles size={12} />
-                  Magaza Radari
+                  Mağaza Radarı
                 </h3>
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  Onerilen urunler magaza sirasina gore burada doner.
+                  Önerilen ürünler mağaza sırasına göre burada döner.
                 </p>
               </div>
               <button
@@ -221,7 +221,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                 onClick={() => onTabChange("shop")}
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-900"
               >
-                Magaza
+                Mağaza
                 <ArrowUpRight size={11} />
               </button>
             </div>
@@ -232,7 +232,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                 onClick={() => onTabChange("shop")}
                 className="w-full rounded-2xl border border-dashed border-slate-300/70 bg-white/40 px-4 py-4 text-left text-xs font-medium text-slate-500 transition hover:bg-white/60 dark:border-slate-700/70 dark:bg-slate-900/30 dark:text-slate-400 dark:hover:bg-slate-900/50"
               >
-                Su anda gosterilecek urun bulunmuyor. Yeni koleksiyonlar geldiginde burada gorunur.
+                Şu anda gösterilecek ürün bulunmuyor. Yeni koleksiyonlar geldiğinde burada görünür.
               </button>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/80 to-slate-100/70 px-3 py-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
@@ -291,8 +291,8 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
       <div className="mt-auto border-t border-slate-200/60 bg-slate-50/60 p-6 dark:border-slate-800/70 dark:bg-slate-950/45">
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Panel Erisimi</span>
-          <span className="font-semibold text-slate-700 dark:text-slate-300">Oyun ici + tam sayfa</span>
+          <span>Panel Erişimi</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Oyun içi + tam sayfa</span>
         </div>
       </div>
     </aside>

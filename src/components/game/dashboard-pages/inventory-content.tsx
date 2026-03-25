@@ -38,9 +38,9 @@ const rarityGlow: Record<StoreItemRarity, string> = {
 
 const tabs: { id: StoreItemType; label: string }[] = [
   { id: "avatar", label: "Avatarlar" },
-  { id: "frame", label: "Cerceveler" },
-  { id: "card_back", label: "Kart Arkalari" },
-  { id: "card_face", label: "Kart Onleri" },
+  { id: "frame", label: "Çerçeveler" },
+  { id: "card_back", label: "Kart Arkaları" },
+  { id: "card_face", label: "Kart Önleri" },
 ];
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
@@ -68,12 +68,12 @@ function formatInventoryTypeLabel(type: StoreItemType): string {
     return "Avatar";
   }
   if (type === "frame") {
-    return "Cerceve";
+    return "Çerçeve";
   }
   if (type === "card_back") {
-    return "Kart Arkasi";
+    return "Kart Arkası";
   }
-  return "Kart Onu";
+  return "Kart Önü";
 }
 
 export function InventoryContent() {
@@ -184,13 +184,13 @@ export function InventoryContent() {
     <DashboardPageShell
       eyebrow="Koleksiyon"
       title="Envanter"
-      description="Sahip oldugun kozmetikleri, aktif slotlari ve hizli onizlemeyi tek yerde gor."
+      description="Sahip olduğun kozmetikleri, aktif slotları ve hızlı önizlemeyi tek yerde gör."
       action={<CoinBadge value={coinBalance} className="rounded-2xl px-4 py-3" valueClassName="text-xl" />}
     >
       <div className="space-y-6">
         <DashboardSection
-          title="Sahip Oldugun Kozmetikler"
-          description="Kategori degistir, urunleri incele ve panelden cikmadan kullan."
+          title="Sahip Olduğun Kozmetikler"
+          description="Kategori değiştir, ürünleri incele ve panelden çıkmadan kullan."
           action={
             <div className="flex flex-wrap gap-2">
               {tabs.map((tab) => (
@@ -219,8 +219,8 @@ export function InventoryContent() {
             <div className="flex-1 overflow-y-auto pb-2">
               {filteredItems.length === 0 ? (
                 <DashboardEmptyState
-                  title="Bu kategoride henuz urun yok"
-                  description="Bu kategoride kozmetik kazandiginda burada gorunur, kullanabilir ve hizli onizleme yapabilirsin."
+                  title="Bu kategoride henüz ürün yok"
+                  description="Bu kategoride kozmetik kazandığında burada görünür, kullanabilir ve hızlı önizleme yapabilirsin."
                   icon={<PackageOpen className="h-5 w-5" />}
                 />
               ) : (
@@ -272,7 +272,7 @@ export function InventoryContent() {
                         }`}
                         type="button"
                       >
-                        {item.equipped ? "Kullaniliyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
+                        {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
                       </button>
                     </div>
                   ))}
@@ -306,7 +306,7 @@ function InventoryPreviewCard({
   return (
     <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
       <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-        Onizleme
+        Önizleme
       </h3>
       <div className="relative mb-6 flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 p-4 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
         <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-purple-500 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl ring-4 ring-purple-500/20">
@@ -345,7 +345,7 @@ function InventoryPreviewCard({
                 : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
           }`}
         >
-          {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazir"}
+          {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
         </div>
       </div>
     </div>

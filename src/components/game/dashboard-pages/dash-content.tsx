@@ -73,11 +73,11 @@ export function DashContent() {
 
   const stats: StatCardConfig[] = [
     {
-      label: "Maclar",
+      label: "Maçlar",
       value: data?.totalMatches.toLocaleString() ?? "0",
       icon: Gamepad2,
       tone: "blue",
-      subLabel: `${recentMatchCount} son sonuc`,
+      subLabel: `${recentMatchCount} son sonuç`,
       trend: "neutral",
     },
     {
@@ -85,7 +85,7 @@ export function DashContent() {
       value: data?.totalWins.toLocaleString() ?? "0",
       icon: Trophy,
       tone: "emerald",
-      subLabel: `%${data?.winRate ?? 0} kazanma orani`,
+      subLabel: `%${data?.winRate ?? 0} kazanma oranı`,
       trend: (data?.winRate ?? 0) >= 50 ? "up" : "neutral",
     },
     {
@@ -93,7 +93,7 @@ export function DashContent() {
       value: data?.coinBalance.toLocaleString() ?? "0",
       icon: Coins,
       tone: "amber",
-      subLabel: `Toplam ${data?.totalCoinEarned ?? 0} kazanildi`,
+      subLabel: `Toplam ${data?.totalCoinEarned ?? 0} kazanıldı`,
       trend: (data?.coinBalance ?? 0) > 0 ? "up" : "neutral",
     },
     {
@@ -101,16 +101,16 @@ export function DashContent() {
       value: `${recentWins}/${recentMatchCount}`,
       icon: Target,
       tone: "violet",
-      subLabel: "son mac kazanimi",
+      subLabel: "son maç kazanımı",
       trend: recentMatchCount > 0 && recentWins < Math.ceil(recentMatchCount / 2) ? "down" : "up",
     },
   ];
 
   return (
     <DashboardPageShell
-      eyebrow="Performans Ozeti"
-      title="Genel Bakis"
-      description="Mac gecmisi, coin bakiyesi ve son performans akisi burada toplanir."
+      eyebrow="Performans Özeti"
+      title="Genel Bakış"
+      description="Maç geçmişi, coin bakiyesi ve son performans akışı burada toplanır."
       action={<CoinBadge value={data?.coinBalance ?? 0} className="rounded-2xl px-4 py-3" valueClassName="text-xl" />}
     >
       <div className="space-y-6">
@@ -151,17 +151,17 @@ export function DashContent() {
 
         <DashboardSection
           title="Son Hareketler"
-          description="Son odalar, skorlar ve coin degisimleri."
+          description="Son odalar, skorlar ve coin değişimleri."
           action={
             <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              Son {recentMatchCount} mac
+              Son {recentMatchCount} maç
             </span>
           }
         >
           {!data?.recentMatches || data.recentMatches.length === 0 ? (
             <DashboardEmptyState
-              title="Henuz son mac kaydi yok"
-              description="Bir mac tamamladiginda son odalarin, skorlarin ve odullerin burada gorunur."
+              title="Henüz son maç kaydı yok"
+              description="Bir maç tamamladığında son odaların, skorların ve ödüllerin burada görünür."
               icon={<Gamepad2 className="h-5 w-5" />}
             />
           ) : (

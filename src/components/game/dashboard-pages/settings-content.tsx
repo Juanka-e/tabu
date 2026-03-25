@@ -105,13 +105,13 @@ export function SettingsContent() {
     <DashboardPageShell
       eyebrow="Tercihler"
       title="Ayarlar"
-      description="Profil alanlari kalicidir. Ses ve oynanis tercihleri su an yerel gecici ayar olarak tutuluyor."
+      description="Profil alanları kalıcıdır. Ses ve oynanış tercihleri şu an yerel geçici ayar olarak tutuluyor."
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <DashboardSection
-            title="Profil Ayarlari"
-            description="Hesapta kalici olarak saklanan kimlik alanlari."
+            title="Profil Ayarları"
+            description="Hesapta kalıcı olarak saklanan kimlik alanları."
             action={<User size={18} className="text-blue-500" />}
           >
             <div className="space-y-4">
@@ -120,7 +120,7 @@ export function SettingsContent() {
                   className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
                   htmlFor="displayName"
                 >
-                  Gorunen Ad
+                  Görünen Ad
                 </label>
                 <input
                   id="displayName"
@@ -176,7 +176,7 @@ export function SettingsContent() {
                   type="button"
                 >
                   <Save size={14} />
-                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Degisiklikleri Kaydet"}
+                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
                 </button>
               </div>
             </div>
@@ -184,13 +184,13 @@ export function SettingsContent() {
 
           <DashboardSection
             title="Gizlilik"
-            description="Presence servisi eklenene kadar gecici yerel tercihler."
+            description="Presence servisi eklenene kadar geçici yerel tercihler."
             action={<Shield size={18} className="text-purple-500" />}
           >
             <div className="flex items-center justify-between py-2">
               <div>
                 <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                  Cevrimici Durumu Goster
+                  Çevrimiçi Durumu Göster
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   Presence servisi eklenene kadar bu tercih sadece bu cihazda tutulur.
@@ -206,8 +206,8 @@ export function SettingsContent() {
 
         <div className="space-y-6">
           <DashboardSection
-            title="Oyun Ayarlari"
-            description="Konfor, ses ve dil tercihleri icin istemci tarafli kontroller."
+            title="Oyun Ayarları"
+            description="Konfor, ses ve dil tercihleri için istemci taraflı kontroller."
             action={<Gamepad2 size={18} className="text-orange-500" />}
           >
             <div className="space-y-5">
@@ -227,7 +227,7 @@ export function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <Music size={18} className="text-slate-400" />
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Arka Plan Muzigi
+                    Arka Plan Müziği
                   </span>
                 </div>
                 <ToggleSwitch
@@ -261,7 +261,7 @@ export function SettingsContent() {
 
           <DashboardSection
             title="Hesap"
-            description="Hesap seviyesi islemler ve giris kontrolleri."
+            description="Hesap seviyesi işlemler ve giriş kontrolleri."
             action={<UserCog size={18} className="text-red-500" />}
           >
             <div className="space-y-3">
@@ -270,7 +270,7 @@ export function SettingsContent() {
                 type="button"
               >
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Sifre Degistir
+                  Şifre Değiştir
                 </span>
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-500" />
               </button>
@@ -279,7 +279,7 @@ export function SettingsContent() {
                 className="group flex w-full items-center justify-between rounded-xl p-3 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 type="button"
               >
-                <span className="text-sm font-bold">Cikis Yap</span>
+                <span className="text-sm font-bold">Çıkış Yap</span>
                 <LogOut size={18} />
               </button>
             </div>

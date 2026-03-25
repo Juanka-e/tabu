@@ -19,7 +19,7 @@ interface DashboardNavProps {
 const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string }[] = [
   { id: "dash", icon: LayoutDashboard, label: "Genel" },
   { id: "inventory", icon: Backpack, label: "Envanter" },
-  { id: "shop", icon: ShoppingBag, label: "Magaza" },
+  { id: "shop", icon: ShoppingBag, label: "Mağaza" },
   { id: "settings", icon: Settings, label: "Ayarlar" },
 ];
 
@@ -104,7 +104,7 @@ export function DashboardNav({
             className="flex w-full flex-col items-center justify-center gap-1 rounded-[22px] px-2 py-3 text-slate-400 transition-all hover:bg-slate-100/70 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-slate-900/80 dark:hover:text-slate-200"
           >
             <HelpCircle size={20} />
-            <span className="text-[10px] font-black uppercase tracking-[0.14em]">Destek</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.14em]">Destek</span>
           </button>
         </div>
       ) : null}
