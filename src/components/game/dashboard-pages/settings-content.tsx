@@ -103,15 +103,15 @@ export function SettingsContent() {
 
   return (
     <DashboardPageShell
-      eyebrow="Preferences"
-      title="Settings"
-      description="Profile fields are live. Audio and gameplay preferences still use local mock state for now."
+      eyebrow="Tercihler"
+      title="Ayarlar"
+      description="Profil alanlari kalicidir. Ses ve oynanis tercihleri su an yerel gecici ayar olarak tutuluyor."
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <DashboardSection
-            title="Profile Settings"
-            description="Identity fields that are already persisted on the account."
+            title="Profil Ayarlari"
+            description="Hesapta kalici olarak saklanan kimlik alanlari."
             action={<User size={18} className="text-blue-500" />}
           >
             <div className="space-y-4">
@@ -120,7 +120,7 @@ export function SettingsContent() {
                   className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
                   htmlFor="displayName"
                 >
-                  Display Name
+                  Gorunen Ad
                 </label>
                 <input
                   id="displayName"
@@ -157,7 +157,7 @@ export function SettingsContent() {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400" htmlFor="bio">
-                  Bio
+                  Biyografi
                 </label>
                 <textarea
                   id="bio"
@@ -176,24 +176,24 @@ export function SettingsContent() {
                   type="button"
                 >
                   <Save size={14} />
-                  {saved ? "Saved!" : saving ? "Saving..." : "Save Changes"}
+                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Degisiklikleri Kaydet"}
                 </button>
               </div>
             </div>
           </DashboardSection>
 
           <DashboardSection
-            title="Privacy"
-            description="Temporary local preferences until a presence service exists."
+            title="Gizlilik"
+            description="Presence servisi eklenene kadar gecici yerel tercihler."
             action={<Shield size={18} className="text-purple-500" />}
           >
             <div className="flex items-center justify-between py-2">
               <div>
                 <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                  Show Online Status
+                  Cevrimici Durumu Goster
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Mock preference stored locally until presence service is added.
+                  Presence servisi eklenene kadar bu tercih sadece bu cihazda tutulur.
                 </div>
               </div>
               <ToggleSwitch
@@ -206,8 +206,8 @@ export function SettingsContent() {
 
         <div className="space-y-6">
           <DashboardSection
-            title="Game Settings"
-            description="Client-side controls for comfort, sound and language."
+            title="Oyun Ayarlari"
+            description="Konfor, ses ve dil tercihleri icin istemci tarafli kontroller."
             action={<Gamepad2 size={18} className="text-orange-500" />}
           >
             <div className="space-y-5">
@@ -215,7 +215,7 @@ export function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <Volume2 size={18} className="text-slate-400" />
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Sound Effects
+                    Ses Efektleri
                   </span>
                 </div>
                 <ToggleSwitch
@@ -227,7 +227,7 @@ export function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <Music size={18} className="text-slate-400" />
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Background Music
+                    Arka Plan Muzigi
                   </span>
                 </div>
                 <ToggleSwitch
@@ -237,7 +237,7 @@ export function SettingsContent() {
               </div>
               <div className="pt-2">
                 <label className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-                  Language
+                  Dil
                 </label>
                 <select
                   value={settings.language}
@@ -260,8 +260,8 @@ export function SettingsContent() {
           </DashboardSection>
 
           <DashboardSection
-            title="Account"
-            description="Account-level actions and authentication controls."
+            title="Hesap"
+            description="Hesap seviyesi islemler ve giris kontrolleri."
             action={<UserCog size={18} className="text-red-500" />}
           >
             <div className="space-y-3">
@@ -270,7 +270,7 @@ export function SettingsContent() {
                 type="button"
               >
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Change Password
+                  Sifre Degistir
                 </span>
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-500" />
               </button>
@@ -279,7 +279,7 @@ export function SettingsContent() {
                 className="group flex w-full items-center justify-between rounded-xl p-3 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 type="button"
               >
-                <span className="text-sm font-bold">Log Out</span>
+                <span className="text-sm font-bold">Cikis Yap</span>
                 <LogOut size={18} />
               </button>
             </div>

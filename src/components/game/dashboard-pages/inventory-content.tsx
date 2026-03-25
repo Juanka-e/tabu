@@ -37,10 +37,10 @@ const rarityGlow: Record<StoreItemRarity, string> = {
 };
 
 const tabs: { id: StoreItemType; label: string }[] = [
-  { id: "avatar", label: "Avatars" },
-  { id: "frame", label: "Frames" },
-  { id: "card_back", label: "Card Backs" },
-  { id: "card_face", label: "Card Faces" },
+  { id: "avatar", label: "Avatarlar" },
+  { id: "frame", label: "Cerceveler" },
+  { id: "card_back", label: "Kart Arkalari" },
+  { id: "card_face", label: "Kart Onleri" },
 ];
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
@@ -61,6 +61,19 @@ function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): 
     return equippedSlots.cardBackItemId === item.shopItemId;
   }
   return equippedSlots.cardFaceItemId === item.shopItemId;
+}
+
+function formatInventoryTypeLabel(type: StoreItemType): string {
+  if (type === "avatar") {
+    return "Avatar";
+  }
+  if (type === "frame") {
+    return "Cerceve";
+  }
+  if (type === "card_back") {
+    return "Kart Arkasi";
+  }
+  return "Kart Onu";
 }
 
 export function InventoryContent() {
@@ -169,15 +182,15 @@ export function InventoryContent() {
 
   return (
     <DashboardPageShell
-      eyebrow="Collection"
-      title="Inventory"
-      description="Owned cosmetics, equipped slots and quick previews in a single surface."
+      eyebrow="Koleksiyon"
+      title="Envanter"
+      description="Sahip oldugun kozmetikleri, aktif slotlari ve hizli onizlemeyi tek yerde gor."
       action={<CoinBadge value={coinBalance} className="rounded-2xl px-4 py-3" valueClassName="text-xl" />}
     >
       <div className="space-y-6">
         <DashboardSection
-          title="Owned Cosmetics"
-          description="Switch categories, inspect items and equip them without leaving the dashboard."
+          title="Sahip Oldugun Kozmetikler"
+          description="Kategori degistir, urunleri incele ve panelden cikmadan kullan."
           action={
             <div className="flex flex-wrap gap-2">
               {tabs.map((tab) => (
@@ -206,8 +219,8 @@ export function InventoryContent() {
             <div className="flex-1 overflow-y-auto pb-2">
               {filteredItems.length === 0 ? (
                 <DashboardEmptyState
-                  title="No owned items here yet"
-                  description="Once you unlock cosmetics in this category, they will appear here with equip actions and quick previews."
+                  title="Bu kategoride henuz urun yok"
+                  description="Bu kategoride kozmetik kazandiginda burada gorunur, kullanabilir ve hizli onizleme yapabilirsin."
                   icon={<PackageOpen className="h-5 w-5" />}
                 />
               ) : (
@@ -259,7 +272,7 @@ export function InventoryContent() {
                         }`}
                         type="button"
                       >
-                        {item.equipped ? "Equipped" : equipBusyId === item.shopItemId ? "Equipping..." : "Equip"}
+                        {item.equipped ? "Kullaniliyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
                       </button>
                     </div>
                   ))}
@@ -293,7 +306,7 @@ function InventoryPreviewCard({
   return (
     <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
       <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-        Preview
+        Onizleme
       </h3>
       <div className="relative mb-6 flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 p-4 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
         <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-purple-500 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl ring-4 ring-purple-500/20">
@@ -320,7 +333,7 @@ function InventoryPreviewCard({
           <h4 className="text-lg font-black text-slate-900 dark:text-white">{selectedItem.name}</h4>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {selectedItem.rarity.charAt(0).toUpperCase() + selectedItem.rarity.slice(1)}{" "}
-            {selectedItem.type.replace("_", " ")}
+            {formatInventoryTypeLabel(selectedItem.type)}
           </p>
         </div>
         <div
@@ -332,7 +345,7 @@ function InventoryPreviewCard({
                 : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
           }`}
         >
-          {selectedItem.equipped ? "Active slot" : "Ready to equip"}
+          {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazir"}
         </div>
       </div>
     </div>

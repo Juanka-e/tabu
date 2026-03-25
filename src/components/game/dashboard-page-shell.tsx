@@ -37,7 +37,7 @@ export function DashboardPageShell({
   className,
 }: DashboardPageShellProps) {
   return (
-    <div className={cn("mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-5 md:px-6 md:py-6 xl:px-8", className)}>
+    <div className={cn("mx-auto flex h-full w-full max-w-[1480px] flex-col px-4 py-5 md:px-6 md:py-6 xl:px-8", className)}>
       <header className="mb-6 flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/72 px-5 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 md:px-6 md:py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">

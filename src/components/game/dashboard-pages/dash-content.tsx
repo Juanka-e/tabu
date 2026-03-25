@@ -73,44 +73,44 @@ export function DashContent() {
 
   const stats: StatCardConfig[] = [
     {
-      label: "Matches",
+      label: "Maclar",
       value: data?.totalMatches.toLocaleString() ?? "0",
       icon: Gamepad2,
       tone: "blue",
-      subLabel: `${recentMatchCount} recent results`,
+      subLabel: `${recentMatchCount} son sonuc`,
       trend: "neutral",
     },
     {
-      label: "Wins",
+      label: "Galibiyet",
       value: data?.totalWins.toLocaleString() ?? "0",
       icon: Trophy,
       tone: "emerald",
-      subLabel: `${data?.winRate ?? 0}% win rate`,
+      subLabel: `%${data?.winRate ?? 0} kazanma orani`,
       trend: (data?.winRate ?? 0) >= 50 ? "up" : "neutral",
     },
     {
-      label: "Coin Balance",
+      label: "Coin",
       value: data?.coinBalance.toLocaleString() ?? "0",
       icon: Coins,
       tone: "amber",
-      subLabel: `${data?.totalCoinEarned ?? 0} earned overall`,
+      subLabel: `Toplam ${data?.totalCoinEarned ?? 0} kazanildi`,
       trend: (data?.coinBalance ?? 0) > 0 ? "up" : "neutral",
     },
     {
-      label: "Momentum",
+      label: "Form",
       value: `${recentWins}/${recentMatchCount}`,
       icon: Target,
       tone: "violet",
-      subLabel: "wins in recent matches",
+      subLabel: "son mac kazanimi",
       trend: recentMatchCount > 0 && recentWins < Math.ceil(recentMatchCount / 2) ? "down" : "up",
     },
   ];
 
   return (
     <DashboardPageShell
-      eyebrow="Performance Overview"
-      title="Dashboard"
-      description="Match history, wallet balance and your recent momentum all stay here."
+      eyebrow="Performans Ozeti"
+      title="Genel Bakis"
+      description="Mac gecmisi, coin bakiyesi ve son performans akisi burada toplanir."
       action={<CoinBadge value={data?.coinBalance ?? 0} className="rounded-2xl px-4 py-3" valueClassName="text-xl" />}
     >
       <div className="space-y-6">
@@ -150,18 +150,18 @@ export function DashContent() {
         </div>
 
         <DashboardSection
-          title="Recent Activity"
-          description="Latest rooms, results and coin changes."
+          title="Son Hareketler"
+          description="Son odalar, skorlar ve coin degisimleri."
           action={
             <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              Last {recentMatchCount} matches
+              Son {recentMatchCount} mac
             </span>
           }
         >
           {!data?.recentMatches || data.recentMatches.length === 0 ? (
             <DashboardEmptyState
-              title="No recent matches yet"
-              description="Finish a game and your latest rooms, scores and rewards will appear here."
+              title="Henuz son mac kaydi yok"
+              description="Bir mac tamamladiginda son odalarin, skorlarin ve odullerin burada gorunur."
               icon={<Gamepad2 className="h-5 w-5" />}
             />
           ) : (

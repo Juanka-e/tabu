@@ -17,10 +17,10 @@ interface DashboardNavProps {
 }
 
 const navItems: { id: DashboardTab; icon: typeof LayoutDashboard; label: string }[] = [
-  { id: "dash", icon: LayoutDashboard, label: "Home" },
-  { id: "inventory", icon: Backpack, label: "Inventory" },
-  { id: "shop", icon: ShoppingBag, label: "Shop" },
-  { id: "settings", icon: Settings, label: "Settings" },
+  { id: "dash", icon: LayoutDashboard, label: "Genel" },
+  { id: "inventory", icon: Backpack, label: "Envanter" },
+  { id: "shop", icon: ShoppingBag, label: "Magaza" },
+  { id: "settings", icon: Settings, label: "Ayarlar" },
 ];
 
 export function DashboardNav({
@@ -95,7 +95,7 @@ export function DashboardNav({
                   {notificationUnreadCount > 9 ? "9+" : notificationUnreadCount}
                 </span>
               ) : null}
-              <span className="text-[10px] font-black uppercase tracking-[0.14em]">Inbox</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.14em]">Bildirim</span>
             </button>
           ) : null}
           <button
@@ -104,7 +104,7 @@ export function DashboardNav({
             className="flex w-full flex-col items-center justify-center gap-1 rounded-[22px] px-2 py-3 text-slate-400 transition-all hover:bg-slate-100/70 hover:text-slate-800 dark:text-slate-500 dark:hover:bg-slate-900/80 dark:hover:text-slate-200"
           >
             <HelpCircle size={20} />
-            <span className="text-[10px] font-black uppercase tracking-[0.14em]">Help</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em]">Destek</span>
           </button>
         </div>
       ) : null}
@@ -137,7 +137,7 @@ export function DashboardNavMobile({
         </div>
 
         <div className="rounded-full border border-white/60 bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-400">
-          {showPlayTab ? "Lobby" : "Dashboard"}
+          {showPlayTab ? "Lobi" : "Panel"}
         </div>
       </div>
 

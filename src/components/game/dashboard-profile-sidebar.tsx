@@ -144,20 +144,20 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
           <p className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-blue-500 dark:text-blue-400">
-            {profile?.totalMatches ?? 0} matches played
+            {profile?.totalMatches ?? 0} mac oynandi
           </p>
 
           <div className="mb-6 w-full rounded-[24px] border border-slate-200/60 bg-slate-100/60 p-4 dark:border-slate-800/70 dark:bg-slate-900/70">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-[20px] border border-slate-200/50 bg-white/80 p-3 dark:border-slate-800/70 dark:bg-slate-950/70">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Win Rate
+                  Kazanma
                 </div>
                 <div className="text-lg font-black text-slate-800 dark:text-white">{profile?.winRate ?? 0}%</div>
               </div>
               <div className="rounded-[20px] border border-slate-200/50 bg-white/80 p-3 dark:border-slate-800/70 dark:bg-slate-950/70">
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Coins
+                  Coin
                 </div>
                 <div className="flex items-center justify-center gap-1 text-lg font-black text-slate-800 dark:text-white">
                   {profile?.coinBalance ?? 0}
@@ -169,7 +169,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
           <div className="w-full text-left">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Quick Equip
+              Hizli Kullanim
             </h3>
             <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
               {quickEquipItems.map((item) => (
@@ -210,7 +210,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
               <div>
                 <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
                   <Sparkles size={12} />
-                  Shop Radar
+                  Magaza Radari
                 </h3>
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   Onerilen urunler magaza sirasina gore burada doner.
@@ -221,7 +221,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                 onClick={() => onTabChange("shop")}
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-900"
               >
-                Shop
+                Magaza
                 <ArrowUpRight size={11} />
               </button>
             </div>
@@ -291,8 +291,8 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
       <div className="mt-auto border-t border-slate-200/60 bg-slate-50/60 p-6 dark:border-slate-800/70 dark:bg-slate-950/45">
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Dashboard Access</span>
-          <span className="font-semibold text-slate-700 dark:text-slate-300">In-game + full page</span>
+          <span>Panel Erisimi</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Oyun ici + tam sayfa</span>
         </div>
       </div>
     </aside>
