@@ -52,11 +52,11 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
             className="fixed inset-0 z-[100] flex items-stretch justify-center p-0 glass-overlay sm:items-center sm:p-6 md:p-8"
             onClick={handleBackdrop}
         >
-            <div className="glass-panel relative flex h-[100dvh] w-full animate-fade-in-up overflow-hidden rounded-none shadow-2xl sm:h-[85vh] sm:max-w-6xl sm:rounded-3xl">
+            <div className="glass-panel relative flex h-[100dvh] w-full animate-fade-in-up overflow-hidden rounded-none shadow-[0_30px_90px_-45px_rgba(15,23,42,0.5)] sm:h-[88vh] sm:max-w-[1280px] sm:rounded-[34px]">
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-200/50 dark:bg-slate-700/50 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 flex items-center justify-center backdrop-blur-sm transition-all text-slate-600 dark:text-slate-300 shadow-sm"
+                    className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/75 text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-red-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-red-500"
                 >
                     <X size={16} />
                 </button>
@@ -282,8 +282,11 @@ const SettingsContentLazy = dynamic(
 
 function PageLoading() {
     return (
-        <div className="flex items-center justify-center h-full">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex h-full items-center justify-center p-8">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-bold text-slate-600 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/45 dark:text-slate-300">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                Yukleniyor
+            </div>
         </div>
     );
 }

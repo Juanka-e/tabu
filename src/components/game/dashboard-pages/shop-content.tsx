@@ -40,11 +40,11 @@ interface ShopContentProps {
 }
 
 const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[] = [
-    { id: "all", icon: ShoppingBag, label: "All Items" },
-    { id: "avatar", icon: UserCircle, label: "Avatars" },
-    { id: "frame", icon: Frame, label: "Frames" },
-    { id: "card_back", icon: ShoppingBag, label: "Card Backs" },
-    { id: "card_face", icon: ShoppingBag, label: "Card Faces" },
+    { id: "all", icon: ShoppingBag, label: "Tüm Ürünler" },
+    { id: "avatar", icon: UserCircle, label: "Avatarlar" },
+    { id: "frame", icon: Frame, label: "Çerçeveler" },
+    { id: "card_back", icon: ShoppingBag, label: "Kart Arkaları" },
+    { id: "card_face", icon: ShoppingBag, label: "Kart Önleri" },
 ];
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
@@ -72,6 +72,19 @@ function createEmptyCatalog(): StoreCatalogResponse {
 
 function targetKey(target: BusyTarget): string | null {
     return target ? `${target.kind}:${target.id}` : null;
+}
+
+function formatItemTypeLabel(type: StoreItemType): string {
+    if (type === "avatar") {
+        return "Avatar";
+    }
+    if (type === "frame") {
+        return "Çerçeve";
+    }
+    if (type === "card_back") {
+        return "Kart Arkası";
+    }
+    return "Kart Önü";
 }
 
 export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
@@ -122,20 +135,19 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             .map((item) => ({
                 key: `item:${item.id}`,
                 title: item.name,
-                detail: `${item.pricing.discountCoin} coin off`,
+                detail: `${item.pricing.discountCoin} coin indirim`,
             }));
         const bundleOffers = catalog.bundles
             .filter((bundle) => bundle.pricing.discountCoin > 0)
             .map((bundle) => ({
                 key: `bundle:${bundle.id}`,
                 title: bundle.name,
-                detail: `${bundle.pricing.discountCoin} coin off`,
+                detail: `${bundle.pricing.discountCoin} coin indirim`,
             }));
 
         return [...itemOffers, ...bundleOffers].slice(0, 4);
     }, [catalog.bundles, catalog.items]);
 
-    const availableCount = filteredItems.filter((item) => !item.owned).length;
     const busyKey = targetKey(busyTarget);
 
     const applyOwnedItems = (awardedItemIds: number[], nextCoinBalance: number) => {
@@ -181,7 +193,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             };
 
             if (!response.ok) {
-                setCouponFeedback(payload.error || "Satin alma basarisiz.");
+                setCouponFeedback(payload.error || "Satın alma başarısız.");
                 return;
             }
 
@@ -192,9 +204,9 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     source: "store_purchase",
                 });
             }
-            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Satin alindi: ${payload.finalPriceCoin} coin` : null);
+            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Satın alındı: ${payload.finalPriceCoin} coin` : null);
         } catch {
-            setCouponFeedback("Satin alma istegi tamamlanamadi.");
+            setCouponFeedback("Satın alma isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
@@ -224,7 +236,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             };
 
             if (!response.ok) {
-                setCouponFeedback(payload.error || "Bundle satin alma basarisiz.");
+                setCouponFeedback(payload.error || "Paket satın alma başarısız.");
                 return;
             }
 
@@ -236,9 +248,9 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     source: "bundle_purchase",
                 });
             }
-            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Bundle satin alindi: ${payload.finalPriceCoin} coin` : null);
+            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Paket satın alındı: ${payload.finalPriceCoin} coin` : null);
         } catch {
-            setCouponFeedback("Bundle satin alma istegi tamamlanamadi.");
+            setCouponFeedback("Paket satın alma isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
@@ -247,7 +259,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const handlePreviewCoupon = async (target: BusyTarget) => {
         const trimmedCouponCode = couponCode.trim();
         if (!target || !trimmedCouponCode) {
-            setCouponFeedback("Kupon kodunu girip bir hedef sec.");
+            setCouponFeedback("Kupon kodunu girip bir hedef seç.");
             return;
         }
 
@@ -265,12 +277,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
             const payload = (await response.json()) as CouponPreviewResponse | { error?: string };
             if (!response.ok || !("valid" in payload)) {
-                setCouponFeedback(("error" in payload && payload.error) ? payload.error : "Kupon dogrulanamadi.");
+                setCouponFeedback(("error" in payload && payload.error) ? payload.error : "Kupon doğrulanamadı.");
                 return;
             }
 
             if (!payload.valid || !payload.pricing || !payload.coupon) {
-                setCouponFeedback(payload.reason || "Kupon bu hedef icin gecerli degil.");
+                setCouponFeedback(payload.reason || "Kupon bu hedef için geçerli değil.");
                 return;
             }
 
@@ -278,7 +290,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 `${payload.coupon.code} uygulanir: ${payload.pricing.finalPriceCoin} coin`
             );
         } catch {
-            setCouponFeedback("Kupon dogrulama istegi tamamlanamadi.");
+            setCouponFeedback("Kupon doğrulama isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
@@ -302,13 +314,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             const payload = (await response.json()) as CoinGrantRedeemResult | { error?: string };
             if (!response.ok || !("ok" in payload)) {
                 setCoinGrantFeedbackTone("error");
-                setCoinGrantFeedback(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanilamadi.");
+                setCoinGrantFeedback(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanılamadı.");
                 return;
             }
 
             if (!payload.ok) {
                 setCoinGrantFeedbackTone("error");
-                setCoinGrantFeedback("Coin kodu kullanilamadi.");
+                setCoinGrantFeedback("Coin kodu kullanılamadı.");
                 return;
             }
 
@@ -325,14 +337,14 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             setCoinGrantFeedback(`${payload.coinAmount} coin eklendi: ${payload.code.code}`);
         } catch {
             setCoinGrantFeedbackTone("error");
-            setCoinGrantFeedback("Coin kodu istegi tamamlanamadi.");
+            setCoinGrantFeedback("Coin kodu isteği tamamlanamadı.");
         } finally {
             setRedeemingCoinGrant(false);
         }
     };
 
     const containerClassName = layout === "dashboard"
-        ? "p-8 md:p-10 max-w-5xl mx-auto h-full flex flex-col"
+        ? "mx-auto flex w-full max-w-[1480px] flex-col px-4 py-5 md:px-6 md:py-6 xl:px-8"
         : "rounded-[28px] border border-zinc-200/70 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-900/70";
 
     return (
@@ -340,13 +352,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             <header className="mb-8 flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                     <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight text-slate-800 dark:text-white">
-                        Item Shop
+                        Mağaza
                         <span className="rounded-md bg-indigo-100 px-2 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-                            Live Pricing
+                            Canlı Fiyat
                         </span>
                     </h1>
                     <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                        Cosmetics only. Guest flow stays untouched, purchases require login.
+                        Kozmetik ürünleri incele, kampanyaları gör ve satın almadan önce kuponunu dene.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {(["common", "rare", "epic", "legendary"] as const).map((rarity) => (
@@ -375,31 +387,31 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     )}
                     <div className="mt-4 flex flex-wrap gap-2">
                         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
-                            Store x{catalog.liveops.storePriceMultiplier.toFixed(2)}
+                        Mağaza x{catalog.liveops.storePriceMultiplier.toFixed(2)}
                         </div>
                         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
-                            Match x{catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}
+                        Maç x{catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}
                         </div>
                         {catalog.liveops.weekendBoostApplied ? (
                             <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-50/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
-                                Weekend boost active
+                            Hafta sonu desteği açık
                             </div>
                         ) : null}
                         {!catalog.liveops.discountCampaignsEnabled ? (
                             <div className="inline-flex items-center gap-2 rounded-full border border-rose-300/80 bg-rose-50/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
-                                Campaigns paused
+                            Kampanyalar duraklatıldı
                             </div>
                         ) : null}
                     </div>
                 </div>
 
                 <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-                    <CoinBadge value={catalog.coinBalance} label="Gold Coins" />
+                    <CoinBadge value={catalog.coinBalance} label="Coin Bakiyesi" />
                     <div className="grid min-w-[280px] gap-3 lg:min-w-[520px] lg:grid-cols-2">
                         <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50">
                             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                 <TicketPercent size={12} />
-                                Coupon
+                                Kupon
                             </div>
                             <div className="flex gap-2">
                                 <input
@@ -411,23 +423,23 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setCouponFeedback("Kuponu secili satin almada test edebilirsin.")}
+                                    onClick={() => setCouponFeedback("Kuponu seçili satın alma üzerinde önizleyebilirsin.")}
                                     disabled={!catalog.liveops.couponsEnabled}
                                     className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                                 >
-                                    Ready
+                                    Kullan
                                 </button>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {catalog.liveops.couponsEnabled
-                                    ? "Kod, sonraki satin alma istegine eklenir. Gecerlilik server tarafinda dogrulanir."
-                                    : "Kupon kullanimi su anda liveops tarafinda gecici olarak kapali."}
+                                    ? "Kod, sonraki satın alma isteğine eklenir. Geçerlilik sunucu tarafında doğrulanır."
+                                    : "Kupon kullanımı şu anda liveops tarafında geçici olarak kapalı."}
                             </p>
                         </div>
                         <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/50">
                             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                 <Gift size={12} />
-                                Coin Code
+                                Coin Kodu
                             </div>
                             <div className="flex gap-2">
                                 <input
@@ -458,7 +470,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                 </button>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Etkinlik veya influencer kodunu burada kullan. Onaylanirsa coin bakiyen hemen guncellenir.
+                                Etkinlik veya içerik üreticisi kodunu burada kullan. Onaylanırsa coin bakiyen hemen güncellenir.
                             </p>
                         </div>
                     </div>
@@ -482,8 +494,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 </div>
             )}
 
-            <div className="flex flex-1 flex-col gap-8 overflow-hidden lg:flex-row">
-                <div className="flex w-full shrink-0 flex-row gap-2 overflow-x-auto pb-2 lg:w-48 lg:flex-col lg:overflow-visible lg:pb-0">
+            <div className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="flex w-full shrink-0 flex-row gap-2 overflow-x-auto pb-2 xl:flex-col xl:overflow-visible xl:pb-0">
                     {categories.map((shopCategory) => {
                         const Icon = shopCategory.icon;
                         const active = category === shopCategory.id;
@@ -504,26 +516,26 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     })}
                 </div>
 
-                <div className="flex-1 overflow-y-auto pb-8">
+                <div className="min-w-0 space-y-10 pb-4">
                     <section>
-                        <div className="mb-6 flex items-center justify-between">
+                        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                Available Items
+                                Ürünler
                                 <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                     {filteredItems.length}
                                 </span>
                             </h3>
                             <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                {availableCount} purchasable
+                                    {filteredItems.length} Ürün
                             </div>
                         </div>
 
                         {filteredItems.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-300/60 bg-white/30 p-10 text-center text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-800/30 dark:text-slate-400">
-                                No active shop items in this category. Add products from the admin panel.
+                                Bu kategoride aktif ürün yok. Yeni ürünler eklendiğinde burada görünür.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
                                 {filteredItems.map((item) => (
                                     <ShopItemCard
                                         key={item.id}
@@ -539,21 +551,21 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                         )}
                     </section>
 
-                    <section className="mt-10">
-                        <div className="mb-6 flex items-center justify-between">
+                    <section>
+                        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                Featured Bundles
+                                Öne Çıkan Paketler
                             </h3>
                             <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                {catalog.bundles.length} active bundle
+                                {catalog.bundles.length} Paket
                             </div>
                         </div>
                         {catalog.bundles.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-300/60 bg-white/30 p-10 text-center text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-800/30 dark:text-slate-400">
-                                {catalog.liveops.bundlesEnabled ? "No active bundles yet." : "Bundle satislari gecici olarak kapali."}
+                                {catalog.liveops.bundlesEnabled ? "Aktif paket yok." : "Paket satışları geçici olarak kapalı."}
                             </div>
                         ) : (
-                            <div className="grid gap-4 xl:grid-cols-2">
+                            <div className="grid gap-4 2xl:grid-cols-2">
                                 {catalog.bundles.map((bundle) => (
                                     <BundleCard
                                         key={bundle.id}
@@ -588,7 +600,7 @@ function ShopItemCard({
     couponReady: boolean;
     itemInitial: string;
 }) {
-    const buttonLabel = item.equipped ? "Equipped" : item.owned ? "Owned" : busy ? "Buying..." : "Buy";
+    const buttonLabel = item.equipped ? "Kullanılıyor" : item.owned ? "Sahipsin" : busy ? "Alınıyor..." : "Satın Al";
     const buttonStyle = item.owned
         ? item.equipped
             ? "bg-blue-500 text-white cursor-default"
@@ -640,7 +652,7 @@ function ShopItemCard({
                 {item.name}
             </h4>
             <div className="mt-1 text-[11px] font-medium capitalize text-slate-500 dark:text-slate-400">
-                {item.type.replace("_", " ")}
+                {formatItemTypeLabel(item.type)}
             </div>
             {item.pricing.discountCoin > 0 && item.pricing.appliedPromotion && (
                 <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -668,7 +680,7 @@ function ShopItemCard({
                             disabled={busy}
                             className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
                         >
-                            Check Code
+                            Kullan
                         </button>
                     )}
                     <button
@@ -705,7 +717,7 @@ function BundleCard({
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white dark:bg-slate-100 dark:text-slate-900">
-                        Bundle
+                        Paket
                     </div>
                     <h4 className="mt-3 text-2xl font-black tracking-tight text-slate-800 dark:text-white">
                         {bundle.name}
@@ -716,7 +728,7 @@ function BundleCard({
                 </div>
                 <CoinBadge
                     value={bundle.pricing.finalPriceCoin}
-                    label="Bundle Price"
+                    label="Paket Fiyatı"
                     className="min-w-[132px] px-3 py-2"
                     valueClassName="text-base"
                 />
@@ -742,8 +754,8 @@ function BundleCard({
                     )}
                     <span className="font-semibold text-slate-600 dark:text-slate-300">
                         {bundle.ownedItemCount > 0
-                            ? `${bundle.ownedItemCount} item already owned`
-                            : `${bundle.items.length} cosmetics included`}
+                            ? `${bundle.ownedItemCount} ürüne zaten sahipsin`
+                            : `${bundle.items.length} kozmetik dahil`}
                     </span>
                 </div>
 
@@ -755,7 +767,7 @@ function BundleCard({
                             disabled={busy}
                             className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                            Check Code
+                            Kullan
                         </button>
                     )}
                     <button
@@ -764,7 +776,7 @@ function BundleCard({
                         disabled={disabled}
                         className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
                     >
-                        {bundle.fullyOwned ? "Owned" : bundle.ownedItemCount > 0 ? "Contains Owned Items" : busy ? "Buying..." : "Buy Bundle"}
+                        {bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}
                     </button>
                 </div>
             </div>
