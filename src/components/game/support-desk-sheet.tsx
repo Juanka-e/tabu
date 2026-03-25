@@ -22,18 +22,18 @@ import type {
 const categoryLabels: Record<SupportTicketCategory, string> = {
     account: "Hesap",
     gameplay: "Oyun",
-    store: "Magaza",
-    rewards: "Oduller",
+    store: "Mağaza",
+    rewards: "Ödüller",
     bug: "Hata",
     report: "Bildirim",
-    other: "Diger",
+    other: "Diğer",
 };
 
 const statusLabels: Record<SupportTicketStatus, string> = {
-    open: "Acik",
-    in_progress: "Islemde",
-    resolved: "Cozuldu",
-    closed: "Kapali",
+    open: "Açık",
+    in_progress: "İşlemde",
+    resolved: "Çözüldü",
+    closed: "Kapalı",
 };
 
 const statusBadgeClass: Record<SupportTicketStatus, string> = {
@@ -82,7 +82,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                 const response = await fetch("/api/support/tickets", { cache: "no-store" });
                 if (!response.ok) {
                     if (!options?.silent) {
-                        toast.error("Destek talepleri yuklenemedi.");
+                        toast.error("Destek talepleri yüklenemedi.");
                     }
                     return;
                 }
@@ -92,7 +92,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                 setSelectedTicketId((current) => current ?? payload.tickets[0]?.id ?? null);
             } catch {
                 if (!options?.silent) {
-                    toast.error("Destek talepleri yuklenemedi.");
+                    toast.error("Destek talepleri yüklenemedi.");
                 }
             } finally {
                 if (!options?.silent) {
@@ -174,12 +174,12 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                 }),
             });
 
-            const payload = (await response.json().catch(() => ({ error: "Destek talebi olusturulamadi." }))) as
+            const payload = (await response.json().catch(() => ({ error: "Destek talebi oluşturulamadı." }))) as
                 | SupportTicketView
                 | { error?: string };
 
             if (!response.ok || !("id" in payload)) {
-                toast.error(("error" in payload && payload.error) || "Destek talebi olusturulamadi.");
+                toast.error(("error" in payload && payload.error) || "Destek talebi oluşturulamadı.");
                 return;
             }
 
@@ -189,9 +189,9 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
             setSubject("");
             setMessage("");
             setCategory("gameplay");
-            toast.success("Destek talebi olusturuldu.");
+            toast.success("Destek talebi oluşturuldu.");
         } catch {
-            toast.error("Destek talebi olusturulamadi.");
+            toast.error("Destek talebi oluşturulamadı.");
         } finally {
             setSaving(false);
         }
@@ -210,12 +210,12 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                 body: JSON.stringify({ body: replyBody }),
             });
 
-            const payload = (await response.json().catch(() => ({ error: "Mesaj gonderilemedi." }))) as
+            const payload = (await response.json().catch(() => ({ error: "Mesaj gönderilemedi." }))) as
                 | SupportTicketView
                 | { error?: string };
 
             if (!response.ok || !("id" in payload)) {
-                toast.error(("error" in payload && payload.error) || "Mesaj gonderilemedi.");
+                toast.error(("error" in payload && payload.error) || "Mesaj gönderilemedi.");
                 return;
             }
 
@@ -223,9 +223,9 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                 current.map((ticket) => (ticket.id === payload.id ? payload : ticket))
             );
             setReplyBody("");
-            toast.success("Mesaj gonderildi.");
+            toast.success("Mesaj gönderildi.");
         } catch {
-            toast.error("Mesaj gonderilemedi.");
+            toast.error("Mesaj gönderilemedi.");
         } finally {
             setSaving(false);
         }
@@ -245,10 +245,10 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                         </div>
                         <div>
                             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-600 dark:text-amber-300">
-                                Support Desk
+                                Destek Masası
                             </div>
                             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                                Yardim merkezi
+                                Yardım merkezi
                             </h2>
                         </div>
                     </div>
@@ -266,7 +266,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                         Kanal
                                     </div>
                                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                        Destek ekibine ticket ac, mevcut talepleri takip et.
+                                        Destek ekibine talep aç, mevcut kayıtları takip et.
                                     </p>
                                 </div>
                                 <Button
@@ -291,7 +291,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                 </div>
                             ) : tickets.length === 0 ? (
                                 <div className="rounded-3xl border border-dashed border-amber-200/60 bg-white/60 p-6 text-sm text-slate-500 dark:border-amber-900/20 dark:bg-black/10 dark:text-slate-400">
-                                    Henuz acilmis bir destek talebin yok.
+                                    Henüz açılmış bir destek talebin yok.
                                 </div>
                             ) : (
                                 tickets.map((ticket) => (
@@ -342,7 +342,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                                 Yeni Talep
                                             </div>
                                             <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                                                Destek ekibine baglan
+                                                Destek ekibine bağlan
                                             </h3>
                                         </div>
                                     </div>
@@ -366,13 +366,13 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                                Baslik
+                                                Başlık
                                             </label>
                                             <Input
                                                 value={subject}
                                                 onChange={(event) => setSubject(event.target.value)}
                                                 maxLength={160}
-                                                placeholder="Sorunu kisaca ozetle"
+                                                placeholder="Sorunu kısaca özetle"
                                             />
                                         </div>
                                     </div>
@@ -387,7 +387,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                             rows={8}
                                             maxLength={2000}
                                             className="min-h-[180px] w-full rounded-[24px] border border-border bg-background px-4 py-3 text-sm outline-none focus:border-amber-500 resize-y"
-                                            placeholder="Ne oldu, ne denedin, sorunu ne zaman gordun?"
+                                                placeholder="Ne oldu, ne denedin, sorunu ne zaman gördün?"
                                         />
                                     </div>
 
@@ -400,7 +400,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                                 setSelectedTicketId(tickets[0]?.id ?? null);
                                             }}
                                         >
-                                            Iptal
+                                            İptal
                                         </Button>
                                         <Button
                                             type="button"
@@ -409,7 +409,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                             className="gap-2"
                                         >
                                             <Send className="h-4 w-4" />
-                                            Gonder
+                                            Gönder
                                         </Button>
                                     </div>
                                 </div>
@@ -468,8 +468,8 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                     {selectedTicket.status === "closed" || selectedTicket.status === "resolved" ? (
                                         <div className="rounded-2xl border border-dashed border-zinc-300/70 bg-white/70 px-4 py-4 text-sm text-slate-500 dark:border-zinc-700/70 dark:bg-zinc-950/30 dark:text-slate-400">
                                             {selectedTicket.status === "resolved"
-                                                ? "Bu talep cozuldu olarak isaretlendi. Yeni bir durum varsa yeni bir destek talebi ac."
-                                                : "Bu talep kapatildi. Yeni bir durum varsa yeni bir destek talebi ac."}
+                                                ? "Bu talep çözüldü olarak işaretlendi. Yeni bir durum varsa yeni bir destek talebi aç."
+                                                : "Bu talep kapatıldı. Yeni bir durum varsa yeni bir destek talebi aç."}
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
@@ -479,7 +479,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                                 rows={4}
                                                 maxLength={2000}
                                                 className="min-h-[110px] w-full rounded-[24px] border border-border bg-background px-4 py-3 text-sm outline-none focus:border-amber-500 resize-y"
-                                                placeholder="Destek ekibine ek bilgi gonder..."
+                                                placeholder="Destek ekibine ek bilgi gönder..."
                                             />
                                             <div className="flex justify-end">
                                                 <Button
@@ -489,7 +489,7 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                                     className="gap-2"
                                                 >
                                                     <Send className="h-4 w-4" />
-                                                    Mesaj Gonder
+                                                    Mesaj Gönder
                                                 </Button>
                                             </div>
                                         </div>
@@ -501,10 +501,10 @@ export function SupportDeskSheet({ isOpen, onClose, initialTicketId = null }: Su
                                 <div className="max-w-md space-y-3">
                                     <Headset className="mx-auto h-10 w-10 text-amber-500" />
                                     <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                                        Bir destek talebi sec
+                                        Bir destek talebi seç
                                     </h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Soldan mevcut taleplerinden birini ac veya yeni ticket olustur.
+                                        Soldan mevcut taleplerinden birini aç veya yeni talep oluştur.
                                     </p>
                                 </div>
                             </div>

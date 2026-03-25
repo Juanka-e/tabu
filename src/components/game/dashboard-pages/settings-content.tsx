@@ -8,7 +8,6 @@ import {
   LogOut,
   Music,
   Save,
-  Shield,
   User,
   UserCog,
   Volume2,
@@ -67,9 +66,9 @@ export function SettingsContent() {
 
   const languageOptions = useMemo(
     () => [
-      { value: "tr" as DashboardLanguage, label: "Turkce" },
+      { value: "tr" as DashboardLanguage, label: "Türkçe" },
       { value: "en" as DashboardLanguage, label: "English (US)" },
-      { value: "es" as DashboardLanguage, label: "Espanol" },
+      { value: "es" as DashboardLanguage, label: "Español" },
     ],
     []
   );
@@ -182,26 +181,6 @@ export function SettingsContent() {
             </div>
           </DashboardSection>
 
-          <DashboardSection
-            title="Gizlilik"
-            description="Presence servisi eklenene kadar geçici yerel tercihler."
-            action={<Shield size={18} className="text-purple-500" />}
-          >
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                  Çevrimiçi Durumu Göster
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Presence servisi eklenene kadar bu tercih sadece bu cihazda tutulur.
-                </div>
-              </div>
-              <ToggleSwitch
-                checked={settings.showOnline}
-                onChange={(value) => setSettings((current) => ({ ...current, showOnline: value }))}
-              />
-            </div>
-          </DashboardSection>
         </div>
 
         <div className="space-y-6">
