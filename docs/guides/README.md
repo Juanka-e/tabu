@@ -15,3 +15,11 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 3. `deployment-security-guide.md`
 - production deployment guvenlik rehberi
 - reverse proxy, `AUTH_TRUST_HOST`, backend portlarini kapatma ve topology standardi
+
+4. `store-liveops-strategy-guide.md`
+- magaza, liveops, inventory ve personalized offer alanlarini ayirma rehberi
+- night market, merchandising ve admin operasyon sinirlarini tanimlar
+
+5. `economy-abuse-strategy-guide.md`
+- coin ekonomisi, reward eligibility ve abuse minimizasyonu rehberi
+- gunluk cap, tekrarlayan grup analizi ve gorev sistemi risklerini tartisir
