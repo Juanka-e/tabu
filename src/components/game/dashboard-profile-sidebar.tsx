@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { CosmeticMiniPreview } from "@/components/game/cosmetic-preview";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import type {
@@ -73,6 +74,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<SidebarState | null>(null);
   const [discoveryItems, setDiscoveryItems] = useState<CatalogStoreItemView[]>([]);
+  const [radarOffset, setRadarOffset] = useState(0);
 
   useEffect(() => {
     if (!session?.user) {
@@ -123,8 +125,26 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
   const name = profile?.displayName || session?.user?.name || "Player";
   const initial = getInitial(name);
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
-  const radarLeadItem = discoveryItems[0] ?? null;
-  const radarSecondaryItems = useMemo(() => discoveryItems.slice(1, 4), [discoveryItems]);
+  const rotatedDiscoveryItems = useMemo(() => {
+    if (discoveryItems.length === 0) {
+      return [];
+    }
+
+    const start = radarOffset % discoveryItems.length;
+    return [...discoveryItems.slice(start), ...discoveryItems.slice(0, start)];
+  }, [discoveryItems, radarOffset]);
+  const radarLeadItem = rotatedDiscoveryItems[0] ?? null;
+  const radarSecondaryItems = useMemo(() => rotatedDiscoveryItems.slice(1, 4), [rotatedDiscoveryItems]);
+
+  useEffect(() => {
+    if (discoveryItems.length <= 1) return;
+
+    const interval = window.setInterval(() => {
+      setRadarOffset((current) => (current + 1) % discoveryItems.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [discoveryItems.length]);
 
   return (
     <aside className="hidden h-full min-w-[320px] w-[340px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex">
@@ -236,22 +256,8 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                     onClick={() => onTabChange("shop")}
                     className="group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
                   >
-                    <div className="relative flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
-                      {radarLeadItem.imageUrl ? (
-                        <Image
-                          loader={passthroughImageLoader}
-                          unoptimized
-                          src={radarLeadItem.imageUrl}
-                          alt={radarLeadItem.name}
-                          width={80}
-                          height={80}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xl font-black text-slate-700 dark:text-slate-100">
-                          {getInitial(radarLeadItem.name)}
-                        </span>
-                      )}
+                    <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-2 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                      <CosmeticMiniPreview item={radarLeadItem} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -287,22 +293,8 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                       onClick={() => onTabChange("shop")}
                       className="flex w-full items-center gap-3 rounded-2xl border border-white/70 bg-white/72 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/75 dark:hover:bg-slate-900"
                     >
-                      <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
-                        {item.imageUrl ? (
-                          <Image
-                            loader={passthroughImageLoader}
-                            unoptimized
-                            src={item.imageUrl}
-                            alt={item.name}
-                            width={44}
-                            height={44}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-black text-slate-700 dark:text-slate-100">
-                            {getInitial(item.name)}
-                          </span>
-                        )}
+                      <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                        <CosmeticMiniPreview item={item} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-black text-slate-800 dark:text-white">

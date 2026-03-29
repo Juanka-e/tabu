@@ -243,6 +243,19 @@ export interface CouponPreviewResponse {
     coupon: CouponPreviewView | null;
 }
 
+export interface CouponCatalogPreviewEntry {
+    targetId: number;
+    pricing: StorePriceView;
+}
+
+export interface CouponCatalogPreviewResponse {
+    valid: boolean;
+    reason: string | null;
+    coupon: CouponPreviewView | null;
+    items: CouponCatalogPreviewEntry[];
+    bundles: CouponCatalogPreviewEntry[];
+}
+
 export interface StoreLiveopsView {
     bundlesEnabled: boolean;
     couponsEnabled: boolean;

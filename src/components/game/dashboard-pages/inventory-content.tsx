@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { PackageOpen } from "lucide-react";
 import { DashboardEmptyState, DashboardPageShell, DashboardSection } from "@/components/game/dashboard-page-shell";
+import { CosmeticLargePreview, CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinBadge } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import type {
@@ -43,13 +43,6 @@ const tabs: { id: StoreItemType; label: string }[] = [
   { id: "card_face", label: "Kart Önleri" },
 ];
 
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
-
-function getItemInitial(name: string): string {
-  const trimmed = name.trim();
-  return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "?";
-}
-
 function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): boolean {
   if (item.type === "avatar") {
     return equippedSlots.avatarItemId === item.shopItemId;
@@ -61,19 +54,6 @@ function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): 
     return equippedSlots.cardBackItemId === item.shopItemId;
   }
   return equippedSlots.cardFaceItemId === item.shopItemId;
-}
-
-function formatInventoryTypeLabel(type: StoreItemType): string {
-  if (type === "avatar") {
-    return "Avatar";
-  }
-  if (type === "frame") {
-    return "Çerçeve";
-  }
-  if (type === "card_back") {
-    return "Kart Arkası";
-  }
-  return "Kart Önü";
 }
 
 export function InventoryContent() {
@@ -89,7 +69,6 @@ export function InventoryContent() {
     cardBackItemId: null,
     cardFaceItemId: null,
   });
-  const [displayName, setDisplayName] = useState("Player");
 
   useEffect(() => {
     if (!session?.user) {
@@ -112,7 +91,6 @@ export function InventoryContent() {
           cardBackItemId: payload.profile.cardBackItemId,
           cardFaceItemId: payload.profile.cardFaceItemId,
         });
-        setDisplayName(payload.profile.displayName || payload.name || session.user.name || "Player");
       } catch {
         // Keep defaults when fetch fails.
       }
@@ -214,7 +192,7 @@ export function InventoryContent() {
           }
           contentClassName="space-y-5"
         >
-          {selectedItem ? <InventoryPreviewCard selectedItem={selectedItem} displayName={displayName} className="xl:hidden" /> : null}
+          {selectedItem ? <InventoryPreviewCard selectedItem={selectedItem} className="xl:hidden" /> : null}
           <div className="flex min-h-0 gap-6 overflow-hidden">
             <div className="flex-1 overflow-y-auto pb-2">
               {filteredItems.length === 0 ? (
@@ -231,32 +209,18 @@ export function InventoryContent() {
                       onClick={() => setSelectedItem(item)}
                       className={`group relative flex cursor-pointer flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
                     >
-                      <div className="relative mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800/60 dark:to-slate-900/60">
+                      <div className="relative mb-3 flex aspect-[0.95/1] items-center justify-center overflow-hidden rounded-[18px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                         <div
-                          className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white ${rarityColor[item.rarity]}`}
+                          className={`absolute right-2 top-2 z-10 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white ${rarityColor[item.rarity]}`}
                         >
                           {item.rarity}
                         </div>
-                        {item.imageUrl ? (
-                          <Image
-                            loader={passthroughImageLoader}
-                            unoptimized
-                            src={item.imageUrl}
-                            alt={item.name}
-                            width={72}
-                            height={72}
-                            className="h-[72px] w-[72px] rounded-full object-cover shadow-lg transition-transform duration-300 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xl font-black text-white shadow-lg">
-                            {getItemInitial(item.name)}
-                          </div>
-                        )}
+                        <CosmeticMiniPreview item={item} />
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm font-black text-slate-900 dark:text-white">{item.name}</h3>
                         <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                          {item.source} • {new Date(item.acquiredAt).toLocaleDateString("tr-TR")}
+                          {formatCosmeticTypeLabel(item.type)} • {new Date(item.acquiredAt).toLocaleDateString("tr-TR")}
                         </p>
                       </div>
                       <button
@@ -283,7 +247,6 @@ export function InventoryContent() {
             {selectedItem ? (
               <InventoryPreviewCard
                 selectedItem={selectedItem}
-                displayName={displayName}
                 className="hidden xl:flex xl:w-72 xl:flex-shrink-0"
               />
             ) : null}
@@ -296,44 +259,25 @@ export function InventoryContent() {
 
 function InventoryPreviewCard({
   selectedItem,
-  displayName,
   className,
 }: {
   selectedItem: InventoryItemView;
-  displayName: string;
   className?: string;
 }) {
   return (
-    <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
-      <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-        Önizleme
-      </h3>
-      <div className="relative mb-6 flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 p-4 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
-        <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-purple-500 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl ring-4 ring-purple-500/20">
-          {selectedItem.imageUrl ? (
-            <Image
-              loader={passthroughImageLoader}
-              unoptimized
-              src={selectedItem.imageUrl}
-              alt={selectedItem.name}
-              width={96}
-              height={96}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-3xl text-white">{getItemInitial(selectedItem.name)}</span>
-          )}
-        </div>
-        <div className="text-center">
-          <h4 className="text-lg font-black text-slate-900 dark:text-white">{displayName}</h4>
-        </div>
+      <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
+        <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+          Önizleme
+        </h3>
+      <div className="relative mb-6 overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
+        <CosmeticLargePreview item={selectedItem} />
       </div>
       <div className="space-y-3">
         <div>
           <h4 className="text-lg font-black text-slate-900 dark:text-white">{selectedItem.name}</h4>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {selectedItem.rarity.charAt(0).toUpperCase() + selectedItem.rarity.slice(1)}{" "}
-            {formatInventoryTypeLabel(selectedItem.type)}
+            {formatCosmeticTypeLabel(selectedItem.type)}
           </p>
         </div>
         <div

@@ -18,6 +18,7 @@ import type { SystemSettings } from "@/types/system-settings";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
+    CouponCatalogPreviewResponse,
     CouponPreviewResponse,
     DashboardDataResponse,
     EquippedSlots,
@@ -955,6 +956,150 @@ export async function previewCouponForTarget(
         targetId,
         pricing: couponResult.pricing,
         coupon: couponResult.coupon,
+    };
+}
+
+export async function previewCouponForCatalog(
+    userId: number,
+    couponCode: string,
+    settingsInput?: SystemSettings
+): Promise<CouponCatalogPreviewResponse> {
+    await ensureUserCore(userId);
+    const settings = settingsInput ?? await getSystemSettings();
+
+    const normalizedCode = normalizeCouponCode(couponCode);
+    if (!normalizedCode) {
+        return {
+            valid: false,
+            reason: "Kupon kodu boş olamaz.",
+            coupon: null,
+            items: [],
+            bundles: [],
+        };
+    }
+
+    if (!settings.economy.couponsEnabled) {
+        return {
+            valid: false,
+            reason: "Kupon kullanımı şu anda geçici olarak kapalı.",
+            coupon: null,
+            items: [],
+            bundles: [],
+        };
+    }
+
+    const now = new Date();
+    const [discounts, coupon, items, bundles] = await Promise.all([
+        settings.economy.discountCampaignsEnabled
+            ? prisma.discountCampaign.findMany({
+                where: { isActive: true },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    targetType: true,
+                    discountType: true,
+                    percentageOff: true,
+                    fixedCoinOff: true,
+                    shopItemId: true,
+                    bundleId: true,
+                    usageLimit: true,
+                    usedCount: true,
+                    startsAt: true,
+                    endsAt: true,
+                    isActive: true,
+                    stackableWithCoupon: true,
+                },
+            })
+            : Promise.resolve([]),
+        prisma.couponCode.findUnique({
+            where: { code: normalizedCode },
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                description: true,
+                targetType: true,
+                discountType: true,
+                percentageOff: true,
+                fixedCoinOff: true,
+                shopItemId: true,
+                bundleId: true,
+                usageLimit: true,
+                usedCount: true,
+                startsAt: true,
+                endsAt: true,
+                isActive: true,
+            },
+        }),
+        prisma.shopItem.findMany({
+            where: { isActive: true },
+            select: { id: true, priceCoin: true },
+        }),
+        settings.economy.bundlesEnabled
+            ? prisma.shopBundle.findMany({
+                where: { isActive: true },
+                select: { id: true, priceCoin: true },
+            })
+            : Promise.resolve([]),
+    ]);
+
+    if (!coupon) {
+        return {
+            valid: false,
+            reason: "Kupon doğrulanamadı.",
+            coupon: null,
+            items: [],
+            bundles: [],
+        };
+    }
+
+    const previewItems = items.flatMap((item) => {
+        const basePricing = resolveCatalogPricing(
+            applyStorePriceMultiplier(item.priceCoin, settings),
+            { kind: "shop_item", targetId: item.id },
+            discounts,
+            now
+        );
+        const result = resolveCouponPricing(basePricing, { kind: "shop_item", targetId: item.id }, coupon, now);
+        return result.ok ? [{ targetId: item.id, pricing: result.pricing }] : [];
+    });
+
+    const previewBundles = bundles.flatMap((bundle) => {
+        const basePricing = resolveCatalogPricing(
+            applyStorePriceMultiplier(bundle.priceCoin, settings),
+            { kind: "bundle", targetId: bundle.id },
+            discounts,
+            now
+        );
+        const result = resolveCouponPricing(basePricing, { kind: "bundle", targetId: bundle.id }, coupon, now);
+        return result.ok ? [{ targetId: bundle.id, pricing: result.pricing }] : [];
+    });
+
+    if (previewItems.length === 0 && previewBundles.length === 0) {
+        return {
+            valid: false,
+            reason: "Bu kupon mağazada geçerli bir ürün ya da paket bulamadı.",
+            coupon: null,
+            items: [],
+            bundles: [],
+        };
+    }
+
+    return {
+        valid: true,
+        reason: null,
+        coupon: {
+            code: coupon.code,
+            name: coupon.name,
+            description: coupon.description,
+            discountType: coupon.discountType,
+            percentageOff: coupon.percentageOff,
+            fixedCoinOff: coupon.fixedCoinOff,
+        },
+        items: previewItems,
+        bundles: previewBundles,
     };
 }
 

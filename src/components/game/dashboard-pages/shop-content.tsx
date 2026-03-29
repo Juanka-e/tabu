@@ -32,9 +32,8 @@ import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
-    CouponPreviewResponse,
+    CouponCatalogPreviewResponse,
     StoreCatalogResponse,
-    StorePriceView,
     StoreItemType,
 } from "@/types/economy";
 import type { CoinGrantRedeemResult } from "@/types/coin-grants";
@@ -49,11 +48,8 @@ type PreviewOffer =
     | { kind: "item"; item: CatalogStoreItemView }
     | { kind: "bundle"; bundle: CatalogBundleView }
     | null;
-type ActiveCouponPreview = {
-    targetKind: "shop_item" | "bundle";
-    targetId: number;
-    pricing: StorePriceView;
-    coupon: NonNullable<CouponPreviewResponse["coupon"]>;
+type ActiveCouponPreview = Omit<CouponCatalogPreviewResponse, "coupon"> & {
+    coupon: NonNullable<CouponCatalogPreviewResponse["coupon"]>;
 };
 type DisplayedPricing = {
     pricing: CatalogStoreItemView["pricing"] | CatalogBundleView["pricing"];
@@ -175,26 +171,28 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const busyKey = busyTarget ? `${busyTarget.kind}:${busyTarget.id}` : null;
     const trimmedCouponCode = couponCode.trim().toUpperCase();
 
-    const activeCouponLabel = useMemo(() => {
-        if (!activeCouponPreview) {
-            return null;
-        }
-
-        if (activeCouponPreview.targetKind === "shop_item") {
-            return catalogItemMap.get(activeCouponPreview.targetId)?.name ?? "Seçili ürün";
-        }
-
-        return catalog.bundles.find((bundle) => bundle.id === activeCouponPreview.targetId)?.name ?? "Seçili paket";
-    }, [activeCouponPreview, catalog.bundles, catalogItemMap]);
+    const activeCouponItemMap = useMemo(
+        () => new Map((activeCouponPreview?.items ?? []).map((entry) => [entry.targetId, entry])),
+        [activeCouponPreview]
+    );
+    const activeCouponBundleMap = useMemo(
+        () => new Map((activeCouponPreview?.bundles ?? []).map((entry) => [entry.targetId, entry])),
+        [activeCouponPreview]
+    );
+    const couponMatchedItems = useMemo(
+        () => catalog.items.filter((item) => activeCouponItemMap.has(item.id)),
+        [activeCouponItemMap, catalog.items]
+    );
+    const couponMatchedBundles = useMemo(
+        () => catalog.bundles.filter((bundle) => activeCouponBundleMap.has(bundle.id)),
+        [activeCouponBundleMap, catalog.bundles]
+    );
 
     const getDisplayedItemPricing = (item: CatalogStoreItemView) => {
-        if (
-            activeCouponPreview &&
-            activeCouponPreview.targetKind === "shop_item" &&
-            activeCouponPreview.targetId === item.id
-        ) {
+        const couponMatch = activeCouponItemMap.get(item.id);
+        if (couponMatch && activeCouponPreview?.coupon) {
             return {
-                pricing: activeCouponPreview.pricing,
+                pricing: couponMatch.pricing,
                 coupon: activeCouponPreview.coupon,
                 couponApplied: true,
                 referencePriceCoin: item.pricing.finalPriceCoin,
@@ -210,13 +208,10 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     };
 
     const getDisplayedBundlePricing = (bundle: CatalogBundleView) => {
-        if (
-            activeCouponPreview &&
-            activeCouponPreview.targetKind === "bundle" &&
-            activeCouponPreview.targetId === bundle.id
-        ) {
+        const couponMatch = activeCouponBundleMap.get(bundle.id);
+        if (couponMatch && activeCouponPreview?.coupon) {
             return {
-                pricing: activeCouponPreview.pricing,
+                pricing: couponMatch.pricing,
                 coupon: activeCouponPreview.coupon,
                 couponApplied: true,
                 referencePriceCoin: bundle.pricing.finalPriceCoin,
@@ -230,6 +225,21 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             referencePriceCoin: bundle.pricing.basePriceCoin,
         };
     };
+
+    const sortedItems = useMemo(() => {
+        if (!activeCouponPreview) {
+            return filteredItems;
+        }
+
+        return [...filteredItems].sort((left, right) => {
+            const leftMatch = activeCouponItemMap.has(left.id) ? 0 : 1;
+            const rightMatch = activeCouponItemMap.has(right.id) ? 0 : 1;
+            if (leftMatch !== rightMatch) {
+                return leftMatch - rightMatch;
+            }
+            return left.sortOrder - right.sortOrder;
+        });
+    }, [activeCouponItemMap, activeCouponPreview, filteredItems]);
 
     const applyOwnedItems = (awardedItemIds: number[], nextCoinBalance: number) => {
         const awardedSet = new Set(awardedItemIds);
@@ -271,9 +281,6 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             if (payload.coinBalance !== undefined) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "store_purchase" });
             }
-            if (activeCouponPreview?.targetKind === "shop_item" && activeCouponPreview.targetId === item.id) {
-                setActiveCouponPreview(null);
-            }
             dispatchNotificationsUpdated();
             toast.success(`${item.name} satın alındı.`, {
                 description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
@@ -310,9 +317,6 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             if (payload.coinBalance !== undefined) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "bundle_purchase" });
             }
-            if (activeCouponPreview?.targetKind === "bundle" && activeCouponPreview.targetId === bundle.id) {
-                setActiveCouponPreview(null);
-            }
             dispatchNotificationsUpdated();
             toast.success(`${bundle.name} satın alındı.`, {
                 description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
@@ -324,47 +328,43 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
         }
     };
 
-    const handlePreviewCoupon = async (target: BusyTarget) => {
-        if (!target || !trimmedCouponCode) {
-            toast.info("Kuponu denemek için önce kodu gir.");
+    const handleApplyCoupon = async () => {
+        if (!trimmedCouponCode) {
+            toast.info("Kuponu kullanmak için önce kodu gir.");
             return;
         }
-        setBusyTarget(target);
         try {
-            const response = await fetch("/api/store/coupons/preview", {
+            const response = await fetch("/api/store/coupons/catalog-preview", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    targetKind: target.kind,
-                    targetId: target.id,
                     couponCode: trimmedCouponCode,
                 }),
             });
-            const payload = (await response.json()) as CouponPreviewResponse | { error?: string };
+            const payload = (await response.json()) as CouponCatalogPreviewResponse | { error?: string };
             if (!response.ok || !("valid" in payload)) {
                 setActiveCouponPreview(null);
                 toast.error(("error" in payload && payload.error) ? payload.error : "Kupon doğrulanamadı.");
                 return;
             }
-            if (!payload.valid || !payload.pricing || !payload.coupon) {
+            if (!payload.valid || !payload.coupon) {
                 setActiveCouponPreview(null);
                 toast.error(payload.reason || "Kupon bu hedef için geçerli değil.");
                 return;
             }
 
             setActiveCouponPreview({
-                targetKind: payload.targetKind,
-                targetId: payload.targetId,
-                pricing: payload.pricing,
+                valid: payload.valid,
+                reason: payload.reason,
                 coupon: payload.coupon,
+                items: payload.items,
+                bundles: payload.bundles,
             });
             toast.success(`${payload.coupon.code} uygulandı.`, {
-                description: `${payload.pricing.finalPriceCoin} coin yeni fiyat.`,
+                description: `${payload.items.length + payload.bundles.length} teklif güncellendi.`,
             });
         } catch {
             toast.error("Kupon doğrulama isteği tamamlanamadı.");
-        } finally {
-            setBusyTarget(null);
         }
     };
 
@@ -491,15 +491,15 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => setActiveCouponPreview(null)}
-                                                disabled={!trimmedCouponCode && !activeCouponPreview}
-                                                className="rounded-2xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                                                onClick={() => void handleApplyCoupon()}
+                                                disabled={!trimmedCouponCode || !catalog.liveops.couponsEnabled}
+                                                className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
                                             >
-                                                Temizle
+                                                Kullan
                                             </button>
                                         </div>
                                         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            Kupon ürün bazlı çalışır. Kodu girdikten sonra üründe veya pakette <span className="font-semibold text-slate-700 dark:text-slate-200">Kupon</span> düğmesine bas.
+                                            Kuponu yazıp kullan dediğinde indirim uygulanan ürün ve paketler mağazada öne çıkar. Geçerli değilse hemen uyarı görürsün.
                                         </p>
                                         <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className={cn(
@@ -512,7 +512,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                             </span>
                                             {activeCouponPreview ? (
                                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-bold text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
-                                                    Aktif kupon: {activeCouponPreview.coupon.code} • {activeCouponLabel}
+                                                    Aktif kupon: {activeCouponPreview.coupon.code} • {activeCouponPreview.items.length + activeCouponPreview.bundles.length} teklif
                                                 </span>
                                             ) : null}
                                         </div>
@@ -563,6 +563,30 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 })}
             </div>
 
+            {activeCouponPreview && (couponMatchedItems.length > 0 || couponMatchedBundles.length > 0) ? (
+                <section className="mb-8 rounded-[24px] border border-blue-200/80 bg-blue-50/70 p-4 dark:border-blue-900/30 dark:bg-blue-950/20">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">
+                                Aktif Kupon
+                            </div>
+                            <h2 className="mt-1 text-lg font-black text-slate-900 dark:text-white">{activeCouponPreview.coupon.code}</h2>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                İndirime giren ürün ve paketler aşağıda işaretlendi ve sıralamada öne alındı.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs font-bold">
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-blue-700 dark:border-blue-800/60 dark:bg-slate-950/50 dark:text-blue-300">
+                                {couponMatchedItems.length} ürün
+                            </span>
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-blue-700 dark:border-blue-800/60 dark:bg-slate-950/50 dark:text-blue-300">
+                                {couponMatchedBundles.length} paket
+                            </span>
+                        </div>
+                    </div>
+                </section>
+            ) : null}
+
             {featuredItems.length > 0 ? (
                 <section className="mb-8">
                     <div className="mb-4 flex items-end justify-between gap-4">
@@ -573,7 +597,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     </div>
                     <div className="grid gap-4 lg:grid-cols-3">
                         {featuredItems.map((item) => (
-                            <FeatureCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
+                            <FeatureCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} />
                         ))}
                     </div>
                 </section>
@@ -591,8 +615,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">Bu kategoride aktif ürün yok.</div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
-                        {filteredItems.map((item) => (
-                            <MerchItemCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
+                        {sortedItems.map((item) => (
+                            <MerchItemCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} />
                         ))}
                     </div>
                 )}
@@ -611,13 +635,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 ) : (
                     <div className="grid gap-4 xl:grid-cols-2">
                         {catalog.bundles.map((bundle) => (
-                            <BundleMerchCard key={bundle.id} bundle={bundle} activePricing={getDisplayedBundlePricing(bundle)} itemLookup={catalogItemMap} busy={busyKey === `bundle:${bundle.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "bundle", bundle })} onBuy={() => void handleBuyBundle(bundle)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "bundle", id: bundle.id })} />
+                            <BundleMerchCard key={bundle.id} bundle={bundle} activePricing={getDisplayedBundlePricing(bundle)} itemLookup={catalogItemMap} busy={busyKey === `bundle:${bundle.id}`} onPreview={() => setPreviewOffer({ kind: "bundle", bundle })} onBuy={() => void handleBuyBundle(bundle)} />
                         ))}
                     </div>
                 )}
             </section>
 
-            {previewOffer ? <PreviewModal offer={previewOffer} itemLookup={catalogItemMap} getDisplayedItemPricing={getDisplayedItemPricing} getDisplayedBundlePricing={getDisplayedBundlePricing} onClose={() => setPreviewOffer(null)} onBuyItem={handleBuyItem} onBuyBundle={handleBuyBundle} onPreviewCoupon={handlePreviewCoupon} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} busyKey={busyKey} /> : null}
+            {previewOffer ? <PreviewModal offer={previewOffer} itemLookup={catalogItemMap} getDisplayedItemPricing={getDisplayedItemPricing} getDisplayedBundlePricing={getDisplayedBundlePricing} onClose={() => setPreviewOffer(null)} onBuyItem={handleBuyItem} onBuyBundle={handleBuyBundle} busyKey={busyKey} /> : null}
         </div>
     );
 }
@@ -626,17 +650,17 @@ function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutra
     return <div className={cn("inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]", tone === "warning" && "border-amber-300/80 bg-amber-50/80 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-300", tone === "danger" && "border-rose-300/80 bg-rose-50/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-300", tone === "neutral" && "border-slate-200/80 bg-white/80 text-slate-600 dark:border-slate-700/70 dark:bg-slate-950/40 dark:text-slate-300")}>{label}</div>;
 }
 
-function FeatureCard({ item, activePricing, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     return (
         <article className={cn("relative overflow-hidden rounded-[28px] border p-4 shadow-[0_20px_50px_-36px_rgba(15,23,42,0.25)] transition-all", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
             <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{item.isFeatured ? "Öne Çıkan" : formatItemTypeLabel(item.type)}</div><h3 className="mt-2 text-lg font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
             <div className="mt-4 flex items-center justify-between gap-4"><div className="min-w-0"><div className="text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" /></div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-xs text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}</div><div className="flex h-24 w-24 items-center justify-center"><StoreMiniPreview item={item} /></div></div>
-            <div className="mt-4 flex flex-wrap gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={!couponReady || item.owned || busy} /><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
+            <div className="mt-4 flex flex-wrap gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
         </article>
     );
 }
-function MerchItemCard({ item, activePricing, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     return (
         <article className={cn("group relative overflow-hidden rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(15,23,42,0.25)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
@@ -645,14 +669,14 @@ function MerchItemCard({ item, activePricing, busy, couponReady, onPreview, onBu
                     <StoreMiniPreview item={item} />
                 </div>
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black text-slate-900 dark:text-white">{item.name}</h3><p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</p></div><span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-                <div className="mt-3 flex items-end justify-between gap-3"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-[11px] text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()}</div> : null}<div className="flex items-center gap-1 text-xs font-black text-amber-500">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" /></div>{activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><div className="flex items-center gap-2"><ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !item.owned ? <ActionIconButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}</div></div>
+                <div className="mt-3 flex items-end justify-between gap-3"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-[11px] text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()}</div> : null}<div className="flex items-center gap-1 text-xs font-black text-amber-500">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" /></div>{activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><div className="flex items-center gap-2"><ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /></div></div>
                 <div className="mt-3"><BuyButton item={item} busy={busy} onClick={onBuy} fullWidth /></div>
             </div>
         </article>
     );
 }
 
-function BundleMerchCard({ bundle, activePricing, itemLookup, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, onBuy }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
     return (
         <article className="rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,250,252,0.88),rgba(240,249,255,0.88))] p-5 shadow-[0_20px_50px_-38px_rgba(15,23,42,0.24)] dark:border-slate-800/70 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.82),rgba(17,24,39,0.82),rgba(30,41,59,0.78))]">
@@ -673,7 +697,7 @@ function BundleMerchCard({ bundle, activePricing, itemLookup, busy, couponReady,
                     );
                 })}
             </div>
-            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div><div className="flex flex-wrap items-center gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !bundle.fullyOwned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}<button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div></div>
+            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div><div className="flex flex-wrap items-center gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div></div>
         </article>
     );
 }
@@ -691,34 +715,34 @@ function BuyButton({ item, busy, onClick, fullWidth = false }: { item: CatalogSt
     const className = item.owned ? (item.equipped ? "bg-blue-600 text-white" : "bg-emerald-600 text-white") : SHOP_RARITY_BUY_BUTTON_CLASS[item.rarity];
     return <button type="button" onClick={onClick} disabled={busy || item.owned} className={cn("rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all disabled:opacity-50", fullWidth && "w-full", className)}>{label}</button>;
 }
-function PreviewModal({ offer, itemLookup, getDisplayedItemPricing, getDisplayedBundlePricing, onClose, onBuyItem, onBuyBundle, onPreviewCoupon, couponReady, busyKey }: { offer: PreviewOffer; itemLookup: Map<number, CatalogStoreItemView>; getDisplayedItemPricing: (item: CatalogStoreItemView) => DisplayedPricing; getDisplayedBundlePricing: (bundle: CatalogBundleView) => DisplayedPricing; onClose: () => void; onBuyItem: (item: CatalogStoreItemView) => void; onBuyBundle: (bundle: CatalogBundleView) => void; onPreviewCoupon: (target: BusyTarget) => void; couponReady: boolean; busyKey: string | null }) {
+function PreviewModal({ offer, itemLookup, getDisplayedItemPricing, getDisplayedBundlePricing, onClose, onBuyItem, onBuyBundle, busyKey }: { offer: PreviewOffer; itemLookup: Map<number, CatalogStoreItemView>; getDisplayedItemPricing: (item: CatalogStoreItemView) => DisplayedPricing; getDisplayedBundlePricing: (bundle: CatalogBundleView) => DisplayedPricing; onClose: () => void; onBuyItem: (item: CatalogStoreItemView) => void; onBuyBundle: (bundle: CatalogBundleView) => void; busyKey: string | null }) {
     if (!offer) return null;
     return (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
             <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,251,0.98),rgba(238,244,255,0.98))] p-5 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.8)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(17,24,39,0.96),rgba(23,37,84,0.95))] md:p-6">
                 <button type="button" onClick={onClose} className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"><X className="h-4 w-4" /></button>
-                {offer.kind === "item" ? <ItemPreviewContent item={offer.item} activePricing={getDisplayedItemPricing(offer.item)} busy={busyKey === `shop_item:${offer.item.id}`} couponReady={couponReady} onBuy={() => void onBuyItem(offer.item)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "shop_item", id: offer.item.id })} /> : <BundlePreviewContent bundle={offer.bundle} activePricing={getDisplayedBundlePricing(offer.bundle)} itemLookup={itemLookup} busy={busyKey === `bundle:${offer.bundle.id}`} couponReady={couponReady} onBuy={() => void onBuyBundle(offer.bundle)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "bundle", id: offer.bundle.id })} />}
+                {offer.kind === "item" ? <ItemPreviewContent item={offer.item} activePricing={getDisplayedItemPricing(offer.item)} busy={busyKey === `shop_item:${offer.item.id}`} onBuy={() => void onBuyItem(offer.item)} /> : <BundlePreviewContent bundle={offer.bundle} activePricing={getDisplayedBundlePricing(offer.bundle)} itemLookup={itemLookup} busy={busyKey === `bundle:${offer.bundle.id}`} onBuy={() => void onBuyBundle(offer.bundle)} />}
             </div>
         </div>
     );
 }
 
-function ItemPreviewContent({ item, activePricing, busy, couponReady, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
+function ItemPreviewContent({ item, activePricing, busy, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onBuy: () => void }) {
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-                {item.badgeText ? <div className="mt-4 inline-flex rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">{item.badgeText}</div> : null}
+                {item.badgeText ? <div className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.badgeText}</div> : null}
                 {item.pricing.appliedPromotion ? <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">Kampanya: {item.pricing.appliedPromotion.name}</div> : null}
                 <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div>
-                <div className="mt-auto flex flex-wrap gap-2 pt-6">{couponReady && !item.owned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kuponu Dene" onClick={onPreviewCoupon} disabled={busy} /> : null}<BuyButton item={item} busy={busy} onClick={onBuy} /></div>
+                <div className="mt-auto flex flex-wrap gap-2 pt-6"><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
             </div>
         </div>
     );
 }
 
-function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, couponReady, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
+function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, onBuy }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; onBuy: () => void }) {
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -728,7 +752,7 @@ function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, couponR
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Paket Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
                 <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div>
-                <div className="mt-auto flex flex-wrap gap-2 pt-6">{couponReady && !bundle.fullyOwned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kuponu Dene" onClick={onPreviewCoupon} disabled={busy} /> : null}<button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div>
+                <div className="mt-auto flex flex-wrap gap-2 pt-6"><button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div>
             </div>
         </div>
     );
