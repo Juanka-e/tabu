@@ -173,6 +173,7 @@ export function DashboardLayout({
                     onTabChange={setActiveTab}
                     showPlayTab={showPlayTab}
                 />
+                <DashboardProfileSidebar onTabChange={setActiveTab} mode="inline" />
 
                 {/* Main content */}
                 <main className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
