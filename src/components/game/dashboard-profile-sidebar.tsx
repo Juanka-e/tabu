@@ -222,7 +222,7 @@ function QuickEquipPanel({
 }) {
   return (
     <div className="w-full text-left">
-      <h3 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+      <h3 className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
         Hızlı Kuşan
       </h3>
       <div className={compact ? "grid grid-cols-4 gap-2" : "grid grid-cols-4 gap-2"}>
@@ -265,13 +265,13 @@ function StoreRadarPanel({
 
   return (
     <div className="w-full text-left">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
             <Sparkles size={12} />
             Mağaza Radarı
           </h3>
-          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
             Seçilmiş ürünler kısa vitrinde görünür.
           </p>
         </div>
