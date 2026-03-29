@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
-import { CosmeticMiniPreview } from "@/components/game/cosmetic-preview";
+import { CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import type {
@@ -144,7 +144,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
   }, [discoveryItems.length]);
 
   return (
-    <aside className="hidden h-full min-w-[320px] w-[340px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex">
+    <aside className="hidden h-full min-w-[300px] w-[320px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex 2xl:w-[340px]">
       <div className="flex flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
           <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
@@ -180,26 +180,35 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
 
           <div className="w-full text-left">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Hızlı Kullanım
+              Hızlı Kuşan
             </h3>
-            <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
+            <div className="grid grid-cols-2 gap-2">
               {quickEquipItems.map((item) => (
                 <button
                   key={item.inventoryItemId}
                   onClick={() => onTabChange("inventory")}
-                  className="ring-indigo-400 flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-1 shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"
+                  className="ring-indigo-400 flex min-w-0 items-center gap-3 rounded-2xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-2 text-left shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"
                   title={item.name}
                   type="button"
                 >
-                  <CosmeticMiniPreview item={item} />
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-[18px]">
+                    <CosmeticMiniPreview item={item} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-black text-slate-800 dark:text-white">{item.name}</div>
+                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                      {formatCosmeticTypeLabel(item.type)}
+                    </div>
+                  </div>
                 </button>
               ))}
               <button
                 onClick={() => onTabChange("inventory")}
-                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-200 text-slate-400 transition-colors hover:bg-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
+                className="flex min-h-[84px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/80 px-3 text-sm font-black text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800"
                 type="button"
               >
                 <Plus size={18} />
+                Envanter
               </button>
             </div>
           </div>
@@ -212,7 +221,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                   Mağaza Radarı
                 </h3>
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  Önerilen ürünler mağaza sırasına göre burada döner.
+                  Mağazadan seçilmiş ürünler burada sırayla görünür.
                 </p>
               </div>
               <button
@@ -239,17 +248,17 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                   <button
                     type="button"
                     onClick={() => onTabChange("shop")}
-                    className="group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
+                    className="group relative w-full overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
                   >
-                    <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-2 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                    <div className="flex h-32 items-center justify-center overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                       <CosmeticMiniPreview item={radarLeadItem} />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="mt-3 min-w-0">
                       <div className="truncate text-sm font-black text-slate-800 dark:text-white">
                         {radarLeadItem.name}
                       </div>
-                      <div className="mt-1 text-[11px] font-semibold capitalize text-slate-500 dark:text-slate-400">
-                        {radarLeadItem.type.replace("_", " ")}
+                      <div className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {formatCosmeticTypeLabel(radarLeadItem.type)}
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1 text-xs font-black text-amber-500">
@@ -263,22 +272,22 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                     </div>
                   </button>
                 ) : null}
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                   {radarSecondaryItems.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => onTabChange("shop")}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-white/70 bg-white/72 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/75 dark:hover:bg-slate-900"
+                      className="flex min-w-0 flex-col items-center rounded-2xl border border-white/70 bg-white/72 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/75 dark:hover:bg-slate-900"
                     >
-                      <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                      <div className="flex h-20 w-full items-center justify-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                         <CosmeticMiniPreview item={item} />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black text-slate-800 dark:text-white">
+                      <div className="mt-2 min-w-0 w-full">
+                        <div className="truncate text-center text-xs font-black text-slate-800 dark:text-white">
                           {item.name}
                         </div>
-                        <div className="mt-1 flex items-center gap-1 text-[11px] font-black text-amber-500">
+                        <div className="mt-1 flex items-center justify-center gap-1 text-[11px] font-black text-amber-500">
                           {item.pricing.finalPriceCoin.toLocaleString()}
                           <CoinMark className="h-3.5 w-3.5 ring-0 shadow-none" iconClassName="h-2 w-2" />
                         </div>

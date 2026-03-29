@@ -213,6 +213,14 @@ export function InventoryContent() {
                         >
                           {item.rarity}
                         </div>
+                        <button
+                          onClick={() => setPreviewItem(item)}
+                          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 text-slate-700 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-900"
+                          type="button"
+                          aria-label={`${item.name} önizleme`}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
                         <CosmeticMiniPreview item={item} />
                       </div>
                       <div className="flex-1">
@@ -222,14 +230,6 @@ export function InventoryContent() {
                         </p>
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() => setPreviewItem(item)}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-900"
-                          type="button"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Önizle
-                        </button>
                         <button
                           onClick={() => void handleEquip(item)}
                           disabled={item.equipped || equipBusyId !== null}
@@ -266,34 +266,41 @@ function InventoryPreviewCard({
   className?: string;
 }) {
   return (
-      <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
-        <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-          Önizleme
-        </h3>
-      <div className="relative mb-6 overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
-        <CosmeticLargePreview item={selectedItem} />
-      </div>
-      <div className="space-y-3">
-        <div>
-          <h4 className="text-lg font-black text-slate-900 dark:text-white">{selectedItem.name}</h4>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {selectedItem.rarity.charAt(0).toUpperCase() + selectedItem.rarity.slice(1)}{" "}
-            {formatCosmeticTypeLabel(selectedItem.type)}
+      <div className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] ${className ?? ""}`}>
+        <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]">
+          <CosmeticLargePreview item={selectedItem} />
+        </div>
+        <div className="flex flex-col rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            Envanter Önizleme
+          </div>
+          <h4 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{selectedItem.name}</h4>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {formatCosmeticTypeLabel(selectedItem.type)} • {selectedItem.rarity}
           </p>
-        </div>
-        <div
-          className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.16em] ${
-            selectedItem.rarity === "legendary"
-              ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900/30 dark:bg-yellow-950/20 dark:text-yellow-300"
-              : selectedItem.rarity === "epic"
-                ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/30 dark:bg-purple-950/20 dark:text-purple-300"
-                : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
-          }`}
-        >
-          {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
+          <div
+            className={`mt-5 inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+              selectedItem.rarity === "legendary"
+                ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900/30 dark:bg-yellow-950/20 dark:text-yellow-300"
+                : selectedItem.rarity === "epic"
+                  ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/30 dark:bg-purple-950/20 dark:text-purple-300"
+                  : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
+            }`}
+          >
+            {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
+          </div>
+          <div className="mt-6 space-y-3 rounded-[24px] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800/70 dark:bg-slate-950/50">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Kazanım Tarihi</div>
+              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{new Date(selectedItem.acquiredAt).toLocaleDateString("tr-TR")}</div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Durum</div>
+              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{selectedItem.equipped ? "Şu anda kuşanılmış" : "Envanterde hazır"}</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
   );
 }
 

@@ -6,10 +6,12 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
     BadgePercent,
+    Check,
     Eye,
     Frame,
     Gift,
     Layers3,
+    LoaderCircle,
     ShoppingBag,
     Sparkles,
     TicketPercent,
@@ -111,6 +113,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const [couponCode, setCouponCode] = useState("");
     const [coinGrantCode, setCoinGrantCode] = useState("");
     const [redeemingCoinGrant, setRedeemingCoinGrant] = useState(false);
+    const [applyingCoupon, setApplyingCoupon] = useState(false);
     const [busyTarget, setBusyTarget] = useState<BusyTarget>(null);
     const [previewOffer, setPreviewOffer] = useState<PreviewOffer>(null);
     const [utilityMode, setUtilityMode] = useState<UtilityMode>("coupon");
@@ -329,10 +332,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     };
 
     const handleApplyCoupon = async () => {
-        if (!trimmedCouponCode) {
+        if (!trimmedCouponCode || applyingCoupon) {
             toast.info("Kuponu kullanmak için önce kodu gir.");
             return;
         }
+        setApplyingCoupon(true);
         try {
             const response = await fetch("/api/store/coupons/catalog-preview", {
                 method: "POST",
@@ -365,6 +369,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             });
         } catch {
             toast.error("Kupon doğrulama isteği tamamlanamadı.");
+        } finally {
+            setApplyingCoupon(false);
         }
     };
 
@@ -487,24 +493,33 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                                 }}
                                                 placeholder="WELCOME25"
                                                 disabled={!catalog.liveops.couponsEnabled}
-                                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                                className={cn(
+                                                    "min-w-0 flex-1 rounded-2xl border bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition dark:bg-slate-950 dark:text-slate-100",
+                                                    activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
+                                                        ? "border-emerald-300 focus:border-emerald-500 dark:border-emerald-800/60"
+                                                        : "border-slate-200 focus:border-slate-500 dark:border-slate-700"
+                                                )}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => void handleApplyCoupon()}
-                                                disabled={!trimmedCouponCode || !catalog.liveops.couponsEnabled}
+                                                disabled={!trimmedCouponCode || !catalog.liveops.couponsEnabled || applyingCoupon}
                                                 className={cn(
-                                                    "rounded-2xl px-3 py-2.5 text-xs font-bold transition disabled:opacity-50",
+                                                    "inline-flex min-w-[112px] items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-bold transition disabled:opacity-50",
+                                                    applyingCoupon
+                                                        ? "border border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                                                        : "",
                                                     activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
-                                                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+                                                        ? "border border-emerald-300 bg-emerald-500 text-white shadow-[0_12px_28px_-18px_rgba(16,185,129,0.9)] hover:bg-emerald-600 dark:border-emerald-500/40 dark:bg-emerald-500 dark:text-white"
                                                         : "border border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
                                                 )}
                                             >
-                                                {activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? "Aktif" : "Kullan"}
+                                                {applyingCoupon ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? <Check className="h-3.5 w-3.5" /> : <TicketPercent className="h-3.5 w-3.5" />}
+                                                {applyingCoupon ? "Kontrol Ediliyor" : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? "Uygulandı" : "Kullan"}
                                             </button>
                                         </div>
                                         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            Kuponu yazıp kullan dediğinde indirim uygulanan ürün ve paketler mağazada öne çıkar. Geçerli değilse hemen uyarı görürsün.
+                                            Kupon geçerliyse indirimli ürün ve paketler üstte görünür. Kartların üzerinde yeni fiyatı hemen görürsün.
                                         </p>
                                         <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className={cn(
@@ -577,7 +592,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                             </div>
                             <h2 className="mt-1 text-lg font-black text-slate-900 dark:text-white">{activeCouponPreview.coupon.code}</h2>
                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                İndirime giren ürün ve paketler aşağıda işaretlendi ve sıralamada öne alındı.
+                                İndirimli ürün ve paketler aşağıda işaretlendi. Yeni fiyatlar kartların üzerinde doğrudan görünüyor.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -738,7 +753,6 @@ function ItemPreviewContent({ item, activePricing, busy, onBuy }: { item: Catalo
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-                {item.badgeText ? <div className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">{item.badgeText}</div> : null}
                 {item.pricing.appliedPromotion ? <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">Kampanya: {item.pricing.appliedPromotion.name}</div> : null}
                 <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-6"><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
