@@ -18,6 +18,19 @@ export interface PlatformSettings {
     motdText: string;
 }
 
+export interface BrandingSettings {
+    siteName: string;
+    siteShortName: string;
+    logoUrl: string;
+    defaultTitle: string;
+    titleTemplate: string;
+    defaultDescription: string;
+    ogImageUrl: string;
+    faviconUrl: string;
+    themeColor: string;
+    twitterHandle: string;
+}
+
 export interface FeatureSettings {
     registrationsEnabled: boolean;
     guestGameplayEnabled: boolean;
@@ -59,6 +72,7 @@ export interface SecuritySettings {
 
 export interface SystemSettings {
     platform: PlatformSettings;
+    branding: BrandingSettings;
     features: FeatureSettings;
     economy: EconomySettings;
     security: SecuritySettings;

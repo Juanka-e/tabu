@@ -9,7 +9,7 @@ import { dispatchNotificationsUpdated } from "@/lib/notification-events";
 
 const notificationLabels: Record<NotificationType, string> = {
     system: "Sistem",
-    support_reply: "Destek cevabi",
+    support_reply: "Destek cevabı",
     support_status: "Destek durumu",
     economy: "Ekonomi",
     moderation: "Moderasyon",
@@ -48,6 +48,7 @@ export function NotificationsSheet({
     const [notifications, setNotifications] = useState<NotificationView[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [busyNotificationIds, setBusyNotificationIds] = useState<number[]>([]);
     const [filter, setFilter] = useState<"all" | "unread">("all");
 
     const loadNotifications = useCallback(
@@ -67,7 +68,7 @@ export function NotificationsSheet({
 
                 if (!response.ok) {
                     if (!options?.silent) {
-                        toast.error("Bildirimler yuklenemedi.");
+                        toast.error("Bildirimler yüklenemedi.");
                     }
                     return;
                 }
@@ -77,7 +78,7 @@ export function NotificationsSheet({
                 onUnreadCountChange(payload.unreadCount);
             } catch {
                 if (!options?.silent) {
-                    toast.error("Bildirimler yuklenemedi.");
+                    toast.error("Bildirimler yüklenemedi.");
                 }
             } finally {
                 if (!options?.silent) {
@@ -122,17 +123,18 @@ export function NotificationsSheet({
 
     const markRead = useCallback(
         async (notification: NotificationView) => {
-            if (notification.isRead) {
+            if (notification.isRead || busyNotificationIds.includes(notification.id)) {
                 return true;
             }
 
+            setBusyNotificationIds((current) => [...current, notification.id]);
             try {
                 const response = await fetch(`/api/notifications/${notification.id}/read`, {
                     method: "PATCH",
                 });
 
                 if (!response.ok) {
-                    toast.error("Bildirim guncellenemedi.");
+                    toast.error("Bildirim güncellenemedi.");
                     return false;
                 }
 
@@ -147,11 +149,13 @@ export function NotificationsSheet({
                 dispatchNotificationsUpdated();
                 return true;
             } catch {
-                toast.error("Bildirim guncellenemedi.");
+                toast.error("Bildirim güncellenemedi.");
                 return false;
+            } finally {
+                setBusyNotificationIds((current) => current.filter((id) => id !== notification.id));
             }
         },
-        [onUnreadCountChange]
+        [busyNotificationIds, onUnreadCountChange]
     );
 
     const markAllRead = useCallback(async () => {
@@ -162,7 +166,7 @@ export function NotificationsSheet({
             });
 
             if (!response.ok) {
-                toast.error("Bildirimler guncellenemedi.");
+                toast.error("Bildirimler güncellenemedi.");
                 return;
             }
 
@@ -175,9 +179,9 @@ export function NotificationsSheet({
             );
             onUnreadCountChange(0);
             dispatchNotificationsUpdated();
-            toast.success("Tum bildirimler okundu olarak isaretlendi.");
+            toast.success("Tüm bildirimler okundu olarak işaretlendi.");
         } catch {
-            toast.error("Bildirimler guncellenemedi.");
+            toast.error("Bildirimler güncellenemedi.");
         } finally {
             setSaving(false);
         }
@@ -185,13 +189,18 @@ export function NotificationsSheet({
 
     const archiveOne = useCallback(
         async (notification: NotificationView) => {
+            if (busyNotificationIds.includes(notification.id)) {
+                return;
+            }
+
+            setBusyNotificationIds((current) => [...current, notification.id]);
             try {
                 const response = await fetch(`/api/notifications/${notification.id}/read`, {
                     method: "DELETE",
                 });
 
                 if (!response.ok) {
-                    toast.error("Bildirim kaldirilamadi.");
+                    toast.error("Bildirim kaldırılamadı.");
                     return;
                 }
 
@@ -203,10 +212,12 @@ export function NotificationsSheet({
                 }
                 dispatchNotificationsUpdated();
             } catch {
-                toast.error("Bildirim kaldirilamadi.");
+                toast.error("Bildirim kaldırılamadı.");
+            } finally {
+                setBusyNotificationIds((current) => current.filter((id) => id !== notification.id));
             }
         },
-        [onUnreadCountChange]
+        [busyNotificationIds, onUnreadCountChange]
     );
 
     const archiveAll = useCallback(async () => {
@@ -217,7 +228,7 @@ export function NotificationsSheet({
             });
 
             if (!response.ok) {
-                toast.error("Bildirimler kaldirilamadi.");
+                toast.error("Bildirimler kaldırılamadı.");
                 return;
             }
 
@@ -226,7 +237,7 @@ export function NotificationsSheet({
             dispatchNotificationsUpdated();
             toast.success("Bildirim kutusu temizlendi.");
         } catch {
-            toast.error("Bildirimler kaldirilamadi.");
+            toast.error("Bildirimler kaldırılamadı.");
         } finally {
             setSaving(false);
         }
@@ -267,7 +278,7 @@ export function NotificationsSheet({
                         </div>
                         <div>
                             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">
-                                Notification Center
+                                Bildirim Merkezi
                             </div>
                             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                                 Bildirimler
@@ -291,7 +302,7 @@ export function NotificationsSheet({
                                         : "bg-slate-200/70 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                                 }`}
                             >
-                                Tumu
+                                Tümü
                             </button>
                             <button
                                 type="button"
@@ -302,7 +313,7 @@ export function NotificationsSheet({
                                         : "bg-slate-200/70 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                                 }`}
                             >
-                                Okunmamis {unreadCount > 0 ? `(${unreadCount})` : ""}
+                                Okunmamış {unreadCount > 0 ? `(${unreadCount})` : ""}
                             </button>
                         </div>
 
@@ -315,7 +326,7 @@ export function NotificationsSheet({
                             className="gap-2"
                         >
                             <CheckCheck className="h-4 w-4" />
-                            Tumunu oku
+                            Tümünü oku
                         </Button>
                         <Button
                             type="button"
@@ -326,7 +337,7 @@ export function NotificationsSheet({
                             className="gap-2"
                         >
                             <Archive className="h-4 w-4" />
-                            Tumunu temizle
+                            Tümünü temizle
                         </Button>
                     </div>
                 </div>
@@ -339,8 +350,8 @@ export function NotificationsSheet({
                     ) : visibleNotifications.length === 0 ? (
                         <div className="rounded-3xl border border-dashed border-sky-200/60 bg-white/60 p-6 text-sm text-slate-500 dark:border-sky-900/20 dark:bg-black/10 dark:text-slate-400">
                             {filter === "unread"
-                                ? "Okunmamis bildirim bulunmuyor."
-                                : "Henuz olusturulmus bir bildirim yok."}
+                                ? "Okunmamış bildirim bulunmuyor."
+                                : "Henüz oluşturulmuş bir bildirim yok."}
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -389,7 +400,7 @@ export function NotificationsSheet({
                                             ) : notification.isRead ? (
                                                 "Okundu"
                                             ) : (
-                                                "Okunmamis"
+                                                "Okunmamış"
                                             )}
                                         </div>
 
@@ -400,6 +411,7 @@ export function NotificationsSheet({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => void markRead(notification)}
+                                                    disabled={busyNotificationIds.includes(notification.id)}
                                                     className="gap-2"
                                                 >
                                                     <Check className="h-4 w-4" />
@@ -411,6 +423,7 @@ export function NotificationsSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => void archiveOne(notification)}
+                                                disabled={busyNotificationIds.includes(notification.id)}
                                                 className="gap-2"
                                             >
                                                 <Archive className="h-4 w-4" />
@@ -422,7 +435,7 @@ export function NotificationsSheet({
                                                     size="sm"
                                                     onClick={() => void handlePrimaryAction(notification)}
                                                 >
-                                                    Yardim merkezinde ac
+                                                    Yardım merkezinde aç
                                                 </Button>
                                             ) : null}
                                         </div>

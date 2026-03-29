@@ -1,6 +1,6 @@
-﻿# Yeni Ozellikler Yol Haritasi
+# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 16 March 2026
+> Son guncelleme: 25 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -21,6 +21,10 @@
 9. `feature/coin-grant-campaigns`
 10. `feature/support-desk-foundation`
 11. `feature/system-notifications-foundation`
+12. `feature/admin-access-gateway`
+13. `feature/branding-seo-settings`
+14. `feature/branding-assets-upload`
+15. `feature/integration-hub`
 
 ## Aktif Teknik Kararlar
 
@@ -45,6 +49,8 @@
 ### Coin Guvenligi Stratejisi
 - Store discount coupon ile coin dagitim sistemi ayridir.
 - Wallet'a deger enjekte eden her akista transaction, actor audit, reason, duplicate claim korumasi, limit ve budget kontrolu zorunludur.
+- Coin economy ve anti-abuse katmanlari icin planning rehberi:
+  - `docs/guides/economy-abuse-strategy-guide.md`
 
 ### Gelecek Odeme Stratejisi
 - Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
@@ -54,145 +60,71 @@
   - `feature/payment-orders-foundation`
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
+### Cache ve Veri Ayrimi Stratejisi
+- MySQL kalici `source of truth` olarak kalir.
+- Redis veya Valkey sadece cache, rate limit ve gecici koordinasyon verisi icin kullanilir.
+- Room/lobi state'i PM2 multi-instance uretim ortaminda saf process-memory olarak birakilmayacak.
+- Bu konu icin ana mimari not:
+  - `docs/cache-and-storage-strategy.md`
+
+### Store ve Liveops Stratejisi
+- cosmetic definition, store offer, inventory ownership ve personalized offer alanlari ayrilacak.
+- Night market, event reward, admin grant ve normal store satisi ayni modelin icine sikistirilmayacak.
+- Ana referans:
+  - `docs/guides/store-liveops-strategy-guide.md`
+
 ## Sonraki Oncelikli Branch'ler
-12. `feature/branding-seo-settings`
-13. `feature/integration-hub`
-14. `feature/dashboard-visual-polish`
-15. `feature/store-merchandising`
-16. `feature/admin-shop-ux`
-17. `feature/admin-promotions-ux`
-18. `feature/cosmetic-render-upgrade`
-19. `feature/admin-cosmetic-authoring`
-20. `feature/gameplay-ui-polish`
-21. `feature/analytics-event-foundation`
-22. `feature/word-analytics-liveops`
-23. `feature/release-ops-docs`
-24. `docs/encoding-cleanup`
-25. `feature/wallet-ledger-foundation`
+16. `feature/dashboard-visual-polish`
+17. `feature/store-merchandising`
+18. `feature/admin-shop-ux`
+19. `feature/admin-inventory-operations`
+20. `feature/night-market-foundation`
+21. `feature/economy-abuse-hardening`
+22. `feature/cache-and-rate-limit-foundation`
+23. `feature/admin-promotions-ux`
+24. `feature/cosmetic-render-upgrade`
+25. `feature/admin-cosmetic-authoring`
+26. `feature/gameplay-ui-polish`
+27. `feature/analytics-event-foundation`
+28. `feature/word-analytics-liveops`
+29. `feature/release-ops-docs`
+30. `docs/encoding-cleanup`
+31. `feature/wallet-ledger-foundation`
 
-## User Email Foundation Slice (14 March 2026)
-- Yeni kayit akisinda email zorunlu hale getirildi.
-- `users.email`, `users.normalized_email`, `users.email_verified_at` alanlari eklendi.
-- Legacy hesaplar bozulmasin diye email alani nullable tutuldu.
-- Kullanici ayarlarinda email goruntuleme ve guncelleme alani eklendi.
-- Admin `/admin/users` ekraninda email ve dogrulama durumu gorunur hale geldi.
-- Email degistiginde `emailVerifiedAt` sifirlanacak sekilde foundation kuruldu.
+## Integration Hub Slice (24 March 2026, completed)
+- Yeni `/admin/integrations` paneli eklendi.
+- Ilk dilimde gosterilen bloklar:
+  - database
+  - auth core
+  - Turnstile
+  - reCAPTCHA
+  - admin access gateway
+  - branding asset storage
+  - email outbound
+  - Redis / Valkey
+- Secret degerler panelde gosterilmedi.
+- Provider readiness ve env wiring durumu gorunur hale getirildi.
+- Henuz bagli olmayan entegrasyonlar `planned` olarak acik sekilde isaretlendi.
+- MySQL gecici erisilemezse app'in sert dusmemesi icin settings fallback eklendi.
+- Production deployment guvenligi icin:
+  - loopback bind varsayilani
+  - token-korumali `/api/health`
+  - `docs/guides/deployment-security-guide.md`
 
-## Admin User Operations Slice (14 March 2026)
-- Admin `/admin/users` ekranina kontrollu coin operasyon modal'i eklendi.
-- Yeni `wallet_adjustments` veri modeli ile actor, hedef kullanici, islem tipi, miktar, reason ve onceki/sonraki bakiye kaydi tutuluyor.
-- `credit` ve `debit` islemleri transaction icinde uygulanir hale getirildi.
-- Negatif bakiye olusturacak `debit` islemleri server tarafinda engelleniyor.
-- Her coin operasyonu hem `wallet_adjustments` tablosuna hem de `audit_logs` icine yaziliyor.
-- Coin operasyon route'u admin auth + rate limit ile korunuyor.
-
-## Admin Audit Viewer Slice (14 March 2026)
-- Yeni `/admin/audit` ekrani ile audit gecmisi tek panelde izlenebilir hale getirildi.
-- `action`, `resourceType`, `actorRole` ve serbest metin arama filtreleri eklendi.
-- Audit listeleme API'si admin auth ile korunuyor ve pagination destekliyor.
-- Metadata alanlari okunabilir ozet formatinda gosteriliyor.
-- Admin sidebar'a audit ekranina hizli erisim eklendi.
-
-## Coin Grant Campaigns Slice (14 March 2026)
-- Coin dagitimi, store coupon domaininden ayrilarak campaign + code + claim modeli ile kuruldu.
-- Admin `/admin/coin-grants` ekranindan campaign olusturma, guncelleme ve code batch uretimi yapilabilir hale geldi.
-- Login kullanici shop ekranindan influencer veya etkinlik kodunu redeem ederek wallet bakiyesine coin ekleyebiliyor.
-- Claim akisinda campaign budget, code claim limiti ve user bazli claim limiti transaction icinde korunuyor.
-- Coin redemption isleri rate limit ve audit log ile izlenebilir hale getirildi.
-- Wallet degisimi event tabanli dinlenir hale getirildi; redeem sonrasi F5 zorunlulugu kalkti.
-- Kullanilmamis kayitlarda gercek silme, kullanilmis kayitlarda pasife alma + arsivleme modeli benimsendi.
-- `/admin/coin-grants` ekraninda `Aktif / Pasif / Kullanilan / Tukenen / Arsiv` filtreleri, acilir/kapanir campaign kartlari ve sade operasyon gorunumu benimsendi.
-
-## Support Desk Foundation Slice (14 March 2026)
-- Support girisi full-page dashboard ve in-game dashboard icinde sol alttaki `Help` ikonu uzerinden acilir hale getirildi.
-- Guest oyunculara support girisi acilmadi; support sadece login kullaniciya acik tutuldu.
-- `support_tickets` ve `support_ticket_messages` veri modeli eklendi.
-- Kullanici tarafinda support sheet icinden:
-  - yeni ticket acma
-  - kendi ticket'larini gorme
-  - kapali olmayan ticket'a reply gonderme
-  mumkun hale getirildi.
-- User reply akisina 30 saniyelik cooldown eklendi; art arda spam mesaj gonderimi bloklandi.
-- Kullanici support sheet'i arka planda periyodik yenilenir hale getirildi; admin cevabi F5 atmadan gorunur oldu.
-- `resolved` durumundaki ticket'a kullanici reply ile tekrar `open` donusu kapatildi; yeni durum icin yeni ticket acilmasi zorunlu tutuldu.
-- Admin tarafinda `/admin/support` kuyrugu eklendi:
-  - status guncelleme
-  - priority guncelleme
-  - assignee secimi
-  - public reply
-  - internal note
-- Ticket create/reply/admin update/admin message aksiyonlari audit log'a baglandi.
-- Realtime bildirim ve inbox bu branch'e alinmadi; sonraki `feature/system-notifications-foundation` icin birakildi.
-
-## System Notifications Foundation Slice (16 March 2026, completed)
-- Kullaniciya bagli `notifications` veri modeli eklendi.
-- Dashboard icine support'tan ayrik `Inbox` / bell girisi eklendi.
-- Ilk dilimde tamamlananlar:
-  - bildirim listeleme
-  - unread count
-  - tekil okundu isaretleme
-  - tumunu okundu yapma
-  - tekil temizleme
-  - toplu temizleme
-  - support admin public reply bildirimleri
-  - support resolved/closed durum bildirimleri
-- Tasarim karari:
-  - websocket / realtime yok
-  - dusuk frekansli fetch + panel acilisinda yenileme
-  - kullanici temizleme aksiyonu hard delete degil, inbox tarafli archive/dismiss mantigi ile calisiyor
-
-## Gelecek Progression Stratejisi
-- XP / level sistemi mevcut wallet, audit ve coin grant altyapisini bozmayacak sekilde ayri bir domain olarak ele alinmali.
-- Olasi ileriki branch:
-  - `feature/progression-foundation`
-- Bu yapida seviye odulleri su kaynak tipleriyle modellenebilir:
-  - coin reward
-  - badge unlock
-  - cosmetic unlock
-  - title / profile flair
-  - seasonal track milestone
-  - bundle / code claim entitlement
-- Seviye odulu mantigi ileride eklendiginde admin panelden sadece odul tablolarini ve carpanlari yonetmek yeterli olmali; mevcut economy ve audit zinciri korunmali.
-
-## Captcha Provider Policy Karari (15 March 2026)
-- Tek aktif provider modeli benimsendi.
-  - ayni anda sadece bir captcha provider aktif olur
-  - operatör gerekirse admin panelden provider degistirir
-- Production davranisi:
-  - `strict` enforcement zorunlu
-  - prod ortaminda `soft_fail` ile korumayi dusurme serbestligi yok
-- Onerilen varsayilan:
-  - provider: `turnstile`
-  - mode: `invisible`
-  - register: acik
-  - room create: acik
-  - guest join: ihtiyaca gore
-  - login: ihtiyaca gore
-- `reCAPTCHA v3` ayni anda ikinci katman olarak calismaz.
-  - sadece alternatif / yedek provider olarak tutulur
-- Admin panel sadelestirme ilkesi:
-  - provider secimi
-  - korunan akislar
-  - turnstile mode
-  - provider readiness
-  - production strict bilgisi
-  - riskli `failMode` secicisini UI'dan kaldirma
-
-## Admin Access Gateway Karari (16 March 2026, in progress)
-- Admin yuzeyi icin env tabanli merkezi access policy katmani kuruluyor.
-- Hedef modlar:
-  - `public_login`
-  - `restricted_login`
-  - `external_gateway`
-- Local/dev ortami:
-  - localhost icin rahat gelistirme bypass'i
-- Production ortami:
-  - `fail_closed` davranisi destekleniyor
-  - policy eksikse admin login ve admin API kapatilabilir
-- Gateway kanit turleri:
-  - sabit header + value
-  - email header + allowlist / allow-domain
-- Bu tasarim ileride Cloudflare Zero Trust gibi edge access sistemleri ile uyumlu olacak sekilde kuruluyor.
+## Store / Economy Planning Docs Slice (25 March 2026, docs-only)
+- `docs/guides/store-liveops-strategy-guide.md`
+- `docs/guides/economy-abuse-strategy-guide.md`
+- Store, liveops, inventory ve personalized offer alanlari ayrildi.
+- Night market icin:
+  - oyuncuya ozel snapshot
+  - min / max discount mantigi
+  - item pool filtreleme kurallari
+  - reroll'u ilk surumde acmama karari
+- Economy abuse tarafinda:
+  - guest coin yok
+  - gunluk cap
+  - repetitive group davranisinda hard block yerine kademeli coin verim dusurme
+  - IP/subnet'i yumusak suphe sinyali olarak kullanma
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
@@ -200,13 +132,12 @@
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 11
-- Planli toplam branch sayisi: 26
-- Kalan branch sayisi: 15
+- Tamamlanan feature branch sayisi: 15
+- Planli toplam feature branch sayisi: 31
+- Kalan feature branch sayisi: 16
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
+- `docs/*` planning branch'leri de feature sayisina dahil degildir.
 - Room regression ve dependency hotfix gibi duzeltmeler roadmap count icinde tutulmaz.
 - Bu dosya karar dokumanidir; eski brainstorming metinleri burada tutulmaz.
-
-

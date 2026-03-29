@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ import { useSession, signOut } from "next-auth/react";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
+import { useBranding } from "@/components/providers/branding-provider";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 
 interface SocketIdentityPayload {
@@ -43,6 +45,7 @@ export function AuthenticatedDashboardHome({
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
+  const branding = useBranding();
 
   if (!session?.user) {
     return null;
@@ -116,7 +119,7 @@ export function AuthenticatedDashboardHome({
   };
 
   const playContent = (
-    <div className="flex h-full items-center justify-center p-6">
+    <div className="flex h-full items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-md space-y-8">
         <div className="space-y-3 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-lg shadow-purple-500/20">
@@ -195,16 +198,30 @@ export function AuthenticatedDashboardHome({
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <header className="z-40 shrink-0 border-b border-white/30 bg-white/60 backdrop-blur-xl dark:border-slate-700/40 dark:bg-slate-900/60">
-        <div className="flex items-center justify-between px-4 py-2.5 md:px-6">
+    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.14),transparent_30%),linear-gradient(135deg,#f8fafc,#eef2ff,#eff6ff)] dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_24%),linear-gradient(135deg,#020617,#0f172a,#111827)]">
+      <header className="z-40 shrink-0 border-b border-white/30 bg-white/65 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
+        <div className="flex items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-md">
-              <Gamepad2 className="h-4 w-4 text-white" />
-            </div>
-            <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-lg font-bold text-transparent">TABU</span>
+            {branding.logoUrl ? (
+              <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-4 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
+                <Image
+                  src={branding.logoUrl}
+                  alt={`${branding.siteName} logo`}
+                  width={240}
+                  height={72}
+                  unoptimized
+                  className="h-10 w-auto max-w-[240px] object-contain"
+                />
+              </div>
+            ) : (
+              <div className="min-w-0 rounded-[22px] border border-white/50 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
+                <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.18em] text-transparent">
+                  {branding.siteShortName.toUpperCase()}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/75 px-2 py-1 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
             <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">
               <Megaphone className="h-4 w-4" />
             </Button>
@@ -225,16 +242,11 @@ export function AuthenticatedDashboardHome({
               </Button>
             ) : null}
             <Separator orientation="vertical" className="mx-1 h-5" />
-            <span className="hidden text-xs font-medium text-foreground sm:inline">{sessionUsername}</span>
+            <span className="hidden text-xs font-bold uppercase tracking-[0.14em] text-foreground sm:inline">{sessionUsername}</span>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                void signOut({ redirect: false }).then(() => {
-                  router.push("/");
-                  router.refresh();
-                });
-              }}
+              onClick={() => void signOut({ callbackUrl: "/" })}
               className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
@@ -244,7 +256,7 @@ export function AuthenticatedDashboardHome({
       </header>
 
       <div className="flex-1 overflow-hidden p-3 md:p-5">
-        <div className="glass-panel h-full w-full overflow-hidden rounded-2xl shadow-2xl md:rounded-3xl">
+        <div className="glass-panel h-full w-full overflow-hidden rounded-[28px] shadow-[0_25px_80px_-40px_rgba(15,23,42,0.45)] md:rounded-[34px]">
           <DashboardLayout defaultTab={defaultTab} showPlayTab playContent={playContent} />
         </div>
       </div>

@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import {
     DEFAULT_SYSTEM_SETTINGS,
@@ -14,6 +16,7 @@ const SYSTEM_SETTINGS_CACHE_TTL_MS = 15_000;
 
 let cachedSystemSettings: SystemSettings | null = null;
 let cachedAt = 0;
+let warnedAboutSystemSettingsFallback = false;
 
 function isCaptchaProviderConfigured(siteKey: string | undefined, secretKey: string | undefined): boolean {
     return Boolean(siteKey && siteKey.trim() && secretKey && secretKey.trim());
@@ -49,6 +52,52 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
     return value as Prisma.InputJsonValue;
 }
 
+function getBrandingManagedAssetValues(settings: SystemSettings): string[] {
+    return [
+        settings.branding.logoUrl,
+        settings.branding.faviconUrl,
+        settings.branding.ogImageUrl,
+    ]
+        .map((value) => value.trim())
+        .filter(Boolean);
+}
+
+function resolveManagedBrandingAssetPath(assetUrl: string): string | null {
+    if (!assetUrl.startsWith("/branding/")) {
+        return null;
+    }
+
+    const normalizedRelativePath = path.normalize(assetUrl.replace(/^\/+/, ""));
+    const publicRoot = path.resolve(process.cwd(), "public");
+    const assetPath = path.resolve(publicRoot, normalizedRelativePath);
+
+    if (!assetPath.startsWith(publicRoot)) {
+        return null;
+    }
+
+    return assetPath;
+}
+
+async function cleanupUnusedBrandingAssets(previous: SystemSettings, next: SystemSettings): Promise<void> {
+    const nextActiveAssetUrls = new Set(getBrandingManagedAssetValues(next));
+    const previousAssetUrls = new Set(getBrandingManagedAssetValues(previous));
+
+    const staleAssetPaths = [...previousAssetUrls]
+        .filter((assetUrl) => !nextActiveAssetUrls.has(assetUrl))
+        .map(resolveManagedBrandingAssetPath)
+        .filter((value): value is string => Boolean(value));
+
+    await Promise.all(
+        staleAssetPaths.map(async (staleAssetPath) => {
+            try {
+                await unlink(staleAssetPath);
+            } catch {
+                // Ignore missing or already-removed asset files.
+            }
+        })
+    );
+}
+
 function buildSettingsFromRows(
     rows: Array<{ key: string; value: unknown }>
 ): SystemSettings {
@@ -66,6 +115,31 @@ function buildSettingsFromRows(
     });
 }
 
+function shouldFallbackToDefaultSettings(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+
+    return (
+        error.message.includes("Can't reach database server") ||
+        error.message.includes("Can't connect to database server") ||
+        error.message.includes("Connection refused") ||
+        error.message.includes("ECONNREFUSED")
+    );
+}
+
+function logSystemSettingsFallback(error: Error): void {
+    if (warnedAboutSystemSettingsFallback) {
+        return;
+    }
+
+    console.warn(
+        "[system-settings] Falling back to default settings because the database is unavailable.",
+        error.message
+    );
+    warnedAboutSystemSettingsFallback = true;
+}
+
 export async function getSystemSettings(options?: {
     forceRefresh?: boolean;
 }): Promise<SystemSettings> {
@@ -74,29 +148,43 @@ export async function getSystemSettings(options?: {
         return cachedSystemSettings as SystemSettings;
     }
 
-    const rows = await prisma.systemSetting.findMany({
-        where: {
-            key: {
-                in: [...SYSTEM_SETTINGS_NAMESPACES],
+    try {
+        const rows = await prisma.systemSetting.findMany({
+            where: {
+                key: {
+                    in: [...SYSTEM_SETTINGS_NAMESPACES],
+                },
             },
-        },
-        select: {
-            key: true,
-            value: true,
-        },
-    });
+            select: {
+                key: true,
+                value: true,
+            },
+        });
 
-    const settings = buildSettingsFromRows(rows);
-    cachedSystemSettings = settings;
-    cachedAt = Date.now();
+        const settings = buildSettingsFromRows(rows);
+        cachedSystemSettings = settings;
+        cachedAt = Date.now();
+        warnedAboutSystemSettingsFallback = false;
 
-    return settings;
+        return settings;
+    } catch (error) {
+        if (shouldFallbackToDefaultSettings(error)) {
+            logSystemSettingsFallback(error as Error);
+            const fallbackSettings = normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
+            cachedSystemSettings = fallbackSettings;
+            cachedAt = Date.now();
+            return fallbackSettings;
+        }
+
+        throw error;
+    }
 }
 
 export async function updateSystemSettings(
     nextSettings: SystemSettings,
     updatedByUserId: number
 ): Promise<SystemSettings> {
+    const previousSettings = await getSystemSettings({ forceRefresh: true });
     const normalizedSettings = normalizeSystemSettings(nextSettings);
 
     await prisma.$transaction(
@@ -118,6 +206,9 @@ export async function updateSystemSettings(
 
     clearSystemSettingsCache();
 
-    return getSystemSettings({ forceRefresh: true });
+    const refreshedSettings = await getSystemSettings({ forceRefresh: true });
+    await cleanupUnusedBrandingAssets(previousSettings, refreshedSettings);
+
+    return refreshedSettings;
 }
 

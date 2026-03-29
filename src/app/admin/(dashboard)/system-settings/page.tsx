@@ -1,13 +1,61 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, RefreshCcw, Save, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import {
+    AlertTriangle,
+    Coins,
+    ImagePlus,
+    Paintbrush2,
+    RefreshCcw,
+    Save,
+    ShieldCheck,
+    SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isAutomaticBrandingPreviewUrl } from "@/lib/branding/assets";
+import { dispatchBrandingUpdated } from "@/lib/branding/events";
 import type { SystemSettingsResponse } from "@/types/system-settings";
 
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
 const helperClassName = "text-xs text-muted-foreground";
+const brandingGuide = [
+    "Open Graph gorseli, link paylasildiginda gorulen buyuk kart gorselidir.",
+    "Tavsiye edilen olcu: 1200x630 px.",
+    "Desteklenecek hedef formatlar: PNG, JPG/JPEG, WEBP.",
+    "Mutlaka okunur tipografi ve guclu kontrast kullan.",
+];
+const sections = [
+    {
+        key: "platform",
+        label: "Platform",
+        description: "Bakim, feature gate ve operasyon davranislari.",
+        icon: SlidersHorizontal,
+    },
+    {
+        key: "branding",
+        label: "Branding & SEO",
+        description: "Title, OG, favicon, canonical ve arama motoru sinyalleri.",
+        icon: Paintbrush2,
+    },
+    {
+        key: "economy",
+        label: "Ekonomi",
+        description: "Coin, odul ve magaza carpani davranislari.",
+        icon: Coins,
+    },
+    {
+        key: "security",
+        label: "Guvenlik",
+        description: "Captcha policy ve provider hazirligi.",
+        icon: ShieldCheck,
+    },
+] as const;
+const defaultBrandingAssetValues = {
+    logoUrl: "",
+    faviconUrl: "/favicon.ico",
+    ogImageUrl: "",
+} as const;
 
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
@@ -53,13 +101,110 @@ function ProviderBadge({ enabled, label }: { enabled: boolean; label: string }) 
     );
 }
 
+function BrandingAssetField({
+    label,
+    helper,
+    placeholder,
+    value,
+    previewAlt,
+    assetType,
+    uploading,
+    defaultValue,
+    onChange,
+    onUpload,
+}: {
+    label: string;
+    helper: string;
+    placeholder: string;
+    value: string;
+    previewAlt: string;
+    assetType: "logo" | "favicon" | "og";
+    uploading: boolean;
+    defaultValue: string;
+    onChange: (value: string) => void;
+    onUpload: (file: File, assetType: "logo" | "favicon" | "og") => void;
+}) {
+    const sizeHint = "Maksimum 4 MB.";
+
+    return (
+        <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+            <div className="space-y-2">
+                <FieldLabel label={label} helper={helper} />
+                <input
+                    className={inputClassName}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition hover:border-blue-500/40 hover:text-blue-600">
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    {uploading ? "Yukleniyor" : "Dosya yukle"}
+                    <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={uploading}
+                        className="hidden"
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                                onUpload(file, assetType);
+                            }
+                            event.target.value = "";
+                        }}
+                    />
+                </label>
+                <button
+                    type="button"
+                    onClick={() => onChange(defaultValue)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground transition hover:border-amber-500/40 hover:text-amber-600"
+                >
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Varsayilana don
+                </button>
+                <div className="text-xs text-muted-foreground">
+                    PNG, JPEG veya WebP kullan. {sizeHint} Yatay wordmark icin `Logo` kullan. Root-relative path otomatik preview edilir.
+                </div>
+            </div>
+
+            {value.trim() ? (
+                <div className="rounded-xl border border-border/70 bg-background p-3">
+                    {isAutomaticBrandingPreviewUrl(value) ? (
+                        // Root-relative branding assets are uploaded into the same app and are safe to preview directly.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={value}
+                            alt={previewAlt}
+                            className={`rounded-xl border border-border/70 bg-muted/30 object-contain ${
+                                assetType === "favicon"
+                                    ? "h-16 w-16"
+                                    : assetType === "logo"
+                                      ? "h-24 w-full"
+                                      : "aspect-[1200/630] w-full"
+                            }`}
+                        />
+                    ) : (
+                        <div className="text-xs text-muted-foreground">
+                            Dis URL kaydedildi. Guvenlik nedeniyle otomatik preview kapali.
+                        </div>
+                    )}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 export default function SystemSettingsPage() {
     const isProductionBuild = process.env.NODE_ENV === "production";
     const [payload, setPayload] = useState<SystemSettingsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingAsset, setUploadingAsset] = useState<"logo" | "favicon" | "og" | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [activeSection, setActiveSection] = useState<"platform" | "branding" | "economy" | "security">("branding");
 
     const loadSettings = useCallback(async () => {
         setLoading(true);
@@ -155,6 +300,7 @@ export default function SystemSettingsPage() {
             }
 
             setPayload(nextPayload);
+            dispatchBrandingUpdated(nextPayload.settings.branding);
             setSuccess("Sistem ayarlari kaydedildi.");
         } catch (saveError) {
             setError(saveError instanceof Error ? saveError.message : "Sistem ayarlari kaydedilemedi.");
@@ -163,9 +309,51 @@ export default function SystemSettingsPage() {
         }
     };
 
+    const handleBrandingAssetUpload = async (
+        file: File,
+        assetType: "logo" | "favicon" | "og"
+    ) => {
+        setUploadingAsset(assetType);
+        setError("");
+        setSuccess("");
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("assetType", assetType);
+
+            const response = await fetch("/api/admin/branding-assets/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const payload = (await response.json()) as { url?: string; error?: string };
+            if (!response.ok || !payload.url) {
+                throw new Error(payload.error || "Branding asset yuklenemedi.");
+            }
+
+            if (assetType === "logo") {
+                updatePayload("branding", "logoUrl", payload.url);
+            } else if (assetType === "favicon") {
+                updatePayload("branding", "faviconUrl", payload.url);
+            } else {
+                updatePayload("branding", "ogImageUrl", payload.url);
+            }
+
+            setSuccess("Branding asset yuklendi. Kaydet ile kalici hale getirebilirsin.");
+        } catch (uploadError) {
+            setError(uploadError instanceof Error ? uploadError.message : "Branding asset yuklenemedi.");
+        } finally {
+            setUploadingAsset(null);
+        }
+    };
+
     if (loading || !payload) {
         return <div className="p-6 text-sm text-muted-foreground">Sistem ayarlari yukleniyor...</div>;
     }
+
+    const ogImageUrl = payload.settings.branding.ogImageUrl.trim();
+    const canAutoPreviewOgImage = isAutomaticBrandingPreviewUrl(ogImageUrl);
 
     return (
         <div className="space-y-6">
@@ -189,6 +377,33 @@ export default function SystemSettingsPage() {
             {error ? <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
             {success ? <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
 
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {sections.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.key;
+
+                    return (
+                        <button
+                            key={section.key}
+                            type="button"
+                            onClick={() => setActiveSection(section.key)}
+                            className={`rounded-2xl border px-4 py-4 text-left transition ${
+                                isActive
+                                    ? "border-blue-500/40 bg-blue-500/10 shadow-[0_12px_40px_-24px_rgba(59,130,246,0.7)]"
+                                    : "border-border/70 bg-background hover:border-blue-500/30 hover:bg-muted/30"
+                            }`}
+                        >
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <Icon className="h-4 w-4" />
+                                {section.label}
+                            </div>
+                            <div className="mt-2 text-xs leading-5 text-muted-foreground">{section.description}</div>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {activeSection === "platform" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><AlertTriangle className="h-5 w-5" />Platform Durumu</CardTitle>
@@ -226,7 +441,229 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "branding" ? (
+            <Card className="border-border/70">
+                <CardHeader>
+                    <CardTitle className="text-xl">Branding ve SEO</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2">
+                            <FieldLabel label="Site Adi" helper="Open Graph, title template ve genel marka adi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteName}
+                                onChange={(event) => updatePayload("branding", "siteName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Kisa Ad" helper="Uygulama adi ve kisaltilmis marka etiketi." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.siteShortName}
+                                onChange={(event) => updatePayload("branding", "siteShortName", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Logo Yolu" helper="Public yuzeylerde kullanilacak ana marka gorseli." />
+                            <input
+                                className={inputClassName}
+                                placeholder="/branding/logo/..."
+                                value={payload.settings.branding.logoUrl}
+                                onChange={(event) => updatePayload("branding", "logoUrl", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Theme Color" helper="Tarayici ve platform meta theme color degeri." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.themeColor}
+                                onChange={(event) => updatePayload("branding", "themeColor", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Twitter Handle" helper="Opsiyonel. @ olmadan da girilebilir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.twitterHandle}
+                                onChange={(event) => updatePayload("branding", "twitterHandle", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <FieldLabel label="Varsayilan Title" helper="Ana sayfa ve share kartlari icin ana baslik." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.defaultTitle}
+                                onChange={(event) => updatePayload("branding", "defaultTitle", event.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FieldLabel label="Title Template" helper="Sayfa bazli title varsa `%s` yerine gelir." />
+                            <input
+                                className={inputClassName}
+                                value={payload.settings.branding.titleTemplate}
+                                onChange={(event) => updatePayload("branding", "titleTemplate", event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <FieldLabel label="Varsayilan Description" helper="SEO description, Open Graph ve Twitter kartlarinda kullanilir." />
+                        <textarea
+                            className={`${inputClassName} min-h-24 resize-y`}
+                            value={payload.settings.branding.defaultDescription}
+                            onChange={(event) => updatePayload("branding", "defaultDescription", event.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+                        <BrandingAssetField
+                            label="Logo Asset"
+                            helper="Genis wordmark veya yatay logo. Ana sayfa, login/register ve desktop header gibi yatay yuzeylerde kullanilir."
+                            placeholder="/branding/logo/..."
+                            value={payload.settings.branding.logoUrl}
+                            previewAlt="Logo preview"
+                            assetType="logo"
+                            uploading={uploadingAsset === "logo"}
+                            defaultValue={defaultBrandingAssetValues.logoUrl}
+                            onChange={(value) => updatePayload("branding", "logoUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
+                        <BrandingAssetField
+                            label="Favicon Asset"
+                            helper="Varsayilan fallback `/favicon.ico` olarak kalir."
+                            placeholder="/favicon.ico"
+                            value={payload.settings.branding.faviconUrl}
+                            previewAlt="Favicon preview"
+                            assetType="favicon"
+                            uploading={uploadingAsset === "favicon"}
+                            defaultValue={defaultBrandingAssetValues.faviconUrl}
+                            onChange={(value) => updatePayload("branding", "faviconUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
+                        <BrandingAssetField
+                            label="Open Graph Asset"
+                            helper="Bos birakirsan varsayilan text-only share metadata calisir."
+                            placeholder="https://... veya /branding/og/..."
+                            value={payload.settings.branding.ogImageUrl}
+                            previewAlt="Open Graph preview"
+                            assetType="og"
+                            uploading={uploadingAsset === "og"}
+                            defaultValue={defaultBrandingAssetValues.ogImageUrl}
+                            onChange={(value) => updatePayload("branding", "ogImageUrl", value)}
+                            onUpload={handleBrandingAssetUpload}
+                        />
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-[1.25fr_0.85fr]">
+                        <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div
+                                    className="h-11 w-11 rounded-2xl border border-border/70 bg-background"
+                                    style={{ backgroundColor: payload.settings.branding.themeColor }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate text-sm font-semibold text-foreground">
+                                        {payload.settings.branding.siteName}
+                                    </div>
+                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                        {payload.settings.branding.logoUrl || payload.settings.branding.faviconUrl || "/favicon.ico"}
+                                    </div>
+                                </div>
+                                <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                    Theme {payload.settings.branding.themeColor}
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-border/70 bg-background p-4">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                    Tarayici sekmesi / title
+                                </div>
+                                <div className="mt-3 truncate text-base font-semibold text-foreground">
+                                    {payload.settings.branding.defaultTitle}
+                                </div>
+                                <div className="mt-2 text-xs text-muted-foreground">
+                                    Template: {payload.settings.branding.titleTemplate}
+                                </div>
+                                <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                                    {payload.settings.branding.defaultDescription}
+                                </div>
+                            </div>
+
+                            <div className="rounded-[28px] border border-border/70 bg-background p-3 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.6)]">
+                                <div className="rounded-[22px] border border-border/70 bg-muted/20 p-3">
+                                    {ogImageUrl && canAutoPreviewOgImage ? (
+                                        // External preview URLs are operator-controlled and may not be in Next image remotePatterns.
+                                        // Only root-relative app assets are previewed automatically.
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={ogImageUrl}
+                                            alt="Open Graph preview"
+                                            className="aspect-[1200/630] w-full rounded-2xl object-cover"
+                                        />
+                                    ) : ogImageUrl ? (
+                                        <div className="space-y-3 rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4 text-left text-xs text-muted-foreground">
+                                            <div className="font-semibold uppercase tracking-[0.16em] text-foreground">
+                                                Otomatik preview kapali
+                                            </div>
+                                            <div>
+                                                Dis URL gorselleri admin tarayicisindan otomatik yuklenmez. Burada sadece root-relative app asset&apos;leri otomatik preview edilir.
+                                            </div>
+                                            <a
+                                                href={ogImageUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground transition hover:border-blue-500/40 hover:text-blue-600"
+                                            >
+                                                Gorseli yeni sekmede ac
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="flex aspect-[1200/630] w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/40 text-center text-xs text-muted-foreground">
+                                            OG gorseli girildiginde burada onizleme gorunur.
+                                        </div>
+                                    )}
+                                    <div className="mt-3 rounded-2xl bg-background/90 p-3 backdrop-blur">
+                                        <div className="truncate text-sm font-semibold text-foreground">
+                                            {payload.settings.branding.defaultTitle}
+                                        </div>
+                                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                            {payload.settings.branding.defaultDescription}
+                                        </div>
+                                        <div className="mt-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                                            Open Graph share preview
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-4">
+                            <div className="text-sm font-semibold text-foreground">Kisa Ogretici</div>
+                            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                                {brandingGuide.map((item) => (
+                                    <div key={item} className="flex gap-2">
+                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                        <span>{item}</span>
+                                    </div>
+                                ))}
+                                <div className="rounded-xl border border-border/70 bg-background px-3 py-3 text-xs text-muted-foreground">
+                                    Root-relative yol (`/og-cover.png`) otomatik preview edilir. Tam URL kaydedilebilir ama guvenlik nedeniyle admin panelde otomatik yuklenmez.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </CardContent>
+            </Card>
+            ) : null}
+
+            {activeSection === "platform" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><SlidersHorizontal className="h-5 w-5" />Feature Gate&apos;ler</CardTitle>
@@ -239,7 +676,9 @@ export default function SystemSettingsPage() {
                     <ToggleField checked={payload.settings.features.storeEnabled} label="Magaza Acik" description="Store catalog, purchase, bundle ve equip akisini kontrol eder." onChange={(checked) => updatePayload("features", "storeEnabled", checked)} />
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "economy" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="text-xl">Ekonomi Temeli</CardTitle>
@@ -302,7 +741,9 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
 
+            {activeSection === "security" ? (
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck className="h-5 w-5" />Captcha Hazirligi</CardTitle>
@@ -315,7 +756,7 @@ export default function SystemSettingsPage() {
                     <div className="rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                         <span className="font-semibold text-foreground">Aktif provider:</span>{" "}
                         {payload.settings.security.captcha.provider === "recaptcha_v3" ? "reCAPTCHA v3" : "Turnstile"}
-                        <span className="mx-2 text-border">•</span>
+                        <span className="mx-2 text-border">|</span>
                         <span className="font-semibold text-foreground">Policy:</span>{" "}
                         {isProductionBuild
                             ? "Production strict enforced"
@@ -352,7 +793,7 @@ export default function SystemSettingsPage() {
                             <div className="space-y-2">
                                 <FieldLabel label="Provider Policy" helper="reCAPTCHA seciliyken production ortaminda strict enforcement uygulanir." />
                                 <div className="rounded-xl border border-border/70 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                                    Yedek provider olarak saklanir. Gerektiginde operatör bilincli sekilde Turnstile yerine buna gecer.
+                                    Yedek provider olarak saklanir. Gerektiginde operator bilincli sekilde Turnstile yerine buna gecer.
                                 </div>
                             </div>
                         )}
@@ -372,9 +813,12 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
         </div>
     );
 }
+
+
 
 
 

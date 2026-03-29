@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, type ReactNode, type MouseEvent } from "react";
 import { Bell, HelpCircle, X } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { DashboardNav, type DashboardTab } from "./dashboard-nav";
+import { DashboardNav, DashboardNavMobile, type DashboardTab } from "./dashboard-nav";
 import { DashboardProfileSidebar } from "./dashboard-profile-sidebar";
 import { SupportDeskSheet } from "./support-desk-sheet";
 import { NotificationsSheet } from "./notifications-sheet";
@@ -49,14 +49,14 @@ export function DashboardOverlay({ isOpen, onClose }: DashboardOverlayProps) {
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8 glass-overlay"
+            className="fixed inset-0 z-[100] flex items-stretch justify-center p-0 glass-overlay sm:items-center sm:p-6 md:p-8"
             onClick={handleBackdrop}
         >
-            <div className="glass-panel w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden relative flex animate-fade-in-up">
+            <div className="glass-panel relative flex h-[100dvh] w-full animate-fade-in-up overflow-hidden rounded-none shadow-[0_30px_90px_-45px_rgba(15,23,42,0.5)] sm:h-[88vh] sm:max-w-[1280px] sm:rounded-[34px]">
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 w-8 h-8 rounded-full bg-slate-200/50 dark:bg-slate-700/50 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 flex items-center justify-center backdrop-blur-sm transition-all text-slate-600 dark:text-slate-300 shadow-sm"
+                    className="absolute right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/75 text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-red-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-red-500"
                 >
                     <X size={16} />
                 </button>
@@ -83,6 +83,7 @@ export function DashboardLayout({
     playContent?: ReactNode;
 }) {
     const [activeTab, setActiveTab] = useState<DashboardTab>(defaultTab);
+    const [sidebarMode, setSidebarMode] = useState<"pending" | "inline" | "desktop">("pending");
     const [supportOpen, setSupportOpen] = useState(false);
     const [supportFocusTicketId, setSupportFocusTicketId] = useState<number | null>(null);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -147,6 +148,20 @@ export function DashboardLayout({
         };
     }, [loadNotificationUnreadCount, notificationEnabled]);
 
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(min-width: 1280px)");
+        const syncSidebarMode = (event?: MediaQueryListEvent) => {
+            setSidebarMode((event?.matches ?? mediaQuery.matches) ? "desktop" : "inline");
+        };
+
+        syncSidebarMode();
+        mediaQuery.addEventListener("change", syncSidebarMode);
+
+        return () => {
+            mediaQuery.removeEventListener("change", syncSidebarMode);
+        };
+    }, []);
+
     const handleOpenSupportFromNotification = useCallback((ticketId?: number | null) => {
         setNotificationsOpen(false);
         setSupportFocusTicketId(ticketId ?? null);
@@ -154,7 +169,7 @@ export function DashboardLayout({
     }, []);
 
     return (
-        <div className={`relative flex w-full h-full ${className}`}>
+        <div className={`relative flex h-full w-full flex-col md:flex-row ${className}`}>
             {/* Nav sidebar */}
             <DashboardNav
                 activeTab={activeTab}
@@ -167,17 +182,26 @@ export function DashboardLayout({
                 onHelpClick={() => setSupportOpen(true)}
             />
 
-            {/* Main content */}
-            <main className="flex-1 h-full overflow-y-auto relative scroll-smooth">
-                {activeTab === "play" && playContent ? (
-                    playContent
-                ) : (
-                    <DashboardContent activeTab={activeTab} />
-                )}
-            </main>
+            <div className="flex min-h-0 flex-1 flex-col">
+                <DashboardNavMobile
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    showPlayTab={showPlayTab}
+                />
+                {sidebarMode === "inline" ? <DashboardProfileSidebar onTabChange={setActiveTab} mode="inline" /> : null}
+
+                {/* Main content */}
+                <main className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
+                    {activeTab === "play" && playContent ? (
+                        playContent
+                    ) : (
+                        <DashboardContent activeTab={activeTab} />
+                    )}
+                </main>
+            </div>
 
             {/* Profile sidebar (hidden on mobile/tablet) */}
-            <DashboardProfileSidebar onTabChange={setActiveTab} />
+            {sidebarMode === "desktop" ? <DashboardProfileSidebar onTabChange={setActiveTab} /> : null}
             {supportEnabled ? (
                 <>
                     <button
@@ -274,8 +298,11 @@ const SettingsContentLazy = dynamic(
 
 function PageLoading() {
     return (
-        <div className="flex items-center justify-center h-full">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex h-full items-center justify-center p-8">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-bold text-slate-600 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/45 dark:text-slate-300">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                Yukleniyor
+            </div>
         </div>
     );
 }

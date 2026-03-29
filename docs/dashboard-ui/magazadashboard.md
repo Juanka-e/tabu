@@ -718,7 +718,7 @@ Bu planda netlestirilen ana kararlar:
   mantigini okuyabiliyor.
 - Admin panelde template urun olustururken `Ornek Doldur` yardimcisi eklendi.
 - Ayrica AI ve manuel authoring icin kalici rehber yazildi:
-  - `docs/dashboard-ui/cosmetic-authoring-spec.md`
+  - `docs/guides/card-design-guide.md`
 
 ### Guvenlik mantigi
 - JSON nesting `3` seviye ile sinirli.
