@@ -37,7 +37,8 @@ const rarityGlow: Record<StoreItemRarity, string> = {
   legendary: "shadow-[0_0_15px_rgba(234,179,8,0.3)]",
 };
 
-const tabs: { id: StoreItemType; label: string }[] = [
+const tabs: { id: "all" | StoreItemType; label: string }[] = [
+  { id: "all", label: "Tümü" },
   { id: "avatar", label: "Avatarlar" },
   { id: "frame", label: "Çerçeveler" },
   { id: "card_back", label: "Kart Arkaları" },
@@ -59,7 +60,7 @@ function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): 
 
 export function InventoryContent() {
   const { data: session } = useSession();
-  const [activeType, setActiveType] = useState<StoreItemType>("avatar");
+  const [activeType, setActiveType] = useState<"all" | StoreItemType>("all");
   const [items, setItems] = useState<InventoryItemView[]>([]);
   const [previewItem, setPreviewItem] = useState<InventoryItemView | null>(null);
   const [equipBusyId, setEquipBusyId] = useState<number | null>(null);
@@ -129,7 +130,7 @@ export function InventoryContent() {
   }, [equippedSlots]);
 
   const filteredItems = useMemo(
-    () => items.filter((item) => item.type === activeType),
+    () => activeType === "all" ? items : items.filter((item) => item.type === activeType),
     [activeType, items]
   );
 

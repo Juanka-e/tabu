@@ -12,6 +12,7 @@ import {
     Gift,
     Layers3,
     LoaderCircle,
+    Search,
     ShoppingBag,
     Sparkles,
     TicketPercent,
@@ -114,6 +115,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const [coinGrantCode, setCoinGrantCode] = useState("");
     const [redeemingCoinGrant, setRedeemingCoinGrant] = useState(false);
     const [applyingCoupon, setApplyingCoupon] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     const [busyTarget, setBusyTarget] = useState<BusyTarget>(null);
     const [previewOffer, setPreviewOffer] = useState<PreviewOffer>(null);
     const [utilityMode, setUtilityMode] = useState<UtilityMode>("coupon");
@@ -140,12 +142,37 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
         void load();
     }, [session]);
 
+    const searchQuery = searchTerm.trim().toLocaleLowerCase("tr-TR");
+
     const filteredItems = useMemo(() => {
-        if (category === "all") {
-            return catalog.items;
+        const categoryItems = category === "all"
+            ? catalog.items
+            : catalog.items.filter((item) => item.type === category);
+
+        if (!searchQuery) {
+            return categoryItems;
         }
-        return catalog.items.filter((item) => item.type === category);
-    }, [catalog.items, category]);
+
+        return categoryItems.filter((item) =>
+            [item.name, item.code, item.badgeText ?? "", formatItemTypeLabel(item.type)]
+                .join(" ")
+                .toLocaleLowerCase("tr-TR")
+                .includes(searchQuery)
+        );
+    }, [catalog.items, category, searchQuery]);
+
+    const filteredBundles = useMemo(() => {
+        if (!searchQuery) {
+            return catalog.bundles;
+        }
+
+        return catalog.bundles.filter((bundle) =>
+            [bundle.name, bundle.code, bundle.description ?? "", ...bundle.items.map((entry) => entry.itemName)]
+                .join(" ")
+                .toLocaleLowerCase("tr-TR")
+                .includes(searchQuery)
+        );
+    }, [catalog.bundles, searchQuery]);
 
     const featuredItems = useMemo(() => {
         const adminFeatured = filteredItems.filter((item) => item.isFeatured);
@@ -631,8 +658,24 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     </div>
                     <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{filteredItems.length} Ürün</div>
                 </div>
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="relative w-full max-w-md">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Ürün, paket veya etiket ara"
+                            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100"
+                        />
+                    </div>
+                    {searchQuery ? (
+                        <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                            Arama: {searchTerm}
+                        </div>
+                    ) : null}
+                </div>
                 {filteredItems.length === 0 ? (
-                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">Bu kategoride aktif ürün yok.</div>
+                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{searchQuery ? "Aramaya uygun ürün bulunamadı." : "Bu kategoride aktif ürün yok."}</div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
                         {sortedItems.map((item) => (
@@ -648,13 +691,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                         <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Paketler</h2>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Birden fazla kozmetiği tek alımda toplayan teklif setleri.</p>
                     </div>
-                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{catalog.bundles.length} Paket</div>
+                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{filteredBundles.length} Paket</div>
                 </div>
-                {catalog.bundles.length === 0 ? (
-                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{catalog.liveops.bundlesEnabled ? "Aktif paket yok." : "Paket satışları geçici olarak kapalı."}</div>
+                {filteredBundles.length === 0 ? (
+                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{catalog.liveops.bundlesEnabled ? (searchQuery ? "Aramaya uygun paket bulunamadı." : "Aktif paket yok.") : "Paket satışları geçici olarak kapalı."}</div>
                 ) : (
                     <div className="grid gap-4 xl:grid-cols-2">
-                        {catalog.bundles.map((bundle) => (
+                        {filteredBundles.map((bundle) => (
                             <BundleMerchCard key={bundle.id} bundle={bundle} activePricing={getDisplayedBundlePricing(bundle)} itemLookup={catalogItemMap} busy={busyKey === `bundle:${bundle.id}`} onPreview={() => setPreviewOffer({ kind: "bundle", bundle })} onBuy={() => void handleBuyBundle(bundle)} />
                         ))}
                     </div>
@@ -702,10 +745,6 @@ function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: Ca
                             <CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" />
                         </div>
                         {activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
-                    </div>
-                    <div className="rounded-2xl border border-white/65 bg-white/75 px-3 py-2 text-right shadow-sm dark:border-slate-700/70 dark:bg-slate-950/55">
-                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Durum</div>
-                        <div className="mt-1 text-xs font-black text-slate-800 dark:text-slate-100">{item.equipped ? "Kullanılıyor" : item.owned ? "Sahipsin" : "Hazır"}</div>
                     </div>
                 </div>
 

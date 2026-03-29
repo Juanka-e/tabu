@@ -48,6 +48,7 @@ export function NotificationsSheet({
     const [notifications, setNotifications] = useState<NotificationView[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [busyNotificationIds, setBusyNotificationIds] = useState<number[]>([]);
     const [filter, setFilter] = useState<"all" | "unread">("all");
 
     const loadNotifications = useCallback(
@@ -122,10 +123,11 @@ export function NotificationsSheet({
 
     const markRead = useCallback(
         async (notification: NotificationView) => {
-            if (notification.isRead) {
+            if (notification.isRead || busyNotificationIds.includes(notification.id)) {
                 return true;
             }
 
+            setBusyNotificationIds((current) => [...current, notification.id]);
             try {
                 const response = await fetch(`/api/notifications/${notification.id}/read`, {
                     method: "PATCH",
@@ -149,9 +151,11 @@ export function NotificationsSheet({
             } catch {
                 toast.error("Bildirim güncellenemedi.");
                 return false;
+            } finally {
+                setBusyNotificationIds((current) => current.filter((id) => id !== notification.id));
             }
         },
-        [onUnreadCountChange]
+        [busyNotificationIds, onUnreadCountChange]
     );
 
     const markAllRead = useCallback(async () => {
@@ -185,6 +189,11 @@ export function NotificationsSheet({
 
     const archiveOne = useCallback(
         async (notification: NotificationView) => {
+            if (busyNotificationIds.includes(notification.id)) {
+                return;
+            }
+
+            setBusyNotificationIds((current) => [...current, notification.id]);
             try {
                 const response = await fetch(`/api/notifications/${notification.id}/read`, {
                     method: "DELETE",
@@ -204,9 +213,11 @@ export function NotificationsSheet({
                 dispatchNotificationsUpdated();
             } catch {
                 toast.error("Bildirim kaldırılamadı.");
+            } finally {
+                setBusyNotificationIds((current) => current.filter((id) => id !== notification.id));
             }
         },
-        [onUnreadCountChange]
+        [busyNotificationIds, onUnreadCountChange]
     );
 
     const archiveAll = useCallback(async () => {
@@ -400,6 +411,7 @@ export function NotificationsSheet({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => void markRead(notification)}
+                                                    disabled={busyNotificationIds.includes(notification.id)}
                                                     className="gap-2"
                                                 >
                                                     <Check className="h-4 w-4" />
@@ -411,6 +423,7 @@ export function NotificationsSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => void archiveOne(notification)}
+                                                disabled={busyNotificationIds.includes(notification.id)}
                                                 className="gap-2"
                                             >
                                                 <Archive className="h-4 w-4" />
