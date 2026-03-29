@@ -221,7 +221,7 @@ function QuickEquipPanel({
   compact?: boolean;
 }) {
   return (
-    <div className="w-full text-left">
+    <div className="mb-8 w-full text-left">
       <h3 className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
         Hızlı Kuşan
       </h3>
