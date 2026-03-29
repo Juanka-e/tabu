@@ -549,14 +549,6 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                             Kupon geçerliyse indirimli ürün ve paketler üstte görünür. Kartların üzerinde yeni fiyatı hemen görürsün.
                                         </p>
                                         <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <span className={cn(
-                                                "rounded-full border px-3 py-1 font-bold",
-                                                catalog.liveops.couponsEnabled
-                                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
-                                                    : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
-                                            )}>
-                                                {catalog.liveops.couponsEnabled ? "Kupon sistemi aktif" : "Kupon sistemi kapalı"}
-                                            </span>
                                             {activeCouponPreview ? (
                                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-bold text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
                                                     Aktif kupon: {activeCouponPreview.coupon.code} • {activeCouponPreview.items.length + activeCouponPreview.bundles.length} teklif
