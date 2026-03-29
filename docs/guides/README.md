@@ -23,3 +23,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 5. `economy-abuse-strategy-guide.md`
 - coin ekonomisi, reward eligibility ve abuse minimizasyonu rehberi
 - gunluk cap, tekrarlayan grup analizi ve gorev sistemi risklerini tartisir
+
+6. `admin-shop-ux-planning-guide.md`
+- admin shop, bundle ve promotion operasyonlarini toparlama rehberi
+- bu branch'te neyin yapilacagini ve neyin bilincli olarak sonraya birakilacagini netlestirir

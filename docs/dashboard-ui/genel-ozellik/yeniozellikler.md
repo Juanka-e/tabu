@@ -1,6 +1,6 @@
 # Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 25 March 2026
+> Son guncelleme: 30 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -25,6 +25,8 @@
 13. `feature/branding-seo-settings`
 14. `feature/branding-assets-upload`
 15. `feature/integration-hub`
+16. `feature/dashboard-visual-polish`
+17. `feature/store-merchandising`
 
 ## Aktif Teknik Kararlar
 
@@ -74,8 +76,6 @@
   - `docs/guides/store-liveops-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-16. `feature/dashboard-visual-polish`
-17. `feature/store-merchandising`
 18. `feature/admin-shop-ux`
 19. `feature/admin-inventory-operations`
 20. `feature/night-market-foundation`
@@ -126,15 +126,24 @@
   - repetitive group davranisinda hard block yerine kademeli coin verim dusurme
   - IP/subnet'i yumusak suphe sinyali olarak kullanma
 
+## Dashboard / Store Delivery Slice (30 March 2026, completed)
+- `feature/dashboard-visual-polish`
+  - full-page dashboard ve in-game shell daha tutarli hale geldi
+  - responsive ve Turkce dashboard copy temizlendi
+- `feature/store-merchandising`
+  - magazanin oyuncu-facing merchandising dili guclendirildi
+  - preview, kupon, fiyat ve inventory akislarina tutarlilik geldi
+  - dashboard sidebar icindeki discovery / store follow-up'lari kapatildi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 15
+- Tamamlanan feature branch sayisi: 17
 - Planli toplam feature branch sayisi: 31
-- Kalan feature branch sayisi: 16
+- Kalan feature branch sayisi: 14
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
