@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
@@ -66,11 +66,11 @@ interface ShopContentProps {
 }
 
 const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[] = [
-    { id: "all", icon: ShoppingBag, label: "Tümü" },
+    { id: "all", icon: ShoppingBag, label: "TÃ¼mÃ¼" },
     { id: "avatar", icon: UserCircle, label: "Avatar" },
-    { id: "frame", icon: Frame, label: "Çerçeve" },
-    { id: "card_back", icon: Layers3, label: "Kart Arkası" },
-    { id: "card_face", icon: Layers3, label: "Kart Önü" },
+    { id: "frame", icon: Frame, label: "Ã‡erÃ§eve" },
+    { id: "card_back", icon: Layers3, label: "Kart ArkasÄ±" },
+    { id: "card_face", icon: Layers3, label: "Kart Ã–nÃ¼" },
 ];
 
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
@@ -93,9 +93,9 @@ function createEmptyCatalog(): StoreCatalogResponse {
 
 function formatItemTypeLabel(type: StoreItemType) {
     if (type === "avatar") return "Avatar";
-    if (type === "frame") return "Çerçeve";
-    if (type === "card_back") return "Kart Arkası";
-    return "Kart Önü";
+    if (type === "frame") return "Ã‡erÃ§eve";
+    if (type === "card_back") return "Kart ArkasÄ±";
+    return "Kart Ã–nÃ¼";
 }
 
 function getItemInitial(name: string) {
@@ -200,6 +200,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
     const busyKey = busyTarget ? `${busyTarget.kind}:${busyTarget.id}` : null;
     const trimmedCouponCode = couponCode.trim().toUpperCase();
+    const appliedCouponCode = activeCouponPreview?.coupon.code ?? "";
+    const hasAppliedCoupon = appliedCouponCode.length > 0 && appliedCouponCode === trimmedCouponCode;
 
     const activeCouponItemMap = useMemo(
         () => new Map((activeCouponPreview?.items ?? []).map((entry) => [entry.targetId, entry])),
@@ -298,12 +300,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     shopItemId: item.id,
-                    couponCode: trimmedCouponCode || undefined,
+                    couponCode: appliedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { coinBalance?: number; finalPriceCoin?: number; error?: string };
             if (!response.ok) {
-                toast.error(payload.error || "Satın alma başarısız.");
+                toast.error(payload.error || "SatÄ±n alma baÅŸarÄ±sÄ±z.");
                 return;
             }
 
@@ -312,11 +314,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "store_purchase" });
             }
             dispatchNotificationsUpdated();
-            toast.success(`${item.name} satın alındı.`, {
-                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
+            toast.success(`${item.name} satÄ±n alÄ±ndÄ±.`, {
+                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandÄ±.` : undefined,
             });
         } catch {
-            toast.error("Satın alma isteği tamamlanamadı.");
+            toast.error("SatÄ±n alma isteÄŸi tamamlanamadÄ±.");
         } finally {
             setBusyTarget(null);
         }
@@ -333,12 +335,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     bundleId: bundle.id,
-                    couponCode: trimmedCouponCode || undefined,
+                    couponCode: appliedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { awardedItems?: Array<{ id: number }>; coinBalance?: number; finalPriceCoin?: number; error?: string };
             if (!response.ok) {
-                toast.error(payload.error || "Paket satın alma başarısız.");
+                toast.error(payload.error || "Paket satÄ±n alma baÅŸarÄ±sÄ±z.");
                 return;
             }
 
@@ -348,11 +350,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "bundle_purchase" });
             }
             dispatchNotificationsUpdated();
-            toast.success(`${bundle.name} satın alındı.`, {
-                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
+            toast.success(`${bundle.name} satÄ±n alÄ±ndÄ±.`, {
+                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandÄ±.` : undefined,
             });
         } catch {
-            toast.error("Paket satın alma isteği tamamlanamadı.");
+            toast.error("Paket satÄ±n alma isteÄŸi tamamlanamadÄ±.");
         } finally {
             setBusyTarget(null);
         }
@@ -360,7 +362,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
     const handleApplyCoupon = async () => {
         if (!trimmedCouponCode || applyingCoupon) {
-            toast.info("Kuponu kullanmak için önce kodu gir.");
+            toast.info("Kuponu kullanmak iÃ§in Ã¶nce kodu gir.");
             return;
         }
         setApplyingCoupon(true);
@@ -375,12 +377,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             const payload = (await response.json()) as CouponCatalogPreviewResponse | { error?: string };
             if (!response.ok || !("valid" in payload)) {
                 setActiveCouponPreview(null);
-                toast.error(("error" in payload && payload.error) ? payload.error : "Kupon doğrulanamadı.");
+                toast.error(("error" in payload && payload.error) ? payload.error : "Kupon doÄŸrulanamadÄ±.");
                 return;
             }
             if (!payload.valid || !payload.coupon) {
                 setActiveCouponPreview(null);
-                toast.error(payload.reason || "Kupon bu hedef için geçerli değil.");
+                toast.error(payload.reason || "Kupon bu hedef iÃ§in geÃ§erli deÄŸil.");
                 return;
             }
 
@@ -391,11 +393,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 items: payload.items,
                 bundles: payload.bundles,
             });
-            toast.success(`${payload.coupon.code} uygulandı.`, {
-                description: `${payload.items.length + payload.bundles.length} teklif güncellendi.`,
+            toast.success(`${payload.coupon.code} uygulandÄ±.`, {
+                description: `${payload.items.length + payload.bundles.length} teklif gÃ¼ncellendi.`,
             });
         } catch {
-            toast.error("Kupon doğrulama isteği tamamlanamadı.");
+            toast.error("Kupon doÄŸrulama isteÄŸi tamamlanamadÄ±.");
         } finally {
             setApplyingCoupon(false);
         }
@@ -415,7 +417,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             });
             const payload = (await response.json()) as CoinGrantRedeemResult | { error?: string };
             if (!response.ok || !("ok" in payload) || !payload.ok) {
-                toast.error(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanılamadı.");
+                toast.error(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanÄ±lamadÄ±.");
                 return;
             }
 
@@ -423,11 +425,11 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "coin_grant" });
             dispatchNotificationsUpdated();
             setCoinGrantCode("");
-            toast.success("Coin kodu kullanıldı.", {
+            toast.success("Coin kodu kullanÄ±ldÄ±.", {
                 description: `${payload.coinAmount} coin eklendi.`,
             });
         } catch {
-            toast.error("Coin kodu isteği tamamlanamadı.");
+            toast.error("Coin kodu isteÄŸi tamamlanamadÄ±.");
         } finally {
             setRedeemingCoinGrant(false);
         }
@@ -444,17 +446,17 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     <div>
                         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/50 dark:text-slate-200">
                             <Sparkles className="h-3.5 w-3.5" />
-                            Mağaza
+                            MaÄŸaza
                         </div>
                         <h1 className="max-w-2xl text-xl font-black tracking-tight text-slate-950 dark:text-white md:text-[1.75rem]">
-                            Kozmetik kataloğu
+                            Kozmetik kataloÄŸu
                         </h1>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Avatar, çerçeve ve kart kozmetiklerini kategoriye göre tarayabilir, satın almadan önce önizlemeyi açabilirsin.
+                            Avatar, Ã§erÃ§eve ve kart kozmetiklerini kategoriye gÃ¶re tarayabilir, satÄ±n almadan Ã¶nce Ã¶nizlemeyi aÃ§abilirsin.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusChip label={`Mağaza x${catalog.liveops.storePriceMultiplier.toFixed(2)}`} />
-                            <StatusChip label={`Maç x${catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}`} />
+                            <StatusChip label={`MaÄŸaza x${catalog.liveops.storePriceMultiplier.toFixed(2)}`} />
+                            <StatusChip label={`MaÃ§ x${catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}`} />
                             {catalog.liveops.weekendBoostApplied ? <StatusChip label="Hafta Sonu Bonusu" tone="warning" /> : null}
                             {!catalog.liveops.discountCampaignsEnabled ? <StatusChip label="Kampanyalar Durduruldu" tone="danger" /> : null}
                         </div>
@@ -522,7 +524,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                                 disabled={!catalog.liveops.couponsEnabled}
                                                 className={cn(
                                                     "min-w-0 flex-1 rounded-2xl border bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition dark:bg-slate-950 dark:text-slate-100",
-                                                    activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
+                                                    hasAppliedCoupon
                                                         ? "border-emerald-300 focus:border-emerald-500 dark:border-emerald-800/60"
                                                         : "border-slate-200 focus:border-slate-500 dark:border-slate-700"
                                                 )}
@@ -536,22 +538,22 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                                     applyingCoupon
                                                         ? "border border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                                                         : "",
-                                                    activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
+                                                    hasAppliedCoupon
                                                         ? "border border-emerald-300 bg-emerald-500 text-white shadow-[0_12px_28px_-18px_rgba(16,185,129,0.9)] hover:bg-emerald-600 dark:border-emerald-500/40 dark:bg-emerald-500 dark:text-white"
                                                         : "border border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
                                                 )}
                                             >
-                                                {applyingCoupon ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? <Check className="h-3.5 w-3.5" /> : <TicketPercent className="h-3.5 w-3.5" />}
-                                                {applyingCoupon ? "Kontrol Ediliyor" : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? "Uygulandı" : "Kullan"}
+                                                {applyingCoupon ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : hasAppliedCoupon ? <Check className="h-3.5 w-3.5" /> : <TicketPercent className="h-3.5 w-3.5" />}
+                                                {applyingCoupon ? "Kontrol Ediliyor" : hasAppliedCoupon ? "Uygulandı" : "Kullan"}
                                             </button>
                                         </div>
                                         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            Kupon geçerliyse indirimli ürün ve paketler üstte görünür. Kartların üzerinde yeni fiyatı hemen görürsün.
+                                            Kupon geÃ§erliyse indirimli Ã¼rÃ¼n ve paketler Ã¼stte gÃ¶rÃ¼nÃ¼r. KartlarÄ±n Ã¼zerinde yeni fiyatÄ± hemen gÃ¶rÃ¼rsÃ¼n.
                                         </p>
                                         <div className="flex flex-wrap items-center gap-2 text-xs">
                                             {activeCouponPreview ? (
                                                 <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-bold text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
-                                                    Aktif kupon: {activeCouponPreview.coupon.code} • {activeCouponPreview.items.length + activeCouponPreview.bundles.length} teklif
+                                                    Aktif kupon: {activeCouponPreview.coupon.code} â€¢ {activeCouponPreview.items.length + activeCouponPreview.bundles.length} teklif
                                                 </span>
                                             ) : null}
                                         </div>
@@ -582,7 +584,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                             </button>
                                         </div>
                                         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            Etkinlik veya içerik üreticisi kodlarını burada kullan. Başarılı olduğunda coin bakiyen ve bildirimlerin güncellenir.
+                                            Etkinlik veya iÃ§erik Ã¼reticisi kodlarÄ±nÄ± burada kullan. BaÅŸarÄ±lÄ± olduÄŸunda coin bakiyen ve bildirimlerin gÃ¼ncellenir.
                                         </p>
                                     </>
                                 )}
@@ -611,12 +613,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                             </div>
                             <h2 className="mt-1 text-lg font-black text-slate-900 dark:text-white">{activeCouponPreview.coupon.code}</h2>
                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                İndirimli ürün ve paketler aşağıda işaretlendi. Yeni fiyatlar kartların üzerinde doğrudan görünüyor.
+                                Ä°ndirimli Ã¼rÃ¼n ve paketler aÅŸaÄŸÄ±da iÅŸaretlendi. Yeni fiyatlar kartlarÄ±n Ã¼zerinde doÄŸrudan gÃ¶rÃ¼nÃ¼yor.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs font-bold">
                             <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-blue-700 dark:border-blue-800/60 dark:bg-slate-950/50 dark:text-blue-300">
-                                {couponMatchedItems.length} ürün
+                                {couponMatchedItems.length} Ã¼rÃ¼n
                             </span>
                             <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-blue-700 dark:border-blue-800/60 dark:bg-slate-950/50 dark:text-blue-300">
                                 {couponMatchedBundles.length} paket
@@ -630,8 +632,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 <section className="mb-8">
                     <div className="mb-4 flex items-end justify-between gap-4">
                         <div>
-                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Öne Çıkanlar</h2>
-                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Vitrine alınan ürünler burada öne çıkarılır.</p>
+                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Ã–ne Ã‡Ä±kanlar</h2>
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Vitrine alÄ±nan Ã¼rÃ¼nler burada Ã¶ne Ã§Ä±karÄ±lÄ±r.</p>
                         </div>
                     </div>
                     <div className="grid gap-4 lg:grid-cols-3">
@@ -645,10 +647,10 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             <section className="mb-8 rounded-[28px] border border-slate-200/80 bg-white/85 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.2)] dark:border-slate-800/70 dark:bg-slate-950/40 md:p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Ürünler</h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Seçili kategoriye göre filtrelenmiş mağaza kataloğu.</p>
+                        <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">ÃœrÃ¼nler</h2>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">SeÃ§ili kategoriye gÃ¶re filtrelenmiÅŸ maÄŸaza kataloÄŸu.</p>
                     </div>
-                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{filteredItems.length} Ürün</div>
+                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{filteredItems.length} ÃœrÃ¼n</div>
                 </div>
                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="relative w-full max-w-md">
@@ -656,7 +658,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                         <input
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
-                            placeholder="Ürün, paket veya etiket ara"
+                            placeholder="ÃœrÃ¼n, paket veya etiket ara"
                             className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100"
                         />
                     </div>
@@ -667,7 +669,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     ) : null}
                 </div>
                 {filteredItems.length === 0 ? (
-                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{searchQuery ? "Aramaya uygun ürün bulunamadı." : "Bu kategoride aktif ürün yok."}</div>
+                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{searchQuery ? "Aramaya uygun Ã¼rÃ¼n bulunamadÄ±." : "Bu kategoride aktif Ã¼rÃ¼n yok."}</div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
                         {sortedItems.map((item) => (
@@ -681,12 +683,12 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 <div className="mb-5 flex items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Paketler</h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Birden fazla kozmetiği tek alımda toplayan teklif setleri.</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Birden fazla kozmetiÄŸi tek alÄ±mda toplayan teklif setleri.</p>
                     </div>
                     <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-900 dark:text-slate-300">{filteredBundles.length} Paket</div>
                 </div>
                 {filteredBundles.length === 0 ? (
-                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{catalog.liveops.bundlesEnabled ? (searchQuery ? "Aramaya uygun paket bulunamadı." : "Aktif paket yok.") : "Paket satışları geçici olarak kapalı."}</div>
+                    <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{catalog.liveops.bundlesEnabled ? (searchQuery ? "Aramaya uygun paket bulunamadÄ±." : "Aktif paket yok.") : "Paket satÄ±ÅŸlarÄ± geÃ§ici olarak kapalÄ±."}</div>
                 ) : (
                     <div className="grid gap-4 xl:grid-cols-2">
                         {filteredBundles.map((bundle) => (
@@ -741,7 +743,7 @@ function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: Ca
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
+                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Ã–nizle" onClick={onPreview} />
                     <BuyButton item={item} busy={busy} onClick={onBuy} />
                 </div>
             </div>
@@ -775,7 +777,7 @@ function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: 
                         </div>
                         {activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
                     </div>
-                    <ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
+                    <ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Ã–nizle" onClick={onPreview} />
                 </div>
                 <div className="mt-3"><BuyButton item={item} busy={busy} onClick={onBuy} fullWidth /></div>
             </div>
@@ -791,13 +793,13 @@ function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, o
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white dark:bg-slate-100 dark:text-slate-950">Paket</div>
-                        <div className="rounded-full border border-white/70 bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-300">{bundle.items.length} parça</div>
+                        <div className="rounded-full border border-white/70 bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-300">{bundle.items.length} parÃ§a</div>
                         {activePricing.couponApplied ? <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
                     </div>
                     <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
                 </div>
-                <CoinBadge value={activePricing.pricing.finalPriceCoin} label="Paket Fiyatı" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" />
+                <CoinBadge value={activePricing.pricing.finalPriceCoin} label="Paket FiyatÄ±" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" />
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {bundle.items.slice(0, 4).map((item) => {
@@ -818,11 +820,11 @@ function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, o
             <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     {(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}
-                    <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} Ã¼rÃ¼ne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
-                    <button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button>
+                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Ã–nizle" onClick={onPreview} />
+                    <button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip OlduÄŸun ÃœrÃ¼n Var" : busy ? "AlÄ±nÄ±yor..." : "Paketi SatÄ±n Al"}</button>
                 </div>
             </div>
         </article>
@@ -838,7 +840,7 @@ function ActionIconButton({ icon, label, onClick, disabled = false }: { icon: Re
 }
 
 function BuyButton({ item, busy, onClick, fullWidth = false }: { item: CatalogStoreItemView; busy: boolean; onClick: () => void; fullWidth?: boolean }) {
-    const label = item.equipped ? "Kullanılıyor" : item.owned ? "Sahipsin" : busy ? "Alınıyor..." : "Satın Al";
+    const label = item.equipped ? "KullanÄ±lÄ±yor" : item.owned ? "Sahipsin" : busy ? "AlÄ±nÄ±yor..." : "SatÄ±n Al";
     const className = item.owned ? (item.equipped ? "bg-blue-600 text-white" : "bg-emerald-600 text-white") : SHOP_RARITY_BUY_BUTTON_CLASS[item.rarity];
     return <button type="button" onClick={onClick} disabled={busy || item.owned} className={cn("rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all disabled:opacity-50", fullWidth && "w-full", className)}>{label}</button>;
 }
@@ -859,7 +861,7 @@ function ItemPreviewContent({ item, activePricing, busy, onBuy }: { item: Catalo
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
-                <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
+                <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">ÃœrÃ¼n Ã–nizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} â€¢ {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
                 {item.pricing.appliedPromotion ? <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">Kampanya: {item.pricing.appliedPromotion.name}</div> : null}
                 <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-6"><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
@@ -876,9 +878,9 @@ function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, onBuy }
                 <div className="grid grid-cols-2 gap-4">{bundle.items.map((item) => { const catalogItem = itemLookup.get(item.shopItemId); return (<div key={item.id} className={`rounded-[22px] border p-4 text-center ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}><div className="flex justify-center">{catalogItem ? <StoreMiniPreview item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}</div><div className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.itemType)}</div><div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{item.itemName}</div></div>); })}</div>
             </div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
-                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Paket Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
-                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div>
-                <div className="mt-auto flex flex-wrap gap-2 pt-6"><button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div>
+                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Paket Ã–nizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
+                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} Ã¼rÃ¼ne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div>
+                <div className="mt-auto flex flex-wrap gap-2 pt-6"><button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip OlduÄŸun ÃœrÃ¼n Var" : busy ? "AlÄ±nÄ±yor..." : "Paketi SatÄ±n Al"}</button></div>
             </div>
         </div>
     );
@@ -918,10 +920,11 @@ function StoreCardPreviewSurface({ item, compact = false }: { item: CatalogStore
     if (item.type === "card_back") {
         const theme = resolveCardBackTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
         const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-        return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.98))]">{theme.overlayImageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.overlayImageUrl} alt={item.name} fill className="object-cover opacity-90" /> : null}<div className={cn("absolute inset-0", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[10%] rounded-[22px] border-2" style={{ borderColor: theme.borderColor }} /><div className="absolute inset-[20%] rounded-[16px] border" style={{ borderColor: theme.secondaryColor }} />{!compact ? <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">Kart Arkası</div> : null}</div>;
+        return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.98))]">{theme.overlayImageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.overlayImageUrl} alt={item.name} fill className="object-cover opacity-90" /> : null}<div className={cn("absolute inset-0", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[10%] rounded-[22px] border-2" style={{ borderColor: theme.borderColor }} /><div className="absolute inset-[20%] rounded-[16px] border" style={{ borderColor: theme.secondaryColor }} />{!compact ? <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">Kart ArkasÄ±</div> : null}</div>;
     }
     const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
     const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
     const overlayStyle = theme.overlayImageUrl ? { backgroundImage: `linear-gradient(rgba(255,255,255,${theme.overlayOpacity * 0.7}), rgba(255,255,255,${theme.overlayOpacity * 0.7})), url(${theme.overlayImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
-    return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} />{compact ? <><div className="absolute inset-x-[24px] top-[18px] h-3 rounded-full bg-slate-900/15" /><div className="absolute inset-x-[28px] bottom-[18px] h-3 rounded-full bg-slate-900/12" /></> : <><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Önü</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun İçi</div></>}</div>;
+    return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} />{compact ? <><div className="absolute inset-x-[24px] top-[18px] h-3 rounded-full bg-slate-900/15" /><div className="absolute inset-x-[28px] bottom-[18px] h-3 rounded-full bg-slate-900/12" /></> : <><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Ã–nÃ¼</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun Ä°Ã§i</div></>}</div>;
 }
+
