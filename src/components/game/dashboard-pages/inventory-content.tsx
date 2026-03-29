@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
-import { PackageOpen } from "lucide-react";
+import { Eye, PackageOpen, X } from "lucide-react";
 import { DashboardEmptyState, DashboardPageShell, DashboardSection } from "@/components/game/dashboard-page-shell";
+import { CosmeticLargePreview, CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinBadge } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
+import { dispatchInventoryUpdated } from "@/lib/inventory-events";
 import type {
   EquippedSlots,
   InventoryItemView,
@@ -36,19 +37,13 @@ const rarityGlow: Record<StoreItemRarity, string> = {
   legendary: "shadow-[0_0_15px_rgba(234,179,8,0.3)]",
 };
 
-const tabs: { id: StoreItemType; label: string }[] = [
+const tabs: { id: "all" | StoreItemType; label: string }[] = [
+  { id: "all", label: "Tümü" },
   { id: "avatar", label: "Avatarlar" },
   { id: "frame", label: "Çerçeveler" },
   { id: "card_back", label: "Kart Arkaları" },
   { id: "card_face", label: "Kart Önleri" },
 ];
-
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
-
-function getItemInitial(name: string): string {
-  const trimmed = name.trim();
-  return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "?";
-}
 
 function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): boolean {
   if (item.type === "avatar") {
@@ -63,24 +58,11 @@ function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): 
   return equippedSlots.cardFaceItemId === item.shopItemId;
 }
 
-function formatInventoryTypeLabel(type: StoreItemType): string {
-  if (type === "avatar") {
-    return "Avatar";
-  }
-  if (type === "frame") {
-    return "Çerçeve";
-  }
-  if (type === "card_back") {
-    return "Kart Arkası";
-  }
-  return "Kart Önü";
-}
-
 export function InventoryContent() {
   const { data: session } = useSession();
-  const [activeType, setActiveType] = useState<StoreItemType>("avatar");
+  const [activeType, setActiveType] = useState<"all" | StoreItemType>("all");
   const [items, setItems] = useState<InventoryItemView[]>([]);
-  const [selectedItem, setSelectedItem] = useState<InventoryItemView | null>(null);
+  const [previewItem, setPreviewItem] = useState<InventoryItemView | null>(null);
   const [equipBusyId, setEquipBusyId] = useState<number | null>(null);
   const [coinBalance, setCoinBalance] = useState(0);
   const [equippedSlots, setEquippedSlots] = useState<EquippedSlots>({
@@ -89,7 +71,6 @@ export function InventoryContent() {
     cardBackItemId: null,
     cardFaceItemId: null,
   });
-  const [displayName, setDisplayName] = useState("Player");
 
   useEffect(() => {
     if (!session?.user) {
@@ -112,7 +93,6 @@ export function InventoryContent() {
           cardBackItemId: payload.profile.cardBackItemId,
           cardFaceItemId: payload.profile.cardFaceItemId,
         });
-        setDisplayName(payload.profile.displayName || payload.name || session.user.name || "Player");
       } catch {
         // Keep defaults when fetch fails.
       }
@@ -137,7 +117,7 @@ export function InventoryContent() {
         equipped: isItemEquipped(item, equippedSlots),
       }))
     );
-    setSelectedItem((current) => {
+    setPreviewItem((current) => {
       if (!current) {
         return null;
       }
@@ -150,7 +130,7 @@ export function InventoryContent() {
   }, [equippedSlots]);
 
   const filteredItems = useMemo(
-    () => items.filter((item) => item.type === activeType),
+    () => activeType === "all" ? items : items.filter((item) => item.type === activeType),
     [activeType, items]
   );
 
@@ -173,6 +153,7 @@ export function InventoryContent() {
 
       const payload = (await response.json()) as { equippedSlots: EquippedSlots };
       setEquippedSlots(payload.equippedSlots);
+      dispatchInventoryUpdated();
     } catch {
       // Keep previous state on failure.
     } finally {
@@ -198,7 +179,7 @@ export function InventoryContent() {
                   key={tab.id}
                   onClick={() => {
                     setActiveType(tab.id);
-                    setSelectedItem(null);
+                    setPreviewItem(null);
                   }}
                   className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition-colors ${
                     activeType === tab.id
@@ -214,7 +195,6 @@ export function InventoryContent() {
           }
           contentClassName="space-y-5"
         >
-          {selectedItem ? <InventoryPreviewCard selectedItem={selectedItem} displayName={displayName} className="xl:hidden" /> : null}
           <div className="flex min-h-0 gap-6 overflow-hidden">
             <div className="flex-1 overflow-y-auto pb-2">
               {filteredItems.length === 0 ? (
@@ -228,125 +208,126 @@ export function InventoryContent() {
                   {filteredItems.map((item) => (
                     <div
                       key={item.inventoryItemId}
-                      onClick={() => setSelectedItem(item)}
-                      className={`group relative flex cursor-pointer flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
+                      className={`group relative flex flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
                     >
-                      <div className="relative mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800/60 dark:to-slate-900/60">
+                      <div className="relative mb-3 flex aspect-[0.95/1] items-center justify-center overflow-hidden rounded-[18px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                         <div
-                          className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white ${rarityColor[item.rarity]}`}
+                          className={`absolute right-2 top-2 z-10 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white ${rarityColor[item.rarity]}`}
                         >
                           {item.rarity}
                         </div>
-                        {item.imageUrl ? (
-                          <Image
-                            loader={passthroughImageLoader}
-                            unoptimized
-                            src={item.imageUrl}
-                            alt={item.name}
-                            width={72}
-                            height={72}
-                            className="h-[72px] w-[72px] rounded-full object-cover shadow-lg transition-transform duration-300 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xl font-black text-white shadow-lg">
-                            {getItemInitial(item.name)}
-                          </div>
-                        )}
+                        <button
+                          onClick={() => setPreviewItem(item)}
+                          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 text-slate-700 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:bg-slate-900"
+                          type="button"
+                          aria-label={`${item.name} önizleme`}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                        <CosmeticMiniPreview item={item} />
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm font-black text-slate-900 dark:text-white">{item.name}</h3>
                         <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                          {item.source} • {new Date(item.acquiredAt).toLocaleDateString("tr-TR")}
+                          {formatCosmeticTypeLabel(item.type)} • {new Date(item.acquiredAt).toLocaleDateString("tr-TR")}
                         </p>
                       </div>
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleEquip(item);
-                        }}
-                        disabled={item.equipped || equipBusyId !== null}
-                        className={`mt-4 w-full rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
-                          item.equipped
-                            ? "bg-blue-500 text-white"
-                            : "bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-blue-600"
-                        }`}
-                        type="button"
-                      >
-                        {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
-                      </button>
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => void handleEquip(item)}
+                          disabled={item.equipped || equipBusyId !== null}
+                          className={`flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
+                            item.equipped
+                              ? "bg-blue-500 text-white"
+                              : "bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-blue-600"
+                          }`}
+                          type="button"
+                        >
+                          {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-            {selectedItem ? (
-              <InventoryPreviewCard
-                selectedItem={selectedItem}
-                displayName={displayName}
-                className="hidden xl:flex xl:w-72 xl:flex-shrink-0"
-              />
-            ) : null}
           </div>
         </DashboardSection>
       </div>
+      {previewItem ? (
+        <InventoryPreviewModal selectedItem={previewItem} onClose={() => setPreviewItem(null)} />
+      ) : null}
     </DashboardPageShell>
   );
 }
 
 function InventoryPreviewCard({
   selectedItem,
-  displayName,
   className,
 }: {
   selectedItem: InventoryItemView;
-  displayName: string;
   className?: string;
 }) {
   return (
-    <div className={`rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45 ${className ?? ""}`}>
-      <h3 className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-        Önizleme
-      </h3>
-      <div className="relative mb-6 flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-[24px] border border-slate-200/70 bg-slate-100 p-4 shadow-inner dark:border-slate-700/80 dark:bg-slate-950">
-        <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-purple-500 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl ring-4 ring-purple-500/20">
-          {selectedItem.imageUrl ? (
-            <Image
-              loader={passthroughImageLoader}
-              unoptimized
-              src={selectedItem.imageUrl}
-              alt={selectedItem.name}
-              width={96}
-              height={96}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-3xl text-white">{getItemInitial(selectedItem.name)}</span>
-          )}
+      <div className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] ${className ?? ""}`}>
+        <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]">
+          <CosmeticLargePreview item={selectedItem} />
         </div>
-        <div className="text-center">
-          <h4 className="text-lg font-black text-slate-900 dark:text-white">{displayName}</h4>
+        <div className="flex flex-col rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            Envanter Önizleme
+          </div>
+          <h4 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{selectedItem.name}</h4>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {formatCosmeticTypeLabel(selectedItem.type)} • {selectedItem.rarity}
+          </p>
+          <div
+            className={`mt-5 inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+              selectedItem.rarity === "legendary"
+                ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900/30 dark:bg-yellow-950/20 dark:text-yellow-300"
+                : selectedItem.rarity === "epic"
+                  ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/30 dark:bg-purple-950/20 dark:text-purple-300"
+                  : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
+            }`}
+          >
+            {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
+          </div>
+          <div className="mt-6 space-y-3 rounded-[24px] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800/70 dark:bg-slate-950/50">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Kazanım Tarihi</div>
+              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{new Date(selectedItem.acquiredAt).toLocaleDateString("tr-TR")}</div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Durum</div>
+              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{selectedItem.equipped ? "Şu anda kuşanılmış" : "Envanterde hazır"}</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="space-y-3">
-        <div>
-          <h4 className="text-lg font-black text-slate-900 dark:text-white">{selectedItem.name}</h4>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {selectedItem.rarity.charAt(0).toUpperCase() + selectedItem.rarity.slice(1)}{" "}
-            {formatInventoryTypeLabel(selectedItem.type)}
-          </p>
-        </div>
-        <div
-          className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.16em] ${
-            selectedItem.rarity === "legendary"
-              ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900/30 dark:bg-yellow-950/20 dark:text-yellow-300"
-              : selectedItem.rarity === "epic"
-                ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/30 dark:bg-purple-950/20 dark:text-purple-300"
-                : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300"
-          }`}
+  );
+}
+
+function InventoryPreviewModal({
+  selectedItem,
+  onClose,
+}: {
+  selectedItem: InventoryItemView;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,251,0.98),rgba(238,244,255,0.98))] p-5 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.8)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(17,24,39,0.96),rgba(23,37,84,0.95))] md:p-6"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"
         >
-          {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
-        </div>
+          <X className="h-4 w-4" />
+        </button>
+        <InventoryPreviewCard selectedItem={selectedItem} />
       </div>
     </div>
   );

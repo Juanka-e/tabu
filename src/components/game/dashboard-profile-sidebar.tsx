@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
+import { INVENTORY_UPDATED_EVENT } from "@/lib/inventory-events";
 import type {
   CatalogStoreItemView,
   DashboardDataResponse,
@@ -17,6 +18,7 @@ import type { DashboardTab } from "./dashboard-nav";
 
 interface ProfileSidebarProps {
   onTabChange: (tab: DashboardTab) => void;
+  mode?: "sidebar" | "inline";
 }
 
 interface SidebarState {
@@ -26,8 +28,6 @@ interface SidebarState {
   winRate: number;
   equippedItems: InventoryItemView[];
 }
-
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 function getInitial(name: string): string {
   const trimmed = name.trim();
@@ -69,10 +69,11 @@ function buildDiscoveryRail(items: CatalogStoreItemView[]): CatalogStoreItemView
   return shuffleItems(candidatePool).slice(0, 6);
 }
 
-export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
+export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: ProfileSidebarProps) {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<SidebarState | null>(null);
   const [discoveryItems, setDiscoveryItems] = useState<CatalogStoreItemView[]>([]);
+  const [radarOffset, setRadarOffset] = useState(0);
 
   useEffect(() => {
     if (!session?.user) {
@@ -115,25 +116,48 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
     };
 
     window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+    window.addEventListener(INVENTORY_UPDATED_EVENT, handleWalletUpdated);
     return () => {
       window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+      window.removeEventListener(INVENTORY_UPDATED_EVENT, handleWalletUpdated);
     };
   }, [session]);
 
   const name = profile?.displayName || session?.user?.name || "Player";
   const initial = getInitial(name);
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
-  const discoveryTrack = useMemo(() => {
+  const rotatedDiscoveryItems = useMemo(() => {
     if (discoveryItems.length === 0) {
       return [];
     }
 
-    return discoveryItems.length > 1 ? [...discoveryItems, ...discoveryItems] : discoveryItems;
-  }, [discoveryItems]);
+    const start = radarOffset % discoveryItems.length;
+    return [...discoveryItems.slice(start), ...discoveryItems.slice(0, start)];
+  }, [discoveryItems, radarOffset]);
+  const radarLeadItem = rotatedDiscoveryItems[0] ?? null;
+  const radarSecondaryItems = useMemo(() => rotatedDiscoveryItems.slice(1, 4), [rotatedDiscoveryItems]);
+
+  useEffect(() => {
+    if (discoveryItems.length <= 1) return;
+
+    const interval = window.setInterval(() => {
+      setRadarOffset((current) => (current + 1) % discoveryItems.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [discoveryItems.length]);
+
+  if (mode === "inline") {
+    return (
+      <div className="space-y-4 border-b border-slate-200/60 bg-white/72 px-4 py-4 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:hidden">
+        <QuickEquipPanel items={quickEquipItems} onOpenInventory={() => onTabChange("inventory")} compact />
+      </div>
+    );
+  }
 
   return (
-    <aside className="hidden h-full min-w-[320px] w-[340px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex">
-      <div className="flex flex-col p-6 text-center">
+    <aside className="hidden h-full min-w-[300px] w-[320px] flex-col overflow-y-auto border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex 2xl:w-[340px]">
+      <div className="flex flex-1 flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
           <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
@@ -166,125 +190,14 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
             </div>
           </div>
 
-          <div className="w-full text-left">
-            <h3 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Hızlı Kullanım
-            </h3>
-            <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-2">
-              {quickEquipItems.map((item) => (
-                <button
-                  key={item.inventoryItemId}
-                  onClick={() => onTabChange("inventory")}
-                  className="ring-indigo-400 flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md transition-all hover:ring-2"
-                  title={item.name}
-                  type="button"
-                >
-                  {item.imageUrl ? (
-                    <Image
-                      loader={passthroughImageLoader}
-                      unoptimized
-                      src={item.imageUrl}
-                      alt={item.name}
-                      width={48}
-                      height={48}
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                  ) : (
-                    <span className="font-black">{getInitial(item.name)}</span>
-                  )}
-                </button>
-              ))}
-              <button
-                onClick={() => onTabChange("inventory")}
-                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-200 text-slate-400 transition-colors hover:bg-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
-                type="button"
-              >
-                <Plus size={18} />
-              </button>
-            </div>
-          </div>
+          <QuickEquipPanel items={quickEquipItems} onOpenInventory={() => onTabChange("inventory")} />
 
-          <div className="mt-6 w-full text-left">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  <Sparkles size={12} />
-                  Mağaza Radarı
-                </h3>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  Önerilen ürünler mağaza sırasına göre burada döner.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onTabChange("shop")}
-                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-900"
-              >
-                Mağaza
-                <ArrowUpRight size={11} />
-              </button>
-            </div>
-
-            {discoveryTrack.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => onTabChange("shop")}
-                className="w-full rounded-2xl border border-dashed border-slate-300/70 bg-white/40 px-4 py-4 text-left text-xs font-medium text-slate-500 transition hover:bg-white/60 dark:border-slate-700/70 dark:bg-slate-900/30 dark:text-slate-400 dark:hover:bg-slate-900/50"
-              >
-                Şu anda gösterilecek ürün bulunmuyor. Yeni koleksiyonlar geldiğinde burada görünür.
-              </button>
-            ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/80 to-slate-100/70 px-3 py-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
-                <div className={`flex min-w-max gap-3 ${discoveryItems.length > 1 ? "store-radar-track" : ""}`}>
-                  {discoveryTrack.map((item, index) => (
-                    <button
-                      key={`${item.id}-${index}`}
-                      type="button"
-                      onClick={() => onTabChange("shop")}
-                      className="group relative flex w-[184px] flex-shrink-0 items-center gap-3 rounded-2xl border border-white/70 bg-white/80 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/80"
-                    >
-                      <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
-                        {item.imageUrl ? (
-                          <Image
-                            loader={passthroughImageLoader}
-                            unoptimized
-                            src={item.imageUrl}
-                            alt={item.name}
-                            width={56}
-                            height={56}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-lg font-black text-slate-700 dark:text-slate-100">
-                            {getInitial(item.name)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="truncate text-sm font-black text-slate-800 dark:text-white">
-                            {item.name}
-                          </div>
-                          {item.badgeText ? (
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                              {item.badgeText}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-1 text-[11px] font-semibold capitalize text-slate-500 dark:text-slate-400">
-                          {item.type.replace("_", " ")}
-                        </div>
-                        <div className="mt-2 flex items-center gap-1 text-xs font-black text-amber-500">
-                          {item.pricing.finalPriceCoin.toLocaleString()}
-                          <CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" />
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <StoreRadarPanel
+            discoveryItems={discoveryItems}
+            radarLeadItem={radarLeadItem}
+            radarSecondaryItems={radarSecondaryItems}
+            onOpenShop={() => onTabChange("shop")}
+          />
         </div>
       </div>
 
@@ -295,5 +208,119 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
         </div>
       </div>
     </aside>
+  );
+}
+
+function QuickEquipPanel({
+  items,
+  onOpenInventory,
+  compact = false,
+}: {
+  items: InventoryItemView[];
+  onOpenInventory: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="mb-8 w-full text-left">
+      <h3 className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+        Hızlı Kuşan
+      </h3>
+      <div className={compact ? "grid grid-cols-4 gap-2" : "grid grid-cols-4 gap-2"}>
+        {items.map((item) => (
+          <button
+            key={item.inventoryItemId}
+            onClick={onOpenInventory}
+            className="ring-indigo-400 flex h-16 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-1 shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"
+            title={`${item.name} • ${formatCosmeticTypeLabel(item.type)}`}
+            type="button"
+          >
+            <CosmeticMiniPreview item={item} />
+          </button>
+        ))}
+        <button
+          onClick={onOpenInventory}
+          className="flex h-16 items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800"
+          type="button"
+          aria-label="Envanteri aç"
+        >
+          <Plus size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StoreRadarPanel({
+  discoveryItems,
+  radarLeadItem,
+  radarSecondaryItems,
+  onOpenShop,
+}: {
+  discoveryItems: CatalogStoreItemView[];
+  radarLeadItem: CatalogStoreItemView | null;
+  radarSecondaryItems: CatalogStoreItemView[];
+  onOpenShop: () => void;
+}) {
+  const stripItems = [radarLeadItem, ...radarSecondaryItems].filter(Boolean) as CatalogStoreItemView[];
+
+  return (
+    <div className="w-full text-left">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            <Sparkles size={12} />
+            Mağaza Radarı
+          </h3>
+          <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+            Seçilmiş ürünler kısa vitrinde görünür.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenShop}
+          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-900"
+        >
+          Mağaza
+          <ArrowUpRight size={11} />
+        </button>
+      </div>
+
+      {discoveryItems.length === 0 ? (
+        <button
+          type="button"
+          onClick={onOpenShop}
+          className="w-full rounded-2xl border border-dashed border-slate-300/70 bg-white/40 px-4 py-4 text-left text-xs font-medium text-slate-500 transition hover:bg-white/60 dark:border-slate-700/70 dark:bg-slate-900/30 dark:text-slate-400 dark:hover:bg-slate-900/50"
+        >
+          Şu anda gösterilecek ürün bulunmuyor. Yeni koleksiyonlar geldiğinde burada görünür.
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/85 to-slate-100/75 p-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
+          {stripItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={onOpenShop}
+              className="flex min-w-0 flex-col rounded-2xl border border-white/70 bg-white/82 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/80 dark:hover:bg-slate-900"
+            >
+              <div className="flex h-24 items-center justify-center overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                <CosmeticMiniPreview item={item} />
+              </div>
+              <div className="mt-2 min-w-0">
+                <div className="truncate text-xs font-black text-slate-800 dark:text-white">
+                  {item.name}
+                </div>
+                <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  {formatCosmeticTypeLabel(item.type)}
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-amber-500">
+                  {item.pricing.finalPriceCoin.toLocaleString()}
+                  <CoinMark className="h-3.5 w-3.5 ring-0 shadow-none" iconClassName="h-2 w-2" />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
