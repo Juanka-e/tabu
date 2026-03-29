@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -44,18 +44,6 @@ function sortStoreItemsByPriority(items: CatalogStoreItemView[]): CatalogStoreIt
   });
 }
 
-function shuffleItems(items: CatalogStoreItemView[]): CatalogStoreItemView[] {
-  const nextItems = [...items];
-  for (let index = nextItems.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    const current = nextItems[index];
-    nextItems[index] = nextItems[swapIndex];
-    nextItems[swapIndex] = current;
-  }
-
-  return nextItems;
-}
-
 function buildDiscoveryRail(items: CatalogStoreItemView[]): CatalogStoreItemView[] {
   const unownedItems = items.filter((item) => !item.owned);
   if (unownedItems.length === 0) {
@@ -63,38 +51,43 @@ function buildDiscoveryRail(items: CatalogStoreItemView[]): CatalogStoreItemView
   }
 
   const featuredItems = sortStoreItemsByPriority(unownedItems.filter((item) => item.isFeatured));
-  const candidatePool =
-    featuredItems.length > 0 ? featuredItems.slice(0, 8) : sortStoreItemsByPriority(unownedItems).slice(0, 8);
+  if (featuredItems.length > 0) {
+    return featuredItems.slice(0, 4);
+  }
 
-  return shuffleItems(candidatePool).slice(0, 6);
+  const discountedItems = sortStoreItemsByPriority(
+    unownedItems.filter((item) => item.pricing.discountCoin > 0)
+  );
+  if (discountedItems.length > 0) {
+    return discountedItems.slice(0, 4);
+  }
+
+  return sortStoreItemsByPriority(unownedItems).slice(0, 4);
 }
 
 export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: ProfileSidebarProps) {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<SidebarState | null>(null);
   const [discoveryItems, setDiscoveryItems] = useState<CatalogStoreItemView[]>([]);
-  const [radarOffset, setRadarOffset] = useState(0);
 
   useEffect(() => {
     if (!session?.user) {
       return;
     }
 
-    const load = async () => {
+    const loadProfile = async () => {
       try {
-        const [dashboardResponse, inventoryResponse, catalogResponse] = await Promise.all([
+        const [dashboardResponse, inventoryResponse] = await Promise.all([
           fetch("/api/user/dashboard", { cache: "no-store" }),
           fetch("/api/user/me", { cache: "no-store" }),
-          fetch("/api/store/catalog", { cache: "no-store" }),
         ]);
 
-        if (!dashboardResponse.ok || !inventoryResponse.ok || !catalogResponse.ok) {
+        if (!dashboardResponse.ok || !inventoryResponse.ok) {
           return;
         }
 
         const dashboard = (await dashboardResponse.json()) as DashboardDataResponse;
         const inventory = (await inventoryResponse.json()) as UserInventoryResponse;
-        const catalog = (await catalogResponse.json()) as StoreCatalogResponse;
 
         setProfile({
           displayName: inventory.profile.displayName || inventory.name || session.user.name || "Player",
@@ -103,49 +96,48 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
           winRate: dashboard.winRate,
           equippedItems: inventory.items.filter((item) => item.equipped),
         });
-        setDiscoveryItems(buildDiscoveryRail(catalog.items));
       } catch {
         // Sidebar can render fallback values.
       }
     };
 
-    void load();
+    const loadDiscovery = async () => {
+      try {
+        const catalogResponse = await fetch("/api/store/catalog", { cache: "no-store" });
+        if (!catalogResponse.ok) {
+          return;
+        }
+
+        const catalog = (await catalogResponse.json()) as StoreCatalogResponse;
+        setDiscoveryItems(buildDiscoveryRail(catalog.items));
+      } catch {
+        // Keep previous discovery items on failure.
+      }
+    };
+
+    void Promise.all([loadProfile(), loadDiscovery()]);
 
     const handleWalletUpdated = () => {
-      void load();
+      void loadProfile();
+    };
+
+    const handleInventoryUpdated = () => {
+      void Promise.all([loadProfile(), loadDiscovery()]);
     };
 
     window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
-    window.addEventListener(INVENTORY_UPDATED_EVENT, handleWalletUpdated);
+    window.addEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdated);
     return () => {
       window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
-      window.removeEventListener(INVENTORY_UPDATED_EVENT, handleWalletUpdated);
+      window.removeEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdated);
     };
   }, [session]);
 
   const name = profile?.displayName || session?.user?.name || "Player";
   const initial = getInitial(name);
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
-  const rotatedDiscoveryItems = useMemo(() => {
-    if (discoveryItems.length === 0) {
-      return [];
-    }
-
-    const start = radarOffset % discoveryItems.length;
-    return [...discoveryItems.slice(start), ...discoveryItems.slice(0, start)];
-  }, [discoveryItems, radarOffset]);
-  const radarLeadItem = rotatedDiscoveryItems[0] ?? null;
-  const radarSecondaryItems = useMemo(() => rotatedDiscoveryItems.slice(1, 4), [rotatedDiscoveryItems]);
-
-  useEffect(() => {
-    if (discoveryItems.length <= 1) return;
-
-    const interval = window.setInterval(() => {
-      setRadarOffset((current) => (current + 1) % discoveryItems.length);
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, [discoveryItems.length]);
+  const discoveryLeadItem = discoveryItems[0] ?? null;
+  const discoverySecondaryItems = useMemo(() => discoveryItems.slice(1, 4), [discoveryItems]);
 
   if (mode === "inline") {
     return (
@@ -192,10 +184,10 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
 
           <QuickEquipPanel items={quickEquipItems} onOpenInventory={() => onTabChange("inventory")} />
 
-          <StoreRadarPanel
+          <DiscoveryStripPanel
             discoveryItems={discoveryItems}
-            radarLeadItem={radarLeadItem}
-            radarSecondaryItems={radarSecondaryItems}
+            leadItem={discoveryLeadItem}
+            secondaryItems={discoverySecondaryItems}
             onOpenShop={() => onTabChange("shop")}
           />
         </div>
@@ -250,18 +242,18 @@ function QuickEquipPanel({
   );
 }
 
-function StoreRadarPanel({
+function DiscoveryStripPanel({
   discoveryItems,
-  radarLeadItem,
-  radarSecondaryItems,
+  leadItem,
+  secondaryItems,
   onOpenShop,
 }: {
   discoveryItems: CatalogStoreItemView[];
-  radarLeadItem: CatalogStoreItemView | null;
-  radarSecondaryItems: CatalogStoreItemView[];
+  leadItem: CatalogStoreItemView | null;
+  secondaryItems: CatalogStoreItemView[];
   onOpenShop: () => void;
 }) {
-  const stripItems = [radarLeadItem, ...radarSecondaryItems].filter(Boolean) as CatalogStoreItemView[];
+  const stripItems = [leadItem, ...secondaryItems].filter(Boolean) as CatalogStoreItemView[];
 
   return (
     <div className="w-full text-left">
@@ -269,10 +261,10 @@ function StoreRadarPanel({
         <div>
           <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
             <Sparkles size={12} />
-            Mağaza Radarı
+            Önerilenler
           </h3>
           <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-            Seçilmiş ürünler kısa vitrinde görünür.
+            Sahip olmadığın öne çıkan ürünler burada sabit vitrinde görünür.
           </p>
         </div>
         <button

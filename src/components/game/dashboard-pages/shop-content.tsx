@@ -200,6 +200,8 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
 
     const busyKey = busyTarget ? `${busyTarget.kind}:${busyTarget.id}` : null;
     const trimmedCouponCode = couponCode.trim().toUpperCase();
+    const appliedCouponCode = activeCouponPreview?.coupon.code ?? "";
+    const hasAppliedCoupon = appliedCouponCode.length > 0 && appliedCouponCode === trimmedCouponCode;
 
     const activeCouponItemMap = useMemo(
         () => new Map((activeCouponPreview?.items ?? []).map((entry) => [entry.targetId, entry])),
@@ -298,7 +300,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     shopItemId: item.id,
-                    couponCode: trimmedCouponCode || undefined,
+                    couponCode: appliedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { coinBalance?: number; finalPriceCoin?: number; error?: string };
@@ -333,7 +335,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     bundleId: bundle.id,
-                    couponCode: trimmedCouponCode || undefined,
+                    couponCode: appliedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { awardedItems?: Array<{ id: number }>; coinBalance?: number; finalPriceCoin?: number; error?: string };
@@ -522,7 +524,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                                 disabled={!catalog.liveops.couponsEnabled}
                                                 className={cn(
                                                     "min-w-0 flex-1 rounded-2xl border bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition dark:bg-slate-950 dark:text-slate-100",
-                                                    activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
+                                                    hasAppliedCoupon
                                                         ? "border-emerald-300 focus:border-emerald-500 dark:border-emerald-800/60"
                                                         : "border-slate-200 focus:border-slate-500 dark:border-slate-700"
                                                 )}
@@ -536,13 +538,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                                                     applyingCoupon
                                                         ? "border border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                                                         : "",
-                                                    activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode
+                                                    hasAppliedCoupon
                                                         ? "border border-emerald-300 bg-emerald-500 text-white shadow-[0_12px_28px_-18px_rgba(16,185,129,0.9)] hover:bg-emerald-600 dark:border-emerald-500/40 dark:bg-emerald-500 dark:text-white"
                                                         : "border border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
                                                 )}
                                             >
-                                                {applyingCoupon ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? <Check className="h-3.5 w-3.5" /> : <TicketPercent className="h-3.5 w-3.5" />}
-                                                {applyingCoupon ? "Kontrol Ediliyor" : activeCouponPreview && activeCouponPreview.coupon.code === trimmedCouponCode ? "Uygulandı" : "Kullan"}
+                                                {applyingCoupon ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : hasAppliedCoupon ? <Check className="h-3.5 w-3.5" /> : <TicketPercent className="h-3.5 w-3.5" />}
+                                                {applyingCoupon ? "Kontrol Ediliyor" : hasAppliedCoupon ? "Uygulandı" : "Kullan"}
                                             </button>
                                         </div>
                                         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -925,3 +927,4 @@ function StoreCardPreviewSurface({ item, compact = false }: { item: CatalogStore
     const overlayStyle = theme.overlayImageUrl ? { backgroundImage: `linear-gradient(rgba(255,255,255,${theme.overlayOpacity * 0.7}), rgba(255,255,255,${theme.overlayOpacity * 0.7})), url(${theme.overlayImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
     return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} />{compact ? <><div className="absolute inset-x-[24px] top-[18px] h-3 rounded-full bg-slate-900/15" /><div className="absolute inset-x-[28px] bottom-[18px] h-3 rounded-full bg-slate-900/12" /></> : <><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Önü</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun İçi</div></>}</div>;
 }
+

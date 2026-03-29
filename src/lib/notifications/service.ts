@@ -184,11 +184,43 @@ export async function markNotificationReadForUser(
     userId: number
 ): Promise<boolean> {
     const notificationClient = prisma as unknown as NotificationQueryClient;
+    const records = await notificationClient.notification.findMany({
+        where: {
+            id: notificationId,
+            userId,
+            archivedAt: null,
+        },
+        orderBy: [{ createdAt: "desc" }],
+        take: 1,
+        select: {
+            id: true,
+            type: true,
+            title: true,
+            body: true,
+            resourceType: true,
+            resourceId: true,
+            actionLabel: true,
+            actionHref: true,
+            isRead: true,
+            readAt: true,
+            archivedAt: true,
+            createdAt: true,
+        },
+    });
+
+    const target = records[0] as NotificationRecord | undefined;
+    if (!target) {
+        return false;
+    }
+
+    if (target.isRead) {
+        return true;
+    }
+
     const result = await notificationClient.notification.updateMany({
         where: {
             id: notificationId,
             userId,
-            isRead: false,
             archivedAt: null,
         },
         data: {
