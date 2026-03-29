@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import type {
     CoinGrantCampaignWriteInput,
     CoinGrantCodeBatchCreateInput,
@@ -697,6 +698,23 @@ export async function redeemCoinGrantCode(input: {
                     codeId: codeRecord.id,
                     userId: input.userId,
                     status: "completed",
+                    coinAmount: codeRecord.campaign.coinAmount,
+                },
+            });
+
+            await createUserNotificationWithClient(tx, {
+                userId: input.userId,
+                type: "economy",
+                title: "Coin kodu kullanıldı",
+                body: `${codeRecord.campaign.coinAmount} coin hesabına eklendi.`,
+                resourceType: "coin_grant_claim",
+                resourceId: claim.id,
+                actionLabel: "Mağazayı Aç",
+                actionHref: "/dashboard?tab=shop",
+                metadata: {
+                    kind: "coin_grant",
+                    code: codeRecord.code,
+                    campaignCode: codeRecord.campaign.code,
                     coinAmount: codeRecord.campaign.coinAmount,
                 },
             });

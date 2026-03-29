@@ -123,13 +123,8 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
   const name = profile?.displayName || session?.user?.name || "Player";
   const initial = getInitial(name);
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
-  const discoveryTrack = useMemo(() => {
-    if (discoveryItems.length === 0) {
-      return [];
-    }
-
-    return discoveryItems.length > 1 ? [...discoveryItems, ...discoveryItems] : discoveryItems;
-  }, [discoveryItems]);
+  const radarLeadItem = discoveryItems[0] ?? null;
+  const radarSecondaryItems = useMemo(() => discoveryItems.slice(1, 4), [discoveryItems]);
 
   return (
     <aside className="hidden h-full min-w-[320px] w-[340px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex">
@@ -225,7 +220,7 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
               </button>
             </div>
 
-            {discoveryTrack.length === 0 ? (
+            {discoveryItems.length === 0 ? (
               <button
                 type="button"
                 onClick={() => onTabChange("shop")}
@@ -234,49 +229,88 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                 Şu anda gösterilecek ürün bulunmuyor. Yeni koleksiyonlar geldiğinde burada görünür.
               </button>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/80 to-slate-100/70 px-3 py-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
-                <div className={`flex min-w-max gap-3 ${discoveryItems.length > 1 ? "store-radar-track" : ""}`}>
-                  {discoveryTrack.map((item, index) => (
+              <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/85 to-slate-100/75 p-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
+                {radarLeadItem ? (
+                  <button
+                    type="button"
+                    onClick={() => onTabChange("shop")}
+                    className="group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
+                  >
+                    <div className="relative flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
+                      {radarLeadItem.imageUrl ? (
+                        <Image
+                          loader={passthroughImageLoader}
+                          unoptimized
+                          src={radarLeadItem.imageUrl}
+                          alt={radarLeadItem.name}
+                          width={80}
+                          height={80}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-black text-slate-700 dark:text-slate-100">
+                          {getInitial(radarLeadItem.name)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="truncate text-sm font-black text-slate-800 dark:text-white">
+                          {radarLeadItem.name}
+                        </div>
+                        {radarLeadItem.badgeText ? (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                            {radarLeadItem.badgeText}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-1 text-[11px] font-semibold capitalize text-slate-500 dark:text-slate-400">
+                        {radarLeadItem.type.replace("_", " ")}
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 text-xs font-black text-amber-500">
+                          {radarLeadItem.pricing.finalPriceCoin.toLocaleString()}
+                          <CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          İncele
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ) : null}
+                <div className="space-y-2">
+                  {radarSecondaryItems.map((item) => (
                     <button
-                      key={`${item.id}-${index}`}
+                      key={item.id}
                       type="button"
                       onClick={() => onTabChange("shop")}
-                      className="group relative flex w-[184px] flex-shrink-0 items-center gap-3 rounded-2xl border border-white/70 bg-white/80 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/80"
+                      className="flex w-full items-center gap-3 rounded-2xl border border-white/70 bg-white/72 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/75 dark:hover:bg-slate-900"
                     >
-                      <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
+                      <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 via-white to-slate-300 dark:from-slate-800 dark:via-slate-900 dark:to-slate-700">
                         {item.imageUrl ? (
                           <Image
                             loader={passthroughImageLoader}
                             unoptimized
                             src={item.imageUrl}
                             alt={item.name}
-                            width={56}
-                            height={56}
+                            width={44}
+                            height={44}
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="text-lg font-black text-slate-700 dark:text-slate-100">
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-100">
                             {getInitial(item.name)}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="truncate text-sm font-black text-slate-800 dark:text-white">
-                            {item.name}
-                          </div>
-                          {item.badgeText ? (
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                              {item.badgeText}
-                            </span>
-                          ) : null}
+                        <div className="truncate text-sm font-black text-slate-800 dark:text-white">
+                          {item.name}
                         </div>
-                        <div className="mt-1 text-[11px] font-semibold capitalize text-slate-500 dark:text-slate-400">
-                          {item.type.replace("_", " ")}
-                        </div>
-                        <div className="mt-2 flex items-center gap-1 text-xs font-black text-amber-500">
+                        <div className="mt-1 flex items-center gap-1 text-[11px] font-black text-amber-500">
                           {item.pricing.finalPriceCoin.toLocaleString()}
-                          <CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" />
+                          <CoinMark className="h-3.5 w-3.5 ring-0 shadow-none" iconClassName="h-2 w-2" />
                         </div>
                       </div>
                     </button>

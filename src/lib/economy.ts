@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { Prisma } from "@prisma/client";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
@@ -1106,6 +1107,22 @@ export async function purchaseStoreItem(
             },
         });
 
+        await createUserNotificationWithClient(tx, {
+            userId,
+            type: "economy",
+            title: "Satın alma tamamlandı",
+            body: `${item.name} envanterine eklendi.${resolvedPricing?.ok && coupon ? ` ${coupon.code} kuponu uygulandı.` : ""}`,
+            resourceType: "shop_item",
+            resourceId: item.id,
+            actionLabel: "Envanteri Aç",
+            actionHref: "/dashboard?tab=inventory",
+            metadata: {
+                kind: "store_purchase",
+                finalPriceCoin,
+                couponCode: resolvedPricing?.ok ? coupon?.code ?? null : null,
+            },
+        });
+
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
             ok: true,
@@ -1281,6 +1298,23 @@ export async function purchaseStoreBundle(
                 listPriceCoin: effectivePriceCoin,
                 discountCoin: effectivePriceCoin - finalPriceCoin,
                 status: "completed",
+            },
+        });
+
+        await createUserNotificationWithClient(tx, {
+            userId,
+            type: "economy",
+            title: "Paket satın alındı",
+            body: `${bundle.name} paketi envanterine işlendi.${resolvedPricing?.ok && coupon ? ` ${coupon.code} kuponu uygulandı.` : ""}`,
+            resourceType: "shop_bundle",
+            resourceId: bundle.id,
+            actionLabel: "Envanteri Aç",
+            actionHref: "/dashboard?tab=inventory",
+            metadata: {
+                kind: "bundle_purchase",
+                finalPriceCoin,
+                awardedItemCount: awardedEntries.length,
+                couponCode: resolvedPricing?.ok ? coupon?.code ?? null : null,
             },
         });
 

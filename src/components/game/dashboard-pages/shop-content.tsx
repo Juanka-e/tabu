@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import {
     BadgePercent,
     Eye,
@@ -33,19 +34,33 @@ import type {
     CatalogStoreItemView,
     CouponPreviewResponse,
     StoreCatalogResponse,
+    StorePriceView,
     StoreItemType,
 } from "@/types/economy";
 import type { CoinGrantRedeemResult } from "@/types/coin-grants";
 import { dispatchWalletUpdated } from "@/lib/wallet-events";
+import { dispatchNotificationsUpdated } from "@/lib/notification-events";
 
 type ShopCategory = "all" | StoreItemType;
 type BusyTarget = { kind: "shop_item" | "bundle"; id: number } | null;
 type LayoutMode = "dashboard" | "page";
-type FeedbackTone = "success" | "error" | "neutral";
+type UtilityMode = "coupon" | "coin_grant";
 type PreviewOffer =
     | { kind: "item"; item: CatalogStoreItemView }
     | { kind: "bundle"; bundle: CatalogBundleView }
     | null;
+type ActiveCouponPreview = {
+    targetKind: "shop_item" | "bundle";
+    targetId: number;
+    pricing: StorePriceView;
+    coupon: NonNullable<CouponPreviewResponse["coupon"]>;
+};
+type DisplayedPricing = {
+    pricing: CatalogStoreItemView["pricing"] | CatalogBundleView["pricing"];
+    coupon: ActiveCouponPreview["coupon"] | null;
+    couponApplied: boolean;
+    referencePriceCoin: number;
+};
 
 interface ShopContentProps {
     layout?: LayoutMode;
@@ -93,51 +108,17 @@ function applyHexAlpha(hex: string, opacity: number) {
     return `${hex}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
-function feedbackToneClass(tone: FeedbackTone) {
-    if (tone === "success") {
-        return "border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300";
-    }
-    if (tone === "error") {
-        return "border-rose-200/80 bg-rose-50/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300";
-    }
-    return "border-slate-200/80 bg-white/75 text-slate-700 dark:border-slate-800/70 dark:bg-slate-950/40 dark:text-slate-200";
-}
-
-function ControlCard({
-    title,
-    icon,
-    description,
-    children,
-}: {
-    title: string;
-    icon: ReactNode;
-    description: string;
-    children: ReactNode;
-}) {
-    return (
-        <div className="rounded-[24px] border border-slate-200/80 bg-white/90 p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/45">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                {icon}
-                {title}
-            </div>
-            <div className="mt-3">{children}</div>
-            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{description}</p>
-        </div>
-    );
-}
-
 export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const { data: session } = useSession();
     const [category, setCategory] = useState<ShopCategory>("all");
     const [catalog, setCatalog] = useState<StoreCatalogResponse>(createEmptyCatalog);
     const [couponCode, setCouponCode] = useState("");
-    const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
     const [coinGrantCode, setCoinGrantCode] = useState("");
-    const [coinGrantFeedback, setCoinGrantFeedback] = useState<string | null>(null);
-    const [coinGrantTone, setCoinGrantTone] = useState<FeedbackTone>("success");
     const [redeemingCoinGrant, setRedeemingCoinGrant] = useState(false);
     const [busyTarget, setBusyTarget] = useState<BusyTarget>(null);
     const [previewOffer, setPreviewOffer] = useState<PreviewOffer>(null);
+    const [utilityMode, setUtilityMode] = useState<UtilityMode>("coupon");
+    const [activeCouponPreview, setActiveCouponPreview] = useState<ActiveCouponPreview | null>(null);
 
     useEffect(() => {
         if (!session?.user) {
@@ -192,6 +173,63 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     }, [catalog.bundles, catalog.items]);
 
     const busyKey = busyTarget ? `${busyTarget.kind}:${busyTarget.id}` : null;
+    const trimmedCouponCode = couponCode.trim().toUpperCase();
+
+    const activeCouponLabel = useMemo(() => {
+        if (!activeCouponPreview) {
+            return null;
+        }
+
+        if (activeCouponPreview.targetKind === "shop_item") {
+            return catalogItemMap.get(activeCouponPreview.targetId)?.name ?? "Seçili ürün";
+        }
+
+        return catalog.bundles.find((bundle) => bundle.id === activeCouponPreview.targetId)?.name ?? "Seçili paket";
+    }, [activeCouponPreview, catalog.bundles, catalogItemMap]);
+
+    const getDisplayedItemPricing = (item: CatalogStoreItemView) => {
+        if (
+            activeCouponPreview &&
+            activeCouponPreview.targetKind === "shop_item" &&
+            activeCouponPreview.targetId === item.id
+        ) {
+            return {
+                pricing: activeCouponPreview.pricing,
+                coupon: activeCouponPreview.coupon,
+                couponApplied: true,
+                referencePriceCoin: item.pricing.finalPriceCoin,
+            };
+        }
+
+        return {
+            pricing: item.pricing,
+            coupon: null,
+            couponApplied: false,
+            referencePriceCoin: item.pricing.basePriceCoin,
+        };
+    };
+
+    const getDisplayedBundlePricing = (bundle: CatalogBundleView) => {
+        if (
+            activeCouponPreview &&
+            activeCouponPreview.targetKind === "bundle" &&
+            activeCouponPreview.targetId === bundle.id
+        ) {
+            return {
+                pricing: activeCouponPreview.pricing,
+                coupon: activeCouponPreview.coupon,
+                couponApplied: true,
+                referencePriceCoin: bundle.pricing.finalPriceCoin,
+            };
+        }
+
+        return {
+            pricing: bundle.pricing,
+            coupon: null,
+            couponApplied: false,
+            referencePriceCoin: bundle.pricing.basePriceCoin,
+        };
+    };
 
     const applyOwnedItems = (awardedItemIds: number[], nextCoinBalance: number) => {
         const awardedSet = new Set(awardedItemIds);
@@ -220,21 +258,28 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     shopItemId: item.id,
-                    couponCode: couponCode.trim() || undefined,
+                    couponCode: trimmedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { coinBalance?: number; finalPriceCoin?: number; error?: string };
             if (!response.ok) {
-                setCouponFeedback(payload.error || "Satın alma başarısız.");
+                toast.error(payload.error || "Satın alma başarısız.");
                 return;
             }
+
             applyOwnedItems([item.id], payload.coinBalance ?? catalog.coinBalance);
             if (payload.coinBalance !== undefined) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "store_purchase" });
             }
-            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Satın alındı: ${payload.finalPriceCoin} coin` : "Satın alma tamamlandı.");
+            if (activeCouponPreview?.targetKind === "shop_item" && activeCouponPreview.targetId === item.id) {
+                setActiveCouponPreview(null);
+            }
+            dispatchNotificationsUpdated();
+            toast.success(`${item.name} satın alındı.`, {
+                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
+            });
         } catch {
-            setCouponFeedback("Satın alma isteği tamamlanamadı.");
+            toast.error("Satın alma isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
@@ -251,31 +296,37 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     bundleId: bundle.id,
-                    couponCode: couponCode.trim() || undefined,
+                    couponCode: trimmedCouponCode || undefined,
                 }),
             });
             const payload = (await response.json()) as { awardedItems?: Array<{ id: number }>; coinBalance?: number; finalPriceCoin?: number; error?: string };
             if (!response.ok) {
-                setCouponFeedback(payload.error || "Paket satın alma başarısız.");
+                toast.error(payload.error || "Paket satın alma başarısız.");
                 return;
             }
+
             const awardedItemIds = payload.awardedItems?.map((entry) => entry.id) ?? [];
             applyOwnedItems(awardedItemIds, payload.coinBalance ?? catalog.coinBalance);
             if (payload.coinBalance !== undefined) {
                 dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "bundle_purchase" });
             }
-            setCouponFeedback(payload.finalPriceCoin !== undefined ? `Paket satın alındı: ${payload.finalPriceCoin} coin` : "Paket satın alma tamamlandı.");
+            if (activeCouponPreview?.targetKind === "bundle" && activeCouponPreview.targetId === bundle.id) {
+                setActiveCouponPreview(null);
+            }
+            dispatchNotificationsUpdated();
+            toast.success(`${bundle.name} satın alındı.`, {
+                description: payload.finalPriceCoin !== undefined ? `${payload.finalPriceCoin} coin harcandı.` : undefined,
+            });
         } catch {
-            setCouponFeedback("Paket satın alma isteği tamamlanamadı.");
+            toast.error("Paket satın alma isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
     };
 
     const handlePreviewCoupon = async (target: BusyTarget) => {
-        const trimmedCouponCode = couponCode.trim();
         if (!target || !trimmedCouponCode) {
-            setCouponFeedback("Kupon kodunu girip bir ürün veya paket seç.");
+            toast.info("Kuponu denemek için önce kodu gir.");
             return;
         }
         setBusyTarget(target);
@@ -291,16 +342,27 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             });
             const payload = (await response.json()) as CouponPreviewResponse | { error?: string };
             if (!response.ok || !("valid" in payload)) {
-                setCouponFeedback(("error" in payload && payload.error) ? payload.error : "Kupon doğrulanamadı.");
+                setActiveCouponPreview(null);
+                toast.error(("error" in payload && payload.error) ? payload.error : "Kupon doğrulanamadı.");
                 return;
             }
             if (!payload.valid || !payload.pricing || !payload.coupon) {
-                setCouponFeedback(payload.reason || "Kupon bu hedef için geçerli değil.");
+                setActiveCouponPreview(null);
+                toast.error(payload.reason || "Kupon bu hedef için geçerli değil.");
                 return;
             }
-            setCouponFeedback(`${payload.coupon.code} uygulandı: ${payload.pricing.finalPriceCoin} coin`);
+
+            setActiveCouponPreview({
+                targetKind: payload.targetKind,
+                targetId: payload.targetId,
+                pricing: payload.pricing,
+                coupon: payload.coupon,
+            });
+            toast.success(`${payload.coupon.code} uygulandı.`, {
+                description: `${payload.pricing.finalPriceCoin} coin yeni fiyat.`,
+            });
         } catch {
-            setCouponFeedback("Kupon doğrulama isteği tamamlanamadı.");
+            toast.error("Kupon doğrulama isteği tamamlanamadı.");
         } finally {
             setBusyTarget(null);
         }
@@ -312,7 +374,6 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             return;
         }
         setRedeemingCoinGrant(true);
-        setCoinGrantFeedback(null);
         try {
             const response = await fetch("/api/coin-grants/redeem", {
                 method: "POST",
@@ -321,18 +382,19 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             });
             const payload = (await response.json()) as CoinGrantRedeemResult | { error?: string };
             if (!response.ok || !("ok" in payload) || !payload.ok) {
-                setCoinGrantTone("error");
-                setCoinGrantFeedback(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanılamadı.");
+                toast.error(("error" in payload && payload.error) ? payload.error : "Coin kodu kullanılamadı.");
                 return;
             }
+
             setCatalog((currentCatalog) => ({ ...currentCatalog, coinBalance: payload.coinBalance }));
             dispatchWalletUpdated({ coinBalance: payload.coinBalance, source: "coin_grant" });
+            dispatchNotificationsUpdated();
             setCoinGrantCode("");
-            setCoinGrantTone("success");
-            setCoinGrantFeedback(`${payload.coinAmount} coin eklendi: ${payload.code.code}`);
+            toast.success("Coin kodu kullanıldı.", {
+                description: `${payload.coinAmount} coin eklendi.`,
+            });
         } catch {
-            setCoinGrantTone("error");
-            setCoinGrantFeedback("Coin kodu isteği tamamlanamadı.");
+            toast.error("Coin kodu isteği tamamlanamadı.");
         } finally {
             setRedeemingCoinGrant(false);
         }
@@ -377,23 +439,119 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     </div>
                     <div className="grid gap-3">
                         <CoinBadge value={catalog.coinBalance} label="Coin Bakiyesi" className="rounded-[24px] border-amber-300/70 bg-white/90 px-4 py-4 dark:bg-slate-950/55" valueClassName="text-2xl" />
-                        <ControlCard title="Kupon" icon={<TicketPercent className="h-3.5 w-3.5" />} description={catalog.liveops.couponsEnabled ? "Kuponu seçtiğin ürün ya da pakette deneyebilirsin." : "Kupon kullanımı şu anda geçici olarak kapalı."}>
-                            <div className="flex gap-2">
-                                <input value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="WELCOME25" disabled={!catalog.liveops.couponsEnabled} className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                                <button type="button" onClick={() => setCouponFeedback("Kuponu seçtiğin ürün ya da pakette deneyebilirsin.")} disabled={!catalog.liveops.couponsEnabled} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900">Bilgi</button>
+                        <div className="rounded-[24px] border border-slate-200/80 bg-white/90 p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/45">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                    {utilityMode === "coupon" ? <TicketPercent className="h-3.5 w-3.5" /> : <Gift className="h-3.5 w-3.5" />}
+                                    {utilityMode === "coupon" ? "Kupon" : "Coin Kodu"}
+                                </div>
+                                <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70">
+                                    <button
+                                        type="button"
+                                        onClick={() => setUtilityMode("coupon")}
+                                        className={cn(
+                                            "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] transition",
+                                            utilityMode === "coupon"
+                                                ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                                                : "text-slate-500 dark:text-slate-400"
+                                        )}
+                                    >
+                                        Kupon
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUtilityMode("coin_grant")}
+                                        className={cn(
+                                            "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] transition",
+                                            utilityMode === "coin_grant"
+                                                ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                                                : "text-slate-500 dark:text-slate-400"
+                                        )}
+                                    >
+                                        Coin Kodu
+                                    </button>
+                                </div>
                             </div>
-                        </ControlCard>
-                        <ControlCard title="Coin Kodu" icon={<Gift className="h-3.5 w-3.5" />} description="Etkinlik veya içerik üreticisi kodunu burada kullan. Onaylanırsa coin bakiyen hemen güncellenir.">
-                            <div className="flex gap-2">
-                                <input value={coinGrantCode} onChange={(event) => { setCoinGrantCode(event.target.value.toUpperCase()); if (coinGrantFeedback) setCoinGrantFeedback(null); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void handleRedeemCoinGrant(); } }} placeholder="CREATOR-AB12CD" maxLength={80} className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-amber-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
-                                <button type="button" onClick={() => void handleRedeemCoinGrant()} disabled={redeemingCoinGrant || !coinGrantCode.trim()} className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">{redeemingCoinGrant ? "..." : "Kullan"}</button>
+                            <div className="mt-3 space-y-3">
+                                {utilityMode === "coupon" ? (
+                                    <>
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={couponCode}
+                                                onChange={(event) => {
+                                                    const nextValue = event.target.value.toUpperCase();
+                                                    setCouponCode(nextValue);
+                                                    if (!nextValue.trim() || (activeCouponPreview && activeCouponPreview.coupon.code !== nextValue.trim())) {
+                                                        setActiveCouponPreview(null);
+                                                    }
+                                                }}
+                                                placeholder="WELCOME25"
+                                                disabled={!catalog.liveops.couponsEnabled}
+                                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveCouponPreview(null)}
+                                                disabled={!trimmedCouponCode && !activeCouponPreview}
+                                                className="rounded-2xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                                            >
+                                                Temizle
+                                            </button>
+                                        </div>
+                                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                            Kupon ürün bazlı çalışır. Kodu girdikten sonra üründe veya pakette <span className="font-semibold text-slate-700 dark:text-slate-200">Kupon</span> düğmesine bas.
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                                            <span className={cn(
+                                                "rounded-full border px-3 py-1 font-bold",
+                                                catalog.liveops.couponsEnabled
+                                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+                                                    : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+                                            )}>
+                                                {catalog.liveops.couponsEnabled ? "Kupon sistemi aktif" : "Kupon sistemi kapalı"}
+                                            </span>
+                                            {activeCouponPreview ? (
+                                                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-bold text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
+                                                    Aktif kupon: {activeCouponPreview.coupon.code} • {activeCouponLabel}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={coinGrantCode}
+                                                onChange={(event) => setCoinGrantCode(event.target.value.toUpperCase())}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === "Enter") {
+                                                        event.preventDefault();
+                                                        void handleRedeemCoinGrant();
+                                                    }
+                                                }}
+                                                placeholder="CREATOR-AB12CD"
+                                                maxLength={80}
+                                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 outline-none transition focus:border-amber-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleRedeemCoinGrant()}
+                                                disabled={redeemingCoinGrant || !coinGrantCode.trim()}
+                                                className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300"
+                                            >
+                                                {redeemingCoinGrant ? "..." : "Kullan"}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                            Etkinlik veya içerik üreticisi kodlarını burada kullan. Başarılı olduğunda coin bakiyen ve bildirimlerin güncellenir.
+                                        </p>
+                                    </>
+                                )}
                             </div>
-                        </ControlCard>
+                        </div>
                     </div>
                 </div>
             </section>
-            {couponFeedback ? <div className={cn("mb-4 rounded-[22px] border px-4 py-3 text-sm font-medium", feedbackToneClass("neutral"))}>{couponFeedback}</div> : null}
-            {coinGrantFeedback ? <div className={cn("mb-4 rounded-[22px] border px-4 py-3 text-sm font-medium", feedbackToneClass(coinGrantTone))}>{coinGrantFeedback}</div> : null}
 
             <div className="mb-5 flex flex-wrap gap-2">
                 {categories.map((shopCategory) => {
@@ -415,7 +573,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                     </div>
                     <div className="grid gap-4 lg:grid-cols-3">
                         {featuredItems.map((item) => (
-                            <FeatureCard key={item.id} item={item} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
+                            <FeatureCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
                         ))}
                     </div>
                 </section>
@@ -434,7 +592,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 ) : (
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
                         {filteredItems.map((item) => (
-                            <MerchItemCard key={item.id} item={item} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
+                            <MerchItemCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "shop_item", id: item.id })} />
                         ))}
                     </div>
                 )}
@@ -453,13 +611,13 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 ) : (
                     <div className="grid gap-4 xl:grid-cols-2">
                         {catalog.bundles.map((bundle) => (
-                            <BundleMerchCard key={bundle.id} bundle={bundle} itemLookup={catalogItemMap} busy={busyKey === `bundle:${bundle.id}`} couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0} onPreview={() => setPreviewOffer({ kind: "bundle", bundle })} onBuy={() => void handleBuyBundle(bundle)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "bundle", id: bundle.id })} />
+                            <BundleMerchCard key={bundle.id} bundle={bundle} activePricing={getDisplayedBundlePricing(bundle)} itemLookup={catalogItemMap} busy={busyKey === `bundle:${bundle.id}`} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} onPreview={() => setPreviewOffer({ kind: "bundle", bundle })} onBuy={() => void handleBuyBundle(bundle)} onPreviewCoupon={() => void handlePreviewCoupon({ kind: "bundle", id: bundle.id })} />
                         ))}
                     </div>
                 )}
             </section>
 
-            {previewOffer ? <PreviewModal offer={previewOffer} itemLookup={catalogItemMap} onClose={() => setPreviewOffer(null)} onBuyItem={handleBuyItem} onBuyBundle={handleBuyBundle} onPreviewCoupon={handlePreviewCoupon} couponReady={catalog.liveops.couponsEnabled && couponCode.trim().length > 0} busyKey={busyKey} /> : null}
+            {previewOffer ? <PreviewModal offer={previewOffer} itemLookup={catalogItemMap} getDisplayedItemPricing={getDisplayedItemPricing} getDisplayedBundlePricing={getDisplayedBundlePricing} onClose={() => setPreviewOffer(null)} onBuyItem={handleBuyItem} onBuyBundle={handleBuyBundle} onPreviewCoupon={handlePreviewCoupon} couponReady={catalog.liveops.couponsEnabled && trimmedCouponCode.length > 0} busyKey={busyKey} /> : null}
         </div>
     );
 }
@@ -468,17 +626,17 @@ function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutra
     return <div className={cn("inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]", tone === "warning" && "border-amber-300/80 bg-amber-50/80 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-300", tone === "danger" && "border-rose-300/80 bg-rose-50/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-300", tone === "neutral" && "border-slate-200/80 bg-white/80 text-slate-600 dark:border-slate-700/70 dark:bg-slate-950/40 dark:text-slate-300")}>{label}</div>;
 }
 
-function FeatureCard({ item, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function FeatureCard({ item, activePricing, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
     return (
         <article className={cn("relative overflow-hidden rounded-[28px] border p-4 shadow-[0_20px_50px_-36px_rgba(15,23,42,0.25)] transition-all", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
             <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{item.isFeatured ? "Öne Çıkan" : formatItemTypeLabel(item.type)}</div><h3 className="mt-2 text-lg font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-            <div className="mt-4 flex items-center justify-between gap-4"><div className="min-w-0"><div className="text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</div><div className="mt-2 flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">{item.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" /></div>{item.pricing.discountCoin > 0 ? <div className="mt-1 text-xs text-slate-400 line-through">{item.pricing.basePriceCoin.toLocaleString()} coin</div> : null}</div><div className="flex h-24 w-24 items-center justify-center"><StoreMiniPreview item={item} /></div></div>
+            <div className="mt-4 flex items-center justify-between gap-4"><div className="min-w-0"><div className="text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" /></div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-xs text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}</div><div className="flex h-24 w-24 items-center justify-center"><StoreMiniPreview item={item} /></div></div>
             <div className="mt-4 flex flex-wrap gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={!couponReady || item.owned || busy} /><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
         </article>
     );
 }
-function MerchItemCard({ item, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function MerchItemCard({ item, activePricing, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
     return (
         <article className={cn("group relative overflow-hidden rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(15,23,42,0.25)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
@@ -487,18 +645,18 @@ function MerchItemCard({ item, busy, couponReady, onPreview, onBuy, onPreviewCou
                     <StoreMiniPreview item={item} />
                 </div>
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black text-slate-900 dark:text-white">{item.name}</h3><p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</p></div><span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-                <div className="mt-3 flex items-end justify-between gap-3"><div>{item.pricing.discountCoin > 0 ? <div className="text-[11px] text-slate-400 line-through">{item.pricing.basePriceCoin.toLocaleString()}</div> : null}<div className="flex items-center gap-1 text-xs font-black text-amber-500">{item.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" /></div></div><div className="flex items-center gap-2"><ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !item.owned ? <ActionIconButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}</div></div>
+                <div className="mt-3 flex items-end justify-between gap-3"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-[11px] text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()}</div> : null}<div className="flex items-center gap-1 text-xs font-black text-amber-500">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" /></div>{activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><div className="flex items-center gap-2"><ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !item.owned ? <ActionIconButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}</div></div>
                 <div className="mt-3"><BuyButton item={item} busy={busy} onClick={onBuy} fullWidth /></div>
             </div>
         </article>
     );
 }
 
-function BundleMerchCard({ bundle, itemLookup, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
+function BundleMerchCard({ bundle, activePricing, itemLookup, busy, couponReady, onPreview, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onPreview: () => void; onBuy: () => void; onPreviewCoupon: () => void }) {
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
     return (
         <article className="rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,250,252,0.88),rgba(240,249,255,0.88))] p-5 shadow-[0_20px_50px_-38px_rgba(15,23,42,0.24)] dark:border-slate-800/70 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.82),rgba(17,24,39,0.82),rgba(30,41,59,0.78))]">
-            <div className="flex items-start justify-between gap-4"><div><div className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white dark:bg-slate-100 dark:text-slate-950">Paket</div><h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p></div><CoinBadge value={bundle.pricing.finalPriceCoin} label="Paket Fiyatı" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" /></div>
+            <div className="flex items-start justify-between gap-4"><div><div className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white dark:bg-slate-100 dark:text-slate-950">Paket</div><h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>{activePricing.couponApplied ? <div className="mt-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><CoinBadge value={activePricing.pricing.finalPriceCoin} label="Paket Fiyatı" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" /></div>
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {bundle.items.slice(0, 4).map((item) => {
                     const catalogItem = itemLookup.get(item.shopItemId);
@@ -515,7 +673,7 @@ function BundleMerchCard({ bundle, itemLookup, busy, couponReady, onPreview, onB
                     );
                 })}
             </div>
-            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div>{bundle.pricing.discountCoin > 0 ? <div className="text-sm text-slate-400 line-through">{bundle.pricing.basePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div><div className="flex flex-wrap items-center gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !bundle.fullyOwned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}<button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div></div>
+            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div><div className="flex flex-wrap items-center gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />{couponReady && !bundle.fullyOwned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kupon" onClick={onPreviewCoupon} disabled={busy} /> : null}<button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div></div>
         </article>
     );
 }
@@ -533,19 +691,19 @@ function BuyButton({ item, busy, onClick, fullWidth = false }: { item: CatalogSt
     const className = item.owned ? (item.equipped ? "bg-blue-600 text-white" : "bg-emerald-600 text-white") : SHOP_RARITY_BUY_BUTTON_CLASS[item.rarity];
     return <button type="button" onClick={onClick} disabled={busy || item.owned} className={cn("rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all disabled:opacity-50", fullWidth && "w-full", className)}>{label}</button>;
 }
-function PreviewModal({ offer, itemLookup, onClose, onBuyItem, onBuyBundle, onPreviewCoupon, couponReady, busyKey }: { offer: PreviewOffer; itemLookup: Map<number, CatalogStoreItemView>; onClose: () => void; onBuyItem: (item: CatalogStoreItemView) => void; onBuyBundle: (bundle: CatalogBundleView) => void; onPreviewCoupon: (target: BusyTarget) => void; couponReady: boolean; busyKey: string | null }) {
+function PreviewModal({ offer, itemLookup, getDisplayedItemPricing, getDisplayedBundlePricing, onClose, onBuyItem, onBuyBundle, onPreviewCoupon, couponReady, busyKey }: { offer: PreviewOffer; itemLookup: Map<number, CatalogStoreItemView>; getDisplayedItemPricing: (item: CatalogStoreItemView) => DisplayedPricing; getDisplayedBundlePricing: (bundle: CatalogBundleView) => DisplayedPricing; onClose: () => void; onBuyItem: (item: CatalogStoreItemView) => void; onBuyBundle: (bundle: CatalogBundleView) => void; onPreviewCoupon: (target: BusyTarget) => void; couponReady: boolean; busyKey: string | null }) {
     if (!offer) return null;
     return (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
             <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,251,0.98),rgba(238,244,255,0.98))] p-5 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.8)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(17,24,39,0.96),rgba(23,37,84,0.95))] md:p-6">
                 <button type="button" onClick={onClose} className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"><X className="h-4 w-4" /></button>
-                {offer.kind === "item" ? <ItemPreviewContent item={offer.item} busy={busyKey === `shop_item:${offer.item.id}`} couponReady={couponReady} onBuy={() => void onBuyItem(offer.item)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "shop_item", id: offer.item.id })} /> : <BundlePreviewContent bundle={offer.bundle} itemLookup={itemLookup} busy={busyKey === `bundle:${offer.bundle.id}`} couponReady={couponReady} onBuy={() => void onBuyBundle(offer.bundle)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "bundle", id: offer.bundle.id })} />}
+                {offer.kind === "item" ? <ItemPreviewContent item={offer.item} activePricing={getDisplayedItemPricing(offer.item)} busy={busyKey === `shop_item:${offer.item.id}`} couponReady={couponReady} onBuy={() => void onBuyItem(offer.item)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "shop_item", id: offer.item.id })} /> : <BundlePreviewContent bundle={offer.bundle} activePricing={getDisplayedBundlePricing(offer.bundle)} itemLookup={itemLookup} busy={busyKey === `bundle:${offer.bundle.id}`} couponReady={couponReady} onBuy={() => void onBuyBundle(offer.bundle)} onPreviewCoupon={() => void onPreviewCoupon({ kind: "bundle", id: offer.bundle.id })} />}
             </div>
         </div>
     );
 }
 
-function ItemPreviewContent({ item, busy, couponReady, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
+function ItemPreviewContent({ item, activePricing, busy, couponReady, onBuy, onPreviewCoupon }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
@@ -553,14 +711,14 @@ function ItemPreviewContent({ item, busy, couponReady, onBuy, onPreviewCoupon }:
                 <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
                 {item.badgeText ? <div className="mt-4 inline-flex rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">{item.badgeText}</div> : null}
                 {item.pricing.appliedPromotion ? <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">Kampanya: {item.pricing.appliedPromotion.name}</div> : null}
-                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{item.pricing.discountCoin > 0 ? <div className="mt-1 text-sm text-slate-400 line-through">{item.pricing.basePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{item.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div></div>
+                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-6">{couponReady && !item.owned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kuponu Dene" onClick={onPreviewCoupon} disabled={busy} /> : null}<BuyButton item={item} busy={busy} onClick={onBuy} /></div>
             </div>
         </div>
     );
 }
 
-function BundlePreviewContent({ bundle, itemLookup, busy, couponReady, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
+function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, couponReady, onBuy, onPreviewCoupon }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; couponReady: boolean; onBuy: () => void; onPreviewCoupon: () => void }) {
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -569,7 +727,7 @@ function BundlePreviewContent({ bundle, itemLookup, busy, couponReady, onBuy, on
             </div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Paket Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
-                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{bundle.pricing.discountCoin > 0 ? <div className="mt-1 text-sm text-slate-400 line-through">{bundle.pricing.basePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{bundle.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div><div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div>
+                <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-6">{couponReady && !bundle.fullyOwned ? <ActionButton icon={<TicketPercent className="h-3.5 w-3.5" />} label="Kuponu Dene" onClick={onPreviewCoupon} disabled={busy} /> : null}<button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div>
             </div>
         </div>
@@ -615,5 +773,5 @@ function StoreCardPreviewSurface({ item, compact = false }: { item: CatalogStore
     const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
     const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
     const overlayStyle = theme.overlayImageUrl ? { backgroundImage: `linear-gradient(rgba(255,255,255,${theme.overlayOpacity * 0.7}), rgba(255,255,255,${theme.overlayOpacity * 0.7})), url(${theme.overlayImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
-    return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} /><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Önü</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun İçi</div></div>;
+    return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} />{compact ? <><div className="absolute inset-x-[24px] top-[18px] h-3 rounded-full bg-slate-900/15" /><div className="absolute inset-x-[28px] bottom-[18px] h-3 rounded-full bg-slate-900/12" /></> : <><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Önü</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun İçi</div></>}</div>;
 }
