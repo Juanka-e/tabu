@@ -83,7 +83,7 @@ export function DashboardLayout({
     playContent?: ReactNode;
 }) {
     const [activeTab, setActiveTab] = useState<DashboardTab>(defaultTab);
-    const [isDesktopSidebar, setIsDesktopSidebar] = useState(false);
+    const [sidebarMode, setSidebarMode] = useState<"pending" | "inline" | "desktop">("pending");
     const [supportOpen, setSupportOpen] = useState(false);
     const [supportFocusTicketId, setSupportFocusTicketId] = useState<number | null>(null);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -151,7 +151,7 @@ export function DashboardLayout({
     useEffect(() => {
         const mediaQuery = window.matchMedia("(min-width: 1280px)");
         const syncSidebarMode = (event?: MediaQueryListEvent) => {
-            setIsDesktopSidebar(event?.matches ?? mediaQuery.matches);
+            setSidebarMode((event?.matches ?? mediaQuery.matches) ? "desktop" : "inline");
         };
 
         syncSidebarMode();
@@ -188,7 +188,7 @@ export function DashboardLayout({
                     onTabChange={setActiveTab}
                     showPlayTab={showPlayTab}
                 />
-                {!isDesktopSidebar ? <DashboardProfileSidebar onTabChange={setActiveTab} mode="inline" /> : null}
+                {sidebarMode === "inline" ? <DashboardProfileSidebar onTabChange={setActiveTab} mode="inline" /> : null}
 
                 {/* Main content */}
                 <main className="relative min-h-0 flex-1 overflow-y-auto scroll-smooth">
@@ -201,7 +201,7 @@ export function DashboardLayout({
             </div>
 
             {/* Profile sidebar (hidden on mobile/tablet) */}
-            {isDesktopSidebar ? <DashboardProfileSidebar onTabChange={setActiveTab} /> : null}
+            {sidebarMode === "desktop" ? <DashboardProfileSidebar onTabChange={setActiveTab} /> : null}
             {supportEnabled ? (
                 <>
                     <button
