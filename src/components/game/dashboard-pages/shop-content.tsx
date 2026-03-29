@@ -672,24 +672,80 @@ function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutra
 
 function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     return (
-        <article className={cn("relative overflow-hidden rounded-[28px] border p-4 shadow-[0_20px_50px_-36px_rgba(15,23,42,0.25)] transition-all", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
-            <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
-            <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{item.isFeatured ? "Öne Çıkan" : formatItemTypeLabel(item.type)}</div>{item.badgeText ? <span className="rounded-full border border-slate-200/80 bg-white/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-200">{item.badgeText}</span> : null}</div><h3 className="mt-2 text-lg font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-            <div className="mt-4 flex items-center justify-between gap-4"><div className="min-w-0"><div className="text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}<div className="mt-2 flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" /></div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-xs text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}</div><div className="flex h-24 w-24 items-center justify-center"><StoreMiniPreview item={item} /></div></div>
-            <div className="mt-4 flex flex-wrap gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><BuyButton item={item} busy={busy} onClick={onBuy} /></div>
+        <article className={cn("group relative overflow-hidden rounded-[30px] border p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] transition-all hover:-translate-y-1 hover:shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
+            <div className={cn("absolute inset-x-5 top-0 h-1.5 rounded-b-full opacity-90", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
+            <div className="relative z-10">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-200">
+                                {item.isFeatured ? "Vitrin" : formatItemTypeLabel(item.type)}
+                            </span>
+                            {item.badgeText ? <span className="rounded-full border border-amber-200/80 bg-amber-50/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300">{item.badgeText}</span> : null}
+                        </div>
+                        <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} koleksiyonu</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span>
+                </div>
+
+                <div className="mt-5 flex items-center justify-center rounded-[24px] border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),_transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(241,245,249,0.78))] p-5 dark:border-slate-700/60 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_58%),linear-gradient(180deg,rgba(30,41,59,0.72),rgba(15,23,42,0.82))]">
+                    <StoreMiniPreview item={item} />
+                </div>
+
+                <div className="mt-5 flex items-end justify-between gap-4">
+                    <div className="min-w-0">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Fiyat</div>
+                        {(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-xs text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}
+                        <div className="mt-1 flex items-center gap-2 text-2xl font-black text-slate-900 dark:text-white">
+                            {activePricing.pricing.finalPriceCoin.toLocaleString()}
+                            <CoinMark className="h-7 w-7" iconClassName="h-3.5 w-3.5" />
+                        </div>
+                        {activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
+                    </div>
+                    <div className="rounded-2xl border border-white/65 bg-white/75 px-3 py-2 text-right shadow-sm dark:border-slate-700/70 dark:bg-slate-950/55">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Durum</div>
+                        <div className="mt-1 text-xs font-black text-slate-800 dark:text-slate-100">{item.equipped ? "Kullanılıyor" : item.owned ? "Sahipsin" : "Hazır"}</div>
+                    </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
+                    <BuyButton item={item} busy={busy} onClick={onBuy} />
+                </div>
+            </div>
         </article>
     );
 }
 function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     return (
-        <article className={cn("group relative overflow-hidden rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(15,23,42,0.25)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
-            <div className={cn("absolute inset-x-4 top-0 h-1 rounded-b-full opacity-80", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
+        <article className={cn("group relative overflow-hidden rounded-[26px] border p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(15,23,42,0.25)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
+            <div className={cn("absolute inset-x-4 top-0 h-1.5 rounded-b-full opacity-85", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
             <div className="relative z-10">
-                <div className="mb-3 flex aspect-[0.95/1] items-center justify-center rounded-[18px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                <div className="mb-3 flex aspect-[0.95/1] items-center justify-center rounded-[20px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                     <StoreMiniPreview item={item} />
                 </div>
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black text-slate-900 dark:text-white">{item.name}</h3><div className="mt-1 flex flex-wrap items-center gap-2"><p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</p>{item.badgeText ? <span className="rounded-full border border-slate-200/80 bg-white/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-200">{item.badgeText}</span> : null}</div></div><span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
-                <div className="mt-3 flex items-end justify-between gap-3"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-[11px] text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()}</div> : null}<div className="flex items-center gap-1 text-xs font-black text-amber-500">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" /></div>{activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><div className="flex items-center gap-2"><ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /></div></div>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</p>
+                            {item.badgeText ? <span className="rounded-full border border-amber-200/80 bg-amber-50/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300">{item.badgeText}</span> : null}
+                        </div>
+                        <h3 className="mt-2 truncate text-sm font-black text-slate-900 dark:text-white">{item.name}</h3>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                    <div>
+                        {(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-[11px] text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()}</div> : null}
+                        <div className="mt-0.5 flex items-center gap-1 text-sm font-black text-slate-900 dark:text-white">
+                            {activePricing.pricing.finalPriceCoin.toLocaleString()}
+                            <CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" />
+                        </div>
+                        {activePricing.couponApplied ? <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
+                    </div>
+                    <ActionIconButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
+                </div>
                 <div className="mt-3"><BuyButton item={item} busy={busy} onClick={onBuy} fullWidth /></div>
             </div>
         </article>
@@ -699,13 +755,24 @@ function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: 
 function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, onBuy }: { bundle: CatalogBundleView; activePricing: DisplayedPricing; itemLookup: Map<number, CatalogStoreItemView>; busy: boolean; onPreview: () => void; onBuy: () => void }) {
     const disabled = busy || bundle.fullyOwned || bundle.ownedItemCount > 0;
     return (
-        <article className="rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,250,252,0.88),rgba(240,249,255,0.88))] p-5 shadow-[0_20px_50px_-38px_rgba(15,23,42,0.24)] dark:border-slate-800/70 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.82),rgba(17,24,39,0.82),rgba(30,41,59,0.78))]">
-            <div className="flex items-start justify-between gap-4"><div><div className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white dark:bg-slate-100 dark:text-slate-950">Paket</div><h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>{activePricing.couponApplied ? <div className="mt-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div><CoinBadge value={activePricing.pricing.finalPriceCoin} label="Paket Fiyatı" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" /></div>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <article className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(248,250,252,0.9),rgba(240,249,255,0.88))] p-5 shadow-[0_24px_56px_-40px_rgba(15,23,42,0.24)] dark:border-slate-800/70 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.82),rgba(17,24,39,0.82),rgba(30,41,59,0.78))]">
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white dark:bg-slate-100 dark:text-slate-950">Paket</div>
+                        <div className="rounded-full border border-white/70 bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-300">{bundle.items.length} parça</div>
+                        {activePricing.couponApplied ? <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}
+                    </div>
+                    <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
+                </div>
+                <CoinBadge value={activePricing.pricing.finalPriceCoin} label="Paket Fiyatı" className="min-w-[140px] rounded-[20px] px-3 py-2" valueClassName="text-base" />
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {bundle.items.slice(0, 4).map((item) => {
                     const catalogItem = itemLookup.get(item.shopItemId);
                     return (
-                        <div key={item.id} className={`rounded-[20px] border p-3 ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}>
+                        <div key={item.id} className={`rounded-[22px] border p-3 shadow-sm ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}>
                             <div className="flex justify-center">
                                 {catalogItem ? <StoreMiniPreview item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}
                             </div>
@@ -717,7 +784,16 @@ function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, o
                     );
                 })}
             </div>
-            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div></div><div className="flex flex-wrap items-center gap-2"><ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} /><button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button></div></div>
+            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    {(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}
+                    <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{bundle.ownedItemCount > 0 ? `${bundle.ownedItemCount} ürüne zaten sahipsin` : `${bundle.items.length} kozmetik dahil`}</div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <ActionButton icon={<Eye className="h-3.5 w-3.5" />} label="Önizle" onClick={onPreview} />
+                    <button type="button" onClick={onBuy} disabled={disabled} className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">{bundle.fullyOwned ? "Sahipsin" : bundle.ownedItemCount > 0 ? "Sahip Olduğun Ürün Var" : busy ? "Alınıyor..." : "Paketi Satın Al"}</button>
+                </div>
+            </div>
         </article>
     );
 }
