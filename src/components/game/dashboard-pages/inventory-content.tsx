@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { PackageOpen } from "lucide-react";
+import { Eye, PackageOpen, X } from "lucide-react";
 import { DashboardEmptyState, DashboardPageShell, DashboardSection } from "@/components/game/dashboard-page-shell";
 import { CosmeticLargePreview, CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinBadge } from "@/components/ui/coin-badge";
@@ -60,7 +60,7 @@ export function InventoryContent() {
   const { data: session } = useSession();
   const [activeType, setActiveType] = useState<StoreItemType>("avatar");
   const [items, setItems] = useState<InventoryItemView[]>([]);
-  const [selectedItem, setSelectedItem] = useState<InventoryItemView | null>(null);
+  const [previewItem, setPreviewItem] = useState<InventoryItemView | null>(null);
   const [equipBusyId, setEquipBusyId] = useState<number | null>(null);
   const [coinBalance, setCoinBalance] = useState(0);
   const [equippedSlots, setEquippedSlots] = useState<EquippedSlots>({
@@ -115,7 +115,7 @@ export function InventoryContent() {
         equipped: isItemEquipped(item, equippedSlots),
       }))
     );
-    setSelectedItem((current) => {
+    setPreviewItem((current) => {
       if (!current) {
         return null;
       }
@@ -176,7 +176,7 @@ export function InventoryContent() {
                   key={tab.id}
                   onClick={() => {
                     setActiveType(tab.id);
-                    setSelectedItem(null);
+                    setPreviewItem(null);
                   }}
                   className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition-colors ${
                     activeType === tab.id
@@ -192,7 +192,6 @@ export function InventoryContent() {
           }
           contentClassName="space-y-5"
         >
-          {selectedItem ? <InventoryPreviewCard selectedItem={selectedItem} className="xl:hidden" /> : null}
           <div className="flex min-h-0 gap-6 overflow-hidden">
             <div className="flex-1 overflow-y-auto pb-2">
               {filteredItems.length === 0 ? (
@@ -206,8 +205,7 @@ export function InventoryContent() {
                   {filteredItems.map((item) => (
                     <div
                       key={item.inventoryItemId}
-                      onClick={() => setSelectedItem(item)}
-                      className={`group relative flex cursor-pointer flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
+                      className={`group relative flex flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
                     >
                       <div className="relative mb-3 flex aspect-[0.95/1] items-center justify-center overflow-hidden rounded-[18px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                         <div
@@ -223,36 +221,39 @@ export function InventoryContent() {
                           {formatCosmeticTypeLabel(item.type)} • {new Date(item.acquiredAt).toLocaleDateString("tr-TR")}
                         </p>
                       </div>
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleEquip(item);
-                        }}
-                        disabled={item.equipped || equipBusyId !== null}
-                        className={`mt-4 w-full rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
-                          item.equipped
-                            ? "bg-blue-500 text-white"
-                            : "bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-blue-600"
-                        }`}
-                        type="button"
-                      >
-                        {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
-                      </button>
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => setPreviewItem(item)}
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-900"
+                          type="button"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Önizle
+                        </button>
+                        <button
+                          onClick={() => void handleEquip(item)}
+                          disabled={item.equipped || equipBusyId !== null}
+                          className={`flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
+                            item.equipped
+                              ? "bg-blue-500 text-white"
+                              : "bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-blue-600"
+                          }`}
+                          type="button"
+                        >
+                          {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-            {selectedItem ? (
-              <InventoryPreviewCard
-                selectedItem={selectedItem}
-                className="hidden xl:flex xl:w-72 xl:flex-shrink-0"
-              />
-            ) : null}
           </div>
         </DashboardSection>
       </div>
+      {previewItem ? (
+        <InventoryPreviewModal selectedItem={previewItem} onClose={() => setPreviewItem(null)} />
+      ) : null}
     </DashboardPageShell>
   );
 }
@@ -291,6 +292,29 @@ function InventoryPreviewCard({
         >
           {selectedItem.equipped ? "Aktif Slot" : "Kullanmaya Hazır"}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InventoryPreviewModal({
+  selectedItem,
+  onClose,
+}: {
+  selectedItem: InventoryItemView;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
+      <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,251,0.98),rgba(238,244,255,0.98))] p-5 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.8)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(17,24,39,0.96),rgba(23,37,84,0.95))] md:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <InventoryPreviewCard selectedItem={selectedItem} />
       </div>
     </div>
   );

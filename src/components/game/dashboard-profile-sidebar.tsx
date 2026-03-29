@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import { CosmeticMiniPreview } from "@/components/game/cosmetic-preview";
@@ -27,8 +26,6 @@ interface SidebarState {
   winRate: number;
   equippedItems: InventoryItemView[];
 }
-
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 function getInitial(name: string): string {
   const trimmed = name.trim();
@@ -190,23 +187,11 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                 <button
                   key={item.inventoryItemId}
                   onClick={() => onTabChange("inventory")}
-                  className="ring-indigo-400 flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md transition-all hover:ring-2"
+                  className="ring-indigo-400 flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-1 shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"
                   title={item.name}
                   type="button"
                 >
-                  {item.imageUrl ? (
-                    <Image
-                      loader={passthroughImageLoader}
-                      unoptimized
-                      src={item.imageUrl}
-                      alt={item.name}
-                      width={48}
-                      height={48}
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                  ) : (
-                    <span className="font-black">{getInitial(item.name)}</span>
-                  )}
+                  <CosmeticMiniPreview item={item} />
                 </button>
               ))}
               <button
@@ -256,19 +241,12 @@ export function DashboardProfileSidebar({ onTabChange }: ProfileSidebarProps) {
                     onClick={() => onTabChange("shop")}
                     className="group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
                   >
-                    <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-2 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                    <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-2 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
                       <CosmeticMiniPreview item={radarLeadItem} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="truncate text-sm font-black text-slate-800 dark:text-white">
-                          {radarLeadItem.name}
-                        </div>
-                        {radarLeadItem.badgeText ? (
-                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                            {radarLeadItem.badgeText}
-                          </span>
-                        ) : null}
+                      <div className="truncate text-sm font-black text-slate-800 dark:text-white">
+                        {radarLeadItem.name}
                       </div>
                       <div className="mt-1 text-[11px] font-semibold capitalize text-slate-500 dark:text-slate-400">
                         {radarLeadItem.type.replace("_", " ")}
