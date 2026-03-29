@@ -151,20 +151,13 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
     return (
       <div className="space-y-4 border-b border-slate-200/60 bg-white/72 px-4 py-4 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:hidden">
         <QuickEquipPanel items={quickEquipItems} onOpenInventory={() => onTabChange("inventory")} compact />
-        <StoreRadarPanel
-          discoveryItems={discoveryItems}
-          radarLeadItem={radarLeadItem}
-          radarSecondaryItems={radarSecondaryItems}
-          onOpenShop={() => onTabChange("shop")}
-          compact
-        />
       </div>
     );
   }
 
   return (
-    <aside className="hidden h-full min-w-[300px] w-[320px] flex-col border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex 2xl:w-[340px]">
-      <div className="flex flex-col p-6 text-center">
+    <aside className="hidden h-full min-w-[300px] w-[320px] flex-col overflow-y-auto border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex 2xl:w-[340px]">
+      <div className="flex flex-1 flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
           <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
@@ -262,14 +255,14 @@ function StoreRadarPanel({
   radarLeadItem,
   radarSecondaryItems,
   onOpenShop,
-  compact = false,
 }: {
   discoveryItems: CatalogStoreItemView[];
   radarLeadItem: CatalogStoreItemView | null;
   radarSecondaryItems: CatalogStoreItemView[];
   onOpenShop: () => void;
-  compact?: boolean;
 }) {
+  const stripItems = [radarLeadItem, ...radarSecondaryItems].filter(Boolean) as CatalogStoreItemView[];
+
   return (
     <div className="w-full text-left">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -279,7 +272,7 @@ function StoreRadarPanel({
             Mağaza Radarı
           </h3>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-            Seçilmiş ürünler burada döner.
+            Seçilmiş ürünler kısa vitrinde görünür.
           </p>
         </div>
         <button
@@ -301,58 +294,31 @@ function StoreRadarPanel({
           Şu anda gösterilecek ürün bulunmuyor. Yeni koleksiyonlar geldiğinde burada görünür.
         </button>
       ) : (
-        <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/85 to-slate-100/75 p-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
-          {radarLeadItem ? (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/70 bg-gradient-to-b from-white/85 to-slate-100/75 p-3 shadow-inner dark:border-slate-700/60 dark:from-slate-900/70 dark:to-slate-950/70">
+          {stripItems.map((item) => (
             <button
+              key={item.id}
               type="button"
               onClick={onOpenShop}
-              className="group relative w-full overflow-hidden rounded-[22px] border border-white/70 bg-white/85 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/85"
+              className="flex min-w-0 flex-col rounded-2xl border border-white/70 bg-white/82 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/80 dark:hover:bg-slate-900"
             >
-              <div className={compact ? "flex h-28 items-center justify-center overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]" : "flex h-32 items-center justify-center overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"}>
-                <CosmeticMiniPreview item={radarLeadItem} />
+              <div className="flex h-24 items-center justify-center overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
+                <CosmeticMiniPreview item={item} />
               </div>
-              <div className="mt-3 min-w-0">
-                <div className="truncate text-sm font-black text-slate-800 dark:text-white">
-                  {radarLeadItem.name}
+              <div className="mt-2 min-w-0">
+                <div className="truncate text-xs font-black text-slate-800 dark:text-white">
+                  {item.name}
                 </div>
-                <div className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {formatCosmeticTypeLabel(radarLeadItem.type)}
+                <div className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  {formatCosmeticTypeLabel(item.type)}
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 text-xs font-black text-amber-500">
-                    {radarLeadItem.pricing.finalPriceCoin.toLocaleString()}
-                    <CoinMark className="h-4 w-4 ring-0 shadow-none" iconClassName="h-2.5 w-2.5" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                    İncele
-                  </span>
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-amber-500">
+                  {item.pricing.finalPriceCoin.toLocaleString()}
+                  <CoinMark className="h-3.5 w-3.5 ring-0 shadow-none" iconClassName="h-2 w-2" />
                 </div>
               </div>
             </button>
-          ) : null}
-          <div className="grid grid-cols-2 gap-2">
-            {radarSecondaryItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={onOpenShop}
-                className="flex min-w-0 flex-col items-center rounded-2xl border border-white/70 bg-white/72 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/75 dark:hover:bg-slate-900"
-              >
-                <div className="flex h-20 w-full items-center justify-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
-                  <CosmeticMiniPreview item={item} />
-                </div>
-                <div className="mt-2 min-w-0 w-full">
-                  <div className="truncate text-center text-xs font-black text-slate-800 dark:text-white">
-                    {item.name}
-                  </div>
-                  <div className="mt-1 flex items-center justify-center gap-1 text-[11px] font-black text-amber-500">
-                    {item.pricing.finalPriceCoin.toLocaleString()}
-                    <CoinMark className="h-3.5 w-3.5 ring-0 shadow-none" iconClassName="h-2 w-2" />
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       )}
     </div>
