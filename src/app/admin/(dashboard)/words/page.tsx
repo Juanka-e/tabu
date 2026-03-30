@@ -24,8 +24,10 @@ import {
 } from "@/components/ui/table";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminSelectionBar } from "@/components/admin/admin-selection-bar";
 import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
+import { useAdminSelection } from "@/hooks/use-admin-selection";
 
 interface TabooWord {
     id: number;
@@ -106,6 +108,7 @@ export default function AdminWordsPage() {
     const [formSaving, setFormSaving] = useState(false);
     const [formError, setFormError] = useState("");
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [bulkOpen, setBulkOpen] = useState(false);
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [bulkMode, setBulkMode] = useState<BulkUploadMode>("csv_categories");
@@ -188,6 +191,16 @@ export default function AdminWordsPage() {
     useEffect(() => {
         void fetchWords();
     }, [fetchWords]);
+
+    const visibleWordIds = useMemo(() => words.map((word) => word.id), [words]);
+    const {
+        allSelected,
+        clearSelection,
+        selectedCount,
+        selectedIds,
+        toggleAll,
+        toggleOne,
+    } = useAdminSelection(visibleWordIds);
 
     useEffect(() => {
         void fetchCategories();
@@ -325,6 +338,44 @@ export default function AdminWordsPage() {
         + Number(Boolean(filterDifficulty))
         + Number(Boolean(filterCategoryId));
 
+    useEffect(() => {
+        clearSelection();
+    }, [clearSelection, words]);
+
+    const handleBulkDelete = useCallback(async () => {
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0) {
+            return;
+        }
+
+        if (!window.confirm(`${ids.length} kelime kaydini silmek istedigine emin misin?`)) {
+            return;
+        }
+
+        setBulkDeleting(true);
+        try {
+            const response = await fetch("/api/admin/words/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids }),
+            });
+
+            if (!response.ok) {
+                toast.error("Secili kelimeler silinemedi.");
+                return;
+            }
+
+            const payload = (await response.json().catch(() => null)) as { deletedCount?: number } | null;
+            toast.success(`${payload?.deletedCount ?? ids.length} kelime silindi.`);
+            clearSelection();
+            await fetchWords();
+        } catch {
+            toast.error("Secili kelimeler silinemedi.");
+        } finally {
+            setBulkDeleting(false);
+        }
+    }, [clearSelection, fetchWords, selectedIds]);
+
     return (
         <div className="space-y-6">
             <AdminPageHeader
@@ -399,6 +450,20 @@ export default function AdminWordsPage() {
                 />
             </AdminToolbar>
 
+            <AdminSelectionBar selectedCount={selectedCount} onClear={clearSelection}>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkDeleting}
+                    onClick={() => void handleBulkDelete()}
+                    className="gap-2"
+                >
+                    {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Seçilileri Sil
+                </Button>
+            </AdminSelectionBar>
+
             <AdminTableShell
                 title="Kelime Kayitlari"
                 description="Liste server-side olarak filtrelenir ve sayfalanir."
@@ -422,6 +487,15 @@ export default function AdminWordsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/20">
+                            <TableHead className="w-10 text-center">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={() => toggleAll()}
+                                    aria-label="Tum gorunen kelimeleri sec"
+                                    className="h-4 w-4 rounded border-border"
+                                />
+                            </TableHead>
                             <TableHead>Kelime</TableHead>
                             <TableHead>Zorluk</TableHead>
                             <TableHead>Yasakli Kelimeler</TableHead>
@@ -432,6 +506,15 @@ export default function AdminWordsPage() {
                     <TableBody>
                         {words.map((word) => (
                             <TableRow key={word.id}>
+                                <TableCell className="text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.has(word.id)}
+                                        onChange={() => toggleOne(word.id)}
+                                        aria-label={`${word.wordText} sec`}
+                                        className="h-4 w-4 rounded border-border"
+                                    />
+                                </TableCell>
                                 <TableCell className="font-semibold text-foreground">
                                     {word.wordText}
                                 </TableCell>
