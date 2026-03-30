@@ -30,6 +30,16 @@
 - `feature/admin-inventory-operations`
 
 ## Son Tamamlanan Fix Branch
+### `fix/coin-grants-archive-lifecycle`
+- coin grant campaign ve code tarafinda lifecycle ayni modele cekildi
+- `Tüm operasyonel`, `Aktif`, `Pasif`, `Arşiv` filtre semantigi netlesti
+- `Pasife al`, `Arşive kaldır`, `Arşivden çıkar` davranislari ayrildi
+- campaign/code kart yogunlugu azaltildi
+- campaign bazli kod ozeti ve arama daraltmasi guclendirildi
+- referans:
+  - `docs/guides/coin-grants-archive-lifecycle-guide.md`
+
+## Bir Onceki Fix Branch
 ### `fix/admin-content-ops`
 - duyuru kartlari compact ve oyuncu-odakli hale getirildi
 - duplicate metin ve block count gibi ic metadata kaldirildi
@@ -59,12 +69,12 @@
   - `docs/guides/admin-security-hardening-guide.md`
 
 ## Aktif Branch
-### `fix/coin-grants-archive-lifecycle`
-- coin grant campaign ve code tarafinda archive davranisini ayni lifecycle modeline cekme
-- `Tum`, `Aktif`, `Pasif`, `Arsiv` filtrelerinin semantigini netlestirme
-- archive ile delete davranisini ayristirma
+### `feature/admin-user-observability`
+- kullanici listesi ve detayinda gozlem sinyallerini arttirma
+- IP / trusted proxy mantigini admin UI tarafinda dogru sekilde yansitma
+- support, moderation ve economy review icin temel kullanici baglamini guclendirme
 - referans:
-  - `docs/guides/coin-grants-archive-lifecycle-guide.md`
+  - `docs/guides/admin-user-observability-guide.md`
 
 ## Planning Notlari
 - Store / liveops / economy stratejisi icin ana referanslar:
@@ -74,20 +84,19 @@
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Aktif Sonraki Branch Adaylari
-1. `fix/coin-grants-archive-lifecycle`
-2. `feature/admin-user-observability`
-3. `feature/economy-abuse-hardening`
-4. `feature/night-market-foundation`
-5. `feature/cache-and-rate-limit-foundation`
-6. `feature/admin-promotions-ux`
-7. `feature/cosmetic-render-upgrade`
-8. `feature/admin-cosmetic-authoring`
-9. `feature/gameplay-ui-polish`
-10. `feature/analytics-event-foundation`
-11. `feature/word-analytics-liveops`
-12. `feature/release-ops-docs`
-13. `docs/encoding-cleanup`
-14. `feature/wallet-ledger-foundation`
+1. `feature/admin-user-observability`
+2. `feature/economy-abuse-hardening`
+3. `feature/night-market-foundation`
+4. `feature/cache-and-rate-limit-foundation`
+5. `feature/admin-promotions-ux`
+6. `feature/cosmetic-render-upgrade`
+7. `feature/admin-cosmetic-authoring`
+8. `feature/gameplay-ui-polish`
+9. `feature/analytics-event-foundation`
+10. `feature/word-analytics-liveops`
+11. `feature/release-ops-docs`
+12. `docs/encoding-cleanup`
+13. `feature/wallet-ledger-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

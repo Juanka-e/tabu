@@ -47,3 +47,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 11. `night-market-and-missions-strategy-guide.md`
 - night market, gorev sistemi ve oyuncu motivasyon katmanlarini birlikte planlama rehberi
 - hangi kosullarda implement edilmesi gerektigini ve neden acele edilmemesi gerektigini aciklar
+
+12. `admin-user-observability-guide.md`
+- admin kullanici listesi ve detayinda operasyonel gozlem sinyallerini guclendirme rehberi
+- IP, son gorulme, trusted proxy ve abuse review'a temel olacak observability sinirlarini tanimlar
