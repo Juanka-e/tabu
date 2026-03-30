@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -357,6 +357,34 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     );
 }
 
+function buildPromotionEmptyDescription(
+    entityLabel: string,
+    statusFilter: PromotionStatusFilter,
+    hasSearch: boolean
+) {
+    if (hasSearch) {
+        return `Arama sonucunda gösterilecek ${entityLabel} kaydı yok.`;
+    }
+
+    if (statusFilter === "active") {
+        return `Şu anda yayında olan ${entityLabel} kaydı yok.`;
+    }
+
+    if (statusFilter === "inactive") {
+        return `Pasif durumda ${entityLabel} kaydı yok.`;
+    }
+
+    if (statusFilter === "scheduled") {
+        return `Planlı yayında ${entityLabel} kaydı bulunmuyor.`;
+    }
+
+    if (statusFilter === "expired") {
+        return `Süresi dolmuş ${entityLabel} kaydı bulunmuyor.`;
+    }
+
+    return `Gösterilecek ${entityLabel} kaydı yok.`;
+}
+
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
         <div className="space-y-1">
@@ -415,7 +443,7 @@ function TargetScopeFields({
         <div className={sectionClassName}>
             <FieldLabel
                 label="Hedef"
-                helper="Promosyonun tum katalogda mi, tek urunde mi yoksa bir bundle uzerinde mi calisacagini sec."
+                helper="Promosyonun tüm katalogda mı, tek üründe mi yoksa bir pakette mi çalışacağını seç."
             />
             <div className="grid gap-3 md:grid-cols-3">
                 <button
@@ -424,28 +452,28 @@ function TargetScopeFields({
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "global" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
                     <div className="font-semibold text-foreground">Global</div>
-                    <div className={helperClassName}>Tum urun ve bundlelara acik.</div>
+                    <div className={helperClassName}>Tüm ürün ve paketlerde geçerli.</div>
                 </button>
                 <button
                     type="button"
                     onClick={() => onTargetTypeChange("shop_item")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "shop_item" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
-                    <div className="font-semibold text-foreground">Tek Urun</div>
-                    <div className={helperClassName}>Sadece secili shop item icin gecerli.</div>
+                    <div className="font-semibold text-foreground">Tek Ürün</div>
+                    <div className={helperClassName}>Yalnız seçilen ürün için geçerli.</div>
                 </button>
                 <button
                     type="button"
                     onClick={() => onTargetTypeChange("bundle")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "bundle" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
-                    <div className="font-semibold text-foreground">Bundle</div>
-                    <div className={helperClassName}>Sadece secilen bundle fiyatina uygulanir.</div>
+                    <div className="font-semibold text-foreground">Paket</div>
+                    <div className={helperClassName}>Yalnız seçilen paketin fiyatına uygulanır.</div>
                 </button>
             </div>
             {targetType === "shop_item" ? (
                 <div className="space-y-2">
-                    <FieldLabel label="Hedef Urun" helper="Kampanyanin baglanacagi shop item." />
+                    <FieldLabel label="Hedef Ürün" helper="Kampanyanın bağlanacağı mağaza ürünü." />
                     <select className={inputClassName} value={shopItemId} onChange={(event) => onShopItemChange(event.target.value)}>
                         <option value="">Ürün seç</option>
                         {itemOptions.map((option) => (
@@ -456,9 +484,9 @@ function TargetScopeFields({
             ) : null}
             {targetType === "bundle" ? (
                 <div className="space-y-2">
-                    <FieldLabel label="Hedef Bundle" helper="Kampanyanin baglanacagi bundle." />
+                    <FieldLabel label="Hedef Paket" helper="Kampanyanın bağlanacağı paket." />
                     <select className={inputClassName} value={bundleId} onChange={(event) => onBundleChange(event.target.value)}>
-                        <option value="">Bundle sec</option>
+                        <option value="">Paket seç</option>
                         {bundleOptions.map((option) => (
                             <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
                         ))}
@@ -486,14 +514,14 @@ function DiscountValueFields({
 }) {
     return (
         <div className={sectionClassName}>
-            <FieldLabel label="Indirim Tipi" helper="Yuzde veya sabit coin indirimi sec. Alanlar secime gore degisir." />
+            <FieldLabel label="İndirim Tipi" helper="Yüzde veya sabit coin indirimi seç. Alanlar seçime göre değişir." />
             <div className="grid gap-3 md:grid-cols-2">
                 <button
                     type="button"
                     onClick={() => onDiscountTypeChange("percentage")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "percentage" ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:border-emerald-300"}`}
                 >
-                    <div className="font-semibold text-foreground">Yuzde</div>
+                    <div className="font-semibold text-foreground">Yüzde</div>
                     <div className={helperClassName}>Oransal indirim uygular.</div>
                 </button>
                 <button
@@ -502,17 +530,17 @@ function DiscountValueFields({
                     className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "fixed_coin" ? "border-amber-500 bg-amber-500/10" : "border-border bg-background hover:border-amber-300"}`}
                 >
                     <div className="font-semibold text-foreground">Sabit Coin</div>
-                    <div className={helperClassName}>Fiyattan dogrudan coin dusurur.</div>
+                    <div className={helperClassName}>Fiyattan doğrudan coin düşürür.</div>
                 </button>
             </div>
             {discountType === "percentage" ? (
                 <div className="space-y-2">
-                    <FieldLabel label="Yuzde Orani" helper="1 ile 100 arasinda tam sayi." />
+                    <FieldLabel label="Yüzde Oranı" helper="1 ile 100 arasında tam sayı." />
                     <input className={inputClassName} type="number" min="1" max="100" value={percentageOff} onChange={(event) => onPercentageChange(event.target.value)} />
                 </div>
             ) : (
                 <div className="space-y-2">
-                    <FieldLabel label="Coin Indirimi" helper="Sepetten dusulecek sabit coin miktari." />
+                    <FieldLabel label="Coin İndirimi" helper="Sepetten düşülecek sabit coin miktarı." />
                     <input className={inputClassName} type="number" min="1" value={fixedCoinOff} onChange={(event) => onFixedCoinChange(event.target.value)} />
                 </div>
             )}
@@ -544,7 +572,7 @@ function ScheduleFields({
             <FieldLabel label="Takvim ve Limit" helper="Promosyonun ne zaman aktif olacağını ve kaç kez kullanılabileceğini belirler." />
             <div className="grid gap-3 md:grid-cols-3">
                 <div className="space-y-2">
-                    <FieldLabel label="Kullanim Limiti" helper="Boş bırakılırsa limitsiz." />
+                    <FieldLabel label="Kullanım Limiti" helper="Boş bırakılırsa limitsiz." />
                     <input className={inputClassName} type="number" min="1" value={usageLimit} onChange={(event) => onUsageLimitChange(event.target.value)} placeholder="Örn. 500" />
                 </div>
                 <div className="space-y-2">
@@ -559,7 +587,7 @@ function ScheduleFields({
             <ToggleField
                 checked={isActive}
                 label="Aktif"
-                description="Pasif promosyon liste içinde kalsa da checkout tarafında kullanılmaz."
+                description="Pasif promosyon listede görünse de ödeme tarafında uygulanmaz."
                 onChange={onIsActiveChange}
             />
         </div>
@@ -592,13 +620,13 @@ function BundleEditor({
         <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Bundle düzenle" : "Yeni bundle"}</h3>
-                    <p className={helperClassName}>Fiyat, sıra ve bundle içeriğini tek yerden tanımla.</p>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Paketi Düzenle" : "Yeni Paket"}</h3>
+                    <p className={helperClassName}>Fiyatı, sıralamayı ve paket içeriğini tek yerden tanımla.</p>
                 </div>
                 <PromotionTypeBadge label="bundle" />
             </div>
             <div className={sectionClassName}>
-                <FieldLabel label="Kimlik" helper="Kod checkout ve seed tarafında tekil anahtar olarak kullanılır." />
+                <FieldLabel label="Kimlik" helper="Kod ödeme ve seed tarafında tekil anahtar olarak kullanılır." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={inputClassName} placeholder="Kod" value={form.code} onChange={(event) => onChange({ code: event.target.value })} />
                     <input className={inputClassName} placeholder="İsim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
@@ -606,21 +634,21 @@ function BundleEditor({
                 <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Açıklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
             </div>
             <div className={sectionClassName}>
-                <FieldLabel label="Mağaza Ayarları" helper="Bundle fiyatını ve vitrindeki sırasını belirler." />
+                <FieldLabel label="Mağaza Ayarları" helper="Paket fiyatını ve vitrindeki sırasını belirler." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={inputClassName} type="number" min="0" placeholder="Fiyat" value={form.priceCoin} onChange={(event) => onChange({ priceCoin: event.target.value })} />
-                    <input className={inputClassName} type="number" min="0" placeholder="Sira" value={form.sortOrder} onChange={(event) => onChange({ sortOrder: event.target.value })} />
+                    <input className={inputClassName} type="number" min="0" placeholder="Sıra" value={form.sortOrder} onChange={(event) => onChange({ sortOrder: event.target.value })} />
                 </div>
                 <ToggleField
                     checked={form.isActive}
                     label="Aktif"
-                    description="Pasif bundle store katalogunda gizli kalır ama admin listesinde görünür."
+                    description="Pasif paket mağaza kataloğunda gizli kalır ama admin listesinde görünür."
                     onChange={(value) => onChange({ isActive: value })}
                 />
             </div>
             <div className={sectionClassName}>
                 <div className="flex items-start justify-between gap-4">
-                    <FieldLabel label="Bundle İçeriği" helper="Ürün tekrar etmemeli. Sıralama bundle detayında görünen sıra olur." />
+                    <FieldLabel label="Paket İçeriği" helper="Aynı ürün tekrar etmemeli. Sıralama, paket detayında görünen akışı belirler." />
                     <Button type="button" variant="outline" size="sm" onClick={onAddItem}>Satır ekle</Button>
                 </div>
                 <div className="space-y-3">
@@ -669,8 +697,8 @@ function DiscountEditor({
         <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-foreground">{editing ? "İndirim düzenle" : "Yeni indirim kampanyası"}</h3>
-                    <p className={helperClassName}>Checkout fiyatına otomatik uygulanan kampanya. Kuponsuz da çalışır.</p>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "İndirimi Düzenle" : "Yeni İndirim Kampanyası"}</h3>
+                    <p className={helperClassName}>Ödeme fiyatına otomatik uygulanan kampanya. Kuponsuz da çalışır.</p>
                 </div>
                 <PromotionTypeBadge label="campaign" />
             </div>
@@ -713,7 +741,7 @@ function DiscountEditor({
             <ToggleField
                 checked={form.stackableWithCoupon}
                 label="Kupon ile birikebilir"
-                description="Aynı checkout içinde bu kampanya üstüne ek kupon indirimi uygulanabilsin."
+                description="Aynı ödeme akışında bu kampanyanın üstüne ek kupon indirimi uygulanabilsin."
                 onChange={(value) => onChange({ stackableWithCoupon: value })}
             />
             <div className="flex gap-2">
@@ -747,13 +775,13 @@ function CouponEditor({
         <div className="space-y-4 rounded-3xl border border-border bg-muted/20 p-5">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Kupon düzenle" : "Yeni kupon"}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{editing ? "Kuponu Düzenle" : "Yeni Kupon"}</h3>
                     <p className={helperClassName}>Oyuncunun elle girdiği kod. Global veya hedefli olabilir.</p>
                 </div>
                 <PromotionTypeBadge label="coupon" />
             </div>
             <div className={sectionClassName}>
-                <FieldLabel label="Kupon Kimliği" helper="Kod oyuncuya görünür. Büyük küçük harf normalize edilir ama okunabilir format kullan." />
+                <FieldLabel label="Kupon Kimliği" helper="Kod oyuncuya görünür. Büyük-küçük harf normalize edilir ama okunabilir format kullan." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={`${inputClassName} font-mono uppercase`} placeholder="SPRING25" value={form.code} onChange={(event) => onChange({ code: event.target.value.toUpperCase() })} />
                     <input className={inputClassName} placeholder="İsim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
@@ -1215,7 +1243,7 @@ export default function PromotionsPage() {
                         {filteredBundles.length === 0 ? (
                             <AdminEmptyState
                                 title="Paket bulunamadı"
-                                description="Arama sonucunda gösterilecek paket kaydı yok."
+                                description={buildPromotionEmptyDescription("paket", statusFilter, search.trim().length > 0)}
                             />
                         ) : null}
                         {filteredBundles.map((bundle) => (
@@ -1281,7 +1309,7 @@ export default function PromotionsPage() {
                         {filteredDiscounts.length === 0 ? (
                             <AdminEmptyState
                                 title="Kampanya bulunamadı"
-                                description="Arama sonucunda gösterilecek indirim kampanyası yok."
+                                description={buildPromotionEmptyDescription("indirim kampanyası", statusFilter, search.trim().length > 0)}
                             />
                         ) : null}
                         {filteredDiscounts.map((discount) => (
@@ -1344,7 +1372,7 @@ export default function PromotionsPage() {
                     {filteredCoupons.length === 0 ? (
                         <AdminEmptyState
                             title="Kupon bulunamadı"
-                            description="Arama sonucunda gösterilecek kupon kaydı yok."
+                            description={buildPromotionEmptyDescription("kupon", statusFilter, search.trim().length > 0)}
                         />
                     ) : null}
                     {filteredCoupons.map((coupon) => (
