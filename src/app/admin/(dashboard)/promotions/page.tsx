@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -693,6 +694,8 @@ function CouponEditor({
     );
 }
 export default function PromotionsPage() {
+    const searchParams = useSearchParams();
+    const deepLinkedSearch = searchParams.get("q")?.trim() ?? "";
     const [itemOptions, setItemOptions] = useState<ItemOption[]>([]);
     const [bundles, setBundles] = useState<ShopBundleView[]>([]);
     const [discounts, setDiscounts] = useState<DiscountCampaignView[]>([]);
@@ -700,7 +703,7 @@ export default function PromotionsPage() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(deepLinkedSearch);
     const [editingBundleId, setEditingBundleId] = useState<number | null>(null);
     const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
     const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
@@ -722,6 +725,7 @@ export default function PromotionsPage() {
                     bundle.name,
                     bundle.code,
                     bundle.description ?? "",
+                    ...bundle.items.flatMap((item) => [item.itemName, item.itemCode, itemTypeLabels[item.itemType]]),
                 ])
             ),
         [bundles, search]
@@ -734,9 +738,11 @@ export default function PromotionsPage() {
                     discount.code,
                     discount.description ?? "",
                     discount.targetType,
+                    targetTypeLabels[discount.targetType],
+                    formatTargetSummary(discount.targetType, discount.shopItemId, discount.bundleId, itemOptions, bundleOptions),
                 ])
             ),
-        [discounts, search]
+        [bundleOptions, discounts, itemOptions, search]
     );
     const filteredCoupons = useMemo(
         () =>
@@ -746,10 +752,16 @@ export default function PromotionsPage() {
                     coupon.code,
                     coupon.description ?? "",
                     coupon.targetType,
+                    targetTypeLabels[coupon.targetType],
+                    formatTargetSummary(coupon.targetType, coupon.shopItemId, coupon.bundleId, itemOptions, bundleOptions),
                 ])
             ),
-        [coupons, search]
+        [bundleOptions, coupons, itemOptions, search]
     );
+
+    useEffect(() => {
+        setSearch(deepLinkedSearch);
+    }, [deepLinkedSearch]);
 
     const loadAll = useCallback(async () => {
         setLoading(true);
@@ -929,6 +941,13 @@ export default function PromotionsPage() {
                 />
             </AdminToolbar>
 
+            {deepLinkedSearch ? (
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-muted-foreground">
+                    Bu ekran derin bağlantı ile açıldı. Arama filtresi şu değeri kullanıyor:
+                    <span className="ml-2 font-semibold text-foreground">{deepLinkedSearch}</span>
+                </div>
+            ) : null}
+
             {loading ? (
                 <AdminTableShell loading title="Promosyon verileri" description="Admin kaynakları yükleniyor.">
                     <div />
@@ -942,7 +961,7 @@ export default function PromotionsPage() {
 
             {!loading && !loadError ? (
             <div className="grid gap-6 xl:grid-cols-2">
-                <Card>
+                <Card id="bundles">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Paket Tanımları</CardTitle>
                         <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
@@ -999,7 +1018,7 @@ export default function PromotionsPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card id="discounts">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>İndirim Kampanyaları</CardTitle>
                         <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
@@ -1054,7 +1073,7 @@ export default function PromotionsPage() {
             ) : null}
 
             {!loading && !loadError ? (
-            <Card>
+            <Card id="coupons">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Kupon Kodları</CardTitle>
                     <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
@@ -1108,3 +1127,5 @@ export default function PromotionsPage() {
         </div>
     );
 }
+
+

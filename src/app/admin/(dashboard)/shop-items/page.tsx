@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -367,6 +368,10 @@ function getAvailabilityWindowState(startsAt: string | null, endsAt: string | nu
     }
 
     return { label: "Yayında", tone: "success" };
+}
+
+function buildPromotionsHref(itemCode: string, section: "bundles" | "discounts" | "coupons") {
+    return `/admin/promotions?q=${encodeURIComponent(itemCode)}#${section}`;
 }
 
 export default function ShopItemsPage() {
@@ -926,9 +931,24 @@ export default function ShopItemsPage() {
                                         <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                                             <span>Envanter: {item._count?.inventoryItems ?? 0}</span>
                                             <span>Satış: {item._count?.purchases ?? 0}</span>
-                                            <span>Bundle: {item._count?.bundleEntries ?? 0}</span>
-                                            <span>Kampanya: {item._count?.discountCampaigns ?? 0}</span>
-                                            <span>Kupon: {item._count?.couponCodes ?? 0}</span>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "bundles")}
+                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                            >
+                                                Paket: {item._count?.bundleEntries ?? 0}
+                                            </Link>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "discounts")}
+                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                            >
+                                                Kampanya: {item._count?.discountCampaigns ?? 0}
+                                            </Link>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "coupons")}
+                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                            >
+                                                Kupon: {item._count?.couponCodes ?? 0}
+                                            </Link>
                                         </div>
                                     </td>
                                     <td className="p-3 text-muted-foreground">{typeLabels[item.type]}</td>
