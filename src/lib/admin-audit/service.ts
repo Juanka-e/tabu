@@ -26,10 +26,22 @@ export function summarizeAuditMetadata(
         return {};
     }
 
-    const entries = Object.entries(metadata).slice(0, 8);
+    const entries = Object.entries(metadata)
+        .filter(([key]) => key !== "reason" && key !== "note")
+        .slice(0, 8);
     return Object.fromEntries(
         entries.map(([key, value]) => [key, stringifyMetadataValue(value as Prisma.JsonValue)])
     );
+}
+
+function extractAuditNote(metadata: Prisma.JsonValue | null): string | null {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        return null;
+    }
+
+    const record = metadata as Record<string, Prisma.JsonValue>;
+    const candidate = record.reason ?? record.note;
+    return typeof candidate === "string" && candidate.trim().length > 0 ? candidate : null;
 }
 
 function mapAuditLog(log: {
@@ -51,6 +63,7 @@ function mapAuditLog(log: {
         resourceType: log.resourceType,
         resourceId: log.resourceId,
         summary: log.summary,
+        note: extractAuditNote(log.metadata),
         ipAddress: log.ipAddress,
         userAgent: log.userAgent,
         createdAt: log.createdAt.toISOString(),
