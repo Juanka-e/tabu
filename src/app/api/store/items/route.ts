@@ -8,6 +8,11 @@ import {
   getFeatureDisabledMessage,
   isStoreAvailable,
 } from "@/lib/system-settings/policies";
+import {
+  buildRateLimitHeaders,
+  consumeRequestRateLimit,
+  getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 const querySchema = z.object({
   type: z.enum(STORE_ITEM_TYPES).optional(),
@@ -22,6 +27,21 @@ export async function GET(req: Request) {
   }
 
   const sessionUser = await getSessionUser();
+  const rateLimit = consumeRequestRateLimit({
+    bucket: "store-items-read",
+    key: sessionUser
+      ? `user:${sessionUser.id}:${getRequestIp(req)}`
+      : `guest:${getRequestIp(req)}`,
+    windowMs: 60_000,
+    maxRequests: 60,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Cok fazla magaza istegi gonderildi. Lutfen biraz bekleyin." },
+      { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   const settings = await getSystemSettings();
   if (!isStoreAvailable(settings)) {
     return NextResponse.json({ error: getFeatureDisabledMessage("store") }, { status: 409 });
@@ -31,5 +51,5 @@ export async function GET(req: Request) {
     ? catalog.items.filter((item) => item.type === parsed.data.type)
     : catalog.items;
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items }, { headers: buildRateLimitHeaders(rateLimit) });
 }

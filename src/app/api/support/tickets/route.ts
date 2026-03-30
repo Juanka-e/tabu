@@ -12,14 +12,27 @@ import { createSupportTicketForUser, listSupportTicketsForUser } from "@/lib/sup
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const sessionUser = await getSessionUser();
     if (!sessionUser) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "support-ticket-read",
+        key: `user:${sessionUser.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 90,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla destek istegi gonderildi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     const result = await listSupportTicketsForUser(sessionUser.id);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: buildRateLimitHeaders(rateLimit) });
 }
 
 export async function POST(request: NextRequest) {
