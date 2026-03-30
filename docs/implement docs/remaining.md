@@ -23,12 +23,17 @@
 ## En Kritik Acik Isler
 
 ### 1. Admin Content Ops
-- duyuru duplicate render bug
-- oyuncuya block count gibi ic metadata gostermeme
-- duyuru editor / render modelini daha compact hale getirme
-- toplu kelime yukleme icin kategori / alt kategori akisi
+- duyuru duplicate render bug kapatildi
+- oyuncuya block count gibi ic metadata gostermeme kapatildi
+- duyuru editor / render modelinin compactlastirilmasi kapatildi
+- toplu kelime yukleme icin kategori / alt kategori akisi eklendi
+- kelimelerde sayfa-bazli toplu secim ve guvenli bulk delete eklendi
 - branch rehberi:
   - `docs/guides/admin-content-ops-guide.md`
+
+Kalan follow-up ihtiyaclari:
+- duyurularda gerekirse read/unread veya pinned ayrimi
+- kelimelerde bulk delete icin ekstra permission ayrimi gerekiyorsa sonraki security/policy slice'inda ele alinmasi
 
 ### 2. Coin Grants Archive Lifecycle
 - archive davranisinin campaign ve code tarafinda tutarli hale getirilmesi

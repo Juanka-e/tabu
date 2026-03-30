@@ -15,8 +15,8 @@ Odak:
 ## Bu Branch'te Yapılacaklar
 
 ### 1. Duyuru oyuncu görünümü
-- preview metnini daha compact yapmak
-- expanded halde preview ile tam metin tekrarını azaltmak
+- oyuncuya duplicate metin hissi vermeyen compact kart dili
+- expanded halde preview ile tam metin tekrarını tamamen kaldırmak
 - oyuncuya block count göstermemek
 - tarih ve meta bilgisini daha profesyonel konumlandırmak
 - admin preview ile player render arasındaki farkı azaltmak
@@ -38,7 +38,14 @@ Odak:
 ### Duyuru render kararı
 - structured announcement modeli korunur
 - oyuncuya block count veya iç blok sayısı gösterilmez
-- collapsed kart görünümü, summary text yerine gerçek blok renderının kırpılmış haliyle gösterilir
+- collapsed kart görünümü tam içerik özeti göstermez
+- collapsed kart yalnız:
+  - başlık
+  - `YENİ` / `SABİT`
+  - versiyon
+  - medya ipucu
+  - sağ üst ikonlu tarih
+  taşır
 - expanded durumda tekrar preview metni gösterilmez; tam içerik ayrı açılır
 - `YENİ` etiketi kalıcı değildir
 - mevcut eşik: oluşturulma tarihinden itibaren 7 gün
@@ -76,6 +83,40 @@ Odak:
 - o satır `skipped` olarak işaretlenir
 - diğer geçerli satırlar eklenmeye devam eder
 - hatalı satırlar ayrı raporlanır
+
+### Kelime operasyonları kararı
+- bulk upload için tek resmi giriş noktası `Kelime Yönetimi` ekranıdır
+- eski `/admin/bulk-upload` sayfası artık `Kelime Yönetimi` ekranına yönlenir
+- kelime seçim modeli tüm veritabanını değil yalnız görünen sayfayı seçer
+- toplu silme için:
+  - ikinci onay modalı zorunludur
+  - CTA seçili kayıt sayısını açıkça taşır
+  - `10+` kayıt siliniyorsa reason zorunludur
+  - audit log'a adet, reason ve etkilenen kayıt örnekleri düşer
+
+## Bu Branch'te Fiilen Eklenenler
+
+### Duyurular
+- player modal collapsed kartı sadeleştirildi
+- duplicate içerik hissi kaldırıldı
+- tarih sağ üst meta alanına taşındı
+- `YENİ` etiketi 7 gün sonra kendiliğinden düşecek şekilde korundu
+- admin preview paneli oyuncu kartına hizalandı
+- editor limitleri:
+  - heading `120`
+  - body / quote `700`
+  - list item `220`
+
+### Kelime Yönetimi
+- bulk upload modalı iki modlu hale getirildi:
+  - `csv_categories`
+  - `fixed_categories`
+- partial success / skipped / errors raporu görünür oldu
+- seçili kelimeler için bulk delete eklendi
+- bulk delete sadece görünen sayfada çalışır
+- büyük bulk delete için reason ve audit kaydı zorunlu hale getirildi
+- eski sidebar bulk upload girişi kaldırıldı
+- doğrudan eski URL kullanan akışlar `Kelime Yönetimi` sayfasına yönlenir
 
 ## Guardrail
 

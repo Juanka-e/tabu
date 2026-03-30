@@ -170,9 +170,23 @@
     - `user/me`
     - `user/dashboard`
     - `user/inventory`
-    - `support/tickets`
-    - `store/items`
-    read route'larina rate limit eklendi
+  - `support/tickets`
+  - `store/items`
+  read route'larina rate limit eklendi
+
+## Admin Content Ops Slice (30 March 2026, active near-complete)
+- `fix/admin-content-ops`
+  - duyuru collapsed kart dili sadeleştirildi
+  - duplicate metin ve block count gibi ic metadata kaldirildi
+  - `YENI` rozeti 7 gunluk gorunum mantigiyla korundu
+  - tarih meta alani sag uste tasindi
+  - admin preview oyuncu kartina yaklastirildi
+  - kelime bulk upload iki modlu hale geldi:
+    - `csv_categories`
+    - `fixed_categories`
+  - duplicate / skipped / error sonuclari gorunur hale geldi
+  - kelimelerde yalniz gorunen sayfayi secen bulk selection ve guvenli bulk delete eklendi
+  - eski sidebar `Toplu Yukleme` girisi kaldirildi, eski URL `Kelime Yönetimi`ne yonlenir
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

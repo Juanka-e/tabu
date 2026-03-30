@@ -58,10 +58,31 @@
 
 ## Aktif Branch
 ### `fix/admin-content-ops`
-- duyuru duplicate render hissini azaltma
+- duyuru kartlarini compact, oyuncu-odakli hale getirme
 - oyuncuya block count gibi ic metadata gostermeme
-- duyuru editor/render akislarini compactlastirma
+- admin preview ile player renderi hizalama
 - toplu kelime yukleme icin kategori / alt kategori secimi
+- kelimelerde sayfa-bazli secim ve guvenli bulk delete
+- referans:
+  - `docs/guides/admin-content-ops-guide.md`
+
+## Bu Branch'te Tamamlanan Son Dilimler
+### `fix/admin-content-ops`
+- duyuru collapsed kart dili tekrar hissi vermeyecek sekilde sadeleştirildi
+- `YENI` etiketi 7 gunluk gorunum mantigiyla korundu
+- tarih meta alani sag uste tasindi
+- admin preview oyuncu kartina yaklastirildi
+- bulk upload iki modlu hale getirildi:
+  - `csv_categories`
+  - `fixed_categories`
+- duplicate / skipped / error sonucu modalda raporlanir oldu
+- kelimelerde toplu secim ve bulk delete geldi
+- bulk delete:
+  - ikinci onay
+  - sayili CTA
+  - `10+` kayitta reason
+  - audit kaydi
+  ile sertlestirildi
 - referans:
   - `docs/guides/admin-content-ops-guide.md`
 
