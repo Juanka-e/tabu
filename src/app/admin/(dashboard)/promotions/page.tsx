@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Edit2, Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -293,6 +294,58 @@ function matchesBundleStatus(statusFilter: PromotionStatusFilter, isActive: bool
         return !isActive;
     }
     return false;
+}
+
+function toBundleUpdatePayload(bundle: ShopBundleView, isActive: boolean) {
+    return {
+        code: bundle.code,
+        name: bundle.name,
+        description: bundle.description,
+        priceCoin: bundle.priceCoin,
+        isActive,
+        sortOrder: bundle.sortOrder,
+        items: bundle.items.map((item) => ({
+            shopItemId: item.shopItemId,
+            sortOrder: item.sortOrder,
+        })),
+    };
+}
+
+function toDiscountUpdatePayload(discount: DiscountCampaignView, isActive: boolean) {
+    return {
+        code: discount.code,
+        name: discount.name,
+        description: discount.description,
+        targetType: discount.targetType,
+        discountType: discount.discountType,
+        percentageOff: discount.discountType === "percentage" ? discount.percentageOff : null,
+        fixedCoinOff: discount.discountType === "fixed_coin" ? discount.fixedCoinOff : null,
+        shopItemId: discount.targetType === "shop_item" ? discount.shopItemId : null,
+        bundleId: discount.targetType === "bundle" ? discount.bundleId : null,
+        usageLimit: discount.usageLimit,
+        startsAt: discount.startsAt,
+        endsAt: discount.endsAt,
+        isActive,
+        stackableWithCoupon: discount.stackableWithCoupon,
+    };
+}
+
+function toCouponUpdatePayload(coupon: CouponCodeView, isActive: boolean) {
+    return {
+        code: coupon.code,
+        name: coupon.name,
+        description: coupon.description,
+        targetType: coupon.targetType,
+        discountType: coupon.discountType,
+        percentageOff: coupon.discountType === "percentage" ? coupon.percentageOff : null,
+        fixedCoinOff: coupon.discountType === "fixed_coin" ? coupon.fixedCoinOff : null,
+        shopItemId: coupon.targetType === "shop_item" ? coupon.shopItemId : null,
+        bundleId: coupon.targetType === "bundle" ? coupon.bundleId : null,
+        usageLimit: coupon.usageLimit,
+        startsAt: coupon.startsAt,
+        endsAt: coupon.endsAt,
+        isActive,
+    };
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -752,6 +805,7 @@ export default function PromotionsPage() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [batchSaving, setBatchSaving] = useState(false);
     const [search, setSearch] = useState(deepLinkedSearch);
     const [sectionFilter, setSectionFilter] = useState<PromotionSectionFilter>("all");
     const [statusFilter, setStatusFilter] = useState<PromotionStatusFilter>("all");
@@ -972,6 +1026,67 @@ export default function PromotionsPage() {
             await loadAll();
         }
     };
+
+    const applyBulkPromotionStatus = async (
+        kind: "bundles" | "discounts" | "coupons",
+        isActive: boolean
+    ) => {
+        const entries =
+            kind === "bundles"
+                ? filteredBundles
+                : kind === "discounts"
+                  ? filteredDiscounts
+                  : filteredCoupons;
+
+        if (entries.length === 0) {
+            toast.info("Bu filtrede işlem uygulanacak kayıt yok.");
+            return;
+        }
+
+        setBatchSaving(true);
+        try {
+            const results = await Promise.all(
+                entries.map((entry) => {
+                    if (kind === "bundles") {
+                        const bundle = entry as ShopBundleView;
+                        return fetch(`/api/admin/promotions/bundles/${bundle.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(toBundleUpdatePayload(bundle, isActive)),
+                        });
+                    }
+
+                    if (kind === "discounts") {
+                        const discount = entry as DiscountCampaignView;
+                        return fetch(`/api/admin/promotions/discounts/${discount.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(toDiscountUpdatePayload(discount, isActive)),
+                        });
+                    }
+
+                    const coupon = entry as CouponCodeView;
+                    return fetch(`/api/admin/promotions/coupons/${coupon.id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(toCouponUpdatePayload(coupon, isActive)),
+                    });
+                })
+            );
+
+            if (results.some((response) => !response.ok)) {
+                toast.error("Toplu promosyon işlemi kısmen başarısız oldu.");
+            } else {
+                toast.success(isActive ? "Filtredeki kayıtlar yayına alındı." : "Filtredeki kayıtlar durduruldu.");
+            }
+
+            await loadAll();
+        } catch {
+            toast.error("Toplu promosyon işlemi tamamlanamadı.");
+        } finally {
+            setBatchSaving(false);
+        }
+    };
     return (
         <div className="space-y-6">
             <AdminPageHeader
@@ -1086,8 +1201,15 @@ export default function PromotionsPage() {
                 {(sectionFilter === "all" || sectionFilter === "bundles") ? (
                 <Card id="bundles">
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Paket Tanımları</CardTitle>
-                        <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                        <div className="space-y-2">
+                            <CardTitle>Paket Tanımları</CardTitle>
+                            <p className="text-sm text-muted-foreground">Filtrelenmiş paketler üzerinde hızlı yayın kontrolü ve içerik yönetimi.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("bundles", true)}>Filtredekileri Yayına Al</Button>
+                            <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("bundles", false)}>Filtredekileri Durdur</Button>
+                            <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {filteredBundles.length === 0 ? (
@@ -1145,8 +1267,15 @@ export default function PromotionsPage() {
                 {(sectionFilter === "all" || sectionFilter === "discounts") ? (
                 <Card id="discounts">
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>İndirim Kampanyaları</CardTitle>
-                        <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                        <div className="space-y-2">
+                            <CardTitle>İndirim Kampanyaları</CardTitle>
+                            <p className="text-sm text-muted-foreground">Kuponsuz çalışan kampanyaları yayın durumu ve zamanlamaya göre yönetin.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("discounts", true)}>Filtredekileri Yayına Al</Button>
+                            <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("discounts", false)}>Filtredekileri Durdur</Button>
+                            <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {filteredDiscounts.length === 0 ? (
@@ -1201,8 +1330,15 @@ export default function PromotionsPage() {
             {!loading && !loadError && (sectionFilter === "all" || sectionFilter === "coupons") ? (
             <Card id="coupons">
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Kupon Kodları</CardTitle>
-                    <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                    <div className="space-y-2">
+                        <CardTitle>Kupon Kodları</CardTitle>
+                        <p className="text-sm text-muted-foreground">Oyuncunun girdiği kodların hedefini, limitini ve yayın penceresini tek yerden kontrol et.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("coupons", true)}>Filtredekileri Yayına Al</Button>
+                        <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("coupons", false)}>Filtredekileri Durdur</Button>
+                        <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {filteredCoupons.length === 0 ? (
