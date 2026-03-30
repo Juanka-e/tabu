@@ -71,6 +71,17 @@ interface CouponFormState {
 const inputClassName = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-500";
 const sectionClassName = "space-y-3 rounded-2xl border border-border/80 bg-background/80 p-4";
 const helperClassName = "text-xs text-muted-foreground";
+const targetTypeLabels: Record<PromotionTargetType, string> = {
+    global: "Global",
+    shop_item: "Ürün",
+    bundle: "Paket",
+};
+const itemTypeLabels = {
+    avatar: "Avatar",
+    frame: "Çerçeve",
+    card_back: "Kart Arkası",
+    card_face: "Kart Önü",
+} satisfies Record<ItemOption["type"], string>;
 
 const emptyBundleForm: BundleFormState = {
     code: "",
@@ -144,6 +155,102 @@ function PromotionTypeBadge({ label }: { label: string }) {
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
             {label}
         </span>
+    );
+}
+
+function StatusBadge({
+    label,
+    tone = "neutral",
+}: {
+    label: string;
+    tone?: "neutral" | "success" | "warning" | "accent";
+}) {
+    const toneClassName =
+        tone === "success"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            : tone === "warning"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              : tone === "accent"
+                ? "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                : "border-border bg-muted text-muted-foreground";
+
+    return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${toneClassName}`}>{label}</span>;
+}
+
+function formatDiscountSummary(discountType: PromotionDiscountType, percentageOff: number | null, fixedCoinOff: number | null) {
+    if (discountType === "percentage") {
+        return `%${percentageOff ?? 0} indirim`;
+    }
+
+    return `${fixedCoinOff ?? 0} coin indirim`;
+}
+
+function formatTargetSummary(targetType: PromotionTargetType, shopItemId: number | null, bundleId: number | null, itemOptions: ItemOption[], bundleOptions: Array<{ id: number; name: string; code: string }>) {
+    if (targetType === "global") {
+        return "Tüm katalog";
+    }
+
+    if (targetType === "shop_item") {
+        const item = itemOptions.find((option) => option.id === shopItemId);
+        return item ? `${item.name} · ${itemTypeLabels[item.type]}` : "Seçili ürün";
+    }
+
+    const bundle = bundleOptions.find((option) => option.id === bundleId);
+    return bundle ? `${bundle.name} · ${bundle.code}` : "Seçili paket";
+}
+
+function formatUsageSummary(usedCount: number, usageLimit: number | null) {
+    if (!usageLimit) {
+        return `${usedCount} kullanım · limitsiz`;
+    }
+
+    const remaining = Math.max(usageLimit - usedCount, 0);
+    return `${usedCount} / ${usageLimit} kullanım · ${remaining} kaldı`;
+}
+
+function getScheduleSummary(startsAt: string | null, endsAt: string | null) {
+    if (!startsAt && !endsAt) {
+        return "Zaman sınırı yok";
+    }
+
+    const formatter = new Intl.DateTimeFormat("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    if (startsAt && endsAt) {
+        return `${formatter.format(new Date(startsAt))} - ${formatter.format(new Date(endsAt))}`;
+    }
+
+    if (startsAt) {
+        return `${formatter.format(new Date(startsAt))} itibarıyla açık`;
+    }
+
+    return `${formatter.format(new Date(endsAt as string))} tarihine kadar`;
+}
+
+function getWindowState(startsAt: string | null, endsAt: string | null) {
+    const now = Date.now();
+
+    if (startsAt && new Date(startsAt).getTime() > now) {
+        return { label: "Planlı", tone: "accent" as const };
+    }
+
+    if (endsAt && new Date(endsAt).getTime() < now) {
+        return { label: "Süresi Doldu", tone: "warning" as const };
+    }
+
+    return { label: "Yayında", tone: "success" as const };
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="text-right font-medium text-foreground">{value}</span>
+        </div>
     );
 }
 
@@ -605,6 +712,9 @@ export default function PromotionsPage() {
         () => bundles.map((bundle) => ({ id: bundle.id, name: bundle.name, code: bundle.code })),
         [bundles]
     );
+    const activeBundleCount = useMemo(() => bundles.filter((bundle) => bundle.isActive).length, [bundles]);
+    const activeDiscountCount = useMemo(() => discounts.filter((discount) => discount.isActive).length, [discounts]);
+    const activeCouponCount = useMemo(() => coupons.filter((coupon) => coupon.isActive).length, [coupons]);
     const filteredBundles = useMemo(
         () =>
             bundles.filter((bundle) =>
@@ -795,8 +905,8 @@ export default function PromotionsPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Promosyonlar"
-                description="Bundle, otomatik kampanya ve kupon akislarini ayni operasyon panelinde yonetin."
-                meta={`${bundles.length + discounts.length + coupons.length} kayit`}
+                description="Paket, otomatik kampanya ve kupon akışlarını aynı operasyon panelinde yönetin."
+                meta={`${bundles.length + discounts.length + coupons.length} kayıt`}
                 action={null}
             />
 
@@ -806,21 +916,21 @@ export default function PromotionsPage() {
                     <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Bundle, kampanya veya kupon ara..."
+                        placeholder="Paket, kampanya veya kupon ara..."
                         className="pl-9"
                     />
                 </div>
                 <AdminToolbarStats
                     stats={[
-                        { label: "bundle", value: String(filteredBundles.length) },
-                        { label: "kampanya", value: String(filteredDiscounts.length) },
-                        { label: "kupon", value: String(filteredCoupons.length) },
+                        { label: "paket", value: `${filteredBundles.length} / ${activeBundleCount}` },
+                        { label: "kampanya", value: `${filteredDiscounts.length} / ${activeDiscountCount}` },
+                        { label: "kupon", value: `${filteredCoupons.length} / ${activeCouponCount}` },
                     ]}
                 />
             </AdminToolbar>
 
             {loading ? (
-                <AdminTableShell loading title="Promosyon verileri" description="Admin kaynaklari yukleniyor.">
+                <AdminTableShell loading title="Promosyon verileri" description="Admin kaynakları yükleniyor.">
                     <div />
                 </AdminTableShell>
             ) : null}
@@ -834,31 +944,44 @@ export default function PromotionsPage() {
             <div className="grid gap-6 xl:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Bundle Tanimlari</CardTitle>
+                        <CardTitle>Paket Tanımları</CardTitle>
                         <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {filteredBundles.length === 0 ? (
                             <AdminEmptyState
-                                title="Bundle bulunamadi"
-                                description="Arama sonucunda gosterilecek bundle kaydi yok."
+                                title="Paket bulunamadı"
+                                description="Arama sonucunda gösterilecek paket kaydı yok."
                             />
                         ) : null}
                         {filteredBundles.map((bundle) => (
-                            <div key={bundle.id} className="rounded-2xl border border-border p-4">
+                            <div key={bundle.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
                                 <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{bundle.name}</h3><PromotionTypeBadge label={bundle.isActive ? "aktif" : "pasif"} /></div>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="font-semibold text-foreground">{bundle.name}</h3>
+                                            <StatusBadge label={bundle.isActive ? "Aktif" : "Pasif"} tone={bundle.isActive ? "success" : "neutral"} />
+                                            <StatusBadge label={`${bundle.items.length} ürün`} />
+                                        </div>
                                         <p className="font-mono text-xs text-muted-foreground">{bundle.code}</p>
-                                        <p className="mt-2 text-sm text-muted-foreground">{bundle.description || "Aciklama yok."}</p>
-                                        <p className="mt-2 text-sm font-medium text-foreground">{bundle.priceCoin.toLocaleString()} coin</p>
+                                        <p className="text-sm text-muted-foreground">{bundle.description || "Açıklama eklenmemiş."}</p>
                                     </div>
                                     <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => { setEditingBundleId(bundle.id); setBundleForm({ code: bundle.code, name: bundle.name, description: bundle.description ?? "", priceCoin: String(bundle.priceCoin), isActive: bundle.isActive, sortOrder: String(bundle.sortOrder), items: bundle.items.map((item) => ({ shopItemId: String(item.shopItemId), sortOrder: String(item.sortOrder) })) }); }}><Edit2 size={14} /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("bundles", bundle.id)}><Trash2 size={14} /></Button>
                                     </div>
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-2">{bundle.items.map((item) => <span key={item.id} className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">{item.itemName} ({item.itemType})</span>)}</div>
+                                <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
+                                    <DetailRow label="Liste fiyatı" value={`${bundle.priceCoin.toLocaleString()} coin`} />
+                                    <DetailRow label="Vitrin sırası" value={String(bundle.sortOrder)} />
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {bundle.items.map((item) => (
+                                        <span key={item.id} className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                                            {item.itemName} · {itemTypeLabels[item.itemType]}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                         <BundleEditor
@@ -878,29 +1001,40 @@ export default function PromotionsPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Indirim Kampanyalari</CardTitle>
+                        <CardTitle>İndirim Kampanyaları</CardTitle>
                         <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {filteredDiscounts.length === 0 ? (
                             <AdminEmptyState
-                                title="Kampanya bulunamadi"
-                                description="Arama sonucunda gosterilecek indirim kampanyasi yok."
+                                title="Kampanya bulunamadı"
+                                description="Arama sonucunda gösterilecek indirim kampanyası yok."
                             />
                         ) : null}
                         {filteredDiscounts.map((discount) => (
-                            <div key={discount.id} className="rounded-2xl border border-border p-4">
+                            <div key={discount.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
                                 <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{discount.name}</h3><PromotionTypeBadge label={discount.targetType} /></div>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="font-semibold text-foreground">{discount.name}</h3>
+                                            <StatusBadge label={discount.isActive ? "Aktif" : "Pasif"} tone={discount.isActive ? "success" : "neutral"} />
+                                            <StatusBadge label={targetTypeLabels[discount.targetType]} tone="accent" />
+                                            {discount.stackableWithCoupon ? <StatusBadge label="Kuponla birikir" tone="warning" /> : null}
+                                            <StatusBadge {...getWindowState(discount.startsAt, discount.endsAt)} />
+                                        </div>
                                         <p className="font-mono text-xs text-muted-foreground">{discount.code}</p>
-                                        <p className="mt-2 text-sm text-muted-foreground">{discount.discountType === "percentage" ? `%${discount.percentageOff} indirim` : `${discount.fixedCoinOff} coin indirim`}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">Kullanim: {discount.usedCount}{discount.usageLimit ? ` / ${discount.usageLimit}` : ""}</p>
+                                        <p className="text-sm text-muted-foreground">{discount.description || "Açıklama eklenmemiş."}</p>
                                     </div>
                                     <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", usageLimit: discount.usageLimit ? String(discount.usageLimit) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button>
                                     </div>
+                                </div>
+                                <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3">
+                                    <DetailRow label="İndirim" value={formatDiscountSummary(discount.discountType, discount.percentageOff, discount.fixedCoinOff)} />
+                                    <DetailRow label="Hedef" value={formatTargetSummary(discount.targetType, discount.shopItemId, discount.bundleId, itemOptions, bundleOptions)} />
+                                    <DetailRow label="Kullanım" value={formatUsageSummary(discount.usedCount, discount.usageLimit)} />
+                                    <DetailRow label="Zamanlama" value={getScheduleSummary(discount.startsAt, discount.endsAt)} />
                                 </div>
                             </div>
                         ))}
@@ -922,29 +1056,39 @@ export default function PromotionsPage() {
             {!loading && !loadError ? (
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Kupon Kodlari</CardTitle>
+                    <CardTitle>Kupon Kodları</CardTitle>
                     <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {filteredCoupons.length === 0 ? (
                         <AdminEmptyState
-                            title="Kupon bulunamadi"
-                            description="Arama sonucunda gosterilecek kupon kaydi yok."
+                            title="Kupon bulunamadı"
+                            description="Arama sonucunda gösterilecek kupon kaydı yok."
                         />
                     ) : null}
                     {filteredCoupons.map((coupon) => (
-                        <div key={coupon.id} className="rounded-2xl border border-border p-4">
+                        <div key={coupon.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
                             <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <div className="flex items-center gap-2"><h3 className="font-semibold text-foreground">{coupon.name}</h3><PromotionTypeBadge label={coupon.targetType} /></div>
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h3 className="font-semibold text-foreground">{coupon.name}</h3>
+                                        <StatusBadge label={coupon.isActive ? "Aktif" : "Pasif"} tone={coupon.isActive ? "success" : "neutral"} />
+                                        <StatusBadge label={targetTypeLabels[coupon.targetType]} tone="accent" />
+                                        <StatusBadge {...getWindowState(coupon.startsAt, coupon.endsAt)} />
+                                    </div>
                                     <p className="font-mono text-xs text-muted-foreground">{coupon.code}</p>
-                                    <p className="mt-2 text-sm text-muted-foreground">{coupon.discountType === "percentage" ? `%${coupon.percentageOff} indirim` : `${coupon.fixedCoinOff} coin indirim`}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Kullanim: {coupon.usedCount}{coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}</p>
+                                    <p className="text-sm text-muted-foreground">{coupon.description || "Açıklama eklenmemiş."}</p>
                                 </div>
                                 <div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => { setEditingCouponId(coupon.id); setCouponForm({ code: coupon.code, name: coupon.name, description: coupon.description ?? "", targetType: coupon.targetType, discountType: coupon.discountType, percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "", fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "", shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "", bundleId: coupon.bundleId ? String(coupon.bundleId) : "", usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "", startsAt: toDateTimeLocal(coupon.startsAt), endsAt: toDateTimeLocal(coupon.endsAt), isActive: coupon.isActive }); }}><Edit2 size={14} /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("coupons", coupon.id)}><Trash2 size={14} /></Button>
                                 </div>
+                            </div>
+                            <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3">
+                                <DetailRow label="İndirim" value={formatDiscountSummary(coupon.discountType, coupon.percentageOff, coupon.fixedCoinOff)} />
+                                <DetailRow label="Hedef" value={formatTargetSummary(coupon.targetType, coupon.shopItemId, coupon.bundleId, itemOptions, bundleOptions)} />
+                                <DetailRow label="Kullanım" value={formatUsageSummary(coupon.usedCount, coupon.usageLimit)} />
+                                <DetailRow label="Zamanlama" value={getScheduleSummary(coupon.startsAt, coupon.endsAt)} />
                             </div>
                         </div>
                     ))}

@@ -52,6 +52,9 @@ export async function GET(request: NextRequest) {
                 select: {
                     inventoryItems: true,
                     purchases: true,
+                    bundleEntries: true,
+                    discountCampaigns: true,
+                    couponCodes: true,
                 },
             },
         },
