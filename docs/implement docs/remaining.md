@@ -4,46 +4,42 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `fix/admin-security-hardening`
-2. `fix/admin-content-ops`
-3. `fix/coin-grants-archive-lifecycle`
-4. `feature/admin-user-observability`
-5. `feature/night-market-foundation`
-6. `feature/economy-abuse-hardening`
-7. `feature/cache-and-rate-limit-foundation`
-8. `feature/admin-promotions-ux`
-9. `feature/cosmetic-render-upgrade`
-10. `feature/admin-cosmetic-authoring`
-11. `feature/gameplay-ui-polish`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `fix/admin-content-ops`
+2. `fix/coin-grants-archive-lifecycle`
+3. `feature/admin-user-observability`
+4. `feature/night-market-foundation`
+5. `feature/economy-abuse-hardening`
+6. `feature/cache-and-rate-limit-foundation`
+7. `feature/admin-promotions-ux`
+8. `feature/cosmetic-render-upgrade`
+9. `feature/admin-cosmetic-authoring`
+10. `feature/gameplay-ui-polish`
+11. `feature/analytics-event-foundation`
+12. `feature/word-analytics-liveops`
+13. `feature/release-ops-docs`
+14. `docs/encoding-cleanup`
+15. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
-### 1. Admin Security Hardening
-- admin panel API authz taramasi
-- write route request korumalari
-- admin read/write rate limit kapsami
-- trusted proxy / IP gorunurlugu karar cizgisi
+### 1. Admin Content Ops
+- duyuru duplicate render bug kapatildi
+- oyuncuya block count gibi ic metadata gostermeme kapatildi
+- duyuru editor / render modelinin compactlastirilmasi kapatildi
+- toplu kelime yukleme icin kategori / alt kategori akisi eklendi
+- kelimelerde sayfa-bazli toplu secim ve guvenli bulk delete eklendi
 - branch rehberi:
-  - `docs/guides/admin-security-hardening-guide.md`
+  - `docs/guides/admin-content-ops-guide.md`
 
-### 2. Admin Content Ops
-- duyuru duplicate render bug
-- oyuncuya block count gibi ic metadata gostermeme
-- duyuru editor / render modelini daha compact hale getirme
-- toplu kelime yukleme icin kategori / alt kategori akisi
-- branch rehberi:
-  - `docs/guides/admin-security-hardening-guide.md`
+Kalan follow-up ihtiyaclari:
+- duyurularda gerekirse read/unread veya pinned ayrimi
+- kelimelerde bulk delete icin ekstra permission ayrimi gerekiyorsa sonraki security/policy slice'inda ele alinmasi
 
-### 3. Coin Grants Archive Lifecycle
+### 2. Coin Grants Archive Lifecycle
 - archive davranisinin campaign ve code tarafinda tutarli hale getirilmesi
 - `Tum` ve `Arsiv` filtrelerinde ayni kural seti
 
-### 4. Economy / Abuse Hardening
+### 3. Economy / Abuse Hardening
 - guest coin yok kurali ustune hesapli kullanicilar icin reward eligibility
 - gunluk ve saatlik coin cap
 - ayni oyuncu gruplarinda kademeli coin verim dusurme
@@ -51,7 +47,7 @@
 - planning referansi:
   - `docs/guides/economy-abuse-strategy-guide.md`
 
-### 5. Cache / Rate Limit Foundation
+### 4. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
 - development memory fallback
 - production shared cache and rate limit store

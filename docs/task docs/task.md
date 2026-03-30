@@ -42,42 +42,66 @@
   - UTF-8 magazaya kopya duzeltmesi
 
 ## Son Tamamlanan Branch
-### `feature/admin-inventory-operations`
-- oyuncu inventory inspect ekrani eklendi
-- item grant / revoke / equip reset akisleri geldi
-- protected source revoke modeli eklendi
-- riskli inventory aksiyonlari icin onay modal'lari eklendi
-- inventory read route dahil admin inventory API yuzeyi rate limit ile korundu
-- secili oyuncu icin son operasyon notlari gorunur hale geldi
-- audit ekraninda not kolonu acildi
-- referans:
-  - `docs/guides/admin-inventory-operations-planning-guide.md`
-
-## Aktif Branch
 ### `fix/admin-security-hardening`
-- admin panel API guvenlik taramasi
-- authz / request korumasi / rate limit kapsami
-- trusted proxy / IP gorunurlugu notlari
+- admin API read/write route'larina tutarli rate limit kapsami yayildi
+- `TRUST_PROXY` artik request rate limit ve audit IP kaydinda gercekten uygulanir hale geldi
+- admin guvenlik kapsam rehberi ve deployment guide guncellendi
+- oyuncu tarafinda:
+  - `user/me`
+  - `user/dashboard`
+  - `user/inventory`
+  - `support/tickets`
+  - `store/items`
+  read route'larina rate limit eklendi
 - referans:
   - `docs/guides/admin-security-hardening-guide.md`
 
+## Aktif Branch
+### `fix/admin-content-ops`
+- duyuru kartlarini compact, oyuncu-odakli hale getirme
+- oyuncuya block count gibi ic metadata gostermeme
+- admin preview ile player renderi hizalama
+- toplu kelime yukleme icin kategori / alt kategori secimi
+- kelimelerde sayfa-bazli secim ve guvenli bulk delete
+- referans:
+  - `docs/guides/admin-content-ops-guide.md`
+
+## Bu Branch'te Tamamlanan Son Dilimler
+### `fix/admin-content-ops`
+- duyuru collapsed kart dili tekrar hissi vermeyecek sekilde sadeleştirildi
+- `YENI` etiketi 7 gunluk gorunum mantigiyla korundu
+- tarih meta alani sag uste tasindi
+- admin preview oyuncu kartina yaklastirildi
+- bulk upload iki modlu hale getirildi:
+  - `csv_categories`
+  - `fixed_categories`
+- duplicate / skipped / error sonucu modalda raporlanir oldu
+- kelimelerde toplu secim ve bulk delete geldi
+- bulk delete:
+  - ikinci onay
+  - sayili CTA
+  - `10+` kayitta reason
+  - audit kaydi
+  ile sertlestirildi
+- referans:
+  - `docs/guides/admin-content-ops-guide.md`
+
 ## Aktif Sonraki Branch Adaylari
-1. `fix/admin-security-hardening`
-2. `fix/admin-content-ops`
-3. `fix/coin-grants-archive-lifecycle`
-4. `feature/admin-user-observability`
-5. `feature/night-market-foundation`
-6. `feature/economy-abuse-hardening`
-7. `feature/cache-and-rate-limit-foundation`
-8. `feature/admin-promotions-ux`
-9. `feature/cosmetic-render-upgrade`
-10. `feature/admin-cosmetic-authoring`
-11. `feature/gameplay-ui-polish`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `fix/admin-content-ops`
+2. `fix/coin-grants-archive-lifecycle`
+3. `feature/admin-user-observability`
+4. `feature/night-market-foundation`
+5. `feature/economy-abuse-hardening`
+6. `feature/cache-and-rate-limit-foundation`
+7. `feature/admin-promotions-ux`
+8. `feature/cosmetic-render-upgrade`
+9. `feature/admin-cosmetic-authoring`
+10. `feature/gameplay-ui-polish`
+11. `feature/analytics-event-foundation`
+12. `feature/word-analytics-liveops`
+13. `feature/release-ops-docs`
+14. `docs/encoding-cleanup`
+15. `feature/wallet-ledger-foundation`
 
 ## Mimari Notlar
 - Cache / Redis / Valkey / PM2 stratejisi icin ana referans:

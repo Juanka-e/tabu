@@ -1,19 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
     ChevronDown,
-    Clock,
     Megaphone,
-    Pin,
     Rocket,
-    Star,
-    Tag,
     X,
 } from "lucide-react";
 import type { AnnouncementBlocks } from "@/lib/announcements/content";
 import { AnnouncementBlocksView } from "@/components/game/announcement-blocks-view";
+import { AnnouncementPreviewCard } from "@/components/game/announcement-preview-card";
 
 interface Announcement {
     id: number;
@@ -151,14 +148,11 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                         </div>
                     ) : (
                         <div className="space-y-4">
-                        {activeItems.map((item) => {
-                            const isExpanded = expandedId === item.id;
-                            const tags = item.tags
-                                ? item.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
-                                : [];
+                            {activeItems.map((item) => {
+                                const isExpanded = expandedId === item.id;
 
-                            return (
-                                <div
+                                return (
+                                    <div
                                         key={item.id}
                                         className={`overflow-hidden rounded-2xl border transition-all ${
                                             isExpanded
@@ -171,59 +165,23 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                                             onClick={() => setExpandedId(isExpanded ? null : item.id)}
                                             className="w-full p-4 text-left"
                                         >
-                                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                                                {item.isPinned && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-[10px] font-black text-white">
-                                                        <Pin size={10} fill="currentColor" />
-                                                        SABIT
-                                                    </span>
-                                                )}
-                                                {item.isNew && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500 px-2 py-1 text-[10px] font-black text-white">
-                                                        <Star size={10} fill="currentColor" />
-                                                        YENI
-                                                    </span>
-                                                )}
-                                                {item.version && (
-                                                    <span className="rounded bg-gray-100 px-2 py-1 font-mono text-[10px] text-gray-600 dark:bg-slate-700 dark:text-slate-300">
-                                                        {item.version}
-                                                    </span>
-                                                )}
-                                                {tags.map((tag) => (
-                                                    <span
-                                                        key={tag}
-                                                        className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-700 dark:text-slate-300"
-                                                    >
-                                                        <Tag size={10} />
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="text-base font-black text-slate-900 dark:text-white">
-                                                        {item.title}
-                                                    </h3>
-                                                    <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-                                                        {item.preview}
-                                                    </p>
-                                                    <div className="mt-3 flex items-center gap-3 text-xs text-gray-400 dark:text-slate-500">
-                                                        <span className="inline-flex items-center gap-1">
-                                                            <Clock size={12} />
-                                                            {new Date(item.created_at).toLocaleDateString("tr-TR", {
-                                                                year: "numeric",
-                                                                month: "long",
-                                                                day: "numeric",
-                                                            })}
-                                                        </span>
-                                                        <span>{item.contentBlocks.length} blok</span>
-                                                    </div>
-                                                </div>
-
+                                            <div className="relative pr-8">
+                                                <AnnouncementPreviewCard
+                                                    title={item.title}
+                                                    contentBlocks={item.contentBlocks}
+                                                    createdAt={item.created_at}
+                                                    isPinned={item.isPinned}
+                                                    isNew={item.isNew}
+                                                    version={item.version}
+                                                    tags={item.tags}
+                                                    mediaUrl={item.mediaUrl}
+                                                    mediaType={item.mediaType}
+                                                    clipped={!isExpanded}
+                                                    className="border-0 bg-transparent shadow-none"
+                                                />
                                                 <ChevronDown
                                                     size={18}
-                                                    className={`mt-1 shrink-0 text-gray-400 transition-transform ${
+                                                    className={`absolute right-0 top-2 text-gray-400 transition-transform ${
                                                         isExpanded ? "rotate-180" : ""
                                                     }`}
                                                 />
@@ -274,3 +232,6 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
         </div>
     );
 }
+
+
+

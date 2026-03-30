@@ -76,22 +76,21 @@
   - `docs/guides/store-liveops-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-18. `fix/admin-security-hardening`
-19. `fix/admin-content-ops`
-20. `fix/coin-grants-archive-lifecycle`
-21. `feature/admin-user-observability`
-22. `feature/night-market-foundation`
-23. `feature/economy-abuse-hardening`
-24. `feature/cache-and-rate-limit-foundation`
-25. `feature/admin-promotions-ux`
-26. `feature/cosmetic-render-upgrade`
-27. `feature/admin-cosmetic-authoring`
-28. `feature/gameplay-ui-polish`
-29. `feature/analytics-event-foundation`
-30. `feature/word-analytics-liveops`
-31. `feature/release-ops-docs`
-32. `docs/encoding-cleanup`
-33. `feature/wallet-ledger-foundation`
+18. `fix/admin-content-ops`
+19. `fix/coin-grants-archive-lifecycle`
+20. `feature/admin-user-observability`
+21. `feature/night-market-foundation`
+22. `feature/economy-abuse-hardening`
+23. `feature/cache-and-rate-limit-foundation`
+24. `feature/admin-promotions-ux`
+25. `feature/cosmetic-render-upgrade`
+26. `feature/admin-cosmetic-authoring`
+27. `feature/gameplay-ui-polish`
+28. `feature/analytics-event-foundation`
+29. `feature/word-analytics-liveops`
+30. `feature/release-ops-docs`
+31. `docs/encoding-cleanup`
+32. `feature/wallet-ledger-foundation`
 
 ## Integration Hub Slice (24 March 2026, completed)
 - Yeni `/admin/integrations` paneli eklendi.
@@ -162,6 +161,33 @@
   - secili oyuncu icin son operasyon notlari gorunur oldu
   - audit ekraninda not kolonu acildi
 
+## Security Hardening Slice (30 March 2026, completed)
+- `fix/admin-security-hardening`
+  - admin API read/write route kapsami boyunca rate limit tamamlandi
+  - `TRUST_PROXY` request rate limit ve audit IP kaydinda gercekten uygulanir hale geldi
+  - deployment security rehberi `TRUST_PROXY + Nginx + private backend` karariyla guncellendi
+  - oyuncu tarafinda:
+    - `user/me`
+    - `user/dashboard`
+    - `user/inventory`
+  - `support/tickets`
+  - `store/items`
+  read route'larina rate limit eklendi
+
+## Admin Content Ops Slice (30 March 2026, active near-complete)
+- `fix/admin-content-ops`
+  - duyuru collapsed kart dili sadeleştirildi
+  - duplicate metin ve block count gibi ic metadata kaldirildi
+  - `YENI` rozeti 7 gunluk gorunum mantigiyla korundu
+  - tarih meta alani sag uste tasindi
+  - admin preview oyuncu kartina yaklastirildi
+  - kelime bulk upload iki modlu hale geldi:
+    - `csv_categories`
+    - `fixed_categories`
+  - duplicate / skipped / error sonuclari gorunur hale geldi
+  - kelimelerde yalniz gorunen sayfayi secen bulk selection ve guvenli bulk delete eklendi
+  - eski sidebar `Toplu Yukleme` girisi kaldirildi, eski URL `Kelime Yönetimi`ne yonlenir
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
@@ -169,8 +195,8 @@
 
 ## Sayisal Durum
 - Tamamlanan feature branch sayisi: 19
-- Planli toplam feature branch sayisi: 33
-- Kalan feature branch sayisi: 14
+- Planli toplam feature branch sayisi: 32
+- Kalan feature branch sayisi: 13
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

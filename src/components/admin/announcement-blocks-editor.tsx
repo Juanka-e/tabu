@@ -17,6 +17,11 @@ import type {
     AnnouncementBlocks,
     AnnouncementBlockType,
 } from "@/lib/announcements/content";
+import {
+    ANNOUNCEMENT_BODY_TEXT_MAX_LENGTH,
+    ANNOUNCEMENT_HEADING_TEXT_MAX_LENGTH,
+    ANNOUNCEMENT_LIST_ITEM_MAX_LENGTH,
+} from "@/lib/announcements/content";
 
 const blockTypeOptions: Array<{
     type: AnnouncementBlockType;
@@ -171,38 +176,56 @@ export function AnnouncementBlocksEditor({
                         )}
 
                         {"text" in block && (
-                            <textarea
-                                value={block.text}
-                                onChange={(event) =>
-                                    replaceBlock(index, { ...block, text: event.target.value })
-                                }
-                                rows={block.type === "heading" ? 2 : block.type === "quote" ? 3 : 4}
-                                placeholder={
-                                    block.type === "quote"
-                                        ? "Kisa bir alinti veya vurgu metni yazin."
-                                        : "Duyuru icerigini yazin."
-                                }
-                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                            />
+                            <div className="space-y-2">
+                                <textarea
+                                    value={block.text}
+                                    maxLength={
+                                        block.type === "heading"
+                                            ? ANNOUNCEMENT_HEADING_TEXT_MAX_LENGTH
+                                            : ANNOUNCEMENT_BODY_TEXT_MAX_LENGTH
+                                    }
+                                    onChange={(event) =>
+                                        replaceBlock(index, { ...block, text: event.target.value })
+                                    }
+                                    rows={block.type === "heading" ? 2 : block.type === "quote" ? 3 : 5}
+                                    placeholder={
+                                        block.type === "quote"
+                                            ? "Kisa bir alinti veya vurgu metni yazin."
+                                            : "Duyuru icerigini yazin."
+                                    }
+                                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                                />
+                                <div className="text-right text-xs text-gray-400 dark:text-slate-500">
+                                    {block.text.length}/
+                                    {block.type === "heading"
+                                        ? ANNOUNCEMENT_HEADING_TEXT_MAX_LENGTH
+                                        : ANNOUNCEMENT_BODY_TEXT_MAX_LENGTH}
+                                </div>
+                            </div>
                         )}
 
                         {"items" in block && (
-                            <textarea
-                                value={block.items.join("\n")}
-                                onChange={(event) =>
-                                    replaceBlock(index, {
-                                        ...block,
-                                        items: event.target.value
-                                            .split(/\r?\n/)
-                                            .map((item) => item.trim())
-                                            .filter(Boolean)
-                                            .slice(0, 12),
-                                    })
-                                }
-                                rows={5}
-                                placeholder="Her satira bir madde yazin."
-                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
-                            />
+                            <div className="space-y-2">
+                                <textarea
+                                    value={block.items.join("\n")}
+                                    onChange={(event) =>
+                                        replaceBlock(index, {
+                                            ...block,
+                                            items: event.target.value
+                                                .split(/\r?\n/)
+                                                .map((item) => item.trim().slice(0, ANNOUNCEMENT_LIST_ITEM_MAX_LENGTH))
+                                                .filter(Boolean)
+                                                .slice(0, 12),
+                                        })
+                                    }
+                                    rows={5}
+                                    placeholder="Her satira bir madde yazin."
+                                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                                />
+                                <div className="text-right text-xs text-gray-400 dark:text-slate-500">
+                                    Madde basi en fazla {ANNOUNCEMENT_LIST_ITEM_MAX_LENGTH} karakter.
+                                </div>
+                            </div>
                         )}
 
                         {block.type === "divider" && (

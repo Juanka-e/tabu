@@ -8,7 +8,6 @@ import {
     BookOpen,
     FolderTree,
     Megaphone,
-    Upload,
     LogOut,
     Gamepad2,
     ShoppingBag,
@@ -38,7 +37,6 @@ const navItems = [
     { href: "/admin/integrations", icon: PlugZap, label: "Integrations" },
     { href: "/admin/system-settings", icon: SlidersHorizontal, label: "Sistem Ayarlari" },
     { href: "/admin/announcements", icon: Megaphone, label: "Duyurular" },
-    { href: "/admin/bulk-upload", icon: Upload, label: "Toplu Yukleme" },
 ];
 
 interface AdminSidebarProps {

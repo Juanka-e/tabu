@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -19,11 +19,11 @@ import {
 import { toast } from "sonner";
 import {
     announcementBlocksSchema,
-    announcementBlocksToPreview,
     createEmptyAnnouncementBlocks,
     type AnnouncementBlocks,
 } from "@/lib/announcements/content";
 import { AnnouncementBlocksEditor } from "@/components/admin/announcement-blocks-editor";
+import { AnnouncementPreviewCard } from "@/components/game/announcement-preview-card";
 
 interface AnnouncementRecord {
     id: number;
@@ -248,7 +248,7 @@ export default function AdminAnnouncementsPage() {
                         Duyuru Yonetimi
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Toplam {announcements.length} duyuru kaydi.
+                        Toplam {announcements.length} duyuru.
                     </p>
                 </div>
                 <button
@@ -279,10 +279,6 @@ export default function AdminAnnouncementsPage() {
                             const tags = announcement.tags
                                 ? announcement.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
                                 : [];
-                            const preview =
-                                announcement.contentPreview ||
-                                announcementBlocksToPreview(announcement.contentBlocks);
-
                             return (
                                 <div
                                     key={announcement.id}
@@ -329,10 +325,6 @@ export default function AdminAnnouncementsPage() {
                                             ))}
                                         </div>
 
-                                        <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-                                            {preview}
-                                        </p>
-
                                         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-slate-500">
                                             <span>
                                                 {new Date(announcement.createdAt).toLocaleDateString("tr-TR", {
@@ -344,7 +336,6 @@ export default function AdminAnnouncementsPage() {
                                             {announcement.mediaUrl && (
                                                 <span>{announcement.mediaType === "youtube" ? "Video" : "Gorsel"}</span>
                                             )}
-                                            <span>{announcement.contentBlocks.length} blok</span>
                                         </div>
                                     </div>
 
@@ -410,7 +401,7 @@ export default function AdminAnnouncementsPage() {
                                     {editing ? "Duyuruyu Duzenle" : "Yeni Duyuru"}
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    HTML yerine yapisal bloklar kaydedilir.
+                                    Kisa ve okunur bir icerik akisiyla kaydedilir.
                                 </p>
                             </div>
                             <button
@@ -564,20 +555,32 @@ export default function AdminAnnouncementsPage() {
                             <div className="space-y-4 p-5">
                                 <div>
                                     <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
-                                        Ozet
+                                        Oyuncu görünümü
                                     </h3>
-                                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-                                        {announcementBlocksToPreview(formState.contentBlocks) || "Henuz bir onizleme yok."}
-                                    </p>
+                                    <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                                        <AnnouncementPreviewCard
+                                            title={formState.title.trim() || "Duyuru başlığı"}
+                                            contentBlocks={formState.contentBlocks}
+                                            createdAt={editing?.createdAt ?? new Date().toISOString()}
+                                            isPinned={formState.isPinned}
+                                            isNew={!editing}
+                                            version={formState.version.trim() || null}
+                                            tags={formState.tags.trim() || null}
+                                            mediaUrl={formState.mediaUrl.trim() || null}
+                                            mediaType={formState.mediaType}
+                                            showContentPreview={false}
+                                            clipped
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-900/60">
                                     <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
-                                        Guvenlik notu
+                                        Editör notu
                                     </h3>
                                     <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-                                        <li>Kayitli veri blok semasi ile normalize edilir.</li>
-                                        <li>Oyuncu tarafi React bilesenleri ile render edilir.</li>
+                                        <li>Sağdaki kart oyuncunun listede göreceği görünümü taklit eder.</li>
+                                        <li>Detaya girildiğinde aynı içerik blokları tam açılır.</li>
                                         <li>Eski HTML duyurular legacy uyumlulukla okunur.</li>
                                     </ul>
                                 </div>
@@ -606,3 +609,6 @@ export default function AdminAnnouncementsPage() {
         </div>
     );
 }
+
+
+

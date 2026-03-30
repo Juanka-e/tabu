@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    processBulkWordUpload,
+    type BulkUploadMode,
+} from "@/lib/admin-words-bulk-upload/service";
 
 export const dynamic = "force-dynamic";
 
-// POST - Bulk upload words from CSV
 export async function POST(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
@@ -31,107 +34,62 @@ export async function POST(request: NextRequest) {
 
     try {
         const formData = await request.formData();
-        const file = formData.get("file") as File;
+        const file = formData.get("file");
+        const mode = String(formData.get("mode") || "fixed_categories").trim() as BulkUploadMode;
+        const categoryIdValue = String(formData.get("categoryId") || "").trim();
+        const subcategoryIdValue = String(formData.get("subcategoryId") || "").trim();
 
-        if (!file) {
+        if (!(file instanceof File)) {
             return NextResponse.json(
-                { error: "Dosya bulunamadı." },
-                { status: 400 }
+                { error: "Dosya bulunamadi." },
+                { status: 400, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
+        if (mode !== "fixed_categories" && mode !== "csv_categories") {
+            return NextResponse.json(
+                { error: "Gecersiz import modu." },
+                { status: 422, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
 
         const text = await file.text();
-        const lines = text.split("\n").filter((line) => line.trim());
-
-        if (lines.length === 0) {
+        const processed = await processBulkWordUpload({
+            text,
+            mode,
+            categoryIdValue,
+            subcategoryIdValue,
+        });
+        if ("error" in processed) {
             return NextResponse.json(
-                { error: "CSV dosyası boş." },
-                { status: 400 }
+                { error: processed.error },
+                { status: processed.error === "CSV dosyasi bos." ? 400 : 422, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
+        const { results, fixedCategoryIds } = processed;
 
-        // Parse CSV: Expected format: word,difficulty,taboo1,taboo2,...
-        // First line may be header — skip if it starts with "word" or "kelime"
-        let startIndex = 0;
-        const firstLine = lines[0].toLowerCase().trim();
-        if (
-            firstLine.startsWith("word") ||
-            firstLine.startsWith("kelime")
-        ) {
-            startIndex = 1;
-        }
-
-        const results = {
-            success: 0,
-            skipped: 0,
-            errors: [] as string[],
-        };
-
-        for (let i = startIndex; i < lines.length; i++) {
-            const cols = lines[i].split(",").map((c) => c.trim());
-            if (cols.length < 3) {
-                results.errors.push(
-                    `Satır ${i + 1}: En az 3 sütun gerekli (kelime, zorluk, yasaklı1)`
-                );
-                continue;
-            }
-
-            const wordText = cols[0];
-            const difficulty = parseInt(cols[1]);
-            const tabooWords = cols.slice(2).filter((t) => t);
-
-            if (!wordText) {
-                results.errors.push(`Satır ${i + 1}: Kelime boş.`);
-                continue;
-            }
-            if (isNaN(difficulty) || difficulty < 1 || difficulty > 3) {
-                results.errors.push(
-                    `Satır ${i + 1}: Zorluk 1-3 arası olmalı.`
-                );
-                continue;
-            }
-            if (tabooWords.length === 0) {
-                results.errors.push(
-                    `Satır ${i + 1}: En az 1 yasaklı kelime gerekli.`
-                );
-                continue;
-            }
-
-            // Check duplicate
-            const existing = await prisma.word.findUnique({
-                where: { wordText },
-            });
-            if (existing) {
-                results.skipped++;
-                continue;
-            }
-
-            try {
-                await prisma.word.create({
-                    data: {
-                        wordText,
-                        difficulty,
-                        tabooWords: {
-                            create: tabooWords.map((tw) => ({
-                                tabooWordText: tw,
-                            })),
-                        },
-                    },
-                });
-                results.success++;
-            } catch {
-                results.errors.push(
-                    `Satır ${i + 1}: Veritabanı hatası.`
-                );
-            }
-        }
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.word.bulk_upload",
+            resourceType: "word",
+            summary: `Bulk uploaded words from ${file.name}`,
+            metadata: {
+                fileName: file.name,
+                mode,
+                successCount: results.success,
+                skippedCount: results.skipped,
+                errorCount: results.errors.length,
+                fixedCategoryIds,
+            },
+            request,
+        });
 
         return NextResponse.json(results, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         console.error("Bulk upload failed:", error);
         return NextResponse.json(
-            { error: "Toplu yükleme başarısız." },
-            { status: 500 }
+            { error: "Toplu yukleme basarisiz." },
+            { status: 500, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 }

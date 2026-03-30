@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { sanitizeAnnouncementContent } from "@/lib/security/announcements";
 
@@ -13,33 +13,44 @@ export const ANNOUNCEMENT_BLOCK_TYPES = [
 
 export type AnnouncementBlockType = (typeof ANNOUNCEMENT_BLOCK_TYPES)[number];
 
-const cleanText = z
+export const ANNOUNCEMENT_BODY_TEXT_MAX_LENGTH = 700;
+export const ANNOUNCEMENT_HEADING_TEXT_MAX_LENGTH = 120;
+export const ANNOUNCEMENT_LIST_ITEM_MAX_LENGTH = 220;
+
+const cleanBodyText = z
     .string()
     .trim()
     .min(1)
-    .max(400)
+    .max(ANNOUNCEMENT_BODY_TEXT_MAX_LENGTH)
     .transform((value) => value.replace(/\s+/g, " ").trim());
 
 const listItemText = z
     .string()
     .trim()
     .min(1)
-    .max(200)
+    .max(ANNOUNCEMENT_LIST_ITEM_MAX_LENGTH)
+    .transform((value) => value.replace(/\s+/g, " ").trim());
+
+const headingText = z
+    .string()
+    .trim()
+    .min(1)
+    .max(ANNOUNCEMENT_HEADING_TEXT_MAX_LENGTH)
     .transform((value) => value.replace(/\s+/g, " ").trim());
 
 const paragraphBlockSchema = z.object({
     type: z.literal("paragraph"),
-    text: cleanText,
+    text: cleanBodyText,
 });
 
 const quoteBlockSchema = z.object({
     type: z.literal("quote"),
-    text: cleanText,
+    text: cleanBodyText,
 });
 
 const headingBlockSchema = z.object({
     type: z.literal("heading"),
-    text: cleanText,
+    text: headingText,
     level: z.union([z.literal(2), z.literal(3)]).default(2),
 });
 
@@ -124,21 +135,17 @@ export function announcementBlocksToHtml(blocks: AnnouncementBlocks): string {
 }
 
 export function announcementBlocksToPreview(blocks: AnnouncementBlocks): string {
-    return blocks
-        .map((block) => {
-            if ("text" in block) {
-                return block.text;
-            }
+    for (const block of blocks) {
+        if ("text" in block) {
+            return block.text.slice(0, 180);
+        }
 
-            if ("items" in block) {
-                return block.items.join(" • ");
-            }
+        if ("items" in block) {
+            return block.items.join(" • ").slice(0, 180);
+        }
+    }
 
-            return "";
-        })
-        .filter(Boolean)
-        .join(" ")
-        .slice(0, 220);
+    return "";
 }
 
 function stripTags(value: string): string {
@@ -253,3 +260,4 @@ export function toAnnouncementInputJson(
 ): Prisma.InputJsonValue {
     return blocks as unknown as Prisma.InputJsonValue;
 }
+
