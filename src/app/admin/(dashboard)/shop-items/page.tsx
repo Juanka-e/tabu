@@ -89,23 +89,23 @@ interface ShopItemFormState {
 
 const typeLabels: Record<ItemType, string> = {
     avatar: "Avatar",
-    frame: "Ã‡erÃ§eve",
-    card_back: "Kart ArkasÄ±",
-    card_face: "Kart Ã–nÃ¼",
+    frame: "Çerçeve",
+    card_back: "Kart Arkası",
+    card_face: "Kart Önü",
 };
 
 const rarityLabels: Record<Rarity, string> = {
-    common: "YaygÄ±n",
+    common: "Yaygın",
     rare: "Nadir",
     epic: "Epik",
     legendary: "Efsanevi",
 };
 
 const availabilityLabels: Record<AvailabilityMode, string> = {
-    always_on: "SÃ¼rekli",
-    scheduled: "PlanlÄ±",
+    always_on: "Sürekli",
+    scheduled: "Planlı",
     seasonal: "Sezonluk",
-    limited: "SÄ±nÄ±rlÄ±",
+    limited: "Sınırlı",
     event_only: "Etkinlik",
 };
 
@@ -359,14 +359,14 @@ function getAvailabilityWindowState(startsAt: string | null, endsAt: string | nu
     const now = Date.now();
 
     if (startsAt && new Date(startsAt).getTime() > now) {
-        return { label: "PlanlÄ±", tone: "accent" };
+        return { label: "Planlı", tone: "accent" };
     }
 
     if (endsAt && new Date(endsAt).getTime() < now) {
-        return { label: "SÃ¼resi doldu", tone: "warning" };
+        return { label: "Süresi doldu", tone: "warning" };
     }
 
-    return { label: "YayÄ±nda", tone: "success" };
+    return { label: "Yayında", tone: "success" };
 }
 
 export default function ShopItemsPage() {
@@ -567,10 +567,10 @@ export default function ShopItemsPage() {
             }
 
             setShowModal(false);
-            toast.success(editingItem ? "Kozmetik gÃ¼ncellendi." : "Kozmetik oluÅŸturuldu.");
+            toast.success(editingItem ? "Kozmetik güncellendi." : "Kozmetik oluşturuldu.");
             await loadItems();
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Template config geÃ§ersiz.");
+            toast.error(error instanceof Error ? error.message : "Template config geçersiz.");
         } finally {
             setSaving(false);
         }
@@ -589,30 +589,30 @@ export default function ShopItemsPage() {
         try {
             const succeeded = await updateItem(item.id, { isActive: !item.isActive });
             if (!succeeded) {
-                toast.error("Durum gÃ¼ncellenemedi.");
+                toast.error("Durum güncellenemedi.");
                 return;
             }
             await loadItems();
         } catch {
-            toast.error("Durum gÃ¼ncellenemedi.");
+            toast.error("Durum güncellenemedi.");
         }
     };
 
     const handleDelete = async (item: ShopItem) => {
-        if (!window.confirm(`"${item.name}" kozmetiÄŸini pasife almak istediÄŸine emin misin?`)) {
+        if (!window.confirm(`"${item.name}" kozmetiğini pasife almak istediğine emin misin?`)) {
             return;
         }
 
         try {
             const response = await fetch(`/api/admin/shop-items/${item.id}`, { method: "DELETE" });
             if (!response.ok) {
-                toast.error("Kozmetik pasife alÄ±namadÄ±.");
+                toast.error("Kozmetik pasife alınamadı.");
                 return;
             }
-            toast.success("Kozmetik pasife alÄ±ndÄ±.");
+            toast.success("Kozmetik pasife alındı.");
             await loadItems();
         } catch {
-            toast.error("Kozmetik pasife alÄ±namadÄ±.");
+            toast.error("Kozmetik pasife alınamadı.");
         }
     };
 
@@ -626,14 +626,14 @@ export default function ShopItemsPage() {
         try {
             const results = await Promise.all(ids.map((itemId) => updateItem(itemId, patch)));
             if (results.some((result) => !result)) {
-                toast.error("Toplu iÅŸlem kÄ±smen baÅŸarÄ±sÄ±z oldu.");
+                toast.error("Toplu işlem kısmen başarısız oldu.");
             } else {
                 toast.success(successMessage);
             }
             clearSelection();
             await loadItems();
         } catch {
-            toast.error("Toplu iÅŸlem tamamlanamadÄ±.");
+            toast.error("Toplu işlem tamamlanamadı.");
         } finally {
             setBulkSaving(false);
         }
@@ -684,7 +684,7 @@ export default function ShopItemsPage() {
         } catch (error) {
             return {
                 config: null,
-                error: error instanceof Error ? error.message : "Template config geÃ§ersiz.",
+                error: error instanceof Error ? error.message : "Template config geçersiz.",
             };
         }
     }, [form.renderMode, form.templateConfigText]);
@@ -705,8 +705,8 @@ export default function ShopItemsPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Kozmetikler"
-                description="MaÄŸaza Ã¼rÃ¼nlerini filtreleme, merchandising ve toplu aksiyonlarla yÃ¶netin."
-                meta={`${items.length} kayÄ±t`}
+                description="Mağaza ürünlerini filtreleme, merchandising ve toplu aksiyonlarla yönetin."
+                meta={`${items.length} kayıt`}
                 icon={<ImageIcon className="h-5 w-5 text-fuchsia-500" />}
                 action={
                     <Button onClick={openCreate} className="gap-2">
@@ -724,7 +724,7 @@ export default function ShopItemsPage() {
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Ä°sim, kod veya etiket ara..."
+                            placeholder="İsim, kod veya etiket ara..."
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             className="pl-9"
@@ -735,19 +735,19 @@ export default function ShopItemsPage() {
                         onChange={(event) => setFilterType(event.target.value as ItemType | "")}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="">TÃ¼m TÃ¼rler</option>
+                        <option value="">Tüm Türler</option>
                         <option value="avatar">Avatar</option>
-                        <option value="frame">Ã‡erÃ§eve</option>
-                        <option value="card_back">Kart ArkasÄ±</option>
-                        <option value="card_face">Kart Ã–nÃ¼</option>
+                        <option value="frame">Çerçeve</option>
+                        <option value="card_back">Kart Arkası</option>
+                        <option value="card_face">Kart Önü</option>
                     </select>
                     <select
                         value={filterRarity}
                         onChange={(event) => setFilterRarity(event.target.value as Rarity | "")}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="">TÃ¼m Nadirlikler</option>
-                        <option value="common">YaygÄ±n</option>
+                        <option value="">Tüm Nadirlikler</option>
+                        <option value="common">Yaygın</option>
                         <option value="rare">Nadir</option>
                         <option value="epic">Epik</option>
                         <option value="legendary">Efsanevi</option>
@@ -757,7 +757,7 @@ export default function ShopItemsPage() {
                         onChange={(event) => setFilterActive(event.target.value as ActiveFilter)}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="all">TÃ¼m Durumlar</option>
+                        <option value="all">Tüm Durumlar</option>
                         <option value="active">Aktif</option>
                         <option value="inactive">Pasif</option>
                     </select>
@@ -766,7 +766,7 @@ export default function ShopItemsPage() {
                         onChange={(event) => setFilterFeatured(event.target.value as FeaturedFilter)}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="all">TÃ¼m Vitrinler</option>
+                        <option value="all">Tüm Vitrinler</option>
                         <option value="featured">Vitrinde</option>
                         <option value="standard">Standart</option>
                     </select>
@@ -803,7 +803,7 @@ export default function ShopItemsPage() {
                         { label: "aktif", value: String(activeCount) },
                         { label: "vitrinde", value: String(featuredCount) },
                         { label: "yayınlı", value: String(timedCount) },
-                        { label: "gÃ¶rÃ¼nen", value: String(filteredItems.length) },
+                        { label: "görünen", value: String(filteredItems.length) },
                     ]}
                 />
             </AdminToolbar>
@@ -814,7 +814,7 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isActive: true }, "SeÃ§ili Ã¼rÃ¼nler aktif edildi.")}
+                    onClick={() => void runBulkPatch({ isActive: true }, "Seçili ürünler aktif edildi.")}
                 >
                     Aktif et
                 </Button>
@@ -823,7 +823,7 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isActive: false }, "SeÃ§ili Ã¼rÃ¼nler pasife alÄ±ndÄ±.")}
+                    onClick={() => void runBulkPatch({ isActive: false }, "Seçili ürünler pasife alındı.")}
                 >
                     Gizle
                 </Button>
@@ -832,7 +832,7 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isFeatured: true }, "SeÃ§ili Ã¼rÃ¼nler vitrine alÄ±ndÄ±.")}
+                    onClick={() => void runBulkPatch({ isFeatured: true }, "Seçili ürünler vitrine alındı.")}
                 >
                     Vitrine Al
                 </Button>
@@ -841,22 +841,22 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isFeatured: false }, "SeÃ§ili Ã¼rÃ¼nler vitrinden Ã§Ä±karÄ±ldÄ±.")}
+                    onClick={() => void runBulkPatch({ isFeatured: false }, "Seçili ürünler vitrinden çıkarıldı.")}
                 >
-                    Vitrinden Ã‡Ä±kar
+                    Vitrinden Çıkar
                 </Button>
             </AdminSelectionBar>
 
             <AdminTableShell
                 title="Katalog Tablosu"
-                description="FiltrelenmiÅŸ katalog kayÄ±tlarÄ± burada listelenir. SÄ±ra sÃ¼rÃ¼kle-bÄ±rak panelinden yÃ¶netilir."
+                description="Filtrelenmiş katalog kayıtları burada listelenir. Sıra sürükle-bırak panelinden yönetilir."
                 loading={loading}
                 isEmpty={!loading && filteredItems.length === 0}
                 emptyState={
                     <AdminEmptyState
                         icon={<ImageIcon className="h-6 w-6" />}
-                        title="Kozmetik bulunamadÄ±"
-                        description="Mevcut filtrelerle eÅŸleÅŸen Ã¼rÃ¼n yok."
+                        title="Kozmetik bulunamadı"
+                        description="Mevcut filtrelerle eşleşen ürün yok."
                     />
                 }
                 footer={
@@ -876,22 +876,22 @@ export default function ShopItemsPage() {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={() => toggleAll()}
-                                        aria-label="TÃ¼m gÃ¶rÃ¼nen Ã¼rÃ¼nleri seÃ§"
+                                        aria-label="Tüm görünen ürünleri seç"
                                         className="h-4 w-4 rounded border-border"
                                     />
                                 </th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">GÃ¶rsel</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Ä°sim / Kod</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">TÃ¼r</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Görsel</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">İsim / Kod</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Tür</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Render</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nadirlik</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Vitrin</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Yayın</th>
-                                <th className="text-center p-3 font-medium text-muted-foreground">SÄ±ra</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Sıra</th>
                                 <th className="text-right p-3 font-medium text-muted-foreground">Fiyat</th>
-                                <th className="text-center p-3 font-medium text-muted-foreground">SatÄ±ÅŸ</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Satış</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Durum</th>
-                                <th className="text-right p-3 font-medium text-muted-foreground">Ä°ÅŸlemler</th>
+                                <th className="text-right p-3 font-medium text-muted-foreground">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -902,7 +902,7 @@ export default function ShopItemsPage() {
                                             type="checkbox"
                                             checked={selectedIds.has(item.id)}
                                             onChange={() => toggleOne(item.id)}
-                                            aria-label={`${item.name} seÃ§`}
+                                            aria-label={`${item.name} seç`}
                                             className="h-4 w-4 rounded border-border"
                                         />
                                     </td>
@@ -925,7 +925,7 @@ export default function ShopItemsPage() {
                                         <div className="text-xs text-muted-foreground font-mono">{item.code}</div>
                                         <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                                             <span>Envanter: {item._count?.inventoryItems ?? 0}</span>
-                                            <span>SatÄ±ÅŸ: {item._count?.purchases ?? 0}</span>
+                                            <span>Satış: {item._count?.purchases ?? 0}</span>
                                             <span>Bundle: {item._count?.bundleEntries ?? 0}</span>
                                             <span>Kampanya: {item._count?.discountCampaigns ?? 0}</span>
                                             <span>Kupon: {item._count?.couponCodes ?? 0}</span>
@@ -976,7 +976,7 @@ export default function ShopItemsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-5 border-b border-border">
-                            <h2 className="text-lg font-bold text-foreground">{editingItem ? "Kozmetik DÃ¼zenle" : "Yeni Kozmetik"}</h2>
+                            <h2 className="text-lg font-bold text-foreground">{editingItem ? "Kozmetik Düzenle" : "Yeni Kozmetik"}</h2>
                             <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-muted transition-colors" type="button">
                                 <X size={18} />
                             </button>
@@ -989,13 +989,13 @@ export default function ShopItemsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Ä°sim</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">İsim</label>
                                     <input type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Signal Grid" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">TÃ¼r</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Tür</label>
                                         <select
                                             value={form.type}
                                             onChange={(event) => {
@@ -1009,15 +1009,15 @@ export default function ShopItemsPage() {
                                             className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                                         >
                                             <option value="avatar">Avatar</option>
-                                            <option value="frame">Ã‡erÃ§eve</option>
-                                            <option value="card_back">Kart ArkasÄ±</option>
-                                            <option value="card_face">Kart Ã–nÃ¼</option>
+                                            <option value="frame">Çerçeve</option>
+                                            <option value="card_back">Kart Arkası</option>
+                                            <option value="card_face">Kart Önü</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nadirlik</label>
                                         <select value={form.rarity} onChange={(event) => setForm((current) => ({ ...current, rarity: event.target.value as Rarity }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none">
-                                            <option value="common">YaygÄ±n</option>
+                                            <option value="common">Yaygın</option>
                                             <option value="rare">Nadir</option>
                                             <option value="epic">Epik</option>
                                             <option value="legendary">Efsanevi</option>
@@ -1038,12 +1038,12 @@ export default function ShopItemsPage() {
                                         <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">SÄ±ralama</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Sıralama</label>
                                         <input type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Etiket</label>
-                                        <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENÄ° / SINIRLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                        <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENİ / SINIRLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                 </div>
 
@@ -1077,21 +1077,21 @@ export default function ShopItemsPage() {
                                 <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-foreground">Render KaynaÄŸÄ±</h3>
-                                            <p className="text-xs text-muted-foreground">Image Ã¼rÃ¼nler URL kullanÄ±r, template Ã¼rÃ¼nler key + config ile render edilir.</p>
+                                            <h3 className="text-sm font-semibold text-foreground">Render Kaynağı</h3>
+                                            <p className="text-xs text-muted-foreground">Image ürünler URL kullanır, template ürünler key + config ile render edilir.</p>
                                         </div>
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground">{form.renderMode}</span>
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">GÃ¶rsel URL</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Görsel URL</label>
                                         <div className="flex gap-3 items-end">
                                             <div className="flex-1">
                                                 <input type="text" value={form.imageUrl} onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="/cosmetics/card-faces/signal-grid.png" disabled={imageUploadDisabled} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
                                             </div>
                                             <label className={`px-3 py-2 text-sm bg-muted rounded-lg transition-colors flex items-center gap-1 font-medium text-foreground shrink-0 ${imageUploadDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/80"}`}>
                                                 <Upload size={14} />
-                                                {uploading ? "..." : "YÃ¼kle"}
+                                                {uploading ? "..." : "Yükle"}
                                                 <input type="file" accept="image/*" onChange={handleUpload} disabled={imageUploadDisabled} className="hidden" />
                                             </label>
                                         </div>
@@ -1108,7 +1108,7 @@ export default function ShopItemsPage() {
                                             <input type="text" value={form.templateKey} onChange={(event) => setForm((current) => ({ ...current, templateKey: event.target.value }))} placeholder="signal_grid" disabled={form.renderMode !== "template"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
                                         </div>
                                         <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3 bg-background/60">
-                                            Ã–rnek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
+                                            Örnek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
                                         </div>
                                     </div>
 
@@ -1128,7 +1128,7 @@ export default function ShopItemsPage() {
                                                     className="h-7 gap-1 px-2 text-[11px]"
                                                 >
                                                     <FileJson2 size={12} />
-                                                    Ã–rnek Doldur
+                                                    Örnek Doldur
                                                 </Button>
                                             </div>
                                         </div>
@@ -1139,11 +1139,11 @@ export default function ShopItemsPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                         <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                        <span className="text-sm font-medium text-foreground">Vitrinde Ã¶ne Ã§Ä±kar</span>
+                                        <span className="text-sm font-medium text-foreground">Vitrinde öne çıkar</span>
                                     </label>
                                     <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                         <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                        <span className="text-sm font-medium text-foreground">MaÄŸazada aktif</span>
+                                        <span className="text-sm font-medium text-foreground">Mağazada aktif</span>
                                     </label>
                                 </div>
                             </div>
@@ -1156,7 +1156,7 @@ export default function ShopItemsPage() {
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 p-5 border-t border-border">
-                            <Button variant="outline" onClick={() => setShowModal(false)}>Ä°ptal</Button>
+                            <Button variant="outline" onClick={() => setShowModal(false)}>İptal</Button>
                             <Button onClick={() => void handleSave()} disabled={saving} className="gap-2">
                                 <Save size={14} />
                                 {saving ? "Kaydediliyor..." : "Kaydet"}
@@ -1168,6 +1168,7 @@ export default function ShopItemsPage() {
         </div>
     );
 }
+
 
 
 

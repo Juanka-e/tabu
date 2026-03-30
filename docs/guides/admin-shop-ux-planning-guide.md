@@ -120,6 +120,78 @@ Bu branch icinde netlestirilecek ve gerekirse revize edilecek noktalar:
 3. promotions sayfasi tek yuzey mi olmali, yoksa coupon / discount / bundle alt bolumleri daha keskin ayrilmali mi?
 4. shop item listesi tablo mu olmali yoksa card+table hibrit mi olmali?
 
+## Model Guardrails
+
+Bu kisim sonraki branch'lerde veri modelinin camura donmemesi icin korunmasi gereken kurallari kaydeder.
+
+1. `ShopItem` ile gelecekteki `StoreOffer` ayni sey degildir
+- bugunku modelde satis ayarlari halen buyuk oranda `ShopItem` ustunde tasiniyor
+- bu yalnizca gecis donemi tercihi olarak kabul edilmelidir
+- uzun vadede:
+  - `ShopItem` = kozmetigin kendisi
+  - `StoreOffer` = magazada nasil ve ne zaman satildigi
+
+2. Yeni canli-ops ihtiyaclari icin rastgele boolean patlatilmamali
+- `seasonal`, `limited`, `event-only`, `scheduled` gibi ihtiyaclar icin tekil daginik flag yerine ortak yayin modeli tercih edilmeli
+- bu branch'te eklenen minimal model:
+  - `availabilityMode`
+  - `startsAt`
+  - `endsAt`
+- yeni branch'lerde ayni probleme ikinci bir alan seti acilmamali
+
+3. Gorunurluk ile sahiplik ayni tabloda cozulmemeli
+- bir item'in:
+  - magazada gorunmesi
+  - bundle icinde satilmasi
+  - admin tarafindan grant edilmesi
+  - event odulu olmasi
+  farkli kavramlardir
+- inventory ownership kararlarini `ShopItem` uzerine gommek yasak olmali
+
+4. Night market ve kisisel teklifler icin item degil offer uretilmeli
+- oyuncuya ozel indirim
+- oyuncuya ozel secili item havuzu
+- tekrar olusturulabilir teklif snapshot'i
+gibi yapilar dogrudan `ShopItem` alanlariyla cozulmemeli
+
+5. Event-only item mantigi dogrudan direct store katalogundan ayrilmalidir
+- bu branch'te `event_only` item'lar dogrudan oyuncu magazasinda listelenmez
+- ama ileride:
+  - event reward
+  - admin grant
+  - night market
+  - ozel campaign
+  kanalinda kullanilabilir kalmalidir
+
+6. Paketler ile item'lar ayni yayin modeline zorlanmamalidir
+- bu turda yalniz item gorunurlugu ele alindi
+- bundle tarafi daha sonra ayri `offer/liveops` mantigi ile ele alinmali
+- aksi halde paketlere item mantigi, item'lara paket mantigi karisir
+
+7. Promotions, coupon ve bundle iliskileri kaynak-gercek olarak kalmali
+- item satirinda sadece ozet gorunur
+- asil karar kaynaklari:
+  - promotions
+  - coupons
+  - bundles
+sayfalari olmali
+- iliski bilgisini kopyalayip ikinci truth source olusturmayalim
+
+8. Gelecekte acilabilecek dogru refactor yonu
+- `ShopItem`
+- `StoreOffer`
+- `InventoryOwnership`
+- `PersonalizedOffer`
+ayrimi
+
+Bu ayrim gelene kadar:
+- `availabilityMode`
+- `startsAt`
+- `endsAt`
+- `isFeatured`
+- `badgeText`
+alanlari yalniz gecis katmani olarak kullanilmalidir
+
 ## Merge Kriteri
 
 Bu branch su durumda merge edilir:
