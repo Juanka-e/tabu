@@ -21,7 +21,7 @@ import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolba
 import { AdminEmptyState, AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { CoinGrantCampaignView } from "@/types/coin-grants";
+import type { CoinGrantCampaignView, CoinGrantCodeView } from "@/types/coin-grants";
 
 interface CampaignFormState {
     code: string;
@@ -141,6 +141,14 @@ function matchesCampaignFilter(campaign: CoinGrantCampaignView, viewFilter: Camp
     }
 }
 
+function matchesCodeSearch(code: CoinGrantCodeView, needle: string): boolean {
+    if (!needle) {
+        return true;
+    }
+
+    return [code.code, code.label ?? ""].join(" ").toLowerCase().includes(needle);
+}
+
 function StatChip({
     icon: Icon,
     label,
@@ -234,15 +242,16 @@ export default function AdminCoinGrantsPage() {
         void loadCampaigns();
     }, [loadCampaigns]);
 
+    const searchNeedle = useMemo(() => search.trim().toLowerCase(), [search]);
+
     const filteredCampaigns = useMemo(() => {
-        const needle = search.trim().toLowerCase();
         return campaigns.filter((campaign) => {
             const matchesSearch =
-                !needle ||
-                [campaign.code, campaign.name, campaign.description ?? "", ...campaign.codes.map((code) => code.code)]
+                !searchNeedle ||
+                [campaign.code, campaign.name, campaign.description ?? "", ...campaign.codes.map((code) => `${code.code} ${code.label ?? ""}`)]
                     .join(" ")
                     .toLowerCase()
-                    .includes(needle);
+                    .includes(searchNeedle);
 
             if (!matchesSearch) {
                 return false;
@@ -250,7 +259,7 @@ export default function AdminCoinGrantsPage() {
 
             return matchesCampaignFilter(campaign, viewFilter);
         });
-    }, [campaigns, search, viewFilter]);
+    }, [campaigns, searchNeedle, viewFilter]);
 
     const operationalCampaigns = useMemo(
         () => campaigns.filter((campaign) => !campaign.archivedAt),
@@ -262,26 +271,63 @@ export default function AdminCoinGrantsPage() {
         [campaigns]
     );
 
+    const operationalCodeCount = useMemo(
+        () =>
+            operationalCampaigns.reduce(
+                (sum, campaign) => sum + campaign.codes.filter((code) => !code.archivedAt).length,
+                0
+            ),
+        [operationalCampaigns]
+    );
+
+    const archivedCodeCount = useMemo(
+        () => campaigns.reduce((sum, campaign) => sum + campaign.codes.filter((code) => code.archivedAt).length, 0),
+        [campaigns]
+    );
+
     const stats = useMemo(
         () => [
-            { label: "kampanya", value: String(operationalCampaigns.length) },
-            {
-                label: "kod",
-                value: String(
-                    operationalCampaigns.reduce(
-                        (sum, campaign) => sum + campaign.codes.filter((code) => !code.archivedAt).length,
-                        0
-                    )
-                ),
-            },
+            { label: "operasyonel kampanya", value: String(operationalCampaigns.length) },
+            { label: "operasyonel kod", value: String(operationalCodeCount) },
+            { label: "arşivli kod", value: String(archivedCodeCount) },
             {
                 label: "dağıtılan coin",
                 value: String(operationalCampaigns.reduce((sum, campaign) => sum + campaign.totalGrantedCoin, 0)),
             },
-            { label: "arşiv", value: String(campaigns.filter((campaign) => campaign.archivedAt).length) },
         ],
-        [campaigns, operationalCampaigns]
+        [archivedCodeCount, operationalCampaigns, operationalCodeCount]
     );
+
+    const tableDescription = useMemo(() => {
+        switch (viewFilter) {
+            case "archived":
+                return "Arşivlenen kampanya ve kodlar burada tutulur. Geri alma işlemi kampanyayı pasif olarak geri açar.";
+            case "active":
+                return "Yayında olan kampanyalar ve onlara bağlı operasyonel kodlar burada izlenir.";
+            case "inactive":
+                return "Pasife alınmış ama henüz arşivlenmemiş kampanyalar burada listelenir.";
+            case "used":
+                return "En az bir claim almış kampanyalar ve bağlı kod performansı burada görünür.";
+            case "exhausted":
+                return "Bütçe veya claim limiti tükenen kampanyalar burada izlenir.";
+            default:
+                return "Arşiv dışındaki operasyonel kampanyalar, kod durumu ve claim yoğunluğu buradan takip edilir.";
+        }
+    }, [viewFilter]);
+
+    const emptyState = useMemo(() => {
+        if (viewFilter === "archived") {
+            return {
+                title: "Arşivde coin grant yok",
+                description: "Arşive kaldırılan kampanya ve kodlar burada görünür. Şu an geri alınacak bir kayıt bulunmuyor.",
+            };
+        }
+
+        return {
+            title: "Coin grant kampanyası yok",
+            description: "Yeni bir kampanya açarak etkinlik ödülü, içerik üretici kodu veya topluluk dağıtımı hazırlayabilirsin.",
+        };
+    }, [viewFilter]);
 
     const submitCampaign = async () => {
         setSaving(true);
@@ -667,28 +713,37 @@ export default function AdminCoinGrantsPage() {
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <AdminTableShell
                     title="Dağıtım Kampanyaları"
-                    description="Arşiv hariç operasyonel kampanyalar, claim limitleri ve kod dağılımı buradan izlenir."
+                    description={tableDescription}
                     loading={loading}
                     isEmpty={!loading && filteredCampaigns.length === 0}
                     emptyState={
                         <AdminEmptyState
                             icon={<Gift className="h-6 w-6" />}
-                            title="Coin grant kampanyası yok"
-                            description="İlk kampanyayla bir etkinlik ödülü, içerik üretici kodu veya topluluk dağıtımı hazırlayabilirsin."
+                            title={emptyState.title}
+                            description={emptyState.description}
                         />
                     }
                 >
                     <div className="space-y-4 p-4">
                         {filteredCampaigns.map((campaign) => {
-                            const visibleCodes = campaign.codes.filter((code) => (viewFilter === "archived" ? Boolean(code.archivedAt) : !code.archivedAt));
+                            const scopedCodes = campaign.codes.filter((code) =>
+                                viewFilter === "archived" ? Boolean(code.archivedAt) : !code.archivedAt
+                            );
+                            const matchingCodes = searchNeedle
+                                ? scopedCodes.filter((code) => matchesCodeSearch(code, searchNeedle))
+                                : scopedCodes;
+                            const visibleCodes = matchingCodes.length > 0 ? matchingCodes : scopedCodes;
                             const isExpanded = expandedCampaignIds.includes(campaign.id);
-                            const archivedCodeCount = campaign.codes.filter((code) => code.archivedAt).length;
+                            const activeCodeCount = campaign.codes.filter((code) => code.isActive && !code.archivedAt).length;
+                            const inactiveCodeCount = campaign.codes.filter((code) => !code.isActive && !code.archivedAt).length;
+                            const archivedCampaignCodeCount = campaign.codes.filter((code) => code.archivedAt).length;
+                            const showingFilteredCodes = Boolean(searchNeedle) && matchingCodes.length > 0 && matchingCodes.length !== scopedCodes.length;
 
                             return (
-                                <article key={campaign.id} className="rounded-[28px] border border-border/80 bg-background/90 p-5 shadow-sm">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <div className="flex items-center gap-2">
+                                <article key={campaign.id} className="rounded-[28px] border border-border/80 bg-background/90 p-4 shadow-sm">
+                                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="text-lg font-semibold text-foreground">{campaign.name}</h3>
                                                 <span
                                                     className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${campaign.isActive ? "bg-emerald-100 text-emerald-700" : "bg-zinc-200 text-zinc-700"}`}
@@ -711,12 +766,17 @@ export default function AdminCoinGrantsPage() {
                                                     </span>
                                                 ) : null}
                                             </div>
-                                            <div className="mt-1 font-mono text-xs text-muted-foreground">{campaign.code}</div>
-                                            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                <span className="font-mono">{campaign.code}</span>
+                                                <span>{campaign.coinAmount.toLocaleString("tr-TR")} coin / claim</span>
+                                                <span>{campaign.totalClaimCount.toLocaleString("tr-TR")} claim</span>
+                                                <span>{activeCodeCount} aktif kod</span>
+                                            </div>
+                                            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                                                 {campaign.description || "Bu kampanya için ayrı bir açıklama girilmemiş."}
                                             </p>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-wrap gap-2 xl:justify-end">
                                             <Button variant="outline" size="sm" onClick={() => toggleCampaignDetails(campaign.id)}>
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                                 <span>{isExpanded ? "Detayı kapat" : "Detayı aç"}</span>
@@ -762,7 +822,7 @@ export default function AdminCoinGrantsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                         <StatChip icon={BadgeDollarSign} label="coin / claim" value={campaign.coinAmount.toLocaleString("tr-TR")} />
                                         <StatChip
                                             icon={Gift}
@@ -777,9 +837,20 @@ export default function AdminCoinGrantsPage() {
                                         <StatChip icon={Users} label="kullanıcı başı" value={String(campaign.perUserClaimLimit)} />
                                     </div>
 
-                                    <div className="mt-3 text-sm text-muted-foreground">
-                                        {visibleCodes.length} görünen kod
-                                        {archivedCodeCount > 0 ? ` | ${archivedCodeCount} arşivli` : ""}
+                                    <div className="mt-4 rounded-2xl border border-border/70 bg-muted/15 px-3 py-3">
+                                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                                            <span>Kod özeti</span>
+                                            <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">{activeCodeCount} aktif</span>
+                                            <span className="rounded-full bg-zinc-200 px-2 py-1 text-zinc-700">{inactiveCodeCount} pasif</span>
+                                            {archivedCampaignCodeCount > 0 ? (
+                                                <span className="rounded-full bg-violet-100 px-2 py-1 text-violet-700">{archivedCampaignCodeCount} arşivli</span>
+                                            ) : null}
+                                        </div>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            {showingFilteredCodes
+                                                ? `${visibleCodes.length} kod arama ile eşleşti. Kampanyada toplam ${scopedCodes.length} görünür kod var.`
+                                                : `${visibleCodes.length} görünür kod bu kampanya altında listeleniyor.`}
+                                        </p>
                                     </div>
 
                                     {isExpanded ? (
@@ -807,47 +878,57 @@ export default function AdminCoinGrantsPage() {
                                                     <Sparkles className="h-3.5 w-3.5" />
                                                     Dağıtım kodları
                                                 </div>
-                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                <div className="mt-3 space-y-2">
                                                     {visibleCodes.length === 0 ? (
                                                         <span className="text-sm text-muted-foreground">Bu kampanya için henüz kod üretilmemiş.</span>
                                                     ) : (
                                                         visibleCodes.map((code) => (
-                                                            <div key={code.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/20 px-3 py-1.5 text-xs text-foreground">
-                                                                <span className="font-mono font-semibold">{code.code}</span>
-                                                                <span className="text-muted-foreground">
-                                                                    {code.claimCount}{code.maxClaims !== null ? ` / ${code.maxClaims}` : " / limitsiz"}
-                                                                </span>
-                                                                {code.label ? <span className="text-muted-foreground">{code.label}</span> : null}
-                                                                {!code.isActive ? <span className="text-amber-600">pasif</span> : null}
-                                                                {code.archivedAt ? <span className="text-violet-600">arşiv</span> : null}
-                                                                {code.archivedAt ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={archivingCodeId === code.id}
-                                                                        onClick={() => void restoreCode(campaign.id, code.id)}
-                                                                        className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                                    >
-                                                                        {archivingCodeId === code.id ? "geri alınıyor" : "arşivden çıkar"}
-                                                                    </button>
-                                                                ) : code.isActive ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={deactivatingCodeId === code.id}
-                                                                        onClick={() => void deactivateCode(campaign.id, code.id)}
-                                                                        className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                                    >
-                                                                        {deactivatingCodeId === code.id ? "pasife alınıyor" : "pasife al"}
-                                                                    </button>
-                                                                ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={archivingCodeId === code.id}
-                                                                        onClick={() => void archiveCode(campaign.id, code.id)}
-                                                                        className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                                    >
-                                                                        {archivingCodeId === code.id ? "arşivleniyor" : "arşive kaldır"}
-                                                                    </button>
-                                                                )}
+                                                            <div key={code.id} className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-background/80 px-3 py-3 md:flex-row md:items-center md:justify-between">
+                                                                <div className="min-w-0">
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <span className="font-mono text-sm font-semibold text-foreground">{code.code}</span>
+                                                                        {!code.isActive ? <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">pasif</span> : null}
+                                                                        {code.archivedAt ? <span className="rounded-full bg-violet-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-700">arşiv</span> : null}
+                                                                    </div>
+                                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                                        <span>{code.claimCount}{code.maxClaims !== null ? ` / ${code.maxClaims}` : " / limitsiz"} claim</span>
+                                                                        {code.label ? <span>{code.label}</span> : null}
+                                                                        <span>Oluşturma: {formatDateTime(code.createdAt)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex shrink-0 gap-2">
+                                                                    {code.archivedAt ? (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={archivingCodeId === code.id}
+                                                                            onClick={() => void restoreCode(campaign.id, code.id)}
+                                                                        >
+                                                                            {archivingCodeId === code.id ? "Geri alınıyor" : "Arşivden çıkar"}
+                                                                        </Button>
+                                                                    ) : code.isActive ? (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={deactivatingCodeId === code.id}
+                                                                            onClick={() => void deactivateCode(campaign.id, code.id)}
+                                                                        >
+                                                                            {deactivatingCodeId === code.id ? "Pasife alınıyor" : "Pasife al"}
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={archivingCodeId === code.id}
+                                                                            onClick={() => void archiveCode(campaign.id, code.id)}
+                                                                        >
+                                                                            {archivingCodeId === code.id ? "Arşivleniyor" : "Arşive kaldır"}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         ))
                                                     )}
