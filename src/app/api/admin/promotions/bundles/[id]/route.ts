@@ -127,6 +127,9 @@ export async function PUT(
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });
         }
+        if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
+            return NextResponse.json({ error: "Bu paket kodu zaten kullanılıyor. Farklı bir kod gir." }, { status: 409 });
+        }
 
         console.error("Failed to update shop bundle:", error);
         return NextResponse.json({ error: "Bundle guncellenemedi." }, { status: 500 });
@@ -149,20 +152,58 @@ export async function DELETE(
             return NextResponse.json({ error: "Gecersiz bundle id." }, { status: 400 });
         }
 
-        await prisma.shopBundle.update({
+        const bundle = await prisma.shopBundle.findUnique({
             where: { id: bundleId },
-            data: { isActive: false },
+            select: {
+                id: true,
+                code: true,
+                isActive: true,
+                _count: {
+                    select: {
+                        purchases: true,
+                        discountCampaigns: true,
+                        couponCodes: true,
+                    },
+                },
+            },
         });
+        if (!bundle) {
+            return NextResponse.json({ error: "Paket bulunamadı." }, { status: 404 });
+        }
+
+        let outcome: "deleted" | "deactivated" = "deactivated";
+        if (bundle.isActive) {
+            await prisma.shopBundle.update({
+                where: { id: bundleId },
+                data: { isActive: false },
+            });
+        } else {
+            if (
+                bundle._count.purchases > 0 ||
+                bundle._count.discountCampaigns > 0 ||
+                bundle._count.couponCodes > 0
+            ) {
+                return NextResponse.json(
+                    { error: "Kullanılmış veya başka promosyonlara bağlı paket kalıcı olarak silinemez." },
+                    { status: 409 }
+                );
+            }
+
+            await prisma.shopBundle.delete({
+                where: { id: bundleId },
+            });
+            outcome = "deleted";
+        }
         await writeAuditLog({
             actor: adminSession,
-            action: "admin.bundle.delete",
+            action: outcome === "deleted" ? "admin.bundle.delete" : "admin.bundle.deactivate",
             resourceType: "shop_bundle",
             resourceId: bundleId,
-            summary: `Disabled bundle ${bundleId}`,
+            summary: outcome === "deleted" ? `Deleted bundle ${bundle.code}` : `Disabled bundle ${bundle.code}`,
             request,
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, outcome });
     } catch (error) {
         console.error("Failed to delete shop bundle:", error);
         return NextResponse.json({ error: "Bundle silinemedi." }, { status: 500 });

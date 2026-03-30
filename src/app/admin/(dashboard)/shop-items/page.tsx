@@ -964,24 +964,24 @@ export default function ShopItemsPage() {
                                             ) : null}
                                         </div>
                                         <div className="text-xs text-muted-foreground font-mono">{item.code}</div>
-                                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                                             <span>Envanter: {item._count?.inventoryItems ?? 0}</span>
                                             <span>Satış: {item._count?.purchases ?? 0}</span>
                                             <Link
                                                 href={buildPromotionsHref(item.code, "bundles")}
-                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
                                             >
                                                 Paket: {item._count?.bundleEntries ?? 0}
                                             </Link>
                                             <Link
                                                 href={buildPromotionsHref(item.code, "discounts")}
-                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
                                             >
                                                 Kampanya: {item._count?.discountCampaigns ?? 0}
                                             </Link>
                                             <Link
                                                 href={buildPromotionsHref(item.code, "coupons")}
-                                                className="inline-flex rounded-full bg-muted px-2 py-0.5 transition hover:bg-muted/80 hover:text-foreground"
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
                                             >
                                                 Kupon: {item._count?.couponCodes ?? 0}
                                             </Link>

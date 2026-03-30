@@ -662,6 +662,7 @@ function BundleEditor({
                 <FieldLabel label="Kimlik" helper="Kod ödeme ve seed tarafında tekil anahtar olarak kullanılır." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={inputClassName} placeholder="Kod" value={form.code} onChange={(event) => onChange({ code: event.target.value })} />
+                    <p className={helperClassName}>İsim tekrar edebilir, kod benzersiz olmalı.</p>
                     <input className={inputClassName} placeholder="İsim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
                 </div>
                 <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Açıklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
@@ -739,6 +740,7 @@ function DiscountEditor({
                 <FieldLabel label="Kampanya Kimliği" helper="Kod tekil olmalıdır. Admin listesinde ve audit logda görünür." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={inputClassName} placeholder="Kod" value={form.code} onChange={(event) => onChange({ code: event.target.value })} />
+                    <p className={helperClassName}>İsim tekrar edebilir, kod benzersiz olmalı.</p>
                     <input className={inputClassName} placeholder="İsim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
                 </div>
                 <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Açıklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
@@ -817,6 +819,7 @@ function CouponEditor({
                 <FieldLabel label="Kupon Kimliği" helper="Kod oyuncuya görünür. Büyük-küçük harf normalize edilir ama okunabilir format kullan." />
                 <div className="grid gap-3 md:grid-cols-2">
                     <input className={`${inputClassName} font-mono uppercase`} placeholder="SPRING25" value={form.code} onChange={(event) => onChange({ code: event.target.value.toUpperCase() })} />
+                    <p className={helperClassName}>Oyuncu kuponu bu kodla girer. Kod benzersiz olmalı, isim tekrar edebilir.</p>
                     <input className={inputClassName} placeholder="İsim" value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
                 </div>
                 <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Açıklama" value={form.description} onChange={(event) => onChange({ description: event.target.value })} />
@@ -936,6 +939,31 @@ export default function PromotionsPage() {
     useEffect(() => {
         setSearch(deepLinkedSearch);
     }, [deepLinkedSearch]);
+
+    useEffect(() => {
+        const applyDeepLink = () => {
+            if (typeof window === "undefined") {
+                return;
+            }
+
+            const nextHash = window.location.hash.replace("#", "");
+            if (nextHash === "bundles" || nextHash === "discounts" || nextHash === "coupons") {
+                setSectionFilter(nextHash);
+                if (!loading) {
+                    window.requestAnimationFrame(() => {
+                        document.getElementById(nextHash)?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    });
+                }
+            }
+        };
+
+        applyDeepLink();
+        window.addEventListener("hashchange", applyDeepLink);
+        return () => window.removeEventListener("hashchange", applyDeepLink);
+    }, [loading]);
 
     const loadAll = useCallback(async () => {
         setLoading(true);
@@ -1083,9 +1111,14 @@ export default function PromotionsPage() {
 
     const deactivateEntry = async (kind: "bundles" | "discounts" | "coupons", id: number) => {
         const response = await fetch(`/api/admin/promotions/${kind}/${id}`, { method: "DELETE" });
-        if (response.ok) {
-            await loadAll();
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; outcome?: "deleted" | "deactivated" };
+        if (!response.ok) {
+            toast.error(payload.error || "Promosyon işlemi tamamlanamadı.");
+            return;
         }
+
+        toast.success(payload.outcome === "deleted" ? "Kayıt kalıcı olarak silindi." : "Kayıt pasife alındı.");
+        await loadAll();
     };
 
     const applyBulkPromotionStatus = async (
@@ -1325,9 +1358,14 @@ export default function PromotionsPage() {
                                             <Edit2 size={14} />
                                             Düzenle
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("bundles", bundle.id)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={() => void deactivateEntry("bundles", bundle.id)}
+                                        >
                                             <Trash2 size={14} />
-                                            Sil
+                                            {bundle.isActive ? "Pasife Al" : "Sil"}
                                         </Button>
                                     </div>
                                 </div>
@@ -1423,9 +1461,14 @@ export default function PromotionsPage() {
                                             <Edit2 size={14} />
                                             Düzenle
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("discounts", discount.id)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={() => void deactivateEntry("discounts", discount.id)}
+                                        >
                                             <Trash2 size={14} />
-                                            Sil
+                                            {discount.isActive ? "Pasife Al" : "Sil"}
                                         </Button>
                                     </div>
                                 </div>
@@ -1514,9 +1557,14 @@ export default function PromotionsPage() {
                                         <Edit2 size={14} />
                                         Düzenle
                                     </Button>
-                                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("coupons", coupon.id)}>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-2"
+                                        onClick={() => void deactivateEntry("coupons", coupon.id)}
+                                    >
                                         <Trash2 size={14} />
-                                        Sil
+                                        {coupon.isActive ? "Pasife Al" : "Sil"}
                                     </Button>
                                 </div>
                             </div>
