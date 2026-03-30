@@ -9,6 +9,11 @@ import {
     toPrismaShopItemType,
 } from "@/lib/cosmetics/shop-item-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 import { STORE_ITEM_RARITIES, STORE_ITEM_TYPES } from "@/types/economy";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +29,19 @@ export async function GET(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-shop-items-read",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 120,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla shop item listeleme istegi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const { searchParams } = new URL(request.url);
@@ -60,7 +78,7 @@ export async function GET(request: NextRequest) {
         },
     });
 
-    return NextResponse.json(items);
+    return NextResponse.json(items, { headers: buildRateLimitHeaders(rateLimit) });
 }
 
 // POST — Create a new shop item
@@ -68,6 +86,19 @@ export async function POST(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-shop-items-write",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kozmetik olusturma denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -88,7 +119,10 @@ export async function POST(request: NextRequest) {
             },
             request,
         });
-        return NextResponse.json(item, { status: 201 });
+        return NextResponse.json(item, {
+            status: 201,
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(

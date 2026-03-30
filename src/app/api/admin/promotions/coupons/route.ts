@@ -7,13 +7,31 @@ import {
     toPrismaCouponCodeCreateData,
 } from "@/lib/promotions/promotion-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-coupons-read",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 90,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kupon listeleme istegi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const coupons = await prisma.couponCode.findMany({
@@ -26,7 +44,8 @@ export async function GET() {
             startsAt: coupon.startsAt?.toISOString() ?? null,
             endsAt: coupon.endsAt?.toISOString() ?? null,
             createdAt: coupon.createdAt.toISOString(),
-        }))
+        })),
+        { headers: buildRateLimitHeaders(rateLimit) }
     );
 }
 
@@ -34,6 +53,19 @@ export async function POST(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-coupons-write",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kupon olusturma denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -56,7 +88,10 @@ export async function POST(request: NextRequest) {
             request,
         });
 
-        return NextResponse.json(coupon, { status: 201 });
+        return NextResponse.json(coupon, {
+            status: 201,
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });

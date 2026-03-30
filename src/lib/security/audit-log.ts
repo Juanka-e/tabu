@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getRequestIp } from "@/lib/security/request-rate-limit";
 
 type AuditMetadataValue = string | number | boolean | null;
 type AuditMetadata = Record<string, AuditMetadataValue | AuditMetadataValue[]>;
@@ -54,19 +55,6 @@ function normalizeMetadata(
     return entries.length > 0 ? Object.fromEntries(entries) : null;
 }
 
-function getRequestIp(request: Request | null | undefined): string | null {
-    if (!request) {
-        return null;
-    }
-
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
-    }
-
-    return request.headers.get("x-real-ip");
-}
-
 function getUserAgent(request: Request | null | undefined): string | null {
     if (!request) {
         return null;
@@ -91,7 +79,7 @@ export async function writeAuditLog(input: AuditLogInput): Promise<void> {
             action: action.slice(0, 80),
             resourceType: resourceType.slice(0, 80),
             resourceId: resourceId !== undefined && resourceId !== null ? String(resourceId).slice(0, 120) : null,
-            ipAddress: getRequestIp(request)?.slice(0, 64) ?? null,
+            ipAddress: request ? getRequestIp(request).slice(0, 64) : null,
             userAgent: getUserAgent(request),
             summary: summary?.slice(0, 255) ?? null,
             metadata: normalizedMetadata ?? undefined,

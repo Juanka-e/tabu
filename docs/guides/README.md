@@ -31,3 +31,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 7. `admin-inventory-operations-planning-guide.md`
 - admin tarafinda oyuncu inventory'sini goruntuleme ve yonetme rehberi
 - grant / revoke / equip reset / audit sinirlarini tanimlar
+
+8. `admin-security-hardening-guide.md`
+- admin panel API guvenligi ve rate limit sertlestirme rehberi
+- authz, request korumasi, IP/trusted proxy ve admin operasyon risklerini tarar

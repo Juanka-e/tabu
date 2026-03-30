@@ -7,16 +7,34 @@ import {
     toPrismaCouponCodeUpdateData,
 } from "@/lib/promotions/promotion-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-coupon-read",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 120,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kupon detay istegi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const { id } = await params;
@@ -33,7 +51,7 @@ export async function GET(
         return NextResponse.json({ error: "Kupon bulunamadi." }, { status: 404 });
     }
 
-    return NextResponse.json(coupon);
+    return NextResponse.json(coupon, { headers: buildRateLimitHeaders(rateLimit) });
 }
 
 export async function PUT(
@@ -43,6 +61,19 @@ export async function PUT(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-coupon-update",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kupon guncelleme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -72,7 +103,7 @@ export async function PUT(
             request,
         });
 
-        return NextResponse.json(coupon);
+        return NextResponse.json(coupon, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });
@@ -93,6 +124,19 @@ export async function DELETE(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-coupon-delete",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kupon pasife alma veya silme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -148,7 +192,7 @@ export async function DELETE(
             request,
         });
 
-        return NextResponse.json({ success: true, outcome });
+        return NextResponse.json({ success: true, outcome }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         console.error("Failed to delete coupon code:", error);
         return NextResponse.json({ error: "Kupon silinemedi." }, { status: 500 });

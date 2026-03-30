@@ -7,6 +7,11 @@ import {
 } from "@/lib/moderation/schema";
 import { clearExpiredSuspensions } from "@/lib/moderation/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +45,19 @@ export async function POST(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-user-moderation-write",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla moderasyon islemi denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const params = await context.params;
@@ -144,23 +162,26 @@ export async function POST(
             request,
         });
 
-        return NextResponse.json({
-            ok: true,
-            event: {
-                id: result.id,
-                actionType: result.actionType,
-                reason: result.reason,
-                suspendedUntil: result.suspendedUntil?.toISOString() ?? null,
-                createdAt: result.createdAt.toISOString(),
-                actor: result.actorUser
-                    ? {
-                          id: result.actorUser.id,
-                          username: result.actorUser.username,
-                          role: result.actorUser.role,
-                      }
-                    : null,
+        return NextResponse.json(
+            {
+                ok: true,
+                event: {
+                    id: result.id,
+                    actionType: result.actionType,
+                    reason: result.reason,
+                    suspendedUntil: result.suspendedUntil?.toISOString() ?? null,
+                    createdAt: result.createdAt.toISOString(),
+                    actor: result.actorUser
+                        ? {
+                              id: result.actorUser.id,
+                              username: result.actorUser.username,
+                              role: result.actorUser.role,
+                          }
+                        : null,
+                },
             },
-        });
+            { headers: buildRateLimitHeaders(rateLimit) }
+        );
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(

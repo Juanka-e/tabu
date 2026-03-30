@@ -26,6 +26,7 @@
 - `feature/integration-hub`
 - `feature/dashboard-visual-polish`
 - `feature/store-merchandising`
+- `feature/admin-inventory-operations`
 
 ## Son Tamamlanan Branch
 ### `feature/store-merchandising`
@@ -41,41 +42,42 @@
   - UTF-8 magazaya kopya duzeltmesi
 
 ## Son Tamamlanan Branch
-### `feature/admin-shop-ux`
-- admin shop item ve promotion operasyonlari toparlandi
-- featured / active / hidden / scheduled merchandising kontrol dili netlestirildi
-- item, bundle ve promotion iliskileri admin gozunde gorunur hale geldi
-- yayin modeli (`availabilityMode`, `startsAt`, `endsAt`) future liveops icin eklendi
-- promotion lifecycle:
-  - pasife al
-  - guvenliyse sil
-  mantigi netlestirildi
-- referans:
-  - `docs/guides/admin-shop-ux-planning-guide.md`
-
-## Aktif Branch
 ### `feature/admin-inventory-operations`
-- oyuncu inventory goruntuleme
-- item grant / revoke
-- equip reset ve operasyonel duzeltmeler
-- grant nedeni ve audit izi
+- oyuncu inventory inspect ekrani eklendi
+- item grant / revoke / equip reset akisleri geldi
+- protected source revoke modeli eklendi
+- riskli inventory aksiyonlari icin onay modal'lari eklendi
+- inventory read route dahil admin inventory API yuzeyi rate limit ile korundu
+- secili oyuncu icin son operasyon notlari gorunur hale geldi
+- audit ekraninda not kolonu acildi
 - referans:
   - `docs/guides/admin-inventory-operations-planning-guide.md`
 
+## Aktif Branch
+### `fix/admin-security-hardening`
+- admin panel API guvenlik taramasi
+- authz / request korumasi / rate limit kapsami
+- trusted proxy / IP gorunurlugu notlari
+- referans:
+  - `docs/guides/admin-security-hardening-guide.md`
+
 ## Aktif Sonraki Branch Adaylari
-1. `feature/admin-inventory-operations`
-2. `feature/night-market-foundation`
-3. `feature/economy-abuse-hardening`
-4. `feature/cache-and-rate-limit-foundation`
-5. `feature/admin-promotions-ux`
-6. `feature/cosmetic-render-upgrade`
-7. `feature/admin-cosmetic-authoring`
-8. `feature/gameplay-ui-polish`
-9. `feature/analytics-event-foundation`
-10. `feature/word-analytics-liveops`
-11. `feature/release-ops-docs`
-12. `docs/encoding-cleanup`
-13. `feature/wallet-ledger-foundation`
+1. `fix/admin-security-hardening`
+2. `fix/admin-content-ops`
+3. `fix/coin-grants-archive-lifecycle`
+4. `feature/admin-user-observability`
+5. `feature/night-market-foundation`
+6. `feature/economy-abuse-hardening`
+7. `feature/cache-and-rate-limit-foundation`
+8. `feature/admin-promotions-ux`
+9. `feature/cosmetic-render-upgrade`
+10. `feature/admin-cosmetic-authoring`
+11. `feature/gameplay-ui-polish`
+12. `feature/analytics-event-foundation`
+13. `feature/word-analytics-liveops`
+14. `feature/release-ops-docs`
+15. `docs/encoding-cleanup`
+16. `feature/wallet-ledger-foundation`
 
 ## Mimari Notlar
 - Cache / Redis / Valkey / PM2 stratejisi icin ana referans:

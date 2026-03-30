@@ -4,6 +4,11 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +46,19 @@ export async function POST(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-shop-item-upload",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kozmetik dosyasi yukleme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -98,10 +116,13 @@ export async function POST(request: NextRequest) {
             request,
         });
 
-        return NextResponse.json({
-            url: `/cosmetics/${normalizedCategory}/${fileName}`,
-            fileName,
-        });
+        return NextResponse.json(
+            {
+                url: `/cosmetics/${normalizedCategory}/${fileName}`,
+                fileName,
+            },
+            { headers: buildRateLimitHeaders(rateLimit) }
+        );
     } catch (error) {
         console.error("Failed to upload file:", error);
         return NextResponse.json(

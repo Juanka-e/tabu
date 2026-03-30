@@ -3,17 +3,35 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
 // GET - Get a single word
 export async function GET(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-word-read",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 120,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kelime detay istegi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const { id } = await params;
@@ -29,7 +47,7 @@ export async function GET(
         return NextResponse.json({ error: "Kelime bulunamadı." }, { status: 404 });
     }
 
-    return NextResponse.json(word);
+    return NextResponse.json(word, { headers: buildRateLimitHeaders(rateLimit) });
 }
 
 // PUT - Update a word
@@ -47,6 +65,19 @@ export async function PUT(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-word-update",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 40,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kelime guncelleme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -97,7 +128,7 @@ export async function PUT(
             });
         });
 
-        return NextResponse.json(word);
+        return NextResponse.json(word, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(
@@ -115,7 +146,7 @@ export async function PUT(
 
 // DELETE - Delete a word
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const adminSession = await requireAdminSession();
@@ -123,10 +154,23 @@ export async function DELETE(
         return adminSession;
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-word-delete",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kelime silme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     try {
         const { id } = await params;
         await prisma.word.delete({ where: { id: parseInt(id) } });
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         console.error("Failed to delete word:", error);
         return NextResponse.json(
