@@ -194,6 +194,146 @@ Bu ayrim gelene kadar:
 - `badgeText`
 alanlari yalniz gecis katmani olarak kullanilmalidir
 
+## Bu Branch'te Eklenenler
+
+Bu branch yalniz "admin ekranini guzellestirme" isi degildir. Esas hedef, magazayi buyudugunde tasiyacak operasyon katmanini kurmaktir.
+
+1. `shop-items` operasyon yuzeyi toparlandi
+- arama
+- aktif / pasif filtreleri
+- vitrinde / standart filtreleri
+- yayin modu filtresi
+- daha net sayaçlar
+- toplu aksiyonlar
+
+2. Urun ile promosyon iliskileri gorunur hale geldi
+- bir kozmetik satirindan:
+  - `Paket`
+  - `Kampanya`
+  - `Kupon`
+  baglantisi gorulebiliyor
+- bu sayede admin "bu item nerelerde kullaniliyor?" sorusunu tek akisla cozebiliyor
+
+3. `promotions` ekrani liveops paneline donustu
+- bolum filtresi:
+  - `Paketler`
+  - `Kampanyalar`
+  - `Kuponlar`
+- durum filtresi:
+  - `Aktif`
+  - `Pasif`
+  - `Planli`
+  - `Suresi Doldu`
+- toplu yayina alma / durdurma
+- daha okunur kartlar
+- daha net form dili
+
+4. Promotion lifecycle mantigi netlestirildi
+- `Sil` ile `Pasife Al` ayrildi
+- aktif kayit ilk asamada pasife iner
+- pasif ve guvenli kayit ikinci asamada gercekten silinebilir
+- kullanilmis veya iliskili kayitlar hard delete olamaz
+
+5. Duplicate kod hatalari insan gibi hale getirildi
+- paket / kampanya / kupon kodu cakistiginda net hata doner
+- benzersiz olan alanin `code` oldugu operasyon tarafinda acik hale geldi
+
+6. Siralama paneli buyuk katalog icin hazirlandi
+- drag-and-drop paneli arama ve segment scope ile birlikte calisir
+- buyuk katalogda "final vitrin sirasi" araci olarak konumlanir
+
+## Yayin Modeli
+
+Bu branch'in en kritik altyapisi `availabilityMode + startsAt + endsAt` gecis modelidir.
+
+Eklenen alanlar:
+- `availabilityMode`
+- `startsAt`
+- `endsAt`
+
+Desteklenen yayin modlari:
+
+1. `always_on`
+- surekli yayinda
+- kalici katalog urunu
+
+2. `scheduled`
+- takvimli yayin
+- `startsAt` ile acilir
+- gerekirse `endsAt` ile kapanir
+
+3. `seasonal`
+- sezon baglamli urun
+- oyuncu tarafinda `Sezonluk` gibi merchandising sinyali uretir
+
+4. `limited`
+- sinirli sureli veya sinirli hissi veren urun
+- oyuncu tarafinda `Sinirli` ve gerekiyorsa `Son Gunler` sinyali uretir
+
+5. `event_only`
+- normal magazada listelenmez
+- ileride event shelf / event store gibi ayri yuzeylerde kullanilmak uzere sistemde durur
+
+Bu model neyi cozer:
+- magazayi sadece `isActive` ile yonetme zayifligini kapatir
+- admin onceden planli yayin yapabilir
+- oyuncu tarafinda merchandising sinyalleri uretilir
+- future liveops icin yeni daginik boolean alanlar acma ihtiyacini azaltir
+
+## Gelecek Branch'ler Icin Hazirlik
+
+Bu branch sonraki isleri dogrudan kolaylastirmak icin zemin hazirlar.
+
+1. `feature/admin-inventory-operations`
+- item grant / revoke
+- oyuncu envanteri inspect
+- audit ve sahiplik operasyonlari
+
+Bu branch ile baglantisi:
+- burada "ne satiliyor / nasil gorunuyor / hangi promosyonla bagli" netlesir
+- inventory branch'i ise "kimde var / kime verildi / nasil geri alinir" tarafini kurar
+
+2. `feature/night-market-foundation`
+- `event_only`
+- `seasonal`
+- `limited`
+modelleri future offer mantigina zemin olur
+
+3. ilerideki dogru veri modeli refactor'u
+- `ShopItem`
+- `StoreOffer`
+- `InventoryOwnership`
+- `PersonalizedOffer`
+
+Bu branch tam refactor'u yapmaz, ama sonraki branch'lerde veri modelinin camura donmemesi icin dogru gecis cizgisini cizer
+
+## Oyuncu Tarafina Tasinan Anlam
+
+Admin tarafinda secilen yayin modu oyuncu tarafinda anlamli merchandising sinyali uretir.
+
+Planlanan / mevcut oyuncu sinyalleri:
+- `Sezonluk`
+- `Sinirli`
+- `Sureli`
+- `Son Gunler`
+
+`event_only` icin not:
+- normal katalogda gostermek dogru degil
+- ayri event shelf veya event store dogru yuzey
+
+## Operasyonel Sonuc
+
+Bu branch tamamlandiginda admin panel su sorulara daha saglam cevap verir:
+
+1. Bu item magazada gorunuyor mu?
+2. Hangi yayin modelinde?
+3. Vitrinde mi?
+4. Hangi bundle / kampanya / kupon ile bagli?
+5. Kullanilmis bir promosyonu guvenli sekilde sadece pasife mi almaliyim?
+6. Kullanilmamis ve bagimsiz kaydi kalici olarak silebilir miyim?
+
+Bu cevaplar olmadan buyuyen magazayi saglikli yonetmek mumkun degildir.
+
 ## Merge Kriteri
 
 Bu branch su durumda merge edilir:
