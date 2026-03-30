@@ -850,6 +850,42 @@ export default function ShopItemsPage() {
                 >
                     Vitrinden Çıkar
                 </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "always_on", startsAt: null, endsAt: null }, "Seçili ürünler sürekli yayına alındı.")}
+                >
+                    Sürekli
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "seasonal" }, "Seçili ürünler sezonluk olarak işaretlendi.")}
+                >
+                    Sezonluk
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "limited" }, "Seçili ürünler sınırlı olarak işaretlendi.")}
+                >
+                    Sınırlı
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "event_only" }, "Seçili ürünler etkinlik özel olarak işaretlendi.")}
+                >
+                    Etkinlik
+                </Button>
             </AdminSelectionBar>
 
             <AdminTableShell

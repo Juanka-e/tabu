@@ -20,6 +20,8 @@ import type {
 } from "@/types/economy";
 
 type ItemOption = Pick<StoreItemView, "id" | "code" | "name" | "type">;
+type PromotionSectionFilter = "all" | "bundles" | "discounts" | "coupons";
+type PromotionStatusFilter = "all" | "active" | "inactive" | "scheduled" | "expired";
 
 interface BundleItemFormRow {
     shopItemId: string;
@@ -244,6 +246,53 @@ function getWindowState(startsAt: string | null, endsAt: string | null) {
     }
 
     return { label: "Yayında", tone: "success" as const };
+}
+
+function matchesPromotionWindowStatus(
+    statusFilter: PromotionStatusFilter,
+    isActive: boolean,
+    startsAt: string | null,
+    endsAt: string | null
+) {
+    if (statusFilter === "all") {
+        return true;
+    }
+
+    if (statusFilter === "active") {
+        return isActive;
+    }
+
+    if (statusFilter === "inactive") {
+        return !isActive;
+    }
+
+    if (!isActive) {
+        return false;
+    }
+
+    const windowState = getWindowState(startsAt, endsAt);
+    if (statusFilter === "scheduled") {
+        return windowState.label === "Planlı";
+    }
+
+    if (statusFilter === "expired") {
+        return windowState.label === "Süresi Doldu";
+    }
+
+    return true;
+}
+
+function matchesBundleStatus(statusFilter: PromotionStatusFilter, isActive: boolean) {
+    if (statusFilter === "all") {
+        return true;
+    }
+    if (statusFilter === "active") {
+        return isActive;
+    }
+    if (statusFilter === "inactive") {
+        return !isActive;
+    }
+    return false;
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -704,6 +753,8 @@ export default function PromotionsPage() {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState(deepLinkedSearch);
+    const [sectionFilter, setSectionFilter] = useState<PromotionSectionFilter>("all");
+    const [statusFilter, setStatusFilter] = useState<PromotionStatusFilter>("all");
     const [editingBundleId, setEditingBundleId] = useState<number | null>(null);
     const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
     const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
@@ -721,6 +772,7 @@ export default function PromotionsPage() {
     const filteredBundles = useMemo(
         () =>
             bundles.filter((bundle) =>
+                matchesBundleStatus(statusFilter, bundle.isActive) &&
                 matchesAdminSearch(search, [
                     bundle.name,
                     bundle.code,
@@ -728,11 +780,12 @@ export default function PromotionsPage() {
                     ...bundle.items.flatMap((item) => [item.itemName, item.itemCode, itemTypeLabels[item.itemType]]),
                 ])
             ),
-        [bundles, search]
+        [bundles, search, statusFilter]
     );
     const filteredDiscounts = useMemo(
         () =>
             discounts.filter((discount) =>
+                matchesPromotionWindowStatus(statusFilter, discount.isActive, discount.startsAt, discount.endsAt) &&
                 matchesAdminSearch(search, [
                     discount.name,
                     discount.code,
@@ -742,11 +795,12 @@ export default function PromotionsPage() {
                     formatTargetSummary(discount.targetType, discount.shopItemId, discount.bundleId, itemOptions, bundleOptions),
                 ])
             ),
-        [bundleOptions, discounts, itemOptions, search]
+        [bundleOptions, discounts, itemOptions, search, statusFilter]
     );
     const filteredCoupons = useMemo(
         () =>
             coupons.filter((coupon) =>
+                matchesPromotionWindowStatus(statusFilter, coupon.isActive, coupon.startsAt, coupon.endsAt) &&
                 matchesAdminSearch(search, [
                     coupon.name,
                     coupon.code,
@@ -756,8 +810,13 @@ export default function PromotionsPage() {
                     formatTargetSummary(coupon.targetType, coupon.shopItemId, coupon.bundleId, itemOptions, bundleOptions),
                 ])
             ),
-        [bundleOptions, coupons, itemOptions, search]
+        [bundleOptions, coupons, itemOptions, search, statusFilter]
     );
+
+    const visibleSectionCount =
+        (sectionFilter === "all" || sectionFilter === "bundles" ? 1 : 0) +
+        (sectionFilter === "all" || sectionFilter === "discounts" ? 1 : 0) +
+        (sectionFilter === "all" || sectionFilter === "coupons" ? 1 : 0);
 
     useEffect(() => {
         setSearch(deepLinkedSearch);
@@ -941,6 +1000,69 @@ export default function PromotionsPage() {
                 />
             </AdminToolbar>
 
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Görünüm</div>
+                        <p className="text-sm text-muted-foreground">Promosyon alanını bölüm ve yayın durumuna göre daraltarak kontrol et.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {([
+                            { id: "all", label: "Tümü" },
+                            { id: "bundles", label: "Paketler" },
+                            { id: "discounts", label: "Kampanyalar" },
+                            { id: "coupons", label: "Kuponlar" },
+                        ] as const).map((option) => (
+                            <Button
+                                key={option.id}
+                                type="button"
+                                size="sm"
+                                variant={sectionFilter === option.id ? "default" : "outline"}
+                                onClick={() => setSectionFilter(option.id)}
+                            >
+                                {option.label}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {([
+                        { id: "all", label: "Tüm Durumlar" },
+                        { id: "active", label: "Aktif" },
+                        { id: "inactive", label: "Pasif" },
+                        { id: "scheduled", label: "Planlı" },
+                        { id: "expired", label: "Süresi Doldu" },
+                    ] as const).map((option) => (
+                        <Button
+                            key={option.id}
+                            type="button"
+                            size="sm"
+                            variant={statusFilter === option.id ? "default" : "outline"}
+                            onClick={() => setStatusFilter(option.id)}
+                        >
+                            {option.label}
+                        </Button>
+                    ))}
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                    {([
+                        { id: "bundles", label: "Paketler", value: filteredBundles.length, href: "#bundles" },
+                        { id: "discounts", label: "Kampanyalar", value: filteredDiscounts.length, href: "#discounts" },
+                        { id: "coupons", label: "Kuponlar", value: filteredCoupons.length, href: "#coupons" },
+                    ] as const).map((summary) => (
+                        <a
+                            key={summary.id}
+                            href={summary.href}
+                            onClick={() => setSectionFilter(summary.id)}
+                            className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 transition hover:border-blue-400/60 hover:bg-background"
+                        >
+                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{summary.label}</div>
+                            <div className="mt-2 text-2xl font-black text-foreground">{summary.value}</div>
+                        </a>
+                    ))}
+                </div>
+            </div>
+
             {deepLinkedSearch ? (
                 <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-muted-foreground">
                     Bu ekran derin bağlantı ile açıldı. Arama filtresi şu değeri kullanıyor:
@@ -960,7 +1082,8 @@ export default function PromotionsPage() {
             ) : null}
 
             {!loading && !loadError ? (
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className={`grid gap-6 ${visibleSectionCount > 1 ? "xl:grid-cols-2" : ""}`}>
+                {(sectionFilter === "all" || sectionFilter === "bundles") ? (
                 <Card id="bundles">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Paket Tanımları</CardTitle>
@@ -1017,7 +1140,9 @@ export default function PromotionsPage() {
                         />
                     </CardContent>
                 </Card>
+                ) : null}
 
+                {(sectionFilter === "all" || sectionFilter === "discounts") ? (
                 <Card id="discounts">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>İndirim Kampanyaları</CardTitle>
@@ -1069,10 +1194,11 @@ export default function PromotionsPage() {
                         />
                     </CardContent>
                 </Card>
+                ) : null}
             </div>
             ) : null}
 
-            {!loading && !loadError ? (
+            {!loading && !loadError && (sectionFilter === "all" || sectionFilter === "coupons") ? (
             <Card id="coupons">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Kupon Kodları</CardTitle>
