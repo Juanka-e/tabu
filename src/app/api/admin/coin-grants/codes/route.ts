@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         });
         if (!rateLimit.allowed) {
             return NextResponse.json(
-                { error: "Cok fazla coin kodu olusturma denemesi. Lutfen biraz bekleyin." },
+                { error: "Çok fazla coin kodu oluşturma denemesi. Lütfen biraz bekleyin." },
                 { status: 429, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         const codes = await createCoinGrantCodes(input);
 
         if (codes.length === 0) {
-            return NextResponse.json({ error: "Kodlar olusturulamadi. Prefix veya campaign kontrol edin." }, { status: 422 });
+            return NextResponse.json({ error: "Kodlar oluşturulamadı. Prefix veya kampanya ayarını kontrol edin." }, { status: 422 });
         }
 
         await writeAuditLog({
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         if (error instanceof CoinGrantWorkflowError) {
             const messages: Record<string, string> = {
-                campaign_archived: "Arsivli campaign icin yeni kod uretilemez.",
-                campaign_inactive: "Pasif campaign once aktif edilmeli.",
-                campaign_not_found: "Campaign bulunamadi.",
+                campaign_archived: "Arşivli kampanya için yeni kod üretilemez.",
+                campaign_inactive: "Pasif kampanya önce aktif edilmeli.",
+                campaign_not_found: "Kampanya bulunamadı.",
             };
             const status = error.code === "campaign_not_found" ? 404 : 409;
-            return NextResponse.json({ error: messages[error.code] || "Kodlar olusturulamadi." }, { status });
+            return NextResponse.json({ error: messages[error.code] || "Kodlar oluşturulamadı." }, { status });
         }
 
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
         }
 
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz kod verisi." }, { status: 422 });
+            return NextResponse.json({ error: error.issues[0]?.message || "Geçersiz kod verisi." }, { status: 422 });
         }
 
         console.error("Failed to create coin grant codes:", error);
-        return NextResponse.json({ error: "Coin kodlari olusturulamadi." }, { status: 500 });
+        return NextResponse.json({ error: "Coin kodları oluşturulamadı." }, { status: 500 });
     }
 }

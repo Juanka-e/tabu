@@ -1,4 +1,4 @@
-# Gorev Kaydi
+﻿# Gorev Kaydi
 
 > Son guncelleme: 30 March 2026
 > Durum: aktif execution log
@@ -26,22 +26,24 @@
 - `feature/integration-hub`
 - `feature/dashboard-visual-polish`
 - `feature/store-merchandising`
+- `feature/admin-shop-ux`
 - `feature/admin-inventory-operations`
 
-## Son Tamamlanan Branch
-### `feature/store-merchandising`
-- oyuncu-facing magazanin merchandising dili guclendirildi
-- preview modal akisi netlestirildi
-- kupon girdiginde kart bazli indirim gorunurlugu iyilestirildi
-- inventory preview ve hizli kusan akislarina tutarlilik geldi
-- dashboard sidebar icindeki kesif / discovery alani rafine edildi
-- son follow-up ile:
-  - kupon state / purchase request uyumu
-  - sidebar load azaltimi
-  - notification read idempotency
-  - UTF-8 magazaya kopya duzeltmesi
+## Son Tamamlanan Fix Branch
+### `fix/admin-content-ops`
+- duyuru kartlari compact ve oyuncu-odakli hale getirildi
+- duplicate metin ve block count gibi ic metadata kaldirildi
+- admin preview oyuncu renderina yaklastirildi
+- kelime bulk upload iki modlu hale geldi:
+  - `csv_categories`
+  - `fixed_categories`
+- duplicate / skipped / error sonucu gorunur oldu
+- kelimelerde sayfa-bazli secim ve guvenli bulk delete eklendi
+- eski `Toplu Yukleme` girisi kaldirildi, dogrudan URL `Kelime Yonetimi`ne yonlenir
+- referans:
+  - `docs/guides/admin-content-ops-guide.md`
 
-## Son Tamamlanan Branch
+## Son Tamamlanan Fix Branch
 ### `fix/admin-security-hardening`
 - admin API read/write route'larina tutarli rate limit kapsami yayildi
 - `TRUST_PROXY` artik request rate limit ve audit IP kaydinda gercekten uygulanir hale geldi
@@ -57,58 +59,35 @@
   - `docs/guides/admin-security-hardening-guide.md`
 
 ## Aktif Branch
-### `fix/admin-content-ops`
-- duyuru kartlarini compact, oyuncu-odakli hale getirme
-- oyuncuya block count gibi ic metadata gostermeme
-- admin preview ile player renderi hizalama
-- toplu kelime yukleme icin kategori / alt kategori secimi
-- kelimelerde sayfa-bazli secim ve guvenli bulk delete
+### `fix/coin-grants-archive-lifecycle`
+- coin grant campaign ve code tarafinda archive davranisini ayni lifecycle modeline cekme
+- `Tum`, `Aktif`, `Pasif`, `Arsiv` filtrelerinin semantigini netlestirme
+- archive ile delete davranisini ayristirma
 - referans:
-  - `docs/guides/admin-content-ops-guide.md`
+  - `docs/guides/coin-grants-archive-lifecycle-guide.md`
 
-## Bu Branch'te Tamamlanan Son Dilimler
-### `fix/admin-content-ops`
-- duyuru collapsed kart dili tekrar hissi vermeyecek sekilde sadeleştirildi
-- `YENI` etiketi 7 gunluk gorunum mantigiyla korundu
-- tarih meta alani sag uste tasindi
-- admin preview oyuncu kartina yaklastirildi
-- bulk upload iki modlu hale getirildi:
-  - `csv_categories`
-  - `fixed_categories`
-- duplicate / skipped / error sonucu modalda raporlanir oldu
-- kelimelerde toplu secim ve bulk delete geldi
-- bulk delete:
-  - ikinci onay
-  - sayili CTA
-  - `10+` kayitta reason
-  - audit kaydi
-  ile sertlestirildi
-- referans:
-  - `docs/guides/admin-content-ops-guide.md`
-
-## Aktif Sonraki Branch Adaylari
-1. `fix/admin-content-ops`
-2. `fix/coin-grants-archive-lifecycle`
-3. `feature/admin-user-observability`
-4. `feature/night-market-foundation`
-5. `feature/economy-abuse-hardening`
-6. `feature/cache-and-rate-limit-foundation`
-7. `feature/admin-promotions-ux`
-8. `feature/cosmetic-render-upgrade`
-9. `feature/admin-cosmetic-authoring`
-10. `feature/gameplay-ui-polish`
-11. `feature/analytics-event-foundation`
-12. `feature/word-analytics-liveops`
-13. `feature/release-ops-docs`
-14. `docs/encoding-cleanup`
-15. `feature/wallet-ledger-foundation`
-
-## Mimari Notlar
-- Cache / Redis / Valkey / PM2 stratejisi icin ana referans:
-  - `docs/cache-and-storage-strategy.md`
+## Planning Notlari
 - Store / liveops / economy stratejisi icin ana referanslar:
   - `docs/guides/store-liveops-strategy-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
+- Night market ve gorev sistemi yapisi icin:
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
+
+## Aktif Sonraki Branch Adaylari
+1. `fix/coin-grants-archive-lifecycle`
+2. `feature/admin-user-observability`
+3. `feature/economy-abuse-hardening`
+4. `feature/night-market-foundation`
+5. `feature/cache-and-rate-limit-foundation`
+6. `feature/admin-promotions-ux`
+7. `feature/cosmetic-render-upgrade`
+8. `feature/admin-cosmetic-authoring`
+9. `feature/gameplay-ui-polish`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/release-ops-docs`
+13. `docs/encoding-cleanup`
+14. `feature/wallet-ledger-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:

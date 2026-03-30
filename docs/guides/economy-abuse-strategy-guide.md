@@ -258,6 +258,9 @@ Oyuncu su hissi almali:
 - sezonluk ilerleme sistemi
 - targeted comeback economy kampanyalari
 
+Bu alanlar icin ek planning rehberi:
+- `docs/guides/night-market-and-missions-strategy-guide.md`
+
 ## Uygulama Oncesi Sorulacak Sorular
 
 1. Coin hangi davranislari odullendirecek?

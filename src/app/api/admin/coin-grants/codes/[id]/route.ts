@@ -23,7 +23,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     const paramsResult = routeParamsSchema.safeParse(await context.params);
     if (!paramsResult.success) {
-        return NextResponse.json({ error: "Gecersiz kod." }, { status: 422 });
+        return NextResponse.json({ error: "Geçersiz kod." }, { status: 422 });
     }
 
     const rateLimit = consumeRequestRateLimit({
@@ -34,19 +34,22 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
     if (!rateLimit.allowed) {
         return NextResponse.json(
-            { error: "Cok fazla kod kapatma denemesi. Lutfen biraz bekleyin." },
+            { error: "Çok fazla kod pasife alma denemesi. Lütfen biraz bekleyin." },
             { status: 429, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 
     const outcome = await deactivateCoinGrantCode(paramsResult.data.id);
     if (!outcome) {
-        return NextResponse.json({ error: "Kod bulunamadi." }, { status: 404 });
+        return NextResponse.json({ error: "Kod bulunamadı." }, { status: 404 });
+    }
+    if (outcome === "archived") {
+        return NextResponse.json({ error: "Arşivli kod pasife alınamaz." }, { status: 409 });
     }
 
     await writeAuditLog({
         actor: adminSession,
-        action: outcome === "deleted" ? "admin.coin_grant_code.delete" : "admin.coin_grant_code.deactivate",
+        action: "admin.coin_grant_code.deactivate",
         resourceType: "coin_grant_code",
         resourceId: paramsResult.data.id,
         summary: `${outcome} coin grant code ${paramsResult.data.id}`,

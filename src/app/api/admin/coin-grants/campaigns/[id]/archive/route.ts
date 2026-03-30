@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const paramsResult = routeParamsSchema.safeParse(await context.params);
     if (!paramsResult.success) {
-        return NextResponse.json({ error: "Gecersiz campaign." }, { status: 422 });
+        return NextResponse.json({ error: "Geçersiz kampanya." }, { status: 422 });
     }
 
     const rateLimit = consumeRequestRateLimit({
@@ -34,17 +34,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
     if (!rateLimit.allowed) {
         return NextResponse.json(
-            { error: "Cok fazla campaign arsivleme denemesi. Lutfen biraz bekleyin." },
+            { error: "Çok fazla kampanya arşivleme denemesi. Lütfen biraz bekleyin." },
             { status: 429, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 
     const outcome = await archiveCoinGrantCampaign(paramsResult.data.id);
     if (!outcome) {
-        return NextResponse.json({ error: "Campaign bulunamadi." }, { status: 404 });
+        return NextResponse.json({ error: "Kampanya bulunamadı." }, { status: 404 });
     }
     if (outcome === "conflict") {
-        return NextResponse.json({ error: "Aktif campaign once pasife alinmali." }, { status: 409 });
+        return NextResponse.json({ error: "Aktif kampanya önce pasife alınmalı." }, { status: 409 });
     }
 
     await writeAuditLog({

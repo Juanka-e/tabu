@@ -415,19 +415,13 @@ export async function updateCoinGrantCampaign(id: number, input: CoinGrantCampai
     return mapCoinGrantCampaign(campaign);
 }
 
-export async function deactivateCoinGrantCampaign(id: number): Promise<"deleted" | "deactivated" | null> {
+export async function deactivateCoinGrantCampaign(id: number): Promise<"deactivated" | "archived" | null> {
     const existing = await prisma.coinGrantCampaign.findUnique({
         where: { id },
         select: {
             id: true,
-            totalClaimCount: true,
-            totalGrantedCoin: true,
-            codes: {
-                select: {
-                    id: true,
-                    claimCount: true,
-                },
-            },
+            isActive: true,
+            archivedAt: true,
         },
     });
 
@@ -435,16 +429,12 @@ export async function deactivateCoinGrantCampaign(id: number): Promise<"deleted"
         return null;
     }
 
-    const canDelete =
-        existing.totalClaimCount === 0 &&
-        existing.totalGrantedCoin === 0 &&
-        existing.codes.every((code) => code.claimCount === 0);
+    if (existing.archivedAt) {
+        return "archived";
+    }
 
-    if (canDelete) {
-        await prisma.coinGrantCampaign.delete({
-            where: { id },
-        });
-        return "deleted";
+    if (!existing.isActive) {
+        return "deactivated";
     }
 
     await prisma.coinGrantCampaign.update({
@@ -543,12 +533,13 @@ export async function createCoinGrantCodes(input: CoinGrantCodeBatchCreateInput)
     return createdCodes.map(mapCoinGrantCode);
 }
 
-export async function deactivateCoinGrantCode(id: number): Promise<"deleted" | "deactivated" | null> {
+export async function deactivateCoinGrantCode(id: number): Promise<"deactivated" | "archived" | null> {
     const existing = await prisma.coinGrantCode.findUnique({
         where: { id },
         select: {
             id: true,
-            claimCount: true,
+            isActive: true,
+            archivedAt: true,
         },
     });
 
@@ -556,11 +547,12 @@ export async function deactivateCoinGrantCode(id: number): Promise<"deleted" | "
         return null;
     }
 
-    if (existing.claimCount === 0) {
-        await prisma.coinGrantCode.delete({
-            where: { id },
-        });
-        return "deleted";
+    if (existing.archivedAt) {
+        return "archived";
+    }
+
+    if (!existing.isActive) {
+        return "deactivated";
     }
 
     await prisma.coinGrantCode.update({
@@ -633,6 +625,62 @@ export async function archiveCoinGrantCode(id: number): Promise<"archived" | nul
     });
 
     return "archived";
+}
+
+export async function restoreCoinGrantCampaign(id: number): Promise<"restored" | null> {
+    const existing = await prisma.coinGrantCampaign.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            archivedAt: true,
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    if (!existing.archivedAt) {
+        return "restored";
+    }
+
+    await prisma.coinGrantCampaign.update({
+        where: { id },
+        data: {
+            archivedAt: null,
+            isActive: false,
+        },
+    });
+
+    return "restored";
+}
+
+export async function restoreCoinGrantCode(id: number): Promise<"restored" | null> {
+    const existing = await prisma.coinGrantCode.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            archivedAt: true,
+        },
+    });
+
+    if (!existing) {
+        return null;
+    }
+
+    if (!existing.archivedAt) {
+        return "restored";
+    }
+
+    await prisma.coinGrantCode.update({
+        where: { id },
+        data: {
+            archivedAt: null,
+            isActive: false,
+        },
+    });
+
+    return "restored";
 }
 
 export async function redeemCoinGrantCode(input: {

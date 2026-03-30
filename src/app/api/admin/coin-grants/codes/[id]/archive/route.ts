@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const paramsResult = routeParamsSchema.safeParse(await context.params);
     if (!paramsResult.success) {
-        return NextResponse.json({ error: "Gecersiz kod." }, { status: 422 });
+        return NextResponse.json({ error: "Geçersiz kod." }, { status: 422 });
     }
 
     const rateLimit = consumeRequestRateLimit({
@@ -34,17 +34,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
     if (!rateLimit.allowed) {
         return NextResponse.json(
-            { error: "Cok fazla kod arsivleme denemesi. Lutfen biraz bekleyin." },
+            { error: "Çok fazla kod arşivleme denemesi. Lütfen biraz bekleyin." },
             { status: 429, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 
     const outcome = await archiveCoinGrantCode(paramsResult.data.id);
     if (!outcome) {
-        return NextResponse.json({ error: "Kod bulunamadi." }, { status: 404 });
+        return NextResponse.json({ error: "Kod bulunamadı." }, { status: 404 });
     }
     if (outcome === "conflict") {
-        return NextResponse.json({ error: "Aktif kod once pasife alinmali." }, { status: 409 });
+        return NextResponse.json({ error: "Aktif kod önce pasife alınmalı." }, { status: 409 });
     }
 
     await writeAuditLog({
