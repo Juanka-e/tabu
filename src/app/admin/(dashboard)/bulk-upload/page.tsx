@@ -1,25 +1,22 @@
-"use client";
+﻿"use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import {
-    Upload,
-    FileText,
-    CheckCircle2,
     AlertCircle,
-    Loader2,
-    X,
+    CheckCircle2,
     Download,
+    FileText,
+    Loader2,
+    Upload,
+    X,
 } from "lucide-react";
-
-/* ─── Types ──────────────────────────────────────────────────── */
 
 interface UploadResult {
     success: number;
     skipped: number;
     errors: string[];
+    skippedRows?: string[];
 }
-
-/* ─── Page ───────────────────────────────────────────────────── */
 
 export default function AdminBulkUploadPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -46,6 +43,7 @@ export default function AdminBulkUploadPage() {
 
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("mode", "csv_categories");
 
         try {
             const res = await fetch("/api/admin/words/bulk-upload", {
@@ -54,12 +52,12 @@ export default function AdminBulkUploadPage() {
             });
 
             if (!res.ok) {
-                const err = await res.json();
-                setError(err.error || "Yükleme başarısız.");
+                const err = await res.json().catch(() => null);
+                setError(err?.error || "Yükleme başarısız.");
                 return;
             }
 
-            const data = await res.json();
+            const data = (await res.json()) as UploadResult;
             setResult(data);
         } catch {
             setError("Ağ hatası.");
@@ -79,45 +77,41 @@ export default function AdminBulkUploadPage() {
     };
 
     return (
-        <div className="space-y-5 max-w-2xl">
-            {/* Header */}
+        <div className="max-w-3xl space-y-5">
             <div>
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
                     <Upload className="h-6 w-6 text-emerald-500" />
                     Toplu Kelime Yükleme
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    CSV dosyasından toplu kelime ekleyin
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Bu hızlı ekran CSV içinden kategori okuyan akış içindir. Ortak kategori atamak istiyorsan Kelime Yönetimi içindeki `Toplu Yükle` modalını kullan.
                 </p>
             </div>
 
-            {/* CSV Format Info */}
-            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-2xl p-5">
-                <h3 className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">
-                    CSV Formatı
-                </h3>
-                <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
-                    Her satırda: <code>kelime,zorluk,yasaklı1,yasaklı2,yasaklı3,...</code>
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-800 dark:bg-blue-900/10">
+                <h3 className="mb-2 text-sm font-bold text-blue-700 dark:text-blue-400">CSV Formatı</h3>
+                <p className="mb-3 text-xs text-blue-600 dark:text-blue-300">
+                    Her satırda: <code>kelime,zorluk,kategori,alt_kategori,yasaklı1,yasaklı2,yasaklı3,...</code>
                 </p>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 font-mono text-xs text-gray-600 dark:text-gray-300 border border-blue-100 dark:border-slate-700">
-                    <div className="text-gray-400">
-                        kelime,zorluk,yasak1,yasak2,yasak3,yasak4,yasak5
-                    </div>
-                    <div>armut,1,meyve,yeşil,ağaç,bahçe,dal</div>
-                    <div>bilgisayar,2,ekran,klavye,mouse,teknoloji,yazılım</div>
-                    <div>kuantum,3,fizik,atom,parçacık,dalga,enerji</div>
+                <div className="rounded-xl border border-blue-100 bg-white p-3 font-mono text-xs text-gray-600 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300">
+                    <div className="text-gray-400">kelime,zorluk,kategori,alt_kategori,yasaklı1,yasaklı2,yasaklı3</div>
+                    <div>armut,1,Meyveler,,yeşil,ağaç,bahçe</div>
+                    <div>levrek,2,Yiyecek,Deniz Ürünleri,balık,ızgara,kılçık</div>
+                    <div>kuantum,3,Bilim,Fizik,atom,parçacık,enerji</div>
                 </div>
-                <p className="text-[10px] text-blue-500 mt-2">
-                    Zorluk: 1=Kolay, 2=Orta, 3=Zor — İlk satır başlık ise otomatik atlanır
+                <p className="mt-2 text-[11px] text-blue-500">
+                    `alt_kategori` zorunlu değildir. Yoksa boş bırak. Kategori ve alt kategori adları sistemde önceden oluşturulmuş olmalıdır.
+                </p>
+                <p className="mt-1 text-[11px] text-blue-500">
+                    Zorluk: `1=Kolay`, `2=Orta`, `3=Zor`. İlk satır başlıksa otomatik atlanır.
                 </p>
             </div>
 
-            {/* Drop Zone */}
             <div
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-10 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all"
+                className="cursor-pointer rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center transition-all hover:border-emerald-400 hover:bg-emerald-50/30 dark:border-slate-700 dark:hover:bg-emerald-900/10"
             >
                 <input
                     ref={fileInputRef}
@@ -128,17 +122,10 @@ export default function AdminBulkUploadPage() {
                 />
                 {file ? (
                     <div className="flex items-center justify-center gap-3">
-                        <FileText
-                            size={24}
-                            className="text-emerald-500"
-                        />
+                        <FileText size={24} className="text-emerald-500" />
                         <div className="text-left">
-                            <p className="text-sm font-bold text-slate-800 dark:text-white">
-                                {file.name}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                {(file.size / 1024).toFixed(1)} KB
-                            </p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-white">{file.name}</p>
+                            <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
                         </div>
                         <button
                             onClick={(e) => {
@@ -146,32 +133,26 @@ export default function AdminBulkUploadPage() {
                                 setFile(null);
                                 setResult(null);
                             }}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                         >
                             <X size={16} />
                         </button>
                     </div>
                 ) : (
                     <>
-                        <Download
-                            size={40}
-                            className="mx-auto mb-3 text-gray-300"
-                        />
+                        <Download size={40} className="mx-auto mb-3 text-gray-300" />
                         <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
                             CSV dosyasını buraya sürükleyin veya tıklayın
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Sadece .csv dosyaları kabul edilir
-                        </p>
+                        <p className="mt-1 text-xs text-gray-400">Sadece .csv dosyaları kabul edilir</p>
                     </>
                 )}
             </div>
 
-            {/* Upload Button */}
             <button
                 onClick={handleUpload}
                 disabled={!file || uploading}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-md transition-colors active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white shadow-md transition-colors active:scale-[0.99] hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {uploading ? (
                     <>
@@ -186,66 +167,54 @@ export default function AdminBulkUploadPage() {
                 )}
             </button>
 
-            {/* Error */}
-            {error && (
-                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-2">
+            {error ? (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
                     <AlertCircle size={18} />
                     {error}
                 </div>
-            )}
+            ) : null}
 
-            {/* Results */}
-            {result && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-5 space-y-3">
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            {result ? (
+                <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white">
                         <CheckCircle2 size={18} className="text-emerald-500" />
                         Yükleme Tamamlandı
                     </h3>
 
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-black text-emerald-600">
-                                {result.success}
-                            </p>
-                            <p className="text-xs text-emerald-500 font-medium">
-                                Eklendi
-                            </p>
+                        <div className="rounded-xl bg-emerald-50 p-3 text-center dark:bg-emerald-900/20">
+                            <p className="text-2xl font-black text-emerald-600">{result.success}</p>
+                            <p className="text-xs font-medium text-emerald-500">Eklendi</p>
                         </div>
-                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-black text-amber-600">
-                                {result.skipped}
-                            </p>
-                            <p className="text-xs text-amber-500 font-medium">
-                                Atlandı (Mevcut)
-                            </p>
+                        <div className="rounded-xl bg-amber-50 p-3 text-center dark:bg-amber-900/20">
+                            <p className="text-2xl font-black text-amber-600">{result.skipped}</p>
+                            <p className="text-xs font-medium text-amber-500">Atlandı</p>
                         </div>
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-black text-red-600">
-                                {result.errors.length}
-                            </p>
-                            <p className="text-xs text-red-500 font-medium">
-                                Hata
-                            </p>
+                        <div className="rounded-xl bg-red-50 p-3 text-center dark:bg-red-900/20">
+                            <p className="text-2xl font-black text-red-600">{result.errors.length}</p>
+                            <p className="text-xs font-medium text-red-500">Hata</p>
                         </div>
                     </div>
 
-                    {result.errors.length > 0 && (
-                        <div className="mt-3 max-h-40 overflow-y-auto">
-                            <p className="text-xs font-semibold text-gray-500 mb-1">
-                                Hatalar:
-                            </p>
-                            {result.errors.map((err, i) => (
-                                <p
-                                    key={i}
-                                    className="text-xs text-red-500 py-0.5"
-                                >
-                                    • {err}
-                                </p>
+                    {result.skippedRows && result.skippedRows.length > 0 ? (
+                        <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3">
+                            <p className="mb-1 text-xs font-semibold text-gray-500">Atlanan satırlar</p>
+                            {result.skippedRows.map((item) => (
+                                <p key={item} className="py-0.5 text-xs text-amber-600 dark:text-amber-300">• {item}</p>
                             ))}
                         </div>
-                    )}
+                    ) : null}
+
+                    {result.errors.length > 0 ? (
+                        <div className="max-h-40 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3">
+                            <p className="mb-1 text-xs font-semibold text-gray-500">Hatalı satırlar</p>
+                            {result.errors.map((err) => (
+                                <p key={err} className="py-0.5 text-xs text-red-500">• {err}</p>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }

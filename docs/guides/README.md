@@ -35,3 +35,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 8. `admin-security-hardening-guide.md`
 - admin panel API guvenligi ve rate limit sertlestirme rehberi
 - authz, request korumasi, IP/trusted proxy ve admin operasyon risklerini tarar
+
+9. `admin-content-ops-guide.md`
+- duyuru ve bulk content operasyonlarini toparlama rehberi
+- compact render/editor ve kategori destekli bulk upload sinirlarini tanimlar
