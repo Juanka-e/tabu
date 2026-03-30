@@ -1,6 +1,6 @@
 # Gorev Kaydi
 
-> Son guncelleme: 25 March 2026
+> Son guncelleme: 30 March 2026
 > Durum: aktif execution log
 
 ## Cekirdek Kurallar
@@ -24,45 +24,46 @@
 - `feature/branding-seo-settings`
 - `feature/branding-assets-upload`
 - `feature/integration-hub`
+- `feature/dashboard-visual-polish`
+- `feature/store-merchandising`
 
 ## Son Tamamlanan Branch
-### `feature/integration-hub`
-- `/admin/integrations`
-- runtime / security / access / messaging / storage provider kartlari
-- env wiring ve readiness ozeti
-- captcha, admin access, auth core, database, branding storage, email outbound ve Redis/Valkey durum bloklari
-- `test:integration-hub`
-- MySQL gecici erisilemezse `system settings` default fallback
-- production deployment guvenligi:
-  - loopback bind varsayilani
-  - token-korumali `/api/health`
-  - `docs/guides/deployment-security-guide.md`
+### `feature/store-merchandising`
+- oyuncu-facing magazanin merchandising dili guclendirildi
+- preview modal akisi netlestirildi
+- kupon girdiginde kart bazli indirim gorunurlugu iyilestirildi
+- inventory preview ve hizli kusan akislarina tutarlilik geldi
+- dashboard sidebar icindeki kesif / discovery alani rafine edildi
+- son follow-up ile:
+  - kupon state / purchase request uyumu
+  - sidebar load azaltimi
+  - notification read idempotency
+  - UTF-8 magazaya kopya duzeltmesi
 
-## Aktif Docs-Only Branch
-### `docs/store-economy-strategy`
-- `docs/guides/store-liveops-strategy-guide.md`
-- `docs/guides/economy-abuse-strategy-guide.md`
-- store / liveops / inventory / personalized offer ayrimi
-- night market ve item pool filtreleme kararlari
-- coin source / sink ve anti-abuse katmanlari
+## Aktif Branch
+### `feature/admin-shop-ux`
+- admin shop item ve promotion operasyonlarini okunur hale getirme
+- featured / active / hidden / scheduled merchandising kontrol dili
+- item, bundle ve promotion iliskilerini admin gozunde daha net gosterme
+- arama, filtre ve toplu islem akislarini toparlama
+- referans:
+  - `docs/guides/admin-shop-ux-planning-guide.md`
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/dashboard-visual-polish`
-2. `feature/store-merchandising`
-3. `feature/admin-shop-ux`
-4. `feature/admin-inventory-operations`
-5. `feature/night-market-foundation`
-6. `feature/economy-abuse-hardening`
-7. `feature/cache-and-rate-limit-foundation`
-8. `feature/admin-promotions-ux`
-9. `feature/cosmetic-render-upgrade`
-10. `feature/admin-cosmetic-authoring`
-11. `feature/gameplay-ui-polish`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `feature/admin-shop-ux`
+2. `feature/admin-inventory-operations`
+3. `feature/night-market-foundation`
+4. `feature/economy-abuse-hardening`
+5. `feature/cache-and-rate-limit-foundation`
+6. `feature/admin-promotions-ux`
+7. `feature/cosmetic-render-upgrade`
+8. `feature/admin-cosmetic-authoring`
+9. `feature/gameplay-ui-polish`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/release-ops-docs`
+13. `docs/encoding-cleanup`
+14. `feature/wallet-ledger-foundation`
 
 ## Mimari Notlar
 - Cache / Redis / Valkey / PM2 stratejisi icin ana referans:

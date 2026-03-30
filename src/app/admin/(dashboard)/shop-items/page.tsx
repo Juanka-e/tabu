@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,10 @@ import {
 type ItemType = "avatar" | "frame" | "card_back" | "card_face";
 type Rarity = "common" | "rare" | "epic" | "legendary";
 type RenderMode = "image" | "template";
+type ActiveFilter = "all" | "active" | "inactive";
+type FeaturedFilter = "all" | "featured" | "standard";
+type AvailabilityMode = "always_on" | "scheduled" | "seasonal" | "limited" | "event_only";
+type AvailabilityFilter = "all" | AvailabilityMode;
 
 interface ShopItem {
     id: number;
@@ -48,11 +53,20 @@ interface ShopItem {
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
+    availabilityMode: AvailabilityMode;
+    startsAt: string | null;
+    endsAt: string | null;
     isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
     createdAt: string;
-    _count?: { inventoryItems: number; purchases: number };
+    _count?: {
+        inventoryItems: number;
+        purchases: number;
+        bundleEntries: number;
+        discountCampaigns: number;
+        couponCodes: number;
+    };
 }
 
 interface ShopItemFormState {
@@ -66,6 +80,9 @@ interface ShopItemFormState {
     templateKey: string;
     templateConfigText: string;
     badgeText: string;
+    availabilityMode: AvailabilityMode;
+    startsAt: string;
+    endsAt: string;
     isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
@@ -73,10 +90,50 @@ interface ShopItemFormState {
 
 const typeLabels: Record<ItemType, string> = {
     avatar: "Avatar",
-    frame: "Cerceve",
-    card_back: "Kart Arkasi",
-    card_face: "Kart Onu",
+    frame: "Çerçeve",
+    card_back: "Kart Arkası",
+    card_face: "Kart Önü",
 };
+
+const rarityLabels: Record<Rarity, string> = {
+    common: "Yaygın",
+    rare: "Nadir",
+    epic: "Epik",
+    legendary: "Efsanevi",
+};
+
+const availabilityLabels: Record<AvailabilityMode, string> = {
+    always_on: "Sürekli",
+    scheduled: "Planlı",
+    seasonal: "Sezonluk",
+    limited: "Sınırlı",
+    event_only: "Etkinlik",
+};
+
+function StatusPill({
+    label,
+    tone = "neutral",
+}: {
+    label: string;
+    tone?: "neutral" | "success" | "danger" | "warning" | "accent";
+}) {
+    const toneClassName =
+        tone === "success"
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+            : tone === "danger"
+              ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+              : tone === "warning"
+                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                : tone === "accent"
+                  ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300"
+                  : "bg-muted text-muted-foreground";
+
+    return (
+        <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${toneClassName}`}>
+            {label}
+        </span>
+    );
+}
 
 const emptyItem: ShopItemFormState = {
     code: "",
@@ -89,6 +146,9 @@ const emptyItem: ShopItemFormState = {
     templateKey: "",
     templateConfigText: "",
     badgeText: "",
+    availabilityMode: "always_on",
+    startsAt: "",
+    endsAt: "",
     isFeatured: false,
     isActive: true,
     sortOrder: 0,
@@ -257,12 +317,72 @@ function getTemplateExample(type: ItemType): string {
     );
 }
 
+function toDateTimeLocalInput(value: string | null): string {
+    if (!value) {
+        return "";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toIsoDateTime(value: string): string | null {
+    if (!value) {
+        return null;
+    }
+
+    return new Date(value).toISOString();
+}
+
+function getAvailabilityTone(mode: AvailabilityMode): "neutral" | "accent" | "warning" {
+    if (mode === "scheduled") {
+        return "accent";
+    }
+
+    if (mode === "limited" || mode === "event_only") {
+        return "warning";
+    }
+
+    return "neutral";
+}
+
+function getAvailabilityWindowState(startsAt: string | null, endsAt: string | null): { label: string; tone: "neutral" | "accent" | "warning" | "success" } {
+    const now = Date.now();
+
+    if (startsAt && new Date(startsAt).getTime() > now) {
+        return { label: "Planlı", tone: "accent" };
+    }
+
+    if (endsAt && new Date(endsAt).getTime() < now) {
+        return { label: "Süresi doldu", tone: "warning" };
+    }
+
+    return { label: "Yayında", tone: "success" };
+}
+
+function buildPromotionsHref(itemCode: string, section: "bundles" | "discounts" | "coupons") {
+    return `/admin/promotions?q=${encodeURIComponent(itemCode)}#${section}`;
+}
+
 export default function ShopItemsPage() {
     const [items, setItems] = useState<ShopItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filterType, setFilterType] = useState<ItemType | "">("");
     const [filterRarity, setFilterRarity] = useState<Rarity | "">("");
+    const [filterActive, setFilterActive] = useState<ActiveFilter>("all");
+    const [filterFeatured, setFilterFeatured] = useState<FeaturedFilter>("all");
+    const [filterAvailability, setFilterAvailability] = useState<AvailabilityFilter>("all");
     const [page, setPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
@@ -301,16 +421,36 @@ export default function ShopItemsPage() {
             if (filterRarity && item.rarity !== filterRarity) {
                 return false;
             }
+            if (filterActive === "active" && !item.isActive) {
+                return false;
+            }
+            if (filterActive === "inactive" && item.isActive) {
+                return false;
+            }
+            if (filterFeatured === "featured" && !item.isFeatured) {
+                return false;
+            }
+            if (filterFeatured === "standard" && item.isFeatured) {
+                return false;
+            }
+            if (filterAvailability !== "all" && item.availabilityMode !== filterAvailability) {
+                return false;
+            }
             if (
                 search &&
                 !item.name.toLowerCase().includes(search.toLowerCase()) &&
-                !item.code.toLowerCase().includes(search.toLowerCase())
+                !item.code.toLowerCase().includes(search.toLowerCase()) &&
+                !(item.badgeText ?? "").toLowerCase().includes(search.toLowerCase())
             ) {
                 return false;
             }
             return true;
         });
-    }, [filterRarity, filterType, items, search]);
+    }, [filterActive, filterAvailability, filterFeatured, filterRarity, filterType, items, search]);
+
+    const activeCount = useMemo(() => items.filter((item) => item.isActive).length, [items]);
+    const featuredCount = useMemo(() => items.filter((item) => item.isFeatured).length, [items]);
+    const timedCount = useMemo(() => items.filter((item) => item.availabilityMode !== "always_on").length, [items]);
 
     const paginatedItems = useMemo(
         () => paginateItems(filteredItems, page, 12),
@@ -332,7 +472,7 @@ export default function ShopItemsPage() {
     useEffect(() => {
         setPage(1);
         clearSelection();
-    }, [clearSelection, filterRarity, filterType, search]);
+    }, [clearSelection, filterActive, filterAvailability, filterFeatured, filterRarity, filterType, search]);
 
     const handleReorder = async (
         updates: Array<{ id: number; sortOrder: number }>
@@ -385,6 +525,9 @@ export default function ShopItemsPage() {
             templateKey: item.templateKey || "",
             templateConfigText: stringifyTemplateConfig(item.templateConfig),
             badgeText: item.badgeText || "",
+            availabilityMode: item.availabilityMode,
+            startsAt: toDateTimeLocalInput(item.startsAt),
+            endsAt: toDateTimeLocalInput(item.endsAt),
             isFeatured: item.isFeatured,
             isActive: item.isActive,
             sortOrder: item.sortOrder,
@@ -406,6 +549,9 @@ export default function ShopItemsPage() {
                 templateKey: form.templateKey.trim() || null,
                 templateConfig: parseTemplateConfig(form.templateConfigText),
                 badgeText: form.badgeText.trim() || null,
+                availabilityMode: form.availabilityMode,
+                startsAt: toIsoDateTime(form.startsAt),
+                endsAt: toIsoDateTime(form.endsAt),
                 isFeatured: form.isFeatured,
                 isActive: form.isActive,
                 sortOrder: form.sortOrder,
@@ -426,10 +572,10 @@ export default function ShopItemsPage() {
             }
 
             setShowModal(false);
-            toast.success(editingItem ? "Kozmetik guncellendi." : "Kozmetik olusturuldu.");
+            toast.success(editingItem ? "Kozmetik güncellendi." : "Kozmetik oluşturuldu.");
             await loadItems();
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Template config gecersiz.");
+            toast.error(error instanceof Error ? error.message : "Template config geçersiz.");
         } finally {
             setSaving(false);
         }
@@ -448,30 +594,30 @@ export default function ShopItemsPage() {
         try {
             const succeeded = await updateItem(item.id, { isActive: !item.isActive });
             if (!succeeded) {
-                toast.error("Durum guncellenemedi.");
+                toast.error("Durum güncellenemedi.");
                 return;
             }
             await loadItems();
         } catch {
-            toast.error("Durum guncellenemedi.");
+            toast.error("Durum güncellenemedi.");
         }
     };
 
     const handleDelete = async (item: ShopItem) => {
-        if (!window.confirm(`\"${item.name}\" kozmetigini pasife almak istediginize emin misiniz?`)) {
+        if (!window.confirm(`"${item.name}" kozmetiğini pasife almak istediğine emin misin?`)) {
             return;
         }
 
         try {
             const response = await fetch(`/api/admin/shop-items/${item.id}`, { method: "DELETE" });
             if (!response.ok) {
-                toast.error("Kozmetik pasife alinamadi.");
+                toast.error("Kozmetik pasife alınamadı.");
                 return;
             }
-            toast.success("Kozmetik pasife alindi.");
+            toast.success("Kozmetik pasife alındı.");
             await loadItems();
         } catch {
-            toast.error("Kozmetik pasife alinamadi.");
+            toast.error("Kozmetik pasife alınamadı.");
         }
     };
 
@@ -485,14 +631,14 @@ export default function ShopItemsPage() {
         try {
             const results = await Promise.all(ids.map((itemId) => updateItem(itemId, patch)));
             if (results.some((result) => !result)) {
-                toast.error("Toplu islem kismen basarisiz oldu.");
+                toast.error("Toplu işlem kısmen başarısız oldu.");
             } else {
                 toast.success(successMessage);
             }
             clearSelection();
             await loadItems();
         } catch {
-            toast.error("Toplu islem tamamlanamadi.");
+            toast.error("Toplu işlem tamamlanamadı.");
         } finally {
             setBulkSaving(false);
         }
@@ -543,7 +689,7 @@ export default function ShopItemsPage() {
         } catch (error) {
             return {
                 config: null,
-                error: error instanceof Error ? error.message : "Template config gecersiz.",
+                error: error instanceof Error ? error.message : "Template config geçersiz.",
             };
         }
     }, [form.renderMode, form.templateConfigText]);
@@ -564,13 +710,13 @@ export default function ShopItemsPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Kozmetikler"
-                description="Magaza urunlerini filtreleme, siralama ve toplu aksiyonlarla yonetin."
-                meta={`${items.length} kayit`}
+                description="Mağaza ürünlerini filtreleme, merchandising ve toplu aksiyonlarla yönetin."
+                meta={`${items.length} kayıt`}
                 icon={<ImageIcon className="h-5 w-5 text-fuchsia-500" />}
                 action={
                     <Button onClick={openCreate} className="gap-2">
-                    <Plus size={16} />
-                    Yeni Ekle
+                        <Plus size={16} />
+                        Yeni Ekle
                     </Button>
                 }
             />
@@ -578,12 +724,12 @@ export default function ShopItemsPage() {
             <ShopOrderBoard items={items} saving={reorderSaving} onReorder={(updates) => void handleReorder(updates)} />
 
             <AdminToolbar>
-                <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+                <div className="grid flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_170px_170px_170px_170px_170px_auto]">
                     <div className="relative">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Isim veya kod ara..."
+                            placeholder="İsim, kod veya etiket ara..."
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             className="pl-9"
@@ -594,28 +740,75 @@ export default function ShopItemsPage() {
                         onChange={(event) => setFilterType(event.target.value as ItemType | "")}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="">Tum Turler</option>
+                        <option value="">Tüm Türler</option>
                         <option value="avatar">Avatar</option>
-                        <option value="frame">Cerceve</option>
-                        <option value="card_back">Kart Arkasi</option>
-                        <option value="card_face">Kart Onu</option>
+                        <option value="frame">Çerçeve</option>
+                        <option value="card_back">Kart Arkası</option>
+                        <option value="card_face">Kart Önü</option>
                     </select>
                     <select
                         value={filterRarity}
                         onChange={(event) => setFilterRarity(event.target.value as Rarity | "")}
                         className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                     >
-                        <option value="">Tum Nadirlikler</option>
-                        <option value="common">Common</option>
-                        <option value="rare">Rare</option>
-                        <option value="epic">Epic</option>
-                        <option value="legendary">Legendary</option>
+                        <option value="">Tüm Nadirlikler</option>
+                        <option value="common">Yaygın</option>
+                        <option value="rare">Nadir</option>
+                        <option value="epic">Epik</option>
+                        <option value="legendary">Efsanevi</option>
                     </select>
+                    <select
+                        value={filterActive}
+                        onChange={(event) => setFilterActive(event.target.value as ActiveFilter)}
+                        className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
+                    >
+                        <option value="all">Tüm Durumlar</option>
+                        <option value="active">Aktif</option>
+                        <option value="inactive">Pasif</option>
+                    </select>
+                    <select
+                        value={filterFeatured}
+                        onChange={(event) => setFilterFeatured(event.target.value as FeaturedFilter)}
+                        className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
+                    >
+                        <option value="all">Tüm Vitrinler</option>
+                        <option value="featured">Vitrinde</option>
+                        <option value="standard">Standart</option>
+                    </select>
+                    <select
+                        value={filterAvailability}
+                        onChange={(event) => setFilterAvailability(event.target.value as AvailabilityFilter)}
+                        className="px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
+                    >
+                        <option value="all">Tüm Yayın Modları</option>
+                        <option value="always_on">Sürekli</option>
+                        <option value="scheduled">Planlı</option>
+                        <option value="seasonal">Sezonluk</option>
+                        <option value="limited">Sınırlı</option>
+                        <option value="event_only">Etkinlik</option>
+                    </select>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            setSearch("");
+                            setFilterType("");
+                            setFilterRarity("");
+                            setFilterActive("all");
+                            setFilterFeatured("all");
+                            setFilterAvailability("all");
+                        }}
+                    >
+                        Filtreleri Temizle
+                    </Button>
                 </div>
                 <AdminToolbarStats
                     stats={[
-                        { label: "gorunen", value: String(filteredItems.length) },
-                        { label: "sayfa", value: `${paginatedItems.page} / ${paginatedItems.pageCount}` },
+                        { label: "toplam", value: String(items.length) },
+                        { label: "aktif", value: String(activeCount) },
+                        { label: "vitrinde", value: String(featuredCount) },
+                        { label: "yayınlı", value: String(timedCount) },
+                        { label: "görünen", value: String(filteredItems.length) },
                     ]}
                 />
             </AdminToolbar>
@@ -626,7 +819,7 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isActive: true }, "Secili urunler aktif edildi.")}
+                    onClick={() => void runBulkPatch({ isActive: true }, "Seçili ürünler aktif edildi.")}
                 >
                     Aktif et
                 </Button>
@@ -635,31 +828,76 @@ export default function ShopItemsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isActive: false }, "Secili urunler pasife alindi.")}
+                    onClick={() => void runBulkPatch({ isActive: false }, "Seçili ürünler pasife alındı.")}
                 >
-                    Pasif yap
+                    Gizle
                 </Button>
                 <Button
                     type="button"
                     size="sm"
                     variant="outline"
                     disabled={bulkSaving}
-                    onClick={() => void runBulkPatch({ isFeatured: true }, "Secili urunler spotlight alanina alindi.")}
+                    onClick={() => void runBulkPatch({ isFeatured: true }, "Seçili ürünler vitrine alındı.")}
                 >
-                    Spotlight
+                    Vitrine Al
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ isFeatured: false }, "Seçili ürünler vitrinden çıkarıldı.")}
+                >
+                    Vitrinden Çıkar
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "always_on", startsAt: null, endsAt: null }, "Seçili ürünler sürekli yayına alındı.")}
+                >
+                    Sürekli
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "seasonal" }, "Seçili ürünler sezonluk olarak işaretlendi.")}
+                >
+                    Sezonluk
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "limited" }, "Seçili ürünler sınırlı olarak işaretlendi.")}
+                >
+                    Sınırlı
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={bulkSaving}
+                    onClick={() => void runBulkPatch({ availabilityMode: "event_only" }, "Seçili ürünler etkinlik özel olarak işaretlendi.")}
+                >
+                    Etkinlik
                 </Button>
             </AdminSelectionBar>
 
             <AdminTableShell
                 title="Katalog Tablosu"
-                description="Filtrelenmis katalog kayitlari burada listelenir. Sira surukle-birak panelinden yonetilir."
+                description="Filtrelenmiş katalog kayıtları burada listelenir. Sıra sürükle-bırak panelinden yönetilir."
                 loading={loading}
                 isEmpty={!loading && filteredItems.length === 0}
                 emptyState={
                     <AdminEmptyState
                         icon={<ImageIcon className="h-6 w-6" />}
-                        title="Kozmetik bulunamadi"
-                        description="Mevcut filtrelerle eslesen urun yok."
+                        title="Kozmetik bulunamadı"
+                        description="Mevcut filtrelerle eşleşen ürün yok."
                     />
                 }
                 footer={
@@ -679,21 +917,22 @@ export default function ShopItemsPage() {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={() => toggleAll()}
-                                        aria-label="Tum gorunen urunleri sec"
+                                        aria-label="Tüm görünen ürünleri seç"
                                         className="h-4 w-4 rounded border-border"
                                     />
                                 </th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Gorsel</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Isim / Kod</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Tur</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Görsel</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">İsim / Kod</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Tür</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Render</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nadirlik</th>
-                                <th className="text-center p-3 font-medium text-muted-foreground">Spotlight</th>
-                                <th className="text-center p-3 font-medium text-muted-foreground">Sira</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Vitrin</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Yayın</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Sıra</th>
                                 <th className="text-right p-3 font-medium text-muted-foreground">Fiyat</th>
-                                <th className="text-center p-3 font-medium text-muted-foreground">Satis</th>
+                                <th className="text-center p-3 font-medium text-muted-foreground">Satış</th>
                                 <th className="text-center p-3 font-medium text-muted-foreground">Durum</th>
-                                <th className="text-right p-3 font-medium text-muted-foreground">Islemler</th>
+                                <th className="text-right p-3 font-medium text-muted-foreground">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -704,7 +943,7 @@ export default function ShopItemsPage() {
                                             type="checkbox"
                                             checked={selectedIds.has(item.id)}
                                             onChange={() => toggleOne(item.id)}
-                                            aria-label={`${item.name} sec`}
+                                            aria-label={`${item.name} seç`}
                                             className="h-4 w-4 rounded border-border"
                                         />
                                     </td>
@@ -721,29 +960,55 @@ export default function ShopItemsPage() {
                                         <div className="flex items-center gap-2">
                                             <div className="font-medium text-foreground">{item.name}</div>
                                             {item.badgeText ? (
-                                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                                                    {item.badgeText}
-                                                </span>
+                                                <StatusPill label={item.badgeText} tone="warning" />
                                             ) : null}
                                         </div>
                                         <div className="text-xs text-muted-foreground font-mono">{item.code}</div>
+                                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                            <span>Envanter: {item._count?.inventoryItems ?? 0}</span>
+                                            <span>Satış: {item._count?.purchases ?? 0}</span>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "bundles")}
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                                            >
+                                                Paket: {item._count?.bundleEntries ?? 0}
+                                            </Link>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "discounts")}
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                                            >
+                                                Kampanya: {item._count?.discountCampaigns ?? 0}
+                                            </Link>
+                                            <Link
+                                                href={buildPromotionsHref(item.code, "coupons")}
+                                                className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground transition hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                                            >
+                                                Kupon: {item._count?.couponCodes ?? 0}
+                                            </Link>
+                                        </div>
                                     </td>
                                     <td className="p-3 text-muted-foreground">{typeLabels[item.type]}</td>
                                     <td className="p-3 text-muted-foreground font-medium uppercase text-xs">{item.renderMode}</td>
                                     <td className="p-3">
-                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${ADMIN_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span>
+                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${ADMIN_RARITY_BADGE_CLASS[item.rarity]}`}>{rarityLabels[item.rarity]}</span>
                                     </td>
                                     <td className="p-3 text-center">
-                                        <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${item.isFeatured ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" : "bg-muted text-muted-foreground"}`}>
-                                            {item.isFeatured ? "Spotlight" : "Standart"}
-                                        </span>
+                                        <StatusPill label={item.isFeatured ? "Vitrinde" : "Standart"} tone={item.isFeatured ? "accent" : "neutral"} />
+                                    </td>
+                                    <td className="p-3 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <StatusPill label={availabilityLabels[item.availabilityMode]} tone={getAvailabilityTone(item.availabilityMode)} />
+                                            {item.availabilityMode !== "always_on" ? (
+                                                <StatusPill {...getAvailabilityWindowState(item.startsAt, item.endsAt)} />
+                                            ) : null}
+                                        </div>
                                     </td>
                                     <td className="p-3 text-center font-mono text-xs text-muted-foreground">{item.sortOrder}</td>
-                                    <td className="p-3 text-right font-bold text-foreground">{item.priceCoin.toLocaleString()}</td>
+                                    <td className="p-3 text-right font-bold text-foreground">{item.priceCoin.toLocaleString()} coin</td>
                                     <td className="p-3 text-center text-muted-foreground">{item._count?.purchases ?? 0}</td>
                                     <td className="p-3 text-center">
                                         <button onClick={() => void toggleActive(item)} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded ${item.isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`} type="button">
-                                            {item.isActive ? (<><Eye size={12} /> Aktif</>) : (<><EyeOff size={12} /> Pasif</>)}
+                                            {item.isActive ? (<><Eye size={12} /> Aktif</>) : (<><EyeOff size={12} /> Gizli</>)}
                                         </button>
                                     </td>
                                     <td className="p-3 text-right">
@@ -767,7 +1032,7 @@ export default function ShopItemsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-5 border-b border-border">
-                            <h2 className="text-lg font-bold text-foreground">{editingItem ? "Kozmetik Duzenle" : "Yeni Kozmetik"}</h2>
+                            <h2 className="text-lg font-bold text-foreground">{editingItem ? "Kozmetik Düzenle" : "Yeni Kozmetik"}</h2>
                             <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-muted transition-colors" type="button">
                                 <X size={18} />
                             </button>
@@ -780,13 +1045,13 @@ export default function ShopItemsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Isim</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">İsim</label>
                                     <input type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Signal Grid" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Tur</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Tür</label>
                                         <select
                                             value={form.type}
                                             onChange={(event) => {
@@ -800,18 +1065,18 @@ export default function ShopItemsPage() {
                                             className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none"
                                         >
                                             <option value="avatar">Avatar</option>
-                                            <option value="frame">Cerceve</option>
-                                            <option value="card_back">Kart Arkasi</option>
-                                            <option value="card_face">Kart Onu</option>
+                                            <option value="frame">Çerçeve</option>
+                                            <option value="card_back">Kart Arkası</option>
+                                            <option value="card_face">Kart Önü</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Nadirlik</label>
                                         <select value={form.rarity} onChange={(event) => setForm((current) => ({ ...current, rarity: event.target.value as Rarity }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none">
-                                            <option value="common">Common</option>
-                                            <option value="rare">Rare</option>
-                                            <option value="epic">Epic</option>
-                                            <option value="legendary">Legendary</option>
+                                            <option value="common">Yaygın</option>
+                                            <option value="rare">Nadir</option>
+                                            <option value="epic">Epik</option>
+                                            <option value="legendary">Efsanevi</option>
                                         </select>
                                     </div>
                                     <div>
@@ -829,33 +1094,60 @@ export default function ShopItemsPage() {
                                         <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Siralama</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Sıralama</label>
                                         <input type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Etiket</label>
-                                        <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENI / LIMITLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                        <input type="text" value={form.badgeText} onChange={(event) => setForm((current) => ({ ...current, badgeText: event.target.value.toUpperCase() }))} placeholder="YENİ / SINIRLI" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-foreground">Yayın modeli</h3>
+                                        <p className="text-xs text-muted-foreground">Sürekli, planlı, sezonluk, sınırlı veya etkinliğe özel görünürlüğü buradan yönetin.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Yayın Modu</label>
+                                            <select value={form.availabilityMode} onChange={(event) => setForm((current) => ({ ...current, availabilityMode: event.target.value as AvailabilityMode }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none">
+                                                <option value="always_on">Sürekli</option>
+                                                <option value="scheduled">Planlı</option>
+                                                <option value="seasonal">Sezonluk</option>
+                                                <option value="limited">Sınırlı</option>
+                                                <option value="event_only">Etkinlik Özel</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Başlangıç</label>
+                                            <input type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Bitiş</label>
+                                            <input type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-foreground">Render Kaynagi</h3>
-                                            <p className="text-xs text-muted-foreground">Image urunler URL kullanir, template urunler key + config ile render edilir.</p>
+                                            <h3 className="text-sm font-semibold text-foreground">Render Kaynağı</h3>
+                                            <p className="text-xs text-muted-foreground">Image ürünler URL kullanır, template ürünler key + config ile render edilir.</p>
                                         </div>
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground">{form.renderMode}</span>
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Gorsel URL</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Görsel URL</label>
                                         <div className="flex gap-3 items-end">
                                             <div className="flex-1">
                                                 <input type="text" value={form.imageUrl} onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="/cosmetics/card-faces/signal-grid.png" disabled={imageUploadDisabled} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
                                             </div>
                                             <label className={`px-3 py-2 text-sm bg-muted rounded-lg transition-colors flex items-center gap-1 font-medium text-foreground shrink-0 ${imageUploadDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/80"}`}>
                                                 <Upload size={14} />
-                                                {uploading ? "..." : "Yukle"}
+                                                {uploading ? "..." : "Yükle"}
                                                 <input type="file" accept="image/*" onChange={handleUpload} disabled={imageUploadDisabled} className="hidden" />
                                             </label>
                                         </div>
@@ -872,7 +1164,7 @@ export default function ShopItemsPage() {
                                             <input type="text" value={form.templateKey} onChange={(event) => setForm((current) => ({ ...current, templateKey: event.target.value }))} placeholder="signal_grid" disabled={form.renderMode !== "template"} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-60" />
                                         </div>
                                         <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3 bg-background/60">
-                                            Ornek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
+                                            Örnek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
                                         </div>
                                     </div>
 
@@ -892,7 +1184,7 @@ export default function ShopItemsPage() {
                                                     className="h-7 gap-1 px-2 text-[11px]"
                                                 >
                                                     <FileJson2 size={12} />
-                                                    Ornek Doldur
+                                                    Örnek Doldur
                                                 </Button>
                                             </div>
                                         </div>
@@ -903,11 +1195,11 @@ export default function ShopItemsPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                         <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                        <span className="text-sm font-medium text-foreground">Sag panelde one cikar</span>
+                                        <span className="text-sm font-medium text-foreground">Vitrinde öne çıkar</span>
                                     </label>
                                     <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                         <input type="checkbox" checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50" />
-                                        <span className="text-sm font-medium text-foreground">Magazada aktif</span>
+                                        <span className="text-sm font-medium text-foreground">Mağazada aktif</span>
                                     </label>
                                 </div>
                             </div>
@@ -920,7 +1212,7 @@ export default function ShopItemsPage() {
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 p-5 border-t border-border">
-                            <Button variant="outline" onClick={() => setShowModal(false)}>Iptal</Button>
+                            <Button variant="outline" onClick={() => setShowModal(false)}>İptal</Button>
                             <Button onClick={() => void handleSave()} disabled={saving} className="gap-2">
                                 <Save size={14} />
                                 {saving ? "Kaydediliyor..." : "Kaydet"}
@@ -932,3 +1224,7 @@ export default function ShopItemsPage() {
         </div>
     );
 }
+
+
+
+

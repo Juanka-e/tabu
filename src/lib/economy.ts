@@ -365,6 +365,9 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
         templateKey: entry.shopItem.templateKey,
         templateConfig: normalizeTemplateConfig(entry.shopItem.templateConfig),
         badgeText: entry.shopItem.badgeText,
+        availabilityMode: entry.shopItem.availabilityMode,
+        startsAt: entry.shopItem.startsAt?.toISOString() ?? null,
+        endsAt: entry.shopItem.endsAt?.toISOString() ?? null,
         isFeatured: entry.shopItem.isFeatured,
         source: entry.source,
         acquiredAt: entry.acquiredAt.toISOString(),
@@ -407,6 +410,9 @@ type StoreCatalogItemRecord = Prisma.ShopItemGetPayload<{
         templateKey: true;
         templateConfig: true;
         badgeText: true;
+        availabilityMode: true;
+        startsAt: true;
+        endsAt: true;
         isFeatured: true;
         isActive: true;
         sortOrder: true;
@@ -519,6 +525,9 @@ function mapStoreItemView(
         templateKey: item.templateKey,
         templateConfig: normalizeTemplateConfig(item.templateConfig),
         badgeText: item.badgeText,
+        availabilityMode: item.availabilityMode,
+        startsAt: item.startsAt?.toISOString() ?? null,
+        endsAt: item.endsAt?.toISOString() ?? null,
         isFeatured: item.isFeatured,
         isActive: item.isActive,
         sortOrder: item.sortOrder,
@@ -594,6 +603,8 @@ async function loadStoreContext(settings: SystemSettings, userId?: number) {
         await ensureUserCore(userId);
     }
 
+    const now = new Date();
+
     const [
         items,
         bundles,
@@ -617,6 +628,9 @@ async function loadStoreContext(settings: SystemSettings, userId?: number) {
                 templateKey: true,
                 templateConfig: true,
                 badgeText: true,
+                availabilityMode: true,
+                startsAt: true,
+                endsAt: true,
                 isFeatured: true,
                 isActive: true,
                 sortOrder: true,
@@ -691,7 +705,7 @@ async function loadStoreContext(settings: SystemSettings, userId?: number) {
     ]);
 
     return {
-        items,
+        items: items.filter((item) => isShopItemDirectlyAvailable(item, now)),
         bundles,
         discounts,
         wallet,
@@ -903,7 +917,7 @@ export async function previewCouponForTarget(
         targetKind === "shop_item"
             ? prisma.shopItem.findUnique({
                 where: { id: targetId },
-                select: { id: true, priceCoin: true, isActive: true },
+                select: { id: true, priceCoin: true, isActive: true, availabilityMode: true, startsAt: true, endsAt: true },
             })
             : Promise.resolve(null),
         targetKind === "bundle"
@@ -915,7 +929,10 @@ export async function previewCouponForTarget(
     ]);
 
     const basePriceCoin = targetKind === "shop_item" ? item?.priceCoin : bundle?.priceCoin;
-    const isActiveTarget = targetKind === "shop_item" ? item?.isActive : bundle?.isActive;
+    const isActiveTarget =
+        targetKind === "shop_item"
+            ? (item ? isShopItemDirectlyAvailable(item, now) : false)
+            : bundle?.isActive;
 
     if (basePriceCoin === undefined || basePriceCoin === null || !isActiveTarget) {
         return {
@@ -957,6 +974,29 @@ export async function previewCouponForTarget(
         pricing: couponResult.pricing,
         coupon: couponResult.coupon,
     };
+}
+
+function isShopItemDirectlyAvailable(
+    item: Pick<StoreCatalogItemRecord, "availabilityMode" | "startsAt" | "endsAt" | "isActive">,
+    now: Date
+) {
+    if (!item.isActive) {
+        return false;
+    }
+
+    if (item.availabilityMode === "event_only") {
+        return false;
+    }
+
+    if (item.startsAt && item.startsAt.getTime() > now.getTime()) {
+        return false;
+    }
+
+    if (item.endsAt && item.endsAt.getTime() < now.getTime()) {
+        return false;
+    }
+
+    return true;
 }
 
 export async function previewCouponForCatalog(
@@ -1035,7 +1075,7 @@ export async function previewCouponForCatalog(
         }),
         prisma.shopItem.findMany({
             where: { isActive: true },
-            select: { id: true, priceCoin: true },
+            select: { id: true, priceCoin: true, isActive: true, availabilityMode: true, startsAt: true, endsAt: true },
         }),
         settings.economy.bundlesEnabled
             ? prisma.shopBundle.findMany({
@@ -1056,6 +1096,10 @@ export async function previewCouponForCatalog(
     }
 
     const previewItems = items.flatMap((item) => {
+        if (!isShopItemDirectlyAvailable(item, now)) {
+            return [];
+        }
+
         const basePricing = resolveCatalogPricing(
             applyStorePriceMultiplier(item.priceCoin, settings),
             { kind: "shop_item", targetId: item.id },
@@ -1141,6 +1185,9 @@ export async function purchaseStoreItem(
                     templateKey: true,
                     templateConfig: true,
                     badgeText: true,
+                    availabilityMode: true,
+                    startsAt: true,
+                    endsAt: true,
                     isFeatured: true,
                     isActive: true,
                     sortOrder: true,
@@ -1181,7 +1228,7 @@ export async function purchaseStoreItem(
                 : Promise.resolve(null),
         ]);
 
-        if (!item || !item.isActive) {
+        if (!item || !isShopItemDirectlyAvailable(item, now)) {
             return { ok: false, code: "not_found" };
         }
         if (owned) {
@@ -1321,6 +1368,9 @@ export async function purchaseStoreBundle(
                                     templateKey: true,
                                     templateConfig: true,
                                     badgeText: true,
+                                    availabilityMode: true,
+                                    startsAt: true,
+                                    endsAt: true,
                                     isFeatured: true,
                                     isActive: true,
                                     sortOrder: true,

@@ -87,6 +87,9 @@ export async function PUT(
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });
         }
+        if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
+            return NextResponse.json({ error: "Bu kampanya kodu zaten kullanılıyor. Farklı bir kod gir." }, { status: 409 });
+        }
 
         console.error("Failed to update discount campaign:", error);
         return NextResponse.json({ error: "Indirim kampanyasi guncellenemedi." }, { status: 500 });
@@ -109,20 +112,48 @@ export async function DELETE(
             return NextResponse.json({ error: "Gecersiz indirim id." }, { status: 400 });
         }
 
-        await prisma.discountCampaign.update({
+        const discount = await prisma.discountCampaign.findUnique({
             where: { id: discountId },
-            data: { isActive: false },
+            select: {
+                id: true,
+                code: true,
+                isActive: true,
+                usedCount: true,
+            },
         });
+        if (!discount) {
+            return NextResponse.json({ error: "İndirim bulunamadı." }, { status: 404 });
+        }
+
+        let outcome: "deleted" | "deactivated" = "deactivated";
+        if (discount.isActive) {
+            await prisma.discountCampaign.update({
+                where: { id: discountId },
+                data: { isActive: false },
+            });
+        } else {
+            if (discount.usedCount > 0) {
+                return NextResponse.json(
+                    { error: "Kullanılmış kampanya kalıcı olarak silinemez. Pasif halde bırakılmalı." },
+                    { status: 409 }
+                );
+            }
+
+            await prisma.discountCampaign.delete({
+                where: { id: discountId },
+            });
+            outcome = "deleted";
+        }
         await writeAuditLog({
             actor: adminSession,
-            action: "admin.discount.delete",
+            action: outcome === "deleted" ? "admin.discount.delete" : "admin.discount.deactivate",
             resourceType: "discount_campaign",
             resourceId: discountId,
-            summary: `Disabled discount ${discountId}`,
+            summary: outcome === "deleted" ? `Deleted discount ${discount.code}` : `Disabled discount ${discount.code}`,
             request,
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, outcome });
     } catch (error) {
         console.error("Failed to delete discount campaign:", error);
         return NextResponse.json({ error: "Indirim kampanyasi silinemedi." }, { status: 500 });

@@ -1,49 +1,43 @@
 # Kalan Isler
 
-> Son guncelleme: 25 March 2026
+> Son guncelleme: 30 March 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/dashboard-visual-polish`
-2. `feature/store-merchandising`
-3. `feature/admin-shop-ux`
-4. `feature/admin-inventory-operations`
-5. `feature/night-market-foundation`
-6. `feature/economy-abuse-hardening`
-7. `feature/cache-and-rate-limit-foundation`
-8. `feature/admin-promotions-ux`
-9. `feature/cosmetic-render-upgrade`
-10. `feature/admin-cosmetic-authoring`
-11. `feature/gameplay-ui-polish`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `feature/admin-shop-ux`
+2. `feature/admin-inventory-operations`
+3. `feature/night-market-foundation`
+4. `feature/economy-abuse-hardening`
+5. `feature/cache-and-rate-limit-foundation`
+6. `feature/admin-promotions-ux`
+7. `feature/cosmetic-render-upgrade`
+8. `feature/admin-cosmetic-authoring`
+9. `feature/gameplay-ui-polish`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/release-ops-docs`
+13. `docs/encoding-cleanup`
+14. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
-### 1. Dashboard Visual Polish
-- full-page dashboard ve in-game overlay tutarliligi
-- spacing / density / hierarchy duzeltmeleri
-- mobile responsive puruz temizligi
-- state yuzeyleri: loading / empty / error / success
-
-### 2. Store Merchandising
-- oyuncu-facing magazayi daha anlasilir hale getirme
-- urun preview, sahiplik ve equip durumunun netlestirilmesi
-- featured / seasonal / limited / discount vitrin dili
-- satin almadan once item etkisini gosteren preview akislarinin tasarimi
-- referans:
-  - `docs/guides/store-liveops-strategy-guide.md`
-
-### 3. Admin Shop UX
+### 1. Admin Shop UX
 - item ile store offer ayrimi
 - admin katalog karmasasini azaltan arama / filtre / toplu aksiyonlar
 - active / hidden / scheduled / seasonal / event-only durumlari
 - future night market ve liveops kullanimina uygun operasyon yuzeyi
+- featured / merchandising kontrol dilinin guclendirilmesi
+- promotion ve bundle baglarinin daha gorunur olmasi
+- branch rehberi:
+  - `docs/guides/admin-shop-ux-planning-guide.md`
 
-### 4. Economy / Abuse Hardening
+### 2. Admin Inventory Operations
+- oyuncu inventory goruntuleme
+- item grant / revoke
+- equip reset ve operasyonel duzeltmeler
+- grant nedeni ve audit izi
+
+### 3. Economy / Abuse Hardening
 - guest coin yok kurali ustune hesapli kullanicilar icin reward eligibility
 - gunluk ve saatlik coin cap
 - ayni oyuncu gruplarinda kademeli coin verim dusurme
@@ -51,7 +45,7 @@
 - planning referansi:
   - `docs/guides/economy-abuse-strategy-guide.md`
 
-### 5. Cache / Rate Limit Foundation
+### 4. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
 - development memory fallback
 - production shared cache and rate limit store
@@ -60,15 +54,15 @@
   - `docs/cache-and-storage-strategy.md`
 
 ## Son Tamamlanan Dilim
-### `feature/integration-hub`
-- `/admin/integrations`
-- runtime / security / access / messaging / storage entegrasyon kartlari
-- provider readiness ve env wiring ozetleri
-- olmayan provider'lari `planned` olarak acik gosteren ilk hub modeli
-- `test:integration-hub`
-- MySQL gecici yoksa settings fallback
-- production health endpoint guard
-- deployment security guide
+### `feature/store-merchandising`
+- magazanin oyuncu-facing merchandising dili rafine edildi
+- urun, bundle ve preview akislari toparlandi
+- kupon ve fiyat gorunurlugu anlasilir hale getirildi
+- inventory preview ve dashboard sidebar follow-up'lari kapatildi
+- store dashboard follow-up branch'i ile:
+  - sidebar yukunun azaltilmasi
+  - idempotent notification read
+  - UTF-8 magazaya kopya duzeltmesi
 
 ## Cikarilan Eski Icerik
 Bu dosyadan sunlar temizlendi:

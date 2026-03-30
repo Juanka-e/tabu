@@ -107,6 +107,60 @@ function applyHexAlpha(hex: string, opacity: number) {
     return `${hex}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
+type StoreFlagTone = "neutral" | "accent" | "warning" | "danger";
+
+function getAvailabilityFlag(item: CatalogStoreItemView) {
+    const now = Date.now();
+    const endsAtTime = item.endsAt ? new Date(item.endsAt).getTime() : null;
+
+    if (item.availabilityMode === "event_only") {
+        return { label: "Etkinlik Özel", tone: "danger" as const };
+    }
+
+    if (endsAtTime && endsAtTime > now) {
+        const hoursRemaining = (endsAtTime - now) / (1000 * 60 * 60);
+        if (hoursRemaining <= 72) {
+            return { label: "Son Günler", tone: "warning" as const };
+        }
+    }
+
+    if (item.availabilityMode === "seasonal") {
+        return { label: "Sezonluk", tone: "accent" as const };
+    }
+
+    if (item.availabilityMode === "limited") {
+        return { label: "Sınırlı", tone: "warning" as const };
+    }
+
+    if (item.availabilityMode === "scheduled") {
+        return { label: "Süreli", tone: "neutral" as const };
+    }
+
+    return null;
+}
+
+function StoreFlag({
+    label,
+    tone = "neutral",
+}: {
+    label: string;
+    tone?: StoreFlagTone;
+}) {
+    return (
+        <span
+            className={cn(
+                "inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]",
+                tone === "accent" && "border-sky-200/80 bg-sky-50/80 text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-300",
+                tone === "warning" && "border-amber-200/80 bg-amber-50/80 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300",
+                tone === "danger" && "border-rose-200/80 bg-rose-50/80 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-300",
+                tone === "neutral" && "border-white/60 bg-white/75 text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-200"
+            )}
+        >
+            {label}
+        </span>
+    );
+}
+
 export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const { data: session } = useSession();
     const [category, setCategory] = useState<ShopCategory>("all");
@@ -708,6 +762,8 @@ function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutra
 }
 
 function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
+    const availabilityFlag = getAvailabilityFlag(item);
+
     return (
         <article className={cn("group relative overflow-hidden rounded-[30px] border p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] transition-all hover:-translate-y-1 hover:shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-5 top-0 h-1.5 rounded-b-full opacity-90", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
@@ -718,6 +774,7 @@ function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: Ca
                             <span className="rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-700 dark:border-slate-700/70 dark:bg-slate-950/60 dark:text-slate-200">
                                 {item.isFeatured ? "Vitrin" : formatItemTypeLabel(item.type)}
                             </span>
+                            {availabilityFlag ? <StoreFlag label={availabilityFlag.label} tone={availabilityFlag.tone} /> : null}
                             {item.badgeText ? <span className="rounded-full border border-amber-200/80 bg-amber-50/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300">{item.badgeText}</span> : null}
                         </div>
                         <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3>
@@ -751,6 +808,8 @@ function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: Ca
     );
 }
 function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onPreview: () => void; onBuy: () => void }) {
+    const availabilityFlag = getAvailabilityFlag(item);
+
     return (
         <article className={cn("group relative overflow-hidden rounded-[26px] border p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-34px_rgba(15,23,42,0.25)]", SHOP_RARITY_CARD_CLASS[item.rarity], SHOP_RARITY_HALO_CLASS[item.rarity])}>
             <div className={cn("absolute inset-x-4 top-0 h-1.5 rounded-b-full opacity-85", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
@@ -762,6 +821,7 @@ function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: 
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)}</p>
+                            {availabilityFlag ? <StoreFlag label={availabilityFlag.label} tone={availabilityFlag.tone} /> : null}
                             {item.badgeText ? <span className="rounded-full border border-amber-200/80 bg-amber-50/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300">{item.badgeText}</span> : null}
                         </div>
                         <h3 className="mt-2 truncate text-sm font-black text-slate-900 dark:text-white">{item.name}</h3>
@@ -857,11 +917,24 @@ function PreviewModal({ offer, itemLookup, getDisplayedItemPricing, getDisplayed
 }
 
 function ItemPreviewContent({ item, activePricing, busy, onBuy }: { item: CatalogStoreItemView; activePricing: DisplayedPricing; busy: boolean; onBuy: () => void }) {
+    const availabilityFlag = getAvailabilityFlag(item);
+
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
-                <div className="flex items-start justify-between gap-4"><div><div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span></div>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Ürün Önizleme</div>
+                        <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{item.name}</h3>
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.type)} • {item.rarity}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {availabilityFlag ? <StoreFlag label={availabilityFlag.label} tone={availabilityFlag.tone} /> : null}
+                            {item.badgeText ? <StoreFlag label={item.badgeText} tone="warning" /> : null}
+                        </div>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${SHOP_RARITY_BADGE_CLASS[item.rarity]}`}>{item.rarity}</span>
+                </div>
                 {item.pricing.appliedPromotion ? <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">Kampanya: {item.pricing.appliedPromotion.name}</div> : null}
                 <div className="mt-6"><div className="text-sm text-slate-400 dark:text-slate-500">Fiyat</div>{(activePricing.couponApplied || activePricing.pricing.discountCoin > 0) ? <div className="mt-1 text-sm text-slate-400 line-through">{activePricing.referencePriceCoin.toLocaleString()} coin</div> : null}<div className="mt-2 flex items-center gap-2 text-3xl font-black text-slate-900 dark:text-white">{activePricing.pricing.finalPriceCoin.toLocaleString()}<CoinMark className="h-9 w-9" iconClassName="h-4 w-4" /></div>{activePricing.couponApplied ? <div className="mt-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">{activePricing.coupon?.code}</div> : null}</div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-6"><BuyButton item={item} busy={busy} onClick={onBuy} /></div>

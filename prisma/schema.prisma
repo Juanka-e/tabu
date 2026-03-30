@@ -26,6 +26,14 @@ enum ItemRarity {
   legendary
 }
 
+enum ShopItemAvailabilityMode {
+  always_on
+  scheduled
+  seasonal
+  limited
+  event_only
+}
+
 enum InventorySource {
   purchase
   grant
@@ -390,6 +398,9 @@ model ShopItem {
   templateKey String?    @map("template_key") @db.VarChar(80)
   templateConfig Json?   @map("template_config")
   badgeText String?      @map("badge_text") @db.VarChar(24)
+  availabilityMode ShopItemAvailabilityMode @default(always_on) @map("availability_mode")
+  startsAt  DateTime?    @map("starts_at")
+  endsAt    DateTime?    @map("ends_at")
   isFeatured Boolean     @default(false) @map("is_featured")
   isActive  Boolean      @default(true) @map("is_active")
   sortOrder Int          @default(0) @map("sort_order")
@@ -407,6 +418,7 @@ model ShopItem {
   equippedByCardFace UserProfile[] @relation("ProfileCardFace")
 
   @@map("shop_items")
+  @@index([isActive, availabilityMode, startsAt, endsAt, sortOrder])
 }
 
 model ShopBundle {

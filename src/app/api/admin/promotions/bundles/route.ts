@@ -104,6 +104,9 @@ export async function POST(request: NextRequest) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Gecersiz veri.", details: error.issues }, { status: 400 });
         }
+        if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
+            return NextResponse.json({ error: "Bu paket kodu zaten kullanılıyor. Farklı bir kod gir." }, { status: 409 });
+        }
 
         console.error("Failed to create shop bundle:", error);
         return NextResponse.json({ error: "Bundle olusturulamadi." }, { status: 500 });
