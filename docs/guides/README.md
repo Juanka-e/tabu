@@ -27,3 +27,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 6. `admin-shop-ux-planning-guide.md`
 - admin shop, bundle ve promotion operasyonlarini toparlama rehberi
 - bu branch'te neyin yapilacagini ve neyin bilincli olarak sonraya birakilacagini netlestirir
+
+7. `admin-inventory-operations-planning-guide.md`
+- admin tarafinda oyuncu inventory'sini goruntuleme ve yonetme rehberi
+- grant / revoke / equip reset / audit sinirlarini tanimlar
