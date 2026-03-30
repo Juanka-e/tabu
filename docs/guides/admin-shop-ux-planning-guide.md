@@ -1,4 +1,4 @@
-﻿# Admin Shop UX Planning Guide
+# Admin Shop UX Planning Guide
 
 Bu rehber `feature/admin-shop-ux` branch'inin kapsam sinirini netlestirir.
 
@@ -162,6 +162,8 @@ gibi yapilar dogrudan `ShopItem` alanlariyla cozulmemeli
   - night market
   - ozel campaign
   kanalinda kullanilabilir kalmalidir
+- oyuncu-facing tarafta dogru yon, bu item'lari normal katalog yerine ayri bir `event shelf` veya `event store` modulu icinde gostermektir
+- bu yuzey acildiginda ayni item modeli uzerinden `Etkinlik Ozel` rozeti ve event baglami tasinmalidir
 
 6. Paketler ile item'lar ayni yayin modeline zorlanmamalidir
 - bu turda yalniz item gorunurlugu ele alindi
