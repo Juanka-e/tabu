@@ -76,20 +76,19 @@
   - `docs/guides/store-liveops-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-18. `feature/admin-shop-ux`
-19. `feature/admin-inventory-operations`
-20. `feature/night-market-foundation`
-21. `feature/economy-abuse-hardening`
-22. `feature/cache-and-rate-limit-foundation`
-23. `feature/admin-promotions-ux`
-24. `feature/cosmetic-render-upgrade`
-25. `feature/admin-cosmetic-authoring`
-26. `feature/gameplay-ui-polish`
-27. `feature/analytics-event-foundation`
-28. `feature/word-analytics-liveops`
-29. `feature/release-ops-docs`
-30. `docs/encoding-cleanup`
-31. `feature/wallet-ledger-foundation`
+18. `feature/admin-inventory-operations`
+19. `feature/night-market-foundation`
+20. `feature/economy-abuse-hardening`
+21. `feature/cache-and-rate-limit-foundation`
+22. `feature/admin-promotions-ux`
+23. `feature/cosmetic-render-upgrade`
+24. `feature/admin-cosmetic-authoring`
+25. `feature/gameplay-ui-polish`
+26. `feature/analytics-event-foundation`
+27. `feature/word-analytics-liveops`
+28. `feature/release-ops-docs`
+29. `docs/encoding-cleanup`
+30. `feature/wallet-ledger-foundation`
 
 ## Integration Hub Slice (24 March 2026, completed)
 - Yeni `/admin/integrations` paneli eklendi.
@@ -135,15 +134,30 @@
   - preview, kupon, fiyat ve inventory akislarina tutarlilik geldi
   - dashboard sidebar icindeki discovery / store follow-up'lari kapatildi
 
+## Admin Shop UX Slice (30 March 2026, completed)
+- `feature/admin-shop-ux`
+  - admin `shop-items` ve `promotions` ekranlari toparlandi
+  - relation visibility:
+    - paket
+    - kampanya
+    - kupon
+    baglantilari gorunur hale geldi
+  - `availabilityMode`, `startsAt`, `endsAt` ile future liveops zemini acildi
+  - `event_only`, `seasonal`, `limited`, `scheduled` merchandising modeli admin tarafinda yonetilebilir oldu
+  - promotion lifecycle:
+    - pasife al
+    - guvenliyse sil
+    olarak netlestirildi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 17
-- Planli toplam feature branch sayisi: 31
-- Kalan feature branch sayisi: 14
+- Tamamlanan feature branch sayisi: 18
+- Planli toplam feature branch sayisi: 30
+- Kalan feature branch sayisi: 12
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

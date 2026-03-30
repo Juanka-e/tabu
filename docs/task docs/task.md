@@ -40,30 +40,42 @@
   - notification read idempotency
   - UTF-8 magazaya kopya duzeltmesi
 
-## Aktif Branch
+## Son Tamamlanan Branch
 ### `feature/admin-shop-ux`
-- admin shop item ve promotion operasyonlarini okunur hale getirme
-- featured / active / hidden / scheduled merchandising kontrol dili
-- item, bundle ve promotion iliskilerini admin gozunde daha net gosterme
-- arama, filtre ve toplu islem akislarini toparlama
+- admin shop item ve promotion operasyonlari toparlandi
+- featured / active / hidden / scheduled merchandising kontrol dili netlestirildi
+- item, bundle ve promotion iliskileri admin gozunde gorunur hale geldi
+- yayin modeli (`availabilityMode`, `startsAt`, `endsAt`) future liveops icin eklendi
+- promotion lifecycle:
+  - pasife al
+  - guvenliyse sil
+  mantigi netlestirildi
 - referans:
   - `docs/guides/admin-shop-ux-planning-guide.md`
 
+## Aktif Branch
+### `feature/admin-inventory-operations`
+- oyuncu inventory goruntuleme
+- item grant / revoke
+- equip reset ve operasyonel duzeltmeler
+- grant nedeni ve audit izi
+- referans:
+  - `docs/guides/admin-inventory-operations-planning-guide.md`
+
 ## Aktif Sonraki Branch Adaylari
-1. `feature/admin-shop-ux`
-2. `feature/admin-inventory-operations`
-3. `feature/night-market-foundation`
-4. `feature/economy-abuse-hardening`
-5. `feature/cache-and-rate-limit-foundation`
-6. `feature/admin-promotions-ux`
-7. `feature/cosmetic-render-upgrade`
-8. `feature/admin-cosmetic-authoring`
-9. `feature/gameplay-ui-polish`
-10. `feature/analytics-event-foundation`
-11. `feature/word-analytics-liveops`
-12. `feature/release-ops-docs`
-13. `docs/encoding-cleanup`
-14. `feature/wallet-ledger-foundation`
+1. `feature/admin-inventory-operations`
+2. `feature/night-market-foundation`
+3. `feature/economy-abuse-hardening`
+4. `feature/cache-and-rate-limit-foundation`
+5. `feature/admin-promotions-ux`
+6. `feature/cosmetic-render-upgrade`
+7. `feature/admin-cosmetic-authoring`
+8. `feature/gameplay-ui-polish`
+9. `feature/analytics-event-foundation`
+10. `feature/word-analytics-liveops`
+11. `feature/release-ops-docs`
+12. `docs/encoding-cleanup`
+13. `feature/wallet-ledger-foundation`
 
 ## Mimari Notlar
 - Cache / Redis / Valkey / PM2 stratejisi icin ana referans:

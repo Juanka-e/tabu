@@ -89,7 +89,7 @@ export default function AdminAuditPage() {
 
     const stats = useMemo(
         () => [
-            { label: "gorunen", value: String(logs.length) },
+            { label: "görünen", value: String(logs.length) },
             { label: "toplam", value: String(total) },
             { label: "sayfa", value: `${page} / ${pages}` },
         ],
@@ -99,9 +99,9 @@ export default function AdminAuditPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader
-                title="Audit Kayitlari"
-                description="Admin ve sistem operasyonlarinin izini tek ekranda takip edin."
-                meta={`${total} kayit`}
+                title="Audit Kayıtları"
+                description="Admin ve sistem operasyonlarının izini tek ekranda takip edin."
+                meta={`${total} kayıt`}
                 icon={<Activity className="h-5 w-5 text-emerald-500" />}
             />
 
@@ -112,7 +112,7 @@ export default function AdminAuditPage() {
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Action, admin, resource ara..."
+                            placeholder="Action, admin, resource veya özet ara..."
                             className="pl-9"
                         />
                     </div>
@@ -122,7 +122,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setAction(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tum action&apos;lar</option>
+                        <option value="">Tüm action&apos;lar</option>
                         {actionOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -135,7 +135,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setResourceType(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tum resource tipleri</option>
+                        <option value="">Tüm resource tipleri</option>
                         {resourceTypeOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -148,7 +148,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setActorRole(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tum roller</option>
+                        <option value="">Tüm roller</option>
                         {roleOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -160,15 +160,15 @@ export default function AdminAuditPage() {
             </AdminToolbar>
 
             <AdminTableShell
-                title="Audit Gecmisi"
-                description="En son operasyonlar tarih, actor, action ve metadata ozeti ile listelenir."
+                title="Audit Geçmişi"
+                description="En son operasyonlar tarih, actor, action, not ve metadata özeti ile listelenir."
                 loading={loading}
                 isEmpty={!loading && logs.length === 0}
                 emptyState={
                     <AdminEmptyState
                         icon={<Activity className="h-6 w-6" />}
-                        title="Audit kaydi bulunamadi"
-                        description="Mevcut filtrelerle eslesen bir operasyon kaydi yok."
+                        title="Audit kaydı bulunamadı"
+                        description="Mevcut filtrelerle eşleşen bir operasyon kaydı yok."
                     />
                 }
                 footer={<AdminPagination page={page} pageCount={pages} onPageChange={setPage} />}
@@ -180,7 +180,8 @@ export default function AdminAuditPage() {
                             <TableHead>Actor</TableHead>
                             <TableHead>Action</TableHead>
                             <TableHead>Resource</TableHead>
-                            <TableHead>Ozet</TableHead>
+                            <TableHead>Özet</TableHead>
+                            <TableHead>Not</TableHead>
                             <TableHead>Metadata</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -216,6 +217,9 @@ export default function AdminAuditPage() {
                                 </TableCell>
                                 <TableCell className="max-w-xs text-sm text-muted-foreground">
                                     {log.summary ?? "-"}
+                                </TableCell>
+                                <TableCell className="max-w-xs text-sm text-muted-foreground">
+                                    {log.note ?? "-"}
                                 </TableCell>
                                 <TableCell className="max-w-md text-xs text-muted-foreground">
                                     {renderMetadata(log.metadata)}

@@ -10,6 +10,7 @@ export interface AdminAuditLogView {
     resourceType: string;
     resourceId: string | null;
     summary: string | null;
+    note: string | null;
     ipAddress: string | null;
     userAgent: string | null;
     createdAt: string;
