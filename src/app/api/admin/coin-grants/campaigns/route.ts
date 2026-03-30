@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         });
         if (!rateLimit.allowed) {
             return NextResponse.json(
-                { error: "Cok fazla campaign islemi denemesi. Lutfen biraz bekleyin." },
+                { error: "Çok fazla kampanya işlemi denemesi. Lütfen biraz bekleyin." },
                 { status: 429, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(campaign, { status: 201 });
     } catch (error) {
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
-            return NextResponse.json({ error: "Ayni kod ile bir campaign zaten var." }, { status: 409 });
+            return NextResponse.json({ error: "Aynı kod ile bir kampanya zaten var." }, { status: 409 });
         }
 
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz campaign verisi." }, { status: 422 });
+            return NextResponse.json({ error: error.issues[0]?.message || "Geçersiz kampanya verisi." }, { status: 422 });
         }
 
         console.error("Failed to create coin grant campaign:", error);
-        return NextResponse.json({ error: "Campaign olusturulamadi." }, { status: 500 });
+        return NextResponse.json({ error: "Kampanya oluşturulamadı." }, { status: 500 });
     }
 }

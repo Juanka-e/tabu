@@ -97,7 +97,7 @@ function toNullableInt(value: string): number | null {
 
 function formatDateTime(value: string | null): string {
     if (!value) {
-        return "Acik uc";
+        return "Açık uçlu";
     }
 
     return new Date(value).toLocaleString("tr-TR", {
@@ -199,7 +199,7 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch("/api/admin/coin-grants/campaigns", { cache: "no-store" });
             if (!response.ok) {
-                setError("Coin grant verileri yuklenemedi.");
+                setError("Coin grant verileri yüklenemedi.");
                 return;
             }
 
@@ -224,7 +224,7 @@ export default function AdminCoinGrantsPage() {
                 };
             });
         } catch {
-            setError("Coin grant verileri yuklenemedi.");
+            setError("Coin grant verileri yüklenemedi.");
         } finally {
             setLoading(false);
         }
@@ -264,7 +264,7 @@ export default function AdminCoinGrantsPage() {
 
     const stats = useMemo(
         () => [
-            { label: "campaign", value: String(operationalCampaigns.length) },
+            { label: "kampanya", value: String(operationalCampaigns.length) },
             {
                 label: "kod",
                 value: String(
@@ -275,10 +275,10 @@ export default function AdminCoinGrantsPage() {
                 ),
             },
             {
-                label: "dagitilan coin",
+                label: "dağıtılan coin",
                 value: String(operationalCampaigns.reduce((sum, campaign) => sum + campaign.totalGrantedCoin, 0)),
             },
-            { label: "arsiv", value: String(campaigns.filter((campaign) => campaign.archivedAt).length) },
+            { label: "arşiv", value: String(campaigns.filter((campaign) => campaign.archivedAt).length) },
         ],
         [campaigns, operationalCampaigns]
     );
@@ -310,14 +310,14 @@ export default function AdminCoinGrantsPage() {
             );
 
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Campaign kaydedilemedi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Campaign kaydedilemedi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kampanya kaydedilemedi." }))) as { error?: string };
+                window.alert(errorPayload.error || "Kampanya kaydedilemedi.");
                 return;
             }
 
             setEditingCampaignId(null);
             setCampaignForm(emptyCampaignForm);
-            setNotice(editingCampaignId ? "Campaign guncellendi." : "Campaign olusturuldu.");
+            setNotice(editingCampaignId ? "Kampanya güncellendi." : "Kampanya oluşturuldu.");
             await loadCampaigns();
         } finally {
             setSaving(false);
@@ -326,7 +326,7 @@ export default function AdminCoinGrantsPage() {
 
     const submitCodes = async () => {
         if (!eligibleCodeCampaigns.some((campaign) => String(campaign.id) === codeForm.campaignId)) {
-            setError("Kod uretimi icin aktif ve arsivlenmemis bir campaign sec.");
+            setError("Kod üretimi için aktif ve arşivlenmemiş bir kampanya seç.");
             return;
         }
 
@@ -352,13 +352,13 @@ export default function AdminCoinGrantsPage() {
             });
 
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Kodlar olusturulamadi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Kodlar olusturulamadi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kodlar oluşturulamadı." }))) as { error?: string };
+                window.alert(errorPayload.error || "Kodlar oluşturulamadı.");
                 return;
             }
 
             setCodeForm((current) => ({ ...emptyCodeForm, campaignId: current.campaignId }));
-            setNotice("Kodlar olusturuldu.");
+            setNotice("Kodlar oluşturuldu.");
             await loadCampaigns();
         } finally {
             setSaving(false);
@@ -367,7 +367,7 @@ export default function AdminCoinGrantsPage() {
 
     const editCampaign = (campaign: CoinGrantCampaignView) => {
         if (campaign.archivedAt) {
-            setError("Arsivli campaign duzenlenemez.");
+            setError("Arşivli kampanya düzenlenemez.");
             return;
         }
 
@@ -388,7 +388,7 @@ export default function AdminCoinGrantsPage() {
 
     const deactivateCampaign = async (campaign: CoinGrantCampaignView) => {
         if (!campaign.isActive) {
-            setNotice("Bu campaign zaten pasif.");
+            setNotice("Bu kampanya zaten pasif.");
             return;
         }
 
@@ -397,8 +397,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/campaigns/${campaign.id}`, { method: "DELETE" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Campaign kapatilamadi." }))) as { error?: string };
-                setError(errorPayload.error || "Campaign kapatilamadi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kampanya pasife alınamadı." }))) as { error?: string };
+                setError(errorPayload.error || "Kampanya pasife alınamadı.");
                 return;
             }
 
@@ -411,7 +411,7 @@ export default function AdminCoinGrantsPage() {
                         : entry
                 )
             );
-            setNotice(`${campaign.name} pasife alindi.`);
+            setNotice(`${campaign.name} pasife alındı.`);
             await loadCampaigns();
         } finally {
             setDeactivatingCampaignId(null);
@@ -431,8 +431,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/codes/${codeId}`, { method: "DELETE" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Kod kapatilamadi." }))) as { error?: string };
-                setError(errorPayload.error || "Kod kapatilamadi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kod pasife alınamadı." }))) as { error?: string };
+                setError(errorPayload.error || "Kod pasife alınamadı.");
                 return;
             }
 
@@ -450,7 +450,7 @@ export default function AdminCoinGrantsPage() {
                         : campaign
                 )
             );
-            setNotice("Kod pasife alindi.");
+            setNotice("Kod pasife alındı.");
             await loadCampaigns();
         } finally {
             setDeactivatingCodeId(null);
@@ -459,11 +459,11 @@ export default function AdminCoinGrantsPage() {
 
     const archiveCampaign = async (campaign: CoinGrantCampaignView) => {
         if (campaign.archivedAt) {
-            setNotice("Bu campaign zaten arsivde.");
+            setNotice("Bu kampanya zaten arşivde.");
             return;
         }
         if (campaign.isActive) {
-            setError("Campaign arsivlenmeden once pasife alinmali.");
+            setError("Kampanya arşivlenmeden önce pasife alınmalı.");
             return;
         }
 
@@ -473,8 +473,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/campaigns/${campaign.id}/archive`, { method: "POST" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Campaign arsivlenemedi." }))) as { error?: string };
-                setError(errorPayload.error || "Campaign arsivlenemedi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kampanya arşivlenemedi." }))) as { error?: string };
+                setError(errorPayload.error || "Kampanya arşivlenemedi.");
                 return;
             }
 
@@ -485,7 +485,7 @@ export default function AdminCoinGrantsPage() {
                         : entry
                 )
             );
-            setNotice(`${campaign.name} arsive alindi.`);
+            setNotice(`${campaign.name} arşive kaldırıldı.`);
             await loadCampaigns();
         } finally {
             setArchivingCampaignId(null);
@@ -494,7 +494,7 @@ export default function AdminCoinGrantsPage() {
 
     const restoreCampaign = async (campaign: CoinGrantCampaignView) => {
         if (!campaign.archivedAt) {
-            setNotice("Bu campaign zaten operasyonel listede.");
+            setNotice("Bu kampanya zaten operasyonel listede.");
             return;
         }
 
@@ -504,8 +504,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/campaigns/${campaign.id}/restore`, { method: "POST" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Campaign geri alinamadi." }))) as { error?: string };
-                setError(errorPayload.error || "Campaign geri alinamadi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kampanya geri alınamadı." }))) as { error?: string };
+                setError(errorPayload.error || "Kampanya geri alınamadı.");
                 return;
             }
 
@@ -516,7 +516,7 @@ export default function AdminCoinGrantsPage() {
                         : entry
                 )
             );
-            setNotice(`${campaign.name} arsivden cikarildi.`);
+            setNotice(`${campaign.name} arşivden çıkarıldı.`);
             await loadCampaigns();
         } finally {
             setArchivingCampaignId(null);
@@ -527,11 +527,11 @@ export default function AdminCoinGrantsPage() {
         const parentCampaign = campaigns.find((campaign) => campaign.id === campaignId);
         const code = parentCampaign?.codes.find((entry) => entry.id === codeId);
         if (code?.archivedAt) {
-            setNotice("Bu kod zaten arsivde.");
+            setNotice("Bu kod zaten arşivde.");
             return;
         }
         if (code?.isActive) {
-            setError("Kod arsivlenmeden once pasife alinmali.");
+            setError("Kod arşivlenmeden önce pasife alınmalı.");
             return;
         }
 
@@ -541,8 +541,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/codes/${codeId}/archive`, { method: "POST" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Kod arsivlenemedi." }))) as { error?: string };
-                setError(errorPayload.error || "Kod arsivlenemedi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kod arşivlenemedi." }))) as { error?: string };
+                setError(errorPayload.error || "Kod arşivlenemedi.");
                 return;
             }
 
@@ -558,7 +558,7 @@ export default function AdminCoinGrantsPage() {
                         : campaign
                 )
             );
-            setNotice("Kod arsive alindi.");
+            setNotice("Kod arşive kaldırıldı.");
             await loadCampaigns();
         } finally {
             setArchivingCodeId(null);
@@ -579,8 +579,8 @@ export default function AdminCoinGrantsPage() {
         try {
             const response = await fetch(`/api/admin/coin-grants/codes/${codeId}/restore`, { method: "POST" });
             if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => ({ error: "Kod geri alinamadi." }))) as { error?: string };
-                setError(errorPayload.error || "Kod geri alinamadi.");
+                const errorPayload = (await response.json().catch(() => ({ error: "Kod geri alınamadı." }))) as { error?: string };
+                setError(errorPayload.error || "Kod geri alınamadı.");
                 return;
             }
 
@@ -596,7 +596,7 @@ export default function AdminCoinGrantsPage() {
                         : campaign
                 )
             );
-            setNotice("Kod arsivden cikarildi.");
+            setNotice("Kod arşivden çıkarıldı.");
             await loadCampaigns();
         } finally {
             setArchivingCodeId(null);
@@ -614,8 +614,8 @@ export default function AdminCoinGrantsPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Coin Grants"
-                description="Influencer kodu, etkinlik odulu veya toplu coin dagitimi icin kontrollu operasyon paneli."
-                meta={`${operationalCampaigns.length} operasyonel campaign`}
+                description="İçerik üretici kodu, etkinlik ödülü veya toplu coin dağıtımı için kontrollü operasyon paneli."
+                meta={`${operationalCampaigns.length} operasyonel kampanya`}
                 icon={<Gift className="h-5 w-5 text-amber-500" />}
             />
 
@@ -625,7 +625,7 @@ export default function AdminCoinGrantsPage() {
                     <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Campaign, aciklama veya kod ara..."
+                        placeholder="Kampanya, açıklama veya kod ara..."
                         className="pl-9"
                     />
                 </div>
@@ -645,7 +645,7 @@ export default function AdminCoinGrantsPage() {
 
             <div className="flex flex-wrap gap-2">
                 {([
-                    ["all", "Tum operasyonel"],
+                    ["all", "Tüm operasyonel"],
                     ["active", "Aktif"],
                     ["inactive", "Pasif"],
                     ["used", "Kullanilan"],
@@ -666,15 +666,15 @@ export default function AdminCoinGrantsPage() {
 
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <AdminTableShell
-                    title="Dagitim Campaign'lari"
-                    description="Arsiv haric operasyonel campaign'ler, claim limiti ve code dagilimi buradan izlenir."
+                    title="Dağıtım Kampanyaları"
+                    description="Arşiv hariç operasyonel kampanyalar, claim limitleri ve kod dağılımı buradan izlenir."
                     loading={loading}
                     isEmpty={!loading && filteredCampaigns.length === 0}
                     emptyState={
                         <AdminEmptyState
                             icon={<Gift className="h-6 w-6" />}
-                            title="Coin grant campaign'i yok"
-                            description="Ilk campaign ile bir etkinlik drop'u, influencer dagitimi veya topluluk odulu hazirlayabilirsin."
+                            title="Coin grant kampanyası yok"
+                            description="İlk kampanyayla bir etkinlik ödülü, içerik üretici kodu veya topluluk dağıtımı hazırlayabilirsin."
                         />
                     }
                 >
@@ -697,29 +697,29 @@ export default function AdminCoinGrantsPage() {
                                                 </span>
                                                 {campaign.archivedAt ? (
                                                     <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-700">
-                                                        arsiv
+                                                        arşiv
                                                     </span>
                                                 ) : null}
                                                 {isCampaignUsed(campaign) ? (
                                                     <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-sky-700">
-                                                        kullanildi
+                                                        kullanıldı
                                                     </span>
                                                 ) : null}
                                                 {isCampaignExhausted(campaign) ? (
                                                     <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-                                                        tukendi
+                                                        tükendi
                                                     </span>
                                                 ) : null}
                                             </div>
                                             <div className="mt-1 font-mono text-xs text-muted-foreground">{campaign.code}</div>
                                             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                                                {campaign.description || "Bu campaign icin ayri bir aciklama girilmemis."}
+                                                {campaign.description || "Bu kampanya için ayrı bir açıklama girilmemiş."}
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" onClick={() => toggleCampaignDetails(campaign.id)}>
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                                <span>{isExpanded ? "Detayi kapat" : "Detayi ac"}</span>
+                                                <span>{isExpanded ? "Detayı kapat" : "Detayı aç"}</span>
                                             </Button>
                                             <Button
                                                 variant="outline"
@@ -727,7 +727,7 @@ export default function AdminCoinGrantsPage() {
                                                 disabled={Boolean(campaign.archivedAt)}
                                                 onClick={() => editCampaign(campaign)}
                                             >
-                                                Duzenle
+                                                Düzenle
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -746,7 +746,7 @@ export default function AdminCoinGrantsPage() {
                                                     onClick={() => void restoreCampaign(campaign)}
                                                 >
                                                     <Archive size={14} />
-                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Geri aliniyor" : "Arsivden cikar"}</span>
+                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Geri alınıyor" : "Arşivden çıkar"}</span>
                                                 </Button>
                                             ) : (
                                                 <Button
@@ -756,7 +756,7 @@ export default function AdminCoinGrantsPage() {
                                                     onClick={() => void archiveCampaign(campaign)}
                                                 >
                                                     <Archive size={14} />
-                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Arsivleniyor" : "Arsive kaldir"}</span>
+                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Arşivleniyor" : "Arşive kaldır"}</span>
                                                 </Button>
                                             )}
                                         </div>
@@ -766,7 +766,7 @@ export default function AdminCoinGrantsPage() {
                                         <StatChip icon={BadgeDollarSign} label="coin / claim" value={campaign.coinAmount.toLocaleString("tr-TR")} />
                                         <StatChip
                                             icon={Gift}
-                                            label="dagitilan / butce"
+                                            label="dağıtılan / bütçe"
                                             value={`${campaign.totalGrantedCoin.toLocaleString("tr-TR")} / ${campaign.totalBudgetCoin !== null ? campaign.totalBudgetCoin.toLocaleString("tr-TR") : "limitsiz"}`}
                                         />
                                         <StatChip
@@ -774,12 +774,12 @@ export default function AdminCoinGrantsPage() {
                                             label="claim / limit"
                                             value={`${campaign.totalClaimCount.toLocaleString("tr-TR")} / ${campaign.totalClaimLimit !== null ? campaign.totalClaimLimit.toLocaleString("tr-TR") : "limitsiz"}`}
                                         />
-                                        <StatChip icon={Users} label="kullanici basi" value={String(campaign.perUserClaimLimit)} />
+                                        <StatChip icon={Users} label="kullanıcı başı" value={String(campaign.perUserClaimLimit)} />
                                     </div>
 
                                     <div className="mt-3 text-sm text-muted-foreground">
-                                        {visibleCodes.length} gorunen kod
-                                        {archivedCodeCount > 0 ? ` | ${archivedCodeCount} arsivli` : ""}
+                                        {visibleCodes.length} görünen kod
+                                        {archivedCodeCount > 0 ? ` | ${archivedCodeCount} arşivli` : ""}
                                     </div>
 
                                     {isExpanded ? (
@@ -788,28 +788,28 @@ export default function AdminCoinGrantsPage() {
                                                 <div className="rounded-2xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground">
                                                     <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                                                         <Clock3 className="h-3.5 w-3.5" />
-                                                        Campaign takvimi
+                                                        Kampanya takvimi
                                                     </div>
-                                                    <div>Baslangic: {formatDateTime(campaign.startsAt)}</div>
-                                                    <div>Bitis: {formatDateTime(campaign.endsAt)}</div>
+                                                    <div>Başlangıç: {formatDateTime(campaign.startsAt)}</div>
+                                                    <div>Bitiş: {formatDateTime(campaign.endsAt)}</div>
                                                 </div>
                                                 <div className="rounded-2xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground">
                                                     <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                                                         <ShieldCheck className="h-3.5 w-3.5" />
-                                                        Dagitim notu
+                                                        Dağıtım notu
                                                     </div>
-                                                    <div>Campaign claim, budget ve user limiti server transaction&apos;i icinde enforce edilir.</div>
+                                                    <div>Kampanya claim, bütçe ve kullanıcı limiti server transaction&apos;ı içinde enforce edilir.</div>
                                                 </div>
                                             </div>
 
                                             <div className="mt-4 rounded-2xl border border-border/70 bg-muted/15 p-3">
                                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                                                     <Sparkles className="h-3.5 w-3.5" />
-                                                    Dagitim kodlari
+                                                    Dağıtım kodları
                                                 </div>
                                                 <div className="mt-3 flex flex-wrap gap-2">
                                                     {visibleCodes.length === 0 ? (
-                                                        <span className="text-sm text-muted-foreground">Bu campaign icin henuz kod uretilmemis.</span>
+                                                        <span className="text-sm text-muted-foreground">Bu kampanya için henüz kod üretilmemiş.</span>
                                                     ) : (
                                                         visibleCodes.map((code) => (
                                                             <div key={code.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/20 px-3 py-1.5 text-xs text-foreground">
@@ -819,7 +819,7 @@ export default function AdminCoinGrantsPage() {
                                                                 </span>
                                                                 {code.label ? <span className="text-muted-foreground">{code.label}</span> : null}
                                                                 {!code.isActive ? <span className="text-amber-600">pasif</span> : null}
-                                                                {code.archivedAt ? <span className="text-violet-600">arsiv</span> : null}
+                                                                {code.archivedAt ? <span className="text-violet-600">arşiv</span> : null}
                                                                 {code.archivedAt ? (
                                                                     <button
                                                                         type="button"
@@ -827,7 +827,7 @@ export default function AdminCoinGrantsPage() {
                                                                         onClick={() => void restoreCode(campaign.id, code.id)}
                                                                         className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
                                                                     >
-                                                                        {archivingCodeId === code.id ? "geri aliniyor" : "arsivden cikar"}
+                                                                        {archivingCodeId === code.id ? "geri alınıyor" : "arşivden çıkar"}
                                                                     </button>
                                                                 ) : code.isActive ? (
                                                                     <button
@@ -836,7 +836,7 @@ export default function AdminCoinGrantsPage() {
                                                                         onClick={() => void deactivateCode(campaign.id, code.id)}
                                                                         className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
                                                                     >
-                                                                        {deactivatingCodeId === code.id ? "pasife aliniyor" : "pasife al"}
+                                                                        {deactivatingCodeId === code.id ? "pasife alınıyor" : "pasife al"}
                                                                     </button>
                                                                 ) : (
                                                                     <button
@@ -845,7 +845,7 @@ export default function AdminCoinGrantsPage() {
                                                                         onClick={() => void archiveCode(campaign.id, code.id)}
                                                                         className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
                                                                     >
-                                                                        {archivingCodeId === code.id ? "arsivleniyor" : "arsive kaldir"}
+                                                                        {archivingCodeId === code.id ? "arşivleniyor" : "arşive kaldır"}
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -866,10 +866,10 @@ export default function AdminCoinGrantsPage() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-lg font-semibold text-foreground">
-                                    {editingCampaignId ? "Campaign duzenle" : "Yeni campaign"}
+                                    {editingCampaignId ? "Kampanya düzenle" : "Yeni kampanya"}
                                 </h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    Burada coin miktarini, toplam butceyi ve campaign kapsamindaki claim kurallarini belirliyorsun.
+                                    Burada coin miktarını, toplam bütçeyi ve kampanya kapsamındaki claim kurallarını belirliyorsun.
                                 </p>
                             </div>
                             <Button variant="outline" size="sm" onClick={() => { setEditingCampaignId(null); setCampaignForm(emptyCampaignForm); }}>
@@ -879,90 +879,90 @@ export default function AdminCoinGrantsPage() {
 
                         <div className="mt-5 space-y-4">
                             <div className={sectionClassName}>
-                                <SectionLabel title="Kimlik" description="Kod audit log ve operasyon takibinde campaign'in ana referansi olur." />
+                                <SectionLabel title="Kimlik" description="Kod, audit log ve operasyon takibinde kampanyanın ana referansı olur." />
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <input className={inputClassName} placeholder="Campaign kodu" value={campaignForm.code} onChange={(event) => setCampaignForm((current) => ({ ...current, code: event.target.value }))} />
-                                    <input className={inputClassName} placeholder="Campaign ismi" value={campaignForm.name} onChange={(event) => setCampaignForm((current) => ({ ...current, name: event.target.value }))} />
+                                    <input className={inputClassName} placeholder="Kampanya kodu" value={campaignForm.code} onChange={(event) => setCampaignForm((current) => ({ ...current, code: event.target.value }))} />
+                                    <input className={inputClassName} placeholder="Kampanya adı" value={campaignForm.name} onChange={(event) => setCampaignForm((current) => ({ ...current, name: event.target.value }))} />
                                 </div>
-                                <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Bu campaign ne icin kullaniliyor?" value={campaignForm.description} onChange={(event) => setCampaignForm((current) => ({ ...current, description: event.target.value }))} />
+                                <textarea className={`${inputClassName} min-h-[88px] resize-y`} placeholder="Bu kampanya ne için kullanılıyor?" value={campaignForm.description} onChange={(event) => setCampaignForm((current) => ({ ...current, description: event.target.value }))} />
                             </div>
 
                             <div className={sectionClassName}>
-                                <SectionLabel title="Ekonomi kurallari" description="Coin miktari ve toplam dagitim ust limitleri burada tanimlanir." />
+                                <SectionLabel title="Ekonomi kuralları" description="Coin miktarı ve toplam dağıtım üst limitleri burada tanımlanır." />
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <input className={inputClassName} type="number" min="1" placeholder="Claim basina coin" value={campaignForm.coinAmount} onChange={(event) => setCampaignForm((current) => ({ ...current, coinAmount: event.target.value }))} />
-                                    <input className={inputClassName} type="number" min="1" placeholder="Kullanici basi claim limiti" value={campaignForm.perUserClaimLimit} onChange={(event) => setCampaignForm((current) => ({ ...current, perUserClaimLimit: event.target.value }))} />
+                                    <input className={inputClassName} type="number" min="1" placeholder="Claim başına coin" value={campaignForm.coinAmount} onChange={(event) => setCampaignForm((current) => ({ ...current, coinAmount: event.target.value }))} />
+                                    <input className={inputClassName} type="number" min="1" placeholder="Kullanıcı başı claim limiti" value={campaignForm.perUserClaimLimit} onChange={(event) => setCampaignForm((current) => ({ ...current, perUserClaimLimit: event.target.value }))} />
                                 </div>
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <input className={inputClassName} type="number" min="1" placeholder="Toplam budget coin (opsiyonel)" value={campaignForm.totalBudgetCoin} onChange={(event) => setCampaignForm((current) => ({ ...current, totalBudgetCoin: event.target.value }))} />
+                                    <input className={inputClassName} type="number" min="1" placeholder="Toplam bütçe coin (opsiyonel)" value={campaignForm.totalBudgetCoin} onChange={(event) => setCampaignForm((current) => ({ ...current, totalBudgetCoin: event.target.value }))} />
                                     <input className={inputClassName} type="number" min="1" placeholder="Toplam claim limiti (opsiyonel)" value={campaignForm.totalClaimLimit} onChange={(event) => setCampaignForm((current) => ({ ...current, totalClaimLimit: event.target.value }))} />
                                 </div>
                             </div>
 
                             <div className={sectionClassName}>
-                                <SectionLabel title="Takvim ve durum" description="Campaign'i zaman penceresiyle veya manuel aktif/pasif olarak yonetebilirsin." />
+                                <SectionLabel title="Takvim ve durum" description="Kampanyayı zaman penceresiyle veya manuel aktif/pasif olarak yönetebilirsin." />
                                 <div className="grid gap-3 md:grid-cols-2">
                                     <input className={inputClassName} type="datetime-local" value={campaignForm.startsAt} onChange={(event) => setCampaignForm((current) => ({ ...current, startsAt: event.target.value }))} />
                                     <input className={inputClassName} type="datetime-local" value={campaignForm.endsAt} onChange={(event) => setCampaignForm((current) => ({ ...current, endsAt: event.target.value }))} />
                                 </div>
                                 <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground">
                                     <input type="checkbox" checked={campaignForm.isActive} onChange={(event) => setCampaignForm((current) => ({ ...current, isActive: event.target.checked }))} />
-                                    Campaign aktif kalsin
+                                    Kampanya aktif kalsın
                                 </label>
                             </div>
 
                             <div className="flex gap-2">
-                                <Button onClick={() => void submitCampaign()} disabled={saving}>{editingCampaignId ? "Campaign'i guncelle" : "Campaign olustur"}</Button>
-                                {editingCampaignId !== null ? <Button variant="outline" onClick={() => { setEditingCampaignId(null); setCampaignForm(emptyCampaignForm); }}>Iptal</Button> : null}
+                                <Button onClick={() => void submitCampaign()} disabled={saving}>{editingCampaignId ? "Kampanyayı güncelle" : "Kampanya oluştur"}</Button>
+                                {editingCampaignId !== null ? <Button variant="outline" onClick={() => { setEditingCampaignId(null); setCampaignForm(emptyCampaignForm); }}>İptal</Button> : null}
                             </div>
                         </div>
                     </div>
 
                     <div className="rounded-[30px] border border-border/80 bg-background/95 p-5 shadow-sm">
                         <div>
-                            <h3 className="text-lg font-semibold text-foreground">Kod Uretim Merkezi</h3>
+                            <h3 className="text-lg font-semibold text-foreground">Kod Üretim Merkezi</h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    Tek kullanicilik influencer kodu ya da toplu etkinlik batch&apos;i buradan uretilir.
+                                    Tek kullanımlık içerik üretici kodu ya da toplu etkinlik batch&apos;i buradan üretilir.
                                 </p>
                         </div>
 
                         <div className="mt-5 space-y-4">
                             <div className={sectionClassName}>
-                                <SectionLabel title="Hedef campaign" description="Kodlar claim oldugunda coin miktarini secilen campaign belirler." />
+                                <SectionLabel title="Hedef kampanya" description="Kodlar claim olduğunda coin miktarını seçilen kampanya belirler." />
                                 <select className={inputClassName} value={codeForm.campaignId} onChange={(event) => setCodeForm((current) => ({ ...current, campaignId: event.target.value }))}>
-                                    <option value="">Campaign sec</option>
+                                    <option value="">Kampanya seç</option>
                                     {eligibleCodeCampaigns.map((campaign) => (
                                         <option key={campaign.id} value={campaign.id}>{campaign.name} ({campaign.code})</option>
                                     ))}
                                 </select>
                                 {eligibleCodeCampaigns.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
-                                        Kod uretmek icin once aktif ve arsivlenmemis bir campaign olustur.
+                                        Kod üretmek için önce aktif ve arşivlenmemiş bir kampanya oluştur.
                                     </p>
                                 ) : null}
                             </div>
 
                             <div className={sectionClassName}>
-                                <SectionLabel title="Kod uretim modu" description="Tek bir manual code girebilir veya prefix ile batch uretebilirsin." />
+                                <SectionLabel title="Kod üretim modu" description="Tek bir manuel kod girebilir veya prefix ile toplu üretim yapabilirsin." />
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <input className={inputClassName} placeholder="Manual code (tekli kullanim)" value={codeForm.manualCode} onChange={(event) => setCodeForm((current) => ({ ...current, manualCode: event.target.value }))} />
-                                    <input className={inputClassName} placeholder="Prefix (batch icin)" value={codeForm.prefix} onChange={(event) => setCodeForm((current) => ({ ...current, prefix: event.target.value }))} />
+                                    <input className={inputClassName} placeholder="Manuel kod (tekil kullanım)" value={codeForm.manualCode} onChange={(event) => setCodeForm((current) => ({ ...current, manualCode: event.target.value }))} />
+                                    <input className={inputClassName} placeholder="Prefix (toplu üretim için)" value={codeForm.prefix} onChange={(event) => setCodeForm((current) => ({ ...current, prefix: event.target.value }))} />
                                 </div>
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <input className={inputClassName} placeholder="Label / not" value={codeForm.label} onChange={(event) => setCodeForm((current) => ({ ...current, label: event.target.value }))} />
-                                    <input className={inputClassName} type="number" min="1" max="100" placeholder="Batch quantity" value={codeForm.quantity} onChange={(event) => setCodeForm((current) => ({ ...current, quantity: event.target.value }))} />
+                                    <input className={inputClassName} placeholder="Etiket / not" value={codeForm.label} onChange={(event) => setCodeForm((current) => ({ ...current, label: event.target.value }))} />
+                                    <input className={inputClassName} type="number" min="1" max="100" placeholder="Toplu üretim adedi" value={codeForm.quantity} onChange={(event) => setCodeForm((current) => ({ ...current, quantity: event.target.value }))} />
                                 </div>
                             </div>
 
                             <div className={sectionClassName}>
-                                <SectionLabel title="Kod guvenlik limitleri" description="Kod bazli claim limitini ve opsiyonel son kullanim tarihini ayarla." />
+                                <SectionLabel title="Kod güvenlik limitleri" description="Kod bazlı claim limitini ve opsiyonel son kullanım tarihini ayarla." />
                                 <div className="grid gap-3 md:grid-cols-2">
                                     <input className={inputClassName} type="number" min="1" placeholder="Kod claim limiti" value={codeForm.maxClaims} onChange={(event) => setCodeForm((current) => ({ ...current, maxClaims: event.target.value }))} />
                                     <input className={inputClassName} type="datetime-local" value={codeForm.expiresAt} onChange={(event) => setCodeForm((current) => ({ ...current, expiresAt: event.target.value }))} />
                                 </div>
                                 <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground">
                                     <input type="checkbox" checked={codeForm.isActive} onChange={(event) => setCodeForm((current) => ({ ...current, isActive: event.target.checked }))} />
-                                    Kodlar aktif olusturulsun
+                                    Kodlar aktif oluşturulsun
                                 </label>
                             </div>
 
@@ -970,7 +970,7 @@ export default function AdminCoinGrantsPage() {
                                 onClick={() => void submitCodes()}
                                 disabled={saving || !codeForm.campaignId || eligibleCodeCampaigns.length === 0}
                             >
-                                Kodlari uret
+                                Kodları üret
                             </Button>
                         </div>
                     </div>

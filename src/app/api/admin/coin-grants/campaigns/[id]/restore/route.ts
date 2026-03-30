@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const paramsResult = routeParamsSchema.safeParse(await context.params);
     if (!paramsResult.success) {
-        return NextResponse.json({ error: "Geçersiz campaign." }, { status: 422 });
+        return NextResponse.json({ error: "Geçersiz kampanya." }, { status: 422 });
     }
 
     const rateLimit = consumeRequestRateLimit({
@@ -34,14 +34,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
     if (!rateLimit.allowed) {
         return NextResponse.json(
-            { error: "Çok fazla campaign geri alma denemesi. Lütfen biraz bekleyin." },
+            { error: "Çok fazla kampanya geri alma denemesi. Lütfen biraz bekleyin." },
             { status: 429, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 
     const outcome = await restoreCoinGrantCampaign(paramsResult.data.id);
     if (!outcome) {
-        return NextResponse.json({ error: "Campaign bulunamadı." }, { status: 404 });
+        return NextResponse.json({ error: "Kampanya bulunamadı." }, { status: 404 });
     }
 
     await writeAuditLog({

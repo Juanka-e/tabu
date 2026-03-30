@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         });
         if (!rateLimit.allowed) {
             return NextResponse.json(
-                { error: "Cok fazla campaign guncelleme denemesi. Lutfen biraz bekleyin." },
+                { error: "Çok fazla kampanya güncelleme denemesi. Lütfen biraz bekleyin." },
                 { status: 429, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         const campaign = await updateCoinGrantCampaign(params.id, input);
 
         if (!campaign) {
-            return NextResponse.json({ error: "Campaign bulunamadi." }, { status: 404 });
+            return NextResponse.json({ error: "Kampanya bulunamadı." }, { status: 404 });
         }
 
         await writeAuditLog({
@@ -63,24 +63,24 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     } catch (error) {
         if (error instanceof CoinGrantWorkflowError) {
             const messages: Record<string, string> = {
-                campaign_archived: "Arsivli campaign duzenlenemez.",
-                campaign_inactive: "Pasif campaign bu islem icin uygun degil.",
-                campaign_not_found: "Campaign bulunamadi.",
+                campaign_archived: "Arşivli kampanya düzenlenemez.",
+                campaign_inactive: "Pasif kampanya bu işlem için uygun değil.",
+                campaign_not_found: "Kampanya bulunamadı.",
             };
             const status = error.code === "campaign_not_found" ? 404 : 409;
-            return NextResponse.json({ error: messages[error.code] || "Campaign guncellenemedi." }, { status });
+            return NextResponse.json({ error: messages[error.code] || "Kampanya güncellenemedi." }, { status });
         }
 
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
-            return NextResponse.json({ error: "Ayni kod ile bir campaign zaten var." }, { status: 409 });
+            return NextResponse.json({ error: "Aynı kod ile bir kampanya zaten var." }, { status: 409 });
         }
 
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz campaign verisi." }, { status: 422 });
+            return NextResponse.json({ error: error.issues[0]?.message || "Geçersiz kampanya verisi." }, { status: 422 });
         }
 
         console.error("Failed to update coin grant campaign:", error);
-        return NextResponse.json({ error: "Campaign guncellenemedi." }, { status: 500 });
+        return NextResponse.json({ error: "Kampanya güncellenemedi." }, { status: 500 });
     }
 }
 
@@ -92,7 +92,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     const paramsResult = routeParamsSchema.safeParse(await context.params);
     if (!paramsResult.success) {
-        return NextResponse.json({ error: "Gecersiz campaign." }, { status: 422 });
+        return NextResponse.json({ error: "Geçersiz kampanya." }, { status: 422 });
     }
 
     const rateLimit = consumeRequestRateLimit({
@@ -103,17 +103,17 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
     if (!rateLimit.allowed) {
         return NextResponse.json(
-            { error: "Cok fazla campaign kapatma denemesi. Lutfen biraz bekleyin." },
+            { error: "Çok fazla kampanya pasife alma denemesi. Lütfen biraz bekleyin." },
             { status: 429, headers: buildRateLimitHeaders(rateLimit) }
         );
     }
 
     const outcome = await deactivateCoinGrantCampaign(paramsResult.data.id);
     if (!outcome) {
-        return NextResponse.json({ error: "Campaign bulunamadi." }, { status: 404 });
+        return NextResponse.json({ error: "Kampanya bulunamadı." }, { status: 404 });
     }
     if (outcome === "archived") {
-        return NextResponse.json({ error: "Arsivli campaign pasife alinamaz." }, { status: 409 });
+        return NextResponse.json({ error: "Arşivli kampanya pasife alınamaz." }, { status: 409 });
     }
 
     await writeAuditLog({
