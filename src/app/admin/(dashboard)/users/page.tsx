@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, Coins, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,23 @@ function summarizeUserAgent(userAgent: string | null): string {
     }
 
     return userAgent.length > 72 ? `${userAgent.slice(0, 72)}...` : userAgent;
+}
+
+function getSupportStatusLabel(status: string | null): string {
+    if (!status) return "Kayıt yok";
+    if (status === "open") return "Açık";
+    if (status === "in_progress") return "İşlemde";
+    if (status === "resolved") return "Çözüldü";
+    if (status === "closed") return "Kapalı";
+    return status;
+}
+
+function getWalletAdjustmentLabel(type: "credit" | "debit" | null): string {
+    if (!type) {
+        return "Kayıt yok";
+    }
+
+    return type === "credit" ? "Coin ekleme" : "Coin düşme";
 }
 
 export default function AdminUsersPage() {
@@ -363,6 +381,7 @@ export default function AdminUsersPage() {
                             <TableHead>Durum</TableHead>
                             <TableHead>Coin</TableHead>
                             <TableHead>Gozlem</TableHead>
+                            <TableHead>Operasyon Ozeti</TableHead>
                             <TableHead>Son Olaylar</TableHead>
                             <TableHead className="text-right">Islemler</TableHead>
                         </TableRow>
@@ -430,6 +449,38 @@ export default function AdminUsersPage() {
                                         <div className="max-w-xs truncate" title={user.lastUserAgent ?? undefined}>
                                             <span className="font-semibold text-foreground">UA:</span>{" "}
                                             {summarizeUserAgent(user.lastUserAgent)}
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div>
+                                            <span className="font-semibold text-foreground">Support:</span>{" "}
+                                            {user.supportTicketSummary.total > 0
+                                                ? `${user.supportTicketSummary.total} kayit, ${user.supportTicketSummary.openCount} acik`
+                                                : "Kayit yok"}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son ticket:</span>{" "}
+                                            {getSupportStatusLabel(user.supportTicketSummary.latestStatus)}
+                                            {user.supportTicketSummary.latestUpdatedAt
+                                                ? ` • ${formatDateTime(user.supportTicketSummary.latestUpdatedAt)}`
+                                                : ""}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.supportTicketSummary.latestSubject ?? undefined}>
+                                            <span className="font-semibold text-foreground">Konu:</span>{" "}
+                                            {user.supportTicketSummary.latestSubject ?? "Ticket yok"}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son coin islemi:</span>{" "}
+                                            {getWalletAdjustmentLabel(user.walletAdjustmentSummary.latestType)}
+                                            {user.walletAdjustmentSummary.latestAmount !== null
+                                                ? ` • ${user.walletAdjustmentSummary.latestAmount.toLocaleString("tr-TR")}`
+                                                : ""}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.walletAdjustmentSummary.latestReason ?? undefined}>
+                                            <span className="font-semibold text-foreground">Coin nedeni:</span>{" "}
+                                            {user.walletAdjustmentSummary.latestReason ?? "Wallet adjustment yok"}
                                         </div>
                                     </div>
                                 </TableCell>
@@ -549,6 +600,12 @@ export default function AdminUsersPage() {
                                                     onClick={() => openActionModal(user, "note")}
                                                 >
                                                     Ic Not
+                                                </Button>
+                                                <Button asChild type="button" variant="ghost" size="sm">
+                                                    <Link href="/admin/support">Destek</Link>
+                                                </Button>
+                                                <Button asChild type="button" variant="ghost" size="sm">
+                                                    <Link href="/admin/inventory">Envanter</Link>
                                                 </Button>
                                             </>
                                         )}

@@ -80,7 +80,23 @@ function mapAdminUser(user: {
     lastTrustedIp: string | null;
     registeredTrustedIp: string | null;
     lastUserAgent: string | null;
+    _count: {
+        supportTicketsOwned: number;
+    };
     wallet: { coinBalance: number } | null;
+    supportTicketsOwned: Array<{
+        id: number;
+        subject: string;
+        status: string;
+        updatedAt: Date;
+    }>;
+    walletAdjustmentsReceived: Array<{
+        id: number;
+        adjustmentType: "credit" | "debit";
+        amount: number;
+        reason: string;
+        createdAt: Date;
+    }>;
     profile: { displayName: string | null } | null;
     moderationActionsReceived: Array<{
         id: number;
@@ -108,6 +124,19 @@ function mapAdminUser(user: {
         lastTrustedIp: user.lastTrustedIp,
         registeredTrustedIp: user.registeredTrustedIp,
         lastUserAgent: user.lastUserAgent,
+        supportTicketSummary: {
+            total: user._count.supportTicketsOwned,
+            openCount: user.supportTicketsOwned.filter((ticket) => ticket.status === "open" || ticket.status === "in_progress").length,
+            latestStatus: user.supportTicketsOwned[0]?.status ?? null,
+            latestSubject: user.supportTicketsOwned[0]?.subject ?? null,
+            latestUpdatedAt: user.supportTicketsOwned[0]?.updatedAt.toISOString() ?? null,
+        },
+        walletAdjustmentSummary: {
+            latestType: user.walletAdjustmentsReceived[0]?.adjustmentType ?? null,
+            latestAmount: user.walletAdjustmentsReceived[0]?.amount ?? null,
+            latestReason: user.walletAdjustmentsReceived[0]?.reason ?? null,
+            latestCreatedAt: user.walletAdjustmentsReceived[0]?.createdAt.toISOString() ?? null,
+        },
         recentModerationEvents: user.moderationActionsReceived.map(mapModerationEvent),
     };
 }
@@ -172,9 +201,35 @@ export async function getAdminUsers(input: {
                 lastTrustedIp: true,
                 registeredTrustedIp: true,
                 lastUserAgent: true,
+                _count: {
+                    select: {
+                        supportTicketsOwned: true,
+                    },
+                },
                 wallet: {
                     select: {
                         coinBalance: true,
+                    },
+                },
+                supportTicketsOwned: {
+                    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+                    take: 3,
+                    select: {
+                        id: true,
+                        subject: true,
+                        status: true,
+                        updatedAt: true,
+                    },
+                },
+                walletAdjustmentsReceived: {
+                    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                    take: 1,
+                    select: {
+                        id: true,
+                        adjustmentType: true,
+                        amount: true,
+                        reason: true,
+                        createdAt: true,
                     },
                 },
                 profile: {

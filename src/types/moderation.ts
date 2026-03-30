@@ -36,6 +36,19 @@ export interface AdminUserModerationView {
     lastTrustedIp: string | null;
     registeredTrustedIp: string | null;
     lastUserAgent: string | null;
+    supportTicketSummary: {
+        total: number;
+        openCount: number;
+        latestStatus: string | null;
+        latestSubject: string | null;
+        latestUpdatedAt: string | null;
+    };
+    walletAdjustmentSummary: {
+        latestType: "credit" | "debit" | null;
+        latestAmount: number | null;
+        latestReason: string | null;
+        latestCreatedAt: string | null;
+    };
     recentModerationEvents: ModerationEventView[];
 }
 
