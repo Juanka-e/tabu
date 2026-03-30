@@ -35,6 +35,8 @@ type InventoryFilter =
     | "grant"
     | "migration";
 
+type GrantFilter = "all" | "visible" | "hidden" | "event_only";
+
 const inventoryFilterLabels: Record<InventoryFilter, string> = {
     all: "Tümü",
     equipped: "Kuşanılanlar",
@@ -73,6 +75,32 @@ const sourceBadgeClasses = {
     migration: "bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700/40",
 } as const;
 
+const grantFilterLabels: Record<GrantFilter, string> = {
+    all: "Tümü",
+    visible: "Görünür",
+    hidden: "Gizli/Pasif",
+    event_only: "Etkinlik",
+};
+
+function getGrantAvailabilityLabel(item: Pick<StoreItemView, "isActive" | "availabilityMode">): string {
+    if (!item.isActive) {
+        return "Pasif";
+    }
+
+    switch (item.availabilityMode) {
+        case "event_only":
+            return "Etkinlik";
+        case "seasonal":
+            return "Sezonluk";
+        case "limited":
+            return "Sınırlı";
+        case "scheduled":
+            return "Planlı";
+        default:
+            return "Görünür";
+    }
+}
+
 function formatDateTime(value: string): string {
     return new Date(value).toLocaleString("tr-TR", {
         dateStyle: "short",
@@ -97,6 +125,7 @@ export default function AdminInventoryPage() {
     const [inventory, setInventory] = useState<AdminUserInventoryView | null>(null);
     const [grantReason, setGrantReason] = useState("");
     const [grantSearch, setGrantSearch] = useState("");
+    const [grantFilter, setGrantFilter] = useState<GrantFilter>("all");
     const [inventorySearch, setInventorySearch] = useState("");
     const [grantItemId, setGrantItemId] = useState<number | null>(null);
     const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
@@ -278,6 +307,17 @@ export default function AdminInventoryPage() {
     const filteredGrantOptions = useMemo(() => {
         const normalizedSearch = grantSearch.trim().toLowerCase();
         return grantOptions.filter((item) => {
+            const matchesFilter =
+                grantFilter === "all"
+                    ? true
+                    : grantFilter === "visible"
+                      ? item.isActive && item.availabilityMode !== "event_only"
+                      : grantFilter === "hidden"
+                        ? !item.isActive || item.availabilityMode === "scheduled"
+                        : item.availabilityMode === "event_only";
+            if (!matchesFilter) {
+                return false;
+            }
             if (!normalizedSearch) {
                 return true;
             }
@@ -286,7 +326,7 @@ export default function AdminInventoryPage() {
                 .toLowerCase()
                 .includes(normalizedSearch);
         });
-    }, [grantOptions, grantSearch]);
+    }, [grantFilter, grantOptions, grantSearch]);
 
     const selectedGrantItem = useMemo(
         () =>
@@ -502,6 +542,22 @@ export default function AdminInventoryPage() {
                                 onChange={(event) => setGrantSearch(event.target.value)}
                                 placeholder="Grant edilecek item ara..."
                             />
+                            <div className="flex flex-wrap gap-2">
+                                {(Object.keys(grantFilterLabels) as GrantFilter[]).map((filter) => (
+                                    <button
+                                        key={filter}
+                                        type="button"
+                                        onClick={() => setGrantFilter(filter)}
+                                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                            grantFilter === filter
+                                                ? "bg-amber-500 text-white"
+                                                : "bg-muted text-muted-foreground hover:text-foreground"
+                                        }`}
+                                    >
+                                        {grantFilterLabels[filter]}
+                                    </button>
+                                ))}
+                            </div>
                             <select
                                 value={grantItemId ?? ""}
                                 onChange={(event) => setGrantItemId(Number(event.target.value))}
@@ -517,10 +573,22 @@ export default function AdminInventoryPage() {
                             </select>
                             {selectedGrantItem ? (
                                 <div className="rounded-2xl border border-border/70 bg-muted/15 p-4 text-sm">
-                                    <div className="font-semibold text-foreground">{selectedGrantItem.name}</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                        {selectedGrantItem.code} · {typeLabels[selectedGrantItem.type]} · {selectedGrantItem.rarity}
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <div className="font-semibold text-foreground">{selectedGrantItem.name}</div>
+                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                {selectedGrantItem.code} · {typeLabels[selectedGrantItem.type]} · {selectedGrantItem.rarity}
+                                            </div>
+                                        </div>
+                                        <div className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                            {getGrantAvailabilityLabel(selectedGrantItem)}
+                                        </div>
                                     </div>
+                                    {!selectedGrantItem.isActive || selectedGrantItem.availabilityMode === "event_only" ? (
+                                        <div className="mt-3 rounded-2xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                            Bu item normal oyuncu mağazasında görünmeyebilir. Grant işlemi özel dağıtım olarak değerlendirilecek.
+                                        </div>
+                                    ) : null}
                                 </div>
                             ) : null}
                             <textarea
