@@ -146,6 +146,44 @@ Minimum beklenti:
 - `X-Forwarded-Proto` gecmeli
 - websocket upgrade header'lari gecmeli
 
+## 6.1 `TRUST_PROXY` Karari
+
+Bu projede `TRUST_PROXY`, uygulamanin su header'lara guvenip guvenmeyecegini belirler:
+
+- `X-Forwarded-For`
+- `X-Real-IP`
+
+Bu bilgi su alanlari etkiler:
+- request rate limit anahtarlari
+- audit log IP kaydi
+- bazi operasyonel gozlemleme alanlari
+
+Dogru kullanim:
+
+```env
+TRUST_PROXY=true
+```
+
+Ama bu sadece su sartlarda dogrudur:
+
+1. backend public degil
+2. Nginx tek giris noktasi
+3. Nginx bu header'lari kendisi set ediyor
+4. firewall ile raw app portu kapali
+
+Yanlis kullanim:
+- backend hala publicken `TRUST_PROXY=true`
+
+Bu durumda biri backend'i dogrudan vurup spoofed `X-Forwarded-For` gonderebilir.
+Sonuc:
+- audit IP kirlenir
+- rate limit anahtarlari yanlislasir
+- gelecekte IP gorunurlugu gibi operasyonel kararlar bozulur
+
+Guvenli kural:
+- `Nginx + private backend` ise `TRUST_PROXY=true`
+- aksi halde `TRUST_PROXY=false`
+
 ## 7. Firewall / Port Politikasi
 
 Public acik olacak:

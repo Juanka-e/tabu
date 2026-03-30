@@ -98,6 +98,19 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-words-write",
+        key: `${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 40,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kelime olusturma denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     try {
         const body = await request.json();
         const data = createWordSchema.parse(body);
@@ -134,7 +147,10 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        return NextResponse.json(word, { status: 201 });
+        return NextResponse.json(word, {
+            status: 201,
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(

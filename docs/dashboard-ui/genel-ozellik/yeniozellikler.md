@@ -76,19 +76,22 @@
   - `docs/guides/store-liveops-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-18. `feature/admin-inventory-operations`
-19. `feature/night-market-foundation`
-20. `feature/economy-abuse-hardening`
-21. `feature/cache-and-rate-limit-foundation`
-22. `feature/admin-promotions-ux`
-23. `feature/cosmetic-render-upgrade`
-24. `feature/admin-cosmetic-authoring`
-25. `feature/gameplay-ui-polish`
-26. `feature/analytics-event-foundation`
-27. `feature/word-analytics-liveops`
-28. `feature/release-ops-docs`
-29. `docs/encoding-cleanup`
-30. `feature/wallet-ledger-foundation`
+18. `fix/admin-security-hardening`
+19. `fix/admin-content-ops`
+20. `fix/coin-grants-archive-lifecycle`
+21. `feature/admin-user-observability`
+22. `feature/night-market-foundation`
+23. `feature/economy-abuse-hardening`
+24. `feature/cache-and-rate-limit-foundation`
+25. `feature/admin-promotions-ux`
+26. `feature/cosmetic-render-upgrade`
+27. `feature/admin-cosmetic-authoring`
+28. `feature/gameplay-ui-polish`
+29. `feature/analytics-event-foundation`
+30. `feature/word-analytics-liveops`
+31. `feature/release-ops-docs`
+32. `docs/encoding-cleanup`
+33. `feature/wallet-ledger-foundation`
 
 ## Integration Hub Slice (24 March 2026, completed)
 - Yeni `/admin/integrations` paneli eklendi.
@@ -149,15 +152,25 @@
     - guvenliyse sil
     olarak netlestirildi
 
+## Admin Inventory Operations Slice (30 March 2026, completed)
+- `feature/admin-inventory-operations`
+  - admin inventory inspect sayfasi eklendi
+  - grant / revoke / equip reset akisleri geldi
+  - protected source revoke mantigi eklendi
+  - inventory route'larina rate limit eklendi
+  - riskli inventory aksiyonlari icin onay modallari eklendi
+  - secili oyuncu icin son operasyon notlari gorunur oldu
+  - audit ekraninda not kolonu acildi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - eski brainstorming/cop roadmap bloklari temizlendi
   - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
 
 ## Sayisal Durum
-- Tamamlanan feature branch sayisi: 18
-- Planli toplam feature branch sayisi: 30
-- Kalan feature branch sayisi: 12
+- Tamamlanan feature branch sayisi: 19
+- Planli toplam feature branch sayisi: 33
+- Kalan feature branch sayisi: 14
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

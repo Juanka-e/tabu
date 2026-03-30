@@ -1,13 +1,31 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getInventoryData } from "@/lib/economy";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
     const sessionUser = await getSessionUser();
     if (!sessionUser) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "user-inventory-read",
+        key: `user:${sessionUser.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 120,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla envanter istegi gonderildi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     const data = await getInventoryData(sessionUser.id);
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: buildRateLimitHeaders(rateLimit) });
 }

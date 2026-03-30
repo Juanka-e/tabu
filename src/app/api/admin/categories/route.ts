@@ -64,6 +64,19 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-categories-write",
+        key: `${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla kategori olusturma denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     try {
         const body = await request.json();
         const data = createCategorySchema.parse(body);
@@ -79,7 +92,10 @@ export async function POST(request: NextRequest) {
         });
 
         invalidateCategoryCache();
-        return NextResponse.json(category, { status: 201 });
+        return NextResponse.json(category, {
+            status: 201,
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(

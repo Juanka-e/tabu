@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
+import {
     announcementBlocksSchema,
     announcementBlocksToHtml,
     toAnnouncementInputJson,
@@ -34,6 +39,19 @@ export async function PUT(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-announcement-update",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla duyuru guncelleme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     try {
@@ -82,7 +100,7 @@ export async function PUT(
             request,
         });
 
-        return NextResponse.json(announcement);
+        return NextResponse.json(announcement, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(
@@ -108,6 +126,19 @@ export async function DELETE(
         return adminSession;
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-announcement-delete",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla duyuru silme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     try {
         const { id } = await params;
         const deletedId = Number.parseInt(id, 10);
@@ -123,7 +154,7 @@ export async function DELETE(
             request,
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         console.error("Failed to delete announcement:", error);
         return NextResponse.json(

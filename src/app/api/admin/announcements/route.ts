@@ -90,6 +90,19 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-announcements-write",
+        key: `${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 30,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla duyuru olusturma denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
+    }
+
     try {
         const body = await request.json();
         const data = createAnnouncementSchema.parse(body);
@@ -128,7 +141,10 @@ export async function POST(request: NextRequest) {
             request,
         });
 
-        return NextResponse.json(announcement, { status: 201 });
+        return NextResponse.json(announcement, {
+            status: 201,
+            headers: buildRateLimitHeaders(rateLimit),
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(

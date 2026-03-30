@@ -3,6 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +23,19 @@ export async function DELETE(
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
         return adminSession;
+    }
+
+    const rateLimit = consumeRequestRateLimit({
+        bucket: "admin-user-moderation-delete",
+        key: `admin:${adminSession.id}:${getRequestIp(request)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Cok fazla moderasyon notu silme denemesi. Lutfen biraz bekleyin." },
+            { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+        );
     }
 
     const params = await context.params;
@@ -70,5 +88,5 @@ export async function DELETE(
         request,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: buildRateLimitHeaders(rateLimit) });
 }
