@@ -109,6 +109,8 @@ export default function AdminWordsPage() {
     const [formError, setFormError] = useState("");
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+    const [bulkDeleteReason, setBulkDeleteReason] = useState("");
     const [bulkOpen, setBulkOpen] = useState(false);
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [bulkMode, setBulkMode] = useState<BulkUploadMode>("csv_categories");
@@ -342,13 +344,12 @@ export default function AdminWordsPage() {
         clearSelection();
     }, [clearSelection, words]);
 
+    const bulkDeleteCount = selectedCount;
+    const bulkDeleteRequiresReason = bulkDeleteCount >= 10;
+
     const handleBulkDelete = useCallback(async () => {
         const ids = Array.from(selectedIds);
         if (ids.length === 0) {
-            return;
-        }
-
-        if (!window.confirm(`${ids.length} kelime kaydini silmek istedigine emin misin?`)) {
             return;
         }
 
@@ -357,24 +358,27 @@ export default function AdminWordsPage() {
             const response = await fetch("/api/admin/words/bulk-delete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids }),
+                body: JSON.stringify({ ids, reason: bulkDeleteReason.trim() }),
             });
 
             if (!response.ok) {
-                toast.error("Secili kelimeler silinemedi.");
+                const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+                toast.error(payload?.error ?? "Secili kelimeler silinemedi.");
                 return;
             }
 
             const payload = (await response.json().catch(() => null)) as { deletedCount?: number } | null;
             toast.success(`${payload?.deletedCount ?? ids.length} kelime silindi.`);
             clearSelection();
+            setBulkDeleteOpen(false);
+            setBulkDeleteReason("");
             await fetchWords();
         } catch {
             toast.error("Secili kelimeler silinemedi.");
         } finally {
             setBulkDeleting(false);
         }
-    }, [clearSelection, fetchWords, selectedIds]);
+    }, [bulkDeleteReason, clearSelection, fetchWords, selectedIds]);
 
     return (
         <div className="space-y-6">
@@ -459,7 +463,7 @@ export default function AdminWordsPage() {
                     size="sm"
                     variant="outline"
                     disabled={bulkDeleting}
-                    onClick={() => void handleBulkDelete()}
+                    onClick={() => setBulkDeleteOpen(true)}
                     className="gap-2"
                 >
                     {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -1050,6 +1054,94 @@ export default function AdminWordsPage() {
                             >
                                 {bulkSaving ? <Loader2 size={16} className="animate-spin" /> : <FileUp size={16} />}
                                 Yuklemeyi Baslat
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {bulkDeleteOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-xl rounded-3xl border border-border bg-card shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">Toplu silmeyi onayla</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Bu işlem geri alınamaz. Yalnız bu sayfadaki seçili kelimeler silinir.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setBulkDeleteOpen(false);
+                                    setBulkDeleteReason("");
+                                }}
+                            >
+                                <X size={18} />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-5 p-5">
+                            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-4">
+                                <div className="text-xs font-bold uppercase tracking-[0.18em] text-red-700 dark:text-red-300">
+                                    Silinecek kayıt
+                                </div>
+                                <div className="mt-2 text-3xl font-black text-foreground">
+                                    {bulkDeleteCount}
+                                </div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                    {bulkDeleteCount} kelimeyi sil
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-border bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                                Bu onay penceresi yanlış toplu silmeleri engellemek için var. Büyük silmeler audit kaydına not ile düşer.
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                    Operasyon notu {bulkDeleteRequiresReason ? "(zorunlu)" : "(opsiyonel)"}
+                                </label>
+                                <textarea
+                                    value={bulkDeleteReason}
+                                    onChange={(event) => setBulkDeleteReason(event.target.value)}
+                                    rows={4}
+                                    placeholder={
+                                        bulkDeleteRequiresReason
+                                            ? "Ör: Hatalı import temizliği, duplicate kayıt silme, test verisi temizliği."
+                                            : "İstersen kısa bir not ekle."
+                                    }
+                                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500/40"
+                                />
+                                {bulkDeleteRequiresReason ? (
+                                    <p className="text-xs text-amber-600 dark:text-amber-300">
+                                        10 veya daha fazla kelime silerken açıklayıcı bir not zorunludur.
+                                    </p>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setBulkDeleteOpen(false);
+                                    setBulkDeleteReason("");
+                                }}
+                            >
+                                İptal
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={bulkDeleting || (bulkDeleteRequiresReason && bulkDeleteReason.trim().length < 8)}
+                                onClick={() => void handleBulkDelete()}
+                            >
+                                {bulkDeleting ? <Loader2 size={16} className="mr-2 animate-spin" /> : null}
+                                {bulkDeleteCount} kelimeyi sil
                             </Button>
                         </div>
                     </div>

@@ -7,11 +7,14 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { writeAuditLog } from "@/lib/security/audit-log";
 
 export const dynamic = "force-dynamic";
+const REASON_THRESHOLD = 10;
 
 const bulkDeleteSchema = z.object({
     ids: z.array(z.number().int().positive()).min(1).max(100),
+    reason: z.string().trim().max(500).optional().default(""),
 });
 
 export async function POST(request: NextRequest) {
@@ -35,12 +38,40 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { ids } = bulkDeleteSchema.parse(body);
+        const { ids, reason } = bulkDeleteSchema.parse(body);
+        const uniqueIds = Array.from(new Set(ids));
+
+        if (uniqueIds.length >= REASON_THRESHOLD && reason.trim().length < 8) {
+            return NextResponse.json(
+                { error: `${REASON_THRESHOLD} veya daha fazla kelime silerken aciklayici bir not girmelisin.` },
+                { status: 422, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
+        const words = await prisma.word.findMany({
+            where: { id: { in: uniqueIds } },
+            select: { id: true, wordText: true },
+        });
 
         const result = await prisma.word.deleteMany({
             where: {
-                id: { in: Array.from(new Set(ids)) },
+                id: { in: uniqueIds },
             },
+        });
+
+        await writeAuditLog({
+            actor: adminSession,
+            action: "admin.word.bulk_delete",
+            resourceType: "word",
+            summary: `Bulk deleted ${result.count} word records`,
+            metadata: {
+                selectedCount: uniqueIds.length,
+                deletedCount: result.count,
+                reason: reason.trim() || null,
+                wordIds: words.map((word) => word.id),
+                wordTexts: words.map((word) => word.wordText).slice(0, 20),
+            },
+            request,
         });
 
         return NextResponse.json(
