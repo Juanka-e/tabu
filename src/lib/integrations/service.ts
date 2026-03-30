@@ -1,4 +1,5 @@
 import { getAdminAccessPolicy } from "@/lib/admin/access-policy";
+import { shouldTrustAuthHost } from "@/lib/auth-host";
 import { getCaptchaProviderReadiness, getSystemSettings } from "@/lib/system-settings/service";
 import type { CaptchaSettings, SystemSettings } from "@/types/system-settings";
 
@@ -49,6 +50,8 @@ function buildRuntimeItems(): IntegrationItem[] {
     const authSecretStrong = isStrongAuthSecret(process.env.AUTH_SECRET);
     const nextAuthUrl = process.env.NEXTAUTH_URL?.trim() || "";
     const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "";
+    const authTrustHostEnabled = shouldTrustAuthHost();
+    const isProduction = process.env.NODE_ENV === "production";
 
     return [
         {
@@ -67,11 +70,11 @@ function buildRuntimeItems(): IntegrationItem[] {
             category: "runtime",
             title: "Auth.js Core",
             status:
-                authSecretStrong && nextAuthUrl && publicSiteUrl
+                authSecretStrong && authTrustHostEnabled && nextAuthUrl && publicSiteUrl
                     ? "ready"
-                    : authSecretStrong && (nextAuthUrl || publicSiteUrl)
+                    : authSecretStrong && authTrustHostEnabled && (nextAuthUrl || publicSiteUrl)
                       ? "partial"
-                      : "missing",
+                    : "missing",
             summary: authSecretStrong
                 ? "Auth temel env baglantilari kontrol edildi."
                 : "AUTH_SECRET zayif veya eksik.",
@@ -79,6 +82,7 @@ function buildRuntimeItems(): IntegrationItem[] {
                 `AUTH_SECRET: ${authSecretStrong ? "strong" : "missing_or_weak"}`,
                 `NEXTAUTH_URL: ${nextAuthUrl ? nextAuthUrl : "missing"}`,
                 `NEXT_PUBLIC_SITE_URL: ${publicSiteUrl ? publicSiteUrl : "missing"}`,
+                `AUTH_TRUST_HOST: ${authTrustHostEnabled ? (isProduction ? "enabled" : "dev_auto_trust") : "disabled"}`,
             ],
         },
     ];
