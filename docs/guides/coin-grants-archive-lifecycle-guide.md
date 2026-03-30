@@ -53,6 +53,24 @@ Bu durumlar UI copy, filtre ve backend query tarafinda ayni mantikla tasinacak.
 
 Bir action digerini taklit etmemeli.
 
+## Uygulanan Temel Karar
+
+Bu branch'te lifecycle dili su sekilde uygulanacak:
+
+- `Pasife Al`
+  - kaydi operasyonel listede tutar
+  - `isActive = false`
+  - gizli delete yapmaz
+- `Arsive Kaldir`
+  - kaydi operasyonel listeden cikarir
+  - `archivedAt` doldurur
+  - aktif kayit once pasife alinmadan arsivlenmez
+- `Arsivden Cikar`
+  - kaydi yeniden operasyonel listeye alir
+  - varsayilan olarak pasif durumda geri doner
+
+Bu karar, admin'in ekrandaki buton etiketine bastiginda baska bir sey olmamasini garanti etmek icin alindi.
+
 ## Guardrail
 
 - audit gecmisi korunacak

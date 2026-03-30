@@ -43,10 +43,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     if (!outcome) {
         return NextResponse.json({ error: "Kod bulunamadi." }, { status: 404 });
     }
+    if (outcome === "archived") {
+        return NextResponse.json({ error: "Arsivli kod pasife alinamaz." }, { status: 409 });
+    }
 
     await writeAuditLog({
         actor: adminSession,
-        action: outcome === "deleted" ? "admin.coin_grant_code.delete" : "admin.coin_grant_code.deactivate",
+        action: "admin.coin_grant_code.deactivate",
         resourceType: "coin_grant_code",
         resourceId: paramsResult.data.id,
         summary: `${outcome} coin grant code ${paramsResult.data.id}`,

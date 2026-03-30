@@ -112,10 +112,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     if (!outcome) {
         return NextResponse.json({ error: "Campaign bulunamadi." }, { status: 404 });
     }
+    if (outcome === "archived") {
+        return NextResponse.json({ error: "Arsivli campaign pasife alinamaz." }, { status: 409 });
+    }
 
     await writeAuditLog({
         actor: adminSession,
-        action: outcome === "deleted" ? "admin.coin_grant_campaign.delete" : "admin.coin_grant_campaign.deactivate",
+        action: "admin.coin_grant_campaign.deactivate",
         resourceType: "coin_grant_campaign",
         resourceId: paramsResult.data.id,
         summary: `${outcome} campaign ${paramsResult.data.id}`,

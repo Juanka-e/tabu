@@ -122,6 +122,25 @@ function isCampaignArchived(campaign: CoinGrantCampaignView): boolean {
     return campaign.archivedAt !== null;
 }
 
+function matchesCampaignFilter(campaign: CoinGrantCampaignView, viewFilter: CampaignViewFilter): boolean {
+    const archived = isCampaignArchived(campaign);
+
+    switch (viewFilter) {
+        case "active":
+            return !archived && campaign.isActive;
+        case "inactive":
+            return !archived && !campaign.isActive;
+        case "used":
+            return !archived && isCampaignUsed(campaign);
+        case "exhausted":
+            return !archived && isCampaignExhausted(campaign);
+        case "archived":
+            return archived;
+        default:
+            return !archived;
+    }
+}
+
 function StatChip({
     icon: Icon,
     label,
@@ -229,22 +248,14 @@ export default function AdminCoinGrantsPage() {
                 return false;
             }
 
-            switch (viewFilter) {
-                case "active":
-                    return campaign.isActive;
-                case "inactive":
-                    return !campaign.isActive;
-                case "used":
-                    return isCampaignUsed(campaign);
-                case "exhausted":
-                    return isCampaignExhausted(campaign);
-                case "archived":
-                    return isCampaignArchived(campaign);
-                default:
-                    return true;
-            }
+            return matchesCampaignFilter(campaign, viewFilter);
         });
     }, [campaigns, search, viewFilter]);
+
+    const operationalCampaigns = useMemo(
+        () => campaigns.filter((campaign) => !campaign.archivedAt),
+        [campaigns]
+    );
 
     const eligibleCodeCampaigns = useMemo(
         () => campaigns.filter((campaign) => campaign.isActive && !campaign.archivedAt),
@@ -253,11 +264,23 @@ export default function AdminCoinGrantsPage() {
 
     const stats = useMemo(
         () => [
-            { label: "campaign", value: String(campaigns.length) },
-            { label: "kod", value: String(campaigns.reduce((sum, campaign) => sum + campaign.codes.length, 0)) },
-            { label: "dagitilan coin", value: String(campaigns.reduce((sum, campaign) => sum + campaign.totalGrantedCoin, 0)) },
+            { label: "campaign", value: String(operationalCampaigns.length) },
+            {
+                label: "kod",
+                value: String(
+                    operationalCampaigns.reduce(
+                        (sum, campaign) => sum + campaign.codes.filter((code) => !code.archivedAt).length,
+                        0
+                    )
+                ),
+            },
+            {
+                label: "dagitilan coin",
+                value: String(operationalCampaigns.reduce((sum, campaign) => sum + campaign.totalGrantedCoin, 0)),
+            },
+            { label: "arsiv", value: String(campaigns.filter((campaign) => campaign.archivedAt).length) },
         ],
-        [campaigns]
+        [campaigns, operationalCampaigns]
     );
 
     const submitCampaign = async () => {
@@ -379,24 +402,16 @@ export default function AdminCoinGrantsPage() {
                 return;
             }
 
-            const payload = (await response.json().catch(() => ({ ok: true, outcome: "deactivated" }))) as {
-                ok?: boolean;
-                outcome?: "deleted" | "deactivated";
-            };
+            await response.json().catch(() => ({ ok: true, outcome: "deactivated" }));
 
-            if (payload.outcome === "deleted") {
-                setCampaigns((current) => current.filter((entry) => entry.id !== campaign.id));
-                setNotice(`${campaign.name} silindi.`);
-            } else {
-                setCampaigns((current) =>
-                    current.map((entry) =>
-                        entry.id === campaign.id
-                            ? { ...entry, isActive: false, updatedAt: new Date().toISOString() }
-                            : entry
-                    )
-                );
-                setNotice(`${campaign.name} pasife alindi.`);
-            }
+            setCampaigns((current) =>
+                current.map((entry) =>
+                    entry.id === campaign.id
+                        ? { ...entry, isActive: false, updatedAt: new Date().toISOString() }
+                        : entry
+                )
+            );
+            setNotice(`${campaign.name} pasife alindi.`);
             await loadCampaigns();
         } finally {
             setDeactivatingCampaignId(null);
@@ -421,27 +436,21 @@ export default function AdminCoinGrantsPage() {
                 return;
             }
 
-            const payload = (await response.json().catch(() => ({ ok: true, outcome: "deactivated" }))) as {
-                ok?: boolean;
-                outcome?: "deleted" | "deactivated";
-            };
+            await response.json().catch(() => ({ ok: true, outcome: "deactivated" }));
 
             setCampaigns((current) =>
                 current.map((campaign) =>
                     campaign.id === campaignId
                         ? {
                             ...campaign,
-                            codes:
-                                payload.outcome === "deleted"
-                                    ? campaign.codes.filter((entry) => entry.id !== codeId)
-                                    : campaign.codes.map((entry) =>
-                                        entry.id === codeId ? { ...entry, isActive: false } : entry
-                                    ),
+                            codes: campaign.codes.map((entry) =>
+                                entry.id === codeId ? { ...entry, isActive: false } : entry
+                            ),
                         }
                         : campaign
                 )
             );
-            setNotice(payload.outcome === "deleted" ? "Kod silindi." : "Kod pasife alindi.");
+            setNotice("Kod pasife alindi.");
             await loadCampaigns();
         } finally {
             setDeactivatingCodeId(null);
@@ -477,6 +486,37 @@ export default function AdminCoinGrantsPage() {
                 )
             );
             setNotice(`${campaign.name} arsive alindi.`);
+            await loadCampaigns();
+        } finally {
+            setArchivingCampaignId(null);
+        }
+    };
+
+    const restoreCampaign = async (campaign: CoinGrantCampaignView) => {
+        if (!campaign.archivedAt) {
+            setNotice("Bu campaign zaten operasyonel listede.");
+            return;
+        }
+
+        setError(null);
+        setNotice(null);
+        setArchivingCampaignId(campaign.id);
+        try {
+            const response = await fetch(`/api/admin/coin-grants/campaigns/${campaign.id}/restore`, { method: "POST" });
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({ error: "Campaign geri alinamadi." }))) as { error?: string };
+                setError(errorPayload.error || "Campaign geri alinamadi.");
+                return;
+            }
+
+            setCampaigns((current) =>
+                current.map((entry) =>
+                    entry.id === campaign.id
+                        ? { ...entry, archivedAt: null, isActive: false }
+                        : entry
+                )
+            );
+            setNotice(`${campaign.name} arsivden cikarildi.`);
             await loadCampaigns();
         } finally {
             setArchivingCampaignId(null);
@@ -525,6 +565,44 @@ export default function AdminCoinGrantsPage() {
         }
     };
 
+    const restoreCode = async (campaignId: number, codeId: number) => {
+        const parentCampaign = campaigns.find((campaign) => campaign.id === campaignId);
+        const code = parentCampaign?.codes.find((entry) => entry.id === codeId);
+        if (!code?.archivedAt) {
+            setNotice("Bu kod zaten operasyonel listede.");
+            return;
+        }
+
+        setError(null);
+        setNotice(null);
+        setArchivingCodeId(codeId);
+        try {
+            const response = await fetch(`/api/admin/coin-grants/codes/${codeId}/restore`, { method: "POST" });
+            if (!response.ok) {
+                const errorPayload = (await response.json().catch(() => ({ error: "Kod geri alinamadi." }))) as { error?: string };
+                setError(errorPayload.error || "Kod geri alinamadi.");
+                return;
+            }
+
+            setCampaigns((current) =>
+                current.map((campaign) =>
+                    campaign.id === campaignId
+                        ? {
+                            ...campaign,
+                            codes: campaign.codes.map((entry) =>
+                                entry.id === codeId ? { ...entry, archivedAt: null, isActive: false } : entry
+                            ),
+                        }
+                        : campaign
+                )
+            );
+            setNotice("Kod arsivden cikarildi.");
+            await loadCampaigns();
+        } finally {
+            setArchivingCodeId(null);
+        }
+    };
+
     const toggleCampaignDetails = (campaignId: number) => {
         setExpandedCampaignIds((current) =>
             current.includes(campaignId)
@@ -537,7 +615,7 @@ export default function AdminCoinGrantsPage() {
             <AdminPageHeader
                 title="Coin Grants"
                 description="Influencer kodu, etkinlik odulu veya toplu coin dagitimi icin kontrollu operasyon paneli."
-                meta={`${campaigns.length} campaign`}
+                meta={`${operationalCampaigns.length} operasyonel campaign`}
                 icon={<Gift className="h-5 w-5 text-amber-500" />}
             />
 
@@ -567,7 +645,7 @@ export default function AdminCoinGrantsPage() {
 
             <div className="flex flex-wrap gap-2">
                 {([
-                    ["all", "Tum kayitlar"],
+                    ["all", "Tum operasyonel"],
                     ["active", "Aktif"],
                     ["inactive", "Pasif"],
                     ["used", "Kullanilan"],
@@ -588,8 +666,8 @@ export default function AdminCoinGrantsPage() {
 
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <AdminTableShell
-                    title="Aktif Dagitimlar"
-                    description="Campaign butcesi, claim limiti, tukenen dagitimlar ve code dagilimi buradan izlenir."
+                    title="Dagitim Campaign'lari"
+                    description="Arsiv haric operasyonel campaign'ler, claim limiti ve code dagilimi buradan izlenir."
                     loading={loading}
                     isEmpty={!loading && filteredCampaigns.length === 0}
                     emptyState={
@@ -602,7 +680,7 @@ export default function AdminCoinGrantsPage() {
                 >
                     <div className="space-y-4 p-4">
                         {filteredCampaigns.map((campaign) => {
-                            const visibleCodes = campaign.codes.filter((code) => !code.archivedAt || viewFilter === "archived");
+                            const visibleCodes = campaign.codes.filter((code) => (viewFilter === "archived" ? Boolean(code.archivedAt) : !code.archivedAt));
                             const isExpanded = expandedCampaignIds.includes(campaign.id);
                             const archivedCodeCount = campaign.codes.filter((code) => code.archivedAt).length;
 
@@ -660,15 +738,27 @@ export default function AdminCoinGrantsPage() {
                                                 <Trash2 size={14} />
                                                 <span className="ml-2">{campaign.isActive ? "Pasife al" : "Pasif"}</span>
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                disabled={archivingCampaignId === campaign.id || campaign.isActive || Boolean(campaign.archivedAt)}
-                                                onClick={() => void archiveCampaign(campaign)}
-                                            >
-                                                <Archive size={14} />
-                                                <span className="ml-2">{campaign.archivedAt ? "Arsivde" : archivingCampaignId === campaign.id ? "Arsivleniyor" : "Arsivle"}</span>
-                                            </Button>
+                                            {campaign.archivedAt ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={archivingCampaignId === campaign.id}
+                                                    onClick={() => void restoreCampaign(campaign)}
+                                                >
+                                                    <Archive size={14} />
+                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Geri aliniyor" : "Arsivden cikar"}</span>
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={archivingCampaignId === campaign.id || campaign.isActive}
+                                                    onClick={() => void archiveCampaign(campaign)}
+                                                >
+                                                    <Archive size={14} />
+                                                    <span className="ml-2">{archivingCampaignId === campaign.id ? "Arsivleniyor" : "Arsive kaldir"}</span>
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
 
@@ -730,29 +820,34 @@ export default function AdminCoinGrantsPage() {
                                                                 {code.label ? <span className="text-muted-foreground">{code.label}</span> : null}
                                                                 {!code.isActive ? <span className="text-amber-600">pasif</span> : null}
                                                                 {code.archivedAt ? <span className="text-violet-600">arsiv</span> : null}
-                                                                {!code.archivedAt ? (
-                                                                    <>
-                                                                        {code.isActive ? (
-                                                                            <button
-                                                                                type="button"
-                                                                                disabled={deactivatingCodeId === code.id}
-                                                                                onClick={() => void deactivateCode(campaign.id, code.id)}
-                                                                                className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                                            >
-                                                                                {deactivatingCodeId === code.id ? "kapatiliyor" : "kapat"}
-                                                                            </button>
-                                                                        ) : (
-                                                                            <button
-                                                                                type="button"
-                                                                                disabled={archivingCodeId === code.id}
-                                                                                onClick={() => void archiveCode(campaign.id, code.id)}
-                                                                                className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
-                                                                            >
-                                                                                {archivingCodeId === code.id ? "arsivleniyor" : "arsivle"}
-                                                                            </button>
-                                                                        )}
-                                                                    </>
-                                                                ) : null}
+                                                                {code.archivedAt ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={archivingCodeId === code.id}
+                                                                        onClick={() => void restoreCode(campaign.id, code.id)}
+                                                                        className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                                    >
+                                                                        {archivingCodeId === code.id ? "geri aliniyor" : "arsivden cikar"}
+                                                                    </button>
+                                                                ) : code.isActive ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={deactivatingCodeId === code.id}
+                                                                        onClick={() => void deactivateCode(campaign.id, code.id)}
+                                                                        className="font-semibold text-red-500 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                                    >
+                                                                        {deactivatingCodeId === code.id ? "pasife aliniyor" : "pasife al"}
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={archivingCodeId === code.id}
+                                                                        onClick={() => void archiveCode(campaign.id, code.id)}
+                                                                        className="font-semibold text-violet-600 disabled:cursor-not-allowed disabled:text-zinc-400"
+                                                                    >
+                                                                        {archivingCodeId === code.id ? "arsivleniyor" : "arsive kaldir"}
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         ))
                                                     )}
