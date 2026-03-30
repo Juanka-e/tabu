@@ -39,3 +39,11 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 9. `admin-content-ops-guide.md`
 - duyuru ve bulk content operasyonlarini toparlama rehberi
 - compact render/editor ve kategori destekli bulk upload sinirlarini tanimlar
+
+10. `coin-grants-archive-lifecycle-guide.md`
+- coin grant campaign ve code tarafindaki archive semantigini esitleme rehberi
+- `Tum`, `Pasif`, `Arsiv` davranislarini ayni lifecycle modeline ceker
+
+11. `night-market-and-missions-strategy-guide.md`
+- night market, gorev sistemi ve oyuncu motivasyon katmanlarini birlikte planlama rehberi
+- hangi kosullarda implement edilmesi gerektigini ve neden acele edilmemesi gerektigini aciklar

@@ -1,4 +1,4 @@
-# Yeni Ozellikler Yol Haritasi
+﻿# Yeni Ozellikler Yol Haritasi
 
 > Son guncelleme: 30 March 2026
 > Durum: aktif roadmap dokumani
@@ -27,6 +27,8 @@
 15. `feature/integration-hub`
 16. `feature/dashboard-visual-polish`
 17. `feature/store-merchandising`
+18. `feature/admin-shop-ux`
+19. `feature/admin-inventory-operations`
 
 ## Aktif Teknik Kararlar
 
@@ -51,8 +53,9 @@
 ### Coin Guvenligi Stratejisi
 - Store discount coupon ile coin dagitim sistemi ayridir.
 - Wallet'a deger enjekte eden her akista transaction, actor audit, reason, duplicate claim korumasi, limit ve budget kontrolu zorunludur.
-- Coin economy ve anti-abuse katmanlari icin planning rehberi:
+- Coin economy ve anti-abuse katmanlari icin planning rehberleri:
   - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ### Gelecek Odeme Stratejisi
 - Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
@@ -72,69 +75,25 @@
 ### Store ve Liveops Stratejisi
 - cosmetic definition, store offer, inventory ownership ve personalized offer alanlari ayrilacak.
 - Night market, event reward, admin grant ve normal store satisi ayni modelin icine sikistirilmayacak.
-- Ana referans:
+- Ana referanslar:
   - `docs/guides/store-liveops-strategy-guide.md`
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-18. `fix/admin-content-ops`
-19. `fix/coin-grants-archive-lifecycle`
-20. `feature/admin-user-observability`
-21. `feature/night-market-foundation`
+20. `fix/coin-grants-archive-lifecycle`
+21. `feature/admin-user-observability`
 22. `feature/economy-abuse-hardening`
-23. `feature/cache-and-rate-limit-foundation`
-24. `feature/admin-promotions-ux`
-25. `feature/cosmetic-render-upgrade`
-26. `feature/admin-cosmetic-authoring`
-27. `feature/gameplay-ui-polish`
-28. `feature/analytics-event-foundation`
-29. `feature/word-analytics-liveops`
-30. `feature/release-ops-docs`
-31. `docs/encoding-cleanup`
-32. `feature/wallet-ledger-foundation`
-
-## Integration Hub Slice (24 March 2026, completed)
-- Yeni `/admin/integrations` paneli eklendi.
-- Ilk dilimde gosterilen bloklar:
-  - database
-  - auth core
-  - Turnstile
-  - reCAPTCHA
-  - admin access gateway
-  - branding asset storage
-  - email outbound
-  - Redis / Valkey
-- Secret degerler panelde gosterilmedi.
-- Provider readiness ve env wiring durumu gorunur hale getirildi.
-- Henuz bagli olmayan entegrasyonlar `planned` olarak acik sekilde isaretlendi.
-- MySQL gecici erisilemezse app'in sert dusmemesi icin settings fallback eklendi.
-- Production deployment guvenligi icin:
-  - loopback bind varsayilani
-  - token-korumali `/api/health`
-  - `docs/guides/deployment-security-guide.md`
-
-## Store / Economy Planning Docs Slice (25 March 2026, docs-only)
-- `docs/guides/store-liveops-strategy-guide.md`
-- `docs/guides/economy-abuse-strategy-guide.md`
-- Store, liveops, inventory ve personalized offer alanlari ayrildi.
-- Night market icin:
-  - oyuncuya ozel snapshot
-  - min / max discount mantigi
-  - item pool filtreleme kurallari
-  - reroll'u ilk surumde acmama karari
-- Economy abuse tarafinda:
-  - guest coin yok
-  - gunluk cap
-  - repetitive group davranisinda hard block yerine kademeli coin verim dusurme
-  - IP/subnet'i yumusak suphe sinyali olarak kullanma
-
-## Dashboard / Store Delivery Slice (30 March 2026, completed)
-- `feature/dashboard-visual-polish`
-  - full-page dashboard ve in-game shell daha tutarli hale geldi
-  - responsive ve Turkce dashboard copy temizlendi
-- `feature/store-merchandising`
-  - magazanin oyuncu-facing merchandising dili guclendirildi
-  - preview, kupon, fiyat ve inventory akislarina tutarlilik geldi
-  - dashboard sidebar icindeki discovery / store follow-up'lari kapatildi
+23. `feature/night-market-foundation`
+24. `feature/cache-and-rate-limit-foundation`
+25. `feature/admin-promotions-ux`
+26. `feature/cosmetic-render-upgrade`
+27. `feature/admin-cosmetic-authoring`
+28. `feature/gameplay-ui-polish`
+29. `feature/analytics-event-foundation`
+30. `feature/word-analytics-liveops`
+31. `feature/release-ops-docs`
+32. `docs/encoding-cleanup`
+33. `feature/wallet-ledger-foundation`
 
 ## Admin Shop UX Slice (30 March 2026, completed)
 - `feature/admin-shop-ux`
@@ -170,13 +129,13 @@
     - `user/me`
     - `user/dashboard`
     - `user/inventory`
-  - `support/tickets`
-  - `store/items`
-  read route'larina rate limit eklendi
+    - `support/tickets`
+    - `store/items`
+    read route'larina rate limit eklendi
 
-## Admin Content Ops Slice (30 March 2026, active near-complete)
+## Admin Content Ops Slice (30 March 2026, completed)
 - `fix/admin-content-ops`
-  - duyuru collapsed kart dili sadeleştirildi
+  - duyuru kart dili sade ve compact hale getirildi
   - duplicate metin ve block count gibi ic metadata kaldirildi
   - `YENI` rozeti 7 gunluk gorunum mantigiyla korundu
   - tarih meta alani sag uste tasindi
@@ -186,17 +145,26 @@
     - `fixed_categories`
   - duplicate / skipped / error sonuclari gorunur hale geldi
   - kelimelerde yalniz gorunen sayfayi secen bulk selection ve guvenli bulk delete eklendi
-  - eski sidebar `Toplu Yukleme` girisi kaldirildi, eski URL `Kelime Yönetimi`ne yonlenir
+  - eski sidebar `Toplu Yukleme` girisi kaldirildi, eski URL `Kelime Yonetimi`ne yonlenir
 
-## Tamamlanan Docs-Only Branch'ler
-- `docs/cleanup-roadmap-and-encoding`
-  - eski brainstorming/cop roadmap bloklari temizlendi
-  - aktif roadmap, completed ve remaining/task dokumanlari sadelestirildi
+## Coin Grants Archive Lifecycle Slice (30 March 2026, active)
+- `fix/coin-grants-archive-lifecycle`
+  - campaign ve code tarafindaki archive semantigi tek modele cekilecek
+  - `Tum`, `Aktif`, `Pasif`, `Arsiv` filtrelerinin ne gosterdigi netlestirilecek
+  - archive, pasiflestirme ve silme davranisi tutarli hale getirilecek
+
+## Night Market Ve Gorev Sistemi Notu
+- `feature/night-market-foundation` acele uygulanmayacak
+- once economy guardrail, admin observability ve reward mantigi olgunlasacak
+- gorev sistemi, rozetler, profil banner ve geri donus motivasyonu birlikte planlanacak
+- planning rehberleri:
+  - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Sayisal Durum
 - Tamamlanan feature branch sayisi: 19
-- Planli toplam feature branch sayisi: 32
-- Kalan feature branch sayisi: 13
+- Planli toplam feature branch sayisi: 33
+- Kalan feature branch sayisi: 14
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.
