@@ -67,6 +67,12 @@ const slotLabels: Record<AdminInventoryEquipSlot, string> = {
     card_face: "Kart Önü",
 };
 
+const sourceBadgeClasses = {
+    purchase: "bg-destructive/10 text-destructive border-destructive/30",
+    grant: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40",
+    migration: "bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700/40",
+} as const;
+
 function formatDateTime(value: string): string {
     return new Date(value).toLocaleString("tr-TR", {
         dateStyle: "short",
@@ -85,11 +91,13 @@ function SummaryPill({ label, value }: { label: string; value: string }) {
 
 export default function AdminInventoryPage() {
     const [search, setSearch] = useState("");
+    const [debouncedUserSearch, setDebouncedUserSearch] = useState("");
     const [users, setUsers] = useState<AdminInventoryUserOption[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
     const [inventory, setInventory] = useState<AdminUserInventoryView | null>(null);
     const [grantReason, setGrantReason] = useState("");
     const [grantSearch, setGrantSearch] = useState("");
+    const [inventorySearch, setInventorySearch] = useState("");
     const [grantItemId, setGrantItemId] = useState<number | null>(null);
     const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
     const [loadingUsers, setLoadingUsers] = useState(true);
@@ -105,6 +113,16 @@ export default function AdminInventoryPage() {
     const [revokeOverrideConfirmed, setRevokeOverrideConfirmed] = useState(false);
     const [resetTargetSlot, setResetTargetSlot] = useState<AdminInventoryEquipSlot | null>(null);
 
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            setDebouncedUserSearch(search.trim());
+        }, 300);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [search]);
+
     const loadUsers = useCallback(async () => {
         setLoadingUsers(true);
         try {
@@ -113,8 +131,8 @@ export default function AdminInventoryPage() {
                 limit: "12",
                 status: "all",
             });
-            if (search.trim()) {
-                params.set("search", search.trim());
+            if (debouncedUserSearch) {
+                params.set("search", debouncedUserSearch);
             }
 
             const response = await fetch(`/api/admin/users?${params.toString()}`, {
@@ -152,7 +170,7 @@ export default function AdminInventoryPage() {
         } finally {
             setLoadingUsers(false);
         }
-    }, [search]);
+    }, [debouncedUserSearch]);
 
     const loadInventory = useCallback(async (userId: number) => {
         setLoadingInventory(true);
@@ -210,7 +228,18 @@ export default function AdminInventoryPage() {
             return [];
         }
 
+        const normalizedSearch = inventorySearch.trim().toLowerCase();
+
         return inventory.items.filter((item) => {
+            const matchesSearch =
+                !normalizedSearch ||
+                [item.name, item.code, item.type, item.source, item.rarity, item.badgeText ?? ""]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(normalizedSearch);
+            if (!matchesSearch) {
+                return false;
+            }
             if (inventoryFilter === "all") {
                 return true;
             }
@@ -222,7 +251,7 @@ export default function AdminInventoryPage() {
             }
             return item.type === inventoryFilter;
         });
-    }, [inventory, inventoryFilter]);
+    }, [inventory, inventoryFilter, inventorySearch]);
 
     const equippedSlotItems = useMemo(() => {
         if (!inventory) {
@@ -486,6 +515,14 @@ export default function AdminInventoryPage() {
                                     </option>
                                 ))}
                             </select>
+                            {selectedGrantItem ? (
+                                <div className="rounded-2xl border border-border/70 bg-muted/15 p-4 text-sm">
+                                    <div className="font-semibold text-foreground">{selectedGrantItem.name}</div>
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        {selectedGrantItem.code} · {typeLabels[selectedGrantItem.type]} · {selectedGrantItem.rarity}
+                                    </div>
+                                </div>
+                            ) : null}
                             <textarea
                                 value={grantReason}
                                 onChange={(event) => setGrantReason(event.target.value)}
@@ -581,68 +618,82 @@ export default function AdminInventoryPage() {
                                     ))}
                                 </div>
 
+                                <Input
+                                    value={inventorySearch}
+                                    onChange={(event) => setInventorySearch(event.target.value)}
+                                    placeholder="Envanter item adı, kodu, kaynak veya nadirlik ara..."
+                                />
+
                                 <div className="grid gap-3 lg:grid-cols-2">
-                                    {filteredItems.map((item) => (
-                                        <div key={item.inventoryItemId} className="rounded-2xl border border-border/70 bg-background p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="space-y-1">
-                                                    <div className="font-semibold text-foreground">{item.name}</div>
-                                                    <div className="text-xs font-mono text-muted-foreground">{item.code}</div>
-                                                </div>
-                                                <div className="flex flex-wrap justify-end gap-2">
-                                                    {item.equipped ? (
-                                                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                                                            Kuşanılı
+                                    {filteredItems.length ? (
+                                        filteredItems.map((item) => (
+                                            <div key={item.inventoryItemId} className="rounded-2xl border border-border/70 bg-background p-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="space-y-1">
+                                                        <div className="font-semibold text-foreground">{item.name}</div>
+                                                        <div className="text-xs font-mono text-muted-foreground">{item.code}</div>
+                                                    </div>
+                                                    <div className="flex flex-wrap justify-end gap-2">
+                                                        {item.equipped ? (
+                                                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                                                Kuşanılı
+                                                            </span>
+                                                        ) : null}
+                                                        <span
+                                                            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${sourceBadgeClasses[item.source]}`}
+                                                        >
+                                                            {sourceLabels[item.source]}
                                                         </span>
-                                                    ) : null}
-                                                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                                                        {sourceLabels[item.source]}
-                                                    </span>
-                                                    <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                                                        {typeLabels[item.type]}
-                                                    </span>
+                                                        <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                                            {typeLabels[item.type]}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                                                <div>
-                                                    <span className="font-semibold text-foreground">Kaynak:</span> {sourceLabels[item.source]}
+                                                <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                                                    <div>
+                                                        <span className="font-semibold text-foreground">Kaynak:</span> {sourceLabels[item.source]}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold text-foreground">Nadirlik:</span> {item.rarity}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold text-foreground">Alındı:</span> {formatDateTime(item.acquiredAt)}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold text-foreground">Fiyat Referansı:</span>{" "}
+                                                        {item.priceCoin.toLocaleString("tr-TR")} coin
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="font-semibold text-foreground">Nadirlik:</span> {item.rarity}
-                                                </div>
-                                                <div>
-                                                    <span className="font-semibold text-foreground">Alındı:</span> {formatDateTime(item.acquiredAt)}
-                                                </div>
-                                                <div>
-                                                    <span className="font-semibold text-foreground">Fiyat Referansı:</span>{" "}
-                                                    {item.priceCoin.toLocaleString("tr-TR")} coin
-                                                </div>
-                                            </div>
 
-                                            <div className="mt-4 flex justify-end">
-                                                <Button
-                                                    type="button"
-                                                    variant={item.source === "grant" ? "outline" : "destructive"}
-                                                    size="sm"
-                                                    className="gap-2"
-                                                    disabled={revokeSavingId === item.inventoryItemId}
-                                                    onClick={() => {
-                                                        setRevokeTarget(item);
-                                                        setRevokeReason("");
-                                                        setRevokeOverrideConfirmed(false);
-                                                    }}
-                                                >
-                                                    {revokeSavingId === item.inventoryItemId ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        <Trash2 className="h-4 w-4" />
-                                                    )}
-                                                    {item.source === "grant" ? "Kaldır" : "Zorla Kaldır"}
-                                                </Button>
+                                                <div className="mt-4 flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant={item.source === "grant" ? "outline" : "destructive"}
+                                                        size="sm"
+                                                        className="gap-2"
+                                                        disabled={revokeSavingId === item.inventoryItemId}
+                                                        onClick={() => {
+                                                            setRevokeTarget(item);
+                                                            setRevokeReason("");
+                                                            setRevokeOverrideConfirmed(false);
+                                                        }}
+                                                    >
+                                                        {revokeSavingId === item.inventoryItemId ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                        {item.source === "grant" ? "Grant Kaldır" : "Sahipliği Kaldır"}
+                                                    </Button>
+                                                </div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-border/70 px-4 py-8 text-sm text-muted-foreground lg:col-span-2">
+                                            Mevcut filtrelerle eşleşen envanter kaydı yok.
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         ) : null}
@@ -652,45 +703,58 @@ export default function AdminInventoryPage() {
                         <CardHeader>
                             <CardTitle>Operasyon Notları</CardTitle>
                         </CardHeader>
-                        <CardContent className="grid gap-3 md:grid-cols-3">
-                            <SummaryPill label="Grant" value="onaylı akış" />
-                            <SummaryPill label="Revoke" value="korumalı kaynak desteği" />
-                            <SummaryPill label="Equip Reset" value="onaylı akış" />
-                        </CardContent>
-                    </Card>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-3 md:grid-cols-3">
+                                <SummaryPill label="Grant" value="onaylı akış" />
+                                <SummaryPill label="Revoke" value="korumalı kaynak desteği" />
+                                <SummaryPill label="Equip Reset" value="onaylı akış" />
+                            </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Son Operasyonlar</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {inventory?.recentOperations.length ? (
-                                inventory.recentOperations.map((operation) => (
-                                    <div key={operation.id} className="rounded-2xl border border-border/70 bg-muted/15 p-4">
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div>
-                                                <div className="text-sm font-semibold text-foreground">
-                                                    {operation.summary || operation.action}
-                                                </div>
-                                                <div className="mt-1 text-xs text-muted-foreground">
-                                                    {formatDateTime(operation.createdAt)} · {operation.actorUsername || "Sistem"} · {operation.actorRole}
-                                                </div>
-                                            </div>
-                                            <div className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                                                {operation.action}
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 text-sm text-muted-foreground">
-                                            <span className="font-semibold text-foreground">Not:</span>{" "}
-                                            {operation.note || "Not girilmemiş."}
+                            <details className="group rounded-2xl border border-border/70 bg-muted/10">
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                                    <div>
+                                        <div className="text-sm font-semibold text-foreground">Son Operasyonlar</div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Seçili oyuncu için son grant, revoke ve equip reset kayıtları
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="rounded-2xl border border-dashed border-border/70 px-4 py-5 text-sm text-muted-foreground">
-                                    Seçili oyuncu için henüz grant, revoke veya equip reset geçmişi yok.
+                                    <span className="text-xs font-semibold text-muted-foreground transition group-open:rotate-180">
+                                        ▼
+                                    </span>
+                                </summary>
+
+                                <div className="border-t border-border/70 px-4 py-4">
+                                    {inventory?.recentOperations.length ? (
+                                        <div className="space-y-3">
+                                            {inventory.recentOperations.map((operation) => (
+                                                <div key={operation.id} className="rounded-2xl border border-border/70 bg-background p-4">
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div>
+                                                            <div className="text-sm font-semibold text-foreground">
+                                                                {operation.summary || operation.action}
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                                {formatDateTime(operation.createdAt)} · {operation.actorUsername || "Sistem"} · {operation.actorRole}
+                                                            </div>
+                                                        </div>
+                                                        <div className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                                            {operation.action}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 text-sm text-muted-foreground">
+                                                        <span className="font-semibold text-foreground">Not:</span>{" "}
+                                                        {operation.note || "Not girilmemiş."}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-border/70 px-4 py-5 text-sm text-muted-foreground">
+                                            Seçili oyuncu için henüz grant, revoke veya equip reset geçmişi yok.
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </details>
                         </CardContent>
                     </Card>
                 </div>
