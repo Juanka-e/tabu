@@ -6,6 +6,7 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { recordUserAccessSignal } from "@/lib/security/user-access-signal";
 
 export async function GET(request: Request) {
   const sessionUser = await getSessionUser();
@@ -27,5 +28,6 @@ export async function GET(request: Request) {
   }
 
   const data = await getDashboardData(sessionUser.id);
+  await recordUserAccessSignal({ userId: sessionUser.id, request });
   return NextResponse.json(data, { headers: buildRateLimitHeaders(rateLimit) });
 }

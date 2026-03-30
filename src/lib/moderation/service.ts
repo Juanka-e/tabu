@@ -76,6 +76,10 @@ function mapAdminUser(user: {
     suspendedAt: Date | null;
     suspendedUntil: Date | null;
     suspensionReason: string | null;
+    lastSeenAt: Date | null;
+    lastTrustedIp: string | null;
+    registeredTrustedIp: string | null;
+    lastUserAgent: string | null;
     wallet: { coinBalance: number } | null;
     profile: { displayName: string | null } | null;
     moderationActionsReceived: Array<{
@@ -100,6 +104,10 @@ function mapAdminUser(user: {
         suspendedAt: user.suspendedAt?.toISOString() ?? null,
         suspendedUntil: user.suspendedUntil?.toISOString() ?? null,
         suspensionReason: user.suspensionReason,
+        lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
+        lastTrustedIp: user.lastTrustedIp,
+        registeredTrustedIp: user.registeredTrustedIp,
+        lastUserAgent: user.lastUserAgent,
         recentModerationEvents: user.moderationActionsReceived.map(mapModerationEvent),
     };
 }
@@ -160,6 +168,10 @@ export async function getAdminUsers(input: {
                 suspendedAt: true,
                 suspendedUntil: true,
                 suspensionReason: true,
+                lastSeenAt: true,
+                lastTrustedIp: true,
+                registeredTrustedIp: true,
+                lastUserAgent: true,
                 wallet: {
                     select: {
                         coinBalance: true,
@@ -200,5 +212,6 @@ export async function getAdminUsers(input: {
         total,
         page,
         pages: Math.max(1, Math.ceil(total / limit)),
+        trustProxyEnabled: false,
     };
 }

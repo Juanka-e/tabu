@@ -68,12 +68,25 @@ function getEventLabel(actionType: ActionMode): string {
     return "Not";
 }
 
+function formatTrustedIp(ip: string | null): string {
+    return ip ?? "Bilinmiyor";
+}
+
+function summarizeUserAgent(userAgent: string | null): string {
+    if (!userAgent) {
+        return "Tarayıcı sinyali yok";
+    }
+
+    return userAgent.length > 72 ? `${userAgent.slice(0, 72)}...` : userAgent;
+}
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<AdminUserModerationView[]>([]);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [status, setStatus] = useState<StatusFilter>("all");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -88,6 +101,15 @@ export default function AdminUsersPage() {
     const [reason, setReason] = useState("");
     const [suspendedUntil, setSuspendedUntil] = useState("");
     const [walletSaving, setWalletSaving] = useState(false);
+    const [trustProxyEnabled, setTrustProxyEnabled] = useState(false);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setDebouncedSearch(search.trim());
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [search]);
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -97,8 +119,8 @@ export default function AdminUsersPage() {
                 limit: "12",
                 status,
             });
-            if (search.trim()) {
-                params.set("search", search.trim());
+            if (debouncedSearch) {
+                params.set("search", debouncedSearch);
             }
 
             const response = await fetch(`/api/admin/users?${params.toString()}`, {
@@ -114,12 +136,13 @@ export default function AdminUsersPage() {
             setPage(payload.page);
             setPages(payload.pages);
             setTotal(payload.total);
+            setTrustProxyEnabled(payload.trustProxyEnabled);
         } catch {
             toast.error("Kullanici listesi yuklenemedi.");
         } finally {
             setLoading(false);
         }
-    }, [page, search, status]);
+    }, [debouncedSearch, page, status]);
 
     useEffect(() => {
         void loadUsers();
@@ -127,13 +150,15 @@ export default function AdminUsersPage() {
 
     useEffect(() => {
         setPage(1);
-    }, [search, status]);
+    }, [debouncedSearch, status]);
 
     const counts = useMemo(() => {
         const suspendedCount = users.filter((user) => user.isSuspended).length;
+        const ipSignalCount = users.filter((user) => Boolean(user.lastTrustedIp)).length;
         return {
             visible: users.length,
             suspended: suspendedCount,
+            ipSignals: ipSignalCount,
         };
     }, [users]);
 
@@ -273,7 +298,7 @@ export default function AdminUsersPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Kullanici Moderasyonu"
-                description="Askiya alma, yeniden etkinlestirme ve ic not akislarini tek merkezden yonetin."
+                description="Askiya alma, yeniden etkinlestirme, ic not ve temel gozlem sinyallerini tek merkezden yonetin."
                 meta={`${total} kayit`}
                 icon={<Users className="h-5 w-5 text-amber-500" />}
             />
@@ -303,14 +328,21 @@ export default function AdminUsersPage() {
                     stats={[
                         { label: "gorunen", value: String(counts.visible) },
                         { label: "askida", value: String(counts.suspended) },
+                        { label: "ip sinyali", value: String(counts.ipSignals) },
                         { label: "sayfa", value: `${page} / ${pages}` },
                     ]}
                 />
             </AdminToolbar>
 
+            {!trustProxyEnabled ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    `TRUST_PROXY` kapalı. Son IP ve kayıt IP alanları yalnız güvenilir proxy arkasında sinyal üretir; bu yüzden bazı kullanıcılar için boş görünebilir.
+                </div>
+            ) : null}
+
             <AdminTableShell
                 title="Kullanici Listesi"
-                description="Suspend durumu ve son moderasyon olaylariyla birlikte listelenir."
+                description="Suspend durumu, son moderasyon olaylari ve trusted access sinyalleriyle birlikte listelenir."
                 loading={loading}
                 isEmpty={!loading && users.length === 0}
                 emptyState={
@@ -330,6 +362,7 @@ export default function AdminUsersPage() {
                             <TableHead>Kullanici</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead>Coin</TableHead>
+                            <TableHead>Gozlem</TableHead>
                             <TableHead>Son Olaylar</TableHead>
                             <TableHead className="text-right">Islemler</TableHead>
                         </TableRow>
@@ -379,6 +412,26 @@ export default function AdminUsersPage() {
                                 </TableCell>
                                 <TableCell className="font-medium text-foreground">
                                     {user.coinBalance.toLocaleString("tr-TR")}
+                                </TableCell>
+                                <TableCell>
+                                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son sinyal:</span>{" "}
+                                            {formatDateTime(user.lastSeenAt)}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son IP:</span>{" "}
+                                            {formatTrustedIp(user.lastTrustedIp)}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Kayit IP:</span>{" "}
+                                            {formatTrustedIp(user.registeredTrustedIp)}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.lastUserAgent ?? undefined}>
+                                            <span className="font-semibold text-foreground">UA:</span>{" "}
+                                            {summarizeUserAgent(user.lastUserAgent)}
+                                        </div>
+                                    </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="space-y-2">

@@ -32,6 +32,10 @@ export interface AdminUserModerationView {
     suspendedAt: string | null;
     suspendedUntil: string | null;
     suspensionReason: string | null;
+    lastSeenAt: string | null;
+    lastTrustedIp: string | null;
+    registeredTrustedIp: string | null;
+    lastUserAgent: string | null;
     recentModerationEvents: ModerationEventView[];
 }
 
@@ -40,4 +44,5 @@ export interface AdminUserListResponse {
     total: number;
     page: number;
     pages: number;
+    trustProxyEnabled: boolean;
 }

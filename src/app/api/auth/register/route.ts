@@ -18,6 +18,7 @@ import {
     normalizeEmail,
     sanitizeEmail,
 } from "@/lib/users/email";
+import { recordUserRegistrationSignal } from "@/lib/security/user-access-signal";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
@@ -112,6 +113,11 @@ export async function POST(req: Request) {
                     create: {},
                 },
             },
+        });
+
+        await recordUserRegistrationSignal({
+            userId: user.id,
+            request: req,
         });
 
         return NextResponse.json(

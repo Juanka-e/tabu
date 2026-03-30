@@ -6,6 +6,7 @@ import { sharedAuthConfig } from "@/lib/auth-shared";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { getRequestIp } from "@/lib/security/request-rate-limit";
+import { recordUserAccessSignal } from "@/lib/security/user-access-signal";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -64,6 +65,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (portal === "admin" && user.role !== "admin") {
                     return null;
                 }
+
+                await recordUserAccessSignal({
+                    userId: user.id,
+                    request,
+                });
 
                 return {
                     id: String(user.id),
