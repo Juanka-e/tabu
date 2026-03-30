@@ -47,7 +47,7 @@ export async function resolveFixedCategoryIds(
     });
 
     if (categories.length !== uniqueCategoryIds.length) {
-        return { error: "Secilen kategori veya alt kategori bulunamadi." };
+        return { error: "Seçilen kategori veya alt kategori bulunamadı." };
     }
 
     if (subcategoryIdValue) {
@@ -56,7 +56,7 @@ export async function resolveFixedCategoryIds(
         const subcategory = categories.find((category) => category.id === subcategoryId);
 
         if (!subcategory || subcategory.parentId !== parentCategoryId) {
-            return { error: "Alt kategori secimi ust kategori ile eslesmiyor." };
+            return { error: "Alt kategori seçimi üst kategori ile eşleşmiyor." };
         }
     }
 
@@ -101,7 +101,7 @@ export function extractCsvCategoryIds(
 
     const rootCategory = categoryIndex.byRootName.get(normalizeLabel(categoryName));
     if (!rootCategory) {
-        return { error: `Satir ${rowIndex}: "${categoryName}" kategorisi bulunamadi.` };
+        return { error: `Satır ${rowIndex}: "${categoryName}" kategorisi bulunamadı.` };
     }
 
     if (!subcategoryName) {
@@ -113,7 +113,7 @@ export function extractCsvCategoryIds(
     );
     if (!subcategory) {
         return {
-            error: `Satir ${rowIndex}: "${subcategoryName}" alt kategorisi "${categoryName}" altinda bulunamadi.`,
+            error: `Satır ${rowIndex}: "${subcategoryName}" alt kategorisi "${categoryName}" altında bulunamadı.`,
         };
     }
 
@@ -130,7 +130,7 @@ export async function processBulkWordUpload(options: {
 
     const lines = text.split("\n").filter((line) => line.trim());
     if (lines.length === 0) {
-        return { error: "CSV dosyasi bos." } as const;
+        return { error: "CSV dosyası boş." } as const;
     }
 
     let fixedCategoryIds: number[] = [];
@@ -171,8 +171,8 @@ export async function processBulkWordUpload(options: {
         if (cols.length < minimumColumns) {
             results.errors.push(
                 mode === "csv_categories"
-                    ? `Satir ${rowNumber}: En az 5 sutun gerekli (kelime, zorluk, kategori, alt_kategori, yasakli1).`
-                    : `Satir ${rowNumber}: En az 3 sutun gerekli (kelime, zorluk, yasakli1).`
+                    ? `Satır ${rowNumber}: En az 5 sütun gerekli (kelime, zorluk, kategori, alt_kategori, yasaklı1).`
+                    : `Satır ${rowNumber}: En az 3 sütun gerekli (kelime, zorluk, yasaklı1).`
             );
             continue;
         }
@@ -196,17 +196,17 @@ export async function processBulkWordUpload(options: {
         const tabooWords = cols.slice(tabooOffset).filter(Boolean);
 
         if (!wordText) {
-            results.errors.push(`Satir ${rowNumber}: Kelime bos.`);
+            results.errors.push(`Satır ${rowNumber}: Kelime boş.`);
             continue;
         }
 
         if (Number.isNaN(difficulty) || difficulty < 1 || difficulty > 3) {
-            results.errors.push(`Satir ${rowNumber}: Zorluk 1-3 arasinda olmali.`);
+            results.errors.push(`Satır ${rowNumber}: Zorluk 1-3 arasında olmalı.`);
             continue;
         }
 
         if (tabooWords.length === 0) {
-            results.errors.push(`Satir ${rowNumber}: En az 1 yasakli kelime gerekli.`);
+            results.errors.push(`Satır ${rowNumber}: En az 1 yasaklı kelime gerekli.`);
             continue;
         }
 
@@ -215,7 +215,7 @@ export async function processBulkWordUpload(options: {
         });
         if (existing) {
             results.skipped += 1;
-            results.skippedRows.push(`Satir ${rowNumber}: "${wordText}" zaten mevcut, atlandi.`);
+            results.skippedRows.push(`Satır ${rowNumber}: "${wordText}" zaten mevcut, atlandı.`);
             continue;
         }
 
@@ -239,7 +239,7 @@ export async function processBulkWordUpload(options: {
             });
             results.success += 1;
         } catch {
-            results.errors.push(`Satir ${rowNumber}: Veritabani hatasi.`);
+            results.errors.push(`Satır ${rowNumber}: Veritabanı hatası.`);
         }
     }
 

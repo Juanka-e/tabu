@@ -762,9 +762,9 @@ export default function AdminWordsPage() {
                     <div className="w-full max-w-2xl rounded-3xl border border-border bg-card shadow-2xl">
                         <div className="flex items-center justify-between border-b border-border px-5 py-4">
                             <div>
-                                <h2 className="text-lg font-semibold text-foreground">Toplu kelime yukle</h2>
+                                <h2 className="text-lg font-semibold text-foreground">Toplu kelime yükle</h2>
                                 <p className="text-sm text-muted-foreground">
-                                    CSV dosyasini yÃ¼kle. Ä°stersen her satÄ±r kendi kategori bilgisini taÅŸÄ±sÄ±n, istersen tÃ¼m satÄ±rlara ortak kategori uygula.
+                                    CSV dosyasını yükle. İstersen her satır kendi kategori bilgisini taşısın, istersen tüm satırlara ortak kategori uygula.
                                 </p>
                             </div>
                             <Button
@@ -826,19 +826,19 @@ export default function AdminWordsPage() {
                                 </div>
                                 <p className="mt-2">
                                     {bulkMode === "csv_categories"
-                                        ? "FarklÄ± kategorilerde Ã§ok sayÄ±da kelime yÃ¼klemek iÃ§in kategori ve alt kategori adlarÄ±nÄ± CSV iÃ§inde ver."
-                                        : "TÃ¼m satÄ±rlara aynÄ± kategori veya alt kategori atanacaksa bu modu kullan."}
+                                        ? "Farklı kategorilerde çok sayıda kelime yüklemek için kategori ve alt kategori adlarını CSV içinde ver."
+                                        : "Tüm satırlara aynı kategori veya alt kategori atanacaksa bu modu kullan."}
                                 </p>
                                 <p className="mt-2 text-xs">
                                     {bulkMode === "csv_categories"
-                                        ? "Alt kategori yoksa alt_kategori sÃ¼tununu boÅŸ bÄ±rak. Kategori ve alt kategori adlarÄ± sistemde zaten var olmalÄ±."
-                                        : "Bu modda CSV iÃ§inden kategori okunmaz. SeÃ§tiÄŸin kategori ve varsa alt kategori tÃ¼m satÄ±rlara uygulanÄ±r."}
+                                        ? "Alt kategori yoksa alt_kategori sütununu boş bırak. Kategori ve alt kategori adları sistemde zaten var olmalı."
+                                        : "Bu modda CSV içinden kategori okunmaz. Seçtiğin kategori ve varsa alt kategori tüm satırlara uygulanır."}
                                 </p>
                                 <p className="mt-2 text-xs">
-                                    Kategori taksonomisi bulk upload sÄ±rasÄ±nda otomatik aÃ§Ä±lmaz. Yeni kategori gerekiyorsa Ã¶nce kategori yÃ¶netiminden oluÅŸtur.
+                                    Kategori taksonomisi bulk upload sırasında otomatik açılmaz. Yeni kategori gerekiyorsa önce kategori yönetiminden oluştur.
                                 </p>
                                 <div className="mt-3 rounded-xl border border-border/70 bg-card px-3 py-3 text-xs text-muted-foreground">
-                                    <p className="font-semibold text-foreground">Ã–rnek</p>
+                                    <p className="font-semibold text-foreground">Örnek</p>
                                     <div className="mt-2 space-y-1 font-mono">
                                         {bulkMode === "csv_categories" ? (
                                             <>
@@ -920,7 +920,7 @@ export default function AdminWordsPage() {
                                         </div>
                                         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-3">
                                             <div className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-                                                AtlandÄ±
+                                                Atlandı
                                             </div>
                                             <div className="mt-1 text-2xl font-black text-foreground">{bulkReport.skipped}</div>
                                         </div>
@@ -934,7 +934,7 @@ export default function AdminWordsPage() {
 
                                     {bulkReport.skippedRows.length > 0 ? (
                                         <div className="mt-4">
-                                            <h3 className="text-sm font-semibold text-foreground">Atlanan satÄ±rlar</h3>
+                                            <h3 className="text-sm font-semibold text-foreground">Atlanan satırlar</h3>
                                             <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-border bg-background px-3 py-3 text-sm text-muted-foreground">
                                                 <ul className="space-y-1">
                                                     {bulkReport.skippedRows.map((item) => (
@@ -947,7 +947,7 @@ export default function AdminWordsPage() {
 
                                     {bulkReport.errors.length > 0 ? (
                                         <div className="mt-4">
-                                            <h3 className="text-sm font-semibold text-foreground">HatalÄ± satÄ±rlar</h3>
+                                            <h3 className="text-sm font-semibold text-foreground">Hatalı satırlar</h3>
                                             <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-red-500/20 bg-background px-3 py-3 text-sm text-red-600 dark:text-red-300">
                                                 <ul className="space-y-1">
                                                     {bulkReport.errors.map((item) => (
@@ -975,13 +975,13 @@ export default function AdminWordsPage() {
                                     setBulkReport(null);
                                 }}
                             >
-                                Iptal
+                                İptal
                             </Button>
                             <Button
                                 type="button"
                                 onClick={async () => {
                                     if (!bulkFile) {
-                                        setBulkError("Once bir CSV dosyasi sec.");
+                                        setBulkError("Önce bir CSV dosyası seç.");
                                         return;
                                     }
 
@@ -1015,7 +1015,7 @@ export default function AdminWordsPage() {
                                             | null;
 
                                         if (!response.ok) {
-                                            setBulkError(payload?.error ?? "Toplu yukleme basarisiz oldu.");
+                                            setBulkError(payload?.error ?? "Toplu yükleme başarısız oldu.");
                                             return;
                                         }
 
@@ -1028,7 +1028,7 @@ export default function AdminWordsPage() {
                                             skippedRows: payload?.skippedRows ?? [],
                                         };
                                         toast.success(
-                                            `${nextReport.success} kelime eklendi, ${skippedCount} kayÄ±t atlandÄ±${errorCount ? `, ${errorCount} hata var` : ""}.`
+                                            `${nextReport.success} kelime eklendi, ${skippedCount} kayıt atlandı${errorCount ? `, ${errorCount} hata var` : ""}.`
                                         );
                                         await fetchWords();
                                         if (nextReport.errors.length > 0 || nextReport.skippedRows.length > 0) {
@@ -1044,7 +1044,7 @@ export default function AdminWordsPage() {
                                         setBulkError("");
                                         setBulkReport(null);
                                     } catch {
-                                        setBulkError("Ag hatasi olustu.");
+                                        setBulkError("Ağ hatası oluştu.");
                                     } finally {
                                         setBulkSaving(false);
                                     }
@@ -1053,7 +1053,7 @@ export default function AdminWordsPage() {
                                 className="gap-2"
                             >
                                 {bulkSaving ? <Loader2 size={16} className="animate-spin" /> : <FileUp size={16} />}
-                                Yuklemeyi Baslat
+                                Yüklemeyi Başlat
                             </Button>
                         </div>
                     </div>
