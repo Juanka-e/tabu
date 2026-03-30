@@ -2,6 +2,7 @@ export const STORE_ITEM_TYPES = ["avatar", "frame", "card_back", "card_face"] as
 export const STORE_ITEM_RARITIES = ["common", "rare", "epic", "legendary"] as const;
 export const INVENTORY_ITEM_SOURCES = ["purchase", "grant", "migration"] as const;
 export const STORE_ITEM_RENDER_MODES = ["image", "template"] as const;
+export const SHOP_ITEM_AVAILABILITY_MODES = ["always_on", "scheduled", "seasonal", "limited", "event_only"] as const;
 export const PROMOTION_TARGET_TYPES = ["global", "shop_item", "bundle"] as const;
 export const PROMOTION_DISCOUNT_TYPES = ["percentage", "fixed_coin"] as const;
 
@@ -9,6 +10,7 @@ export type StoreItemType = (typeof STORE_ITEM_TYPES)[number];
 export type StoreItemRarity = (typeof STORE_ITEM_RARITIES)[number];
 export type InventoryItemSource = (typeof INVENTORY_ITEM_SOURCES)[number];
 export type StoreItemRenderMode = (typeof STORE_ITEM_RENDER_MODES)[number];
+export type ShopItemAvailabilityMode = (typeof SHOP_ITEM_AVAILABILITY_MODES)[number];
 export type TemplateConfigScalar = string | number | boolean | null;
 export type TemplateConfigArray = TemplateConfigScalar[];
 export interface TemplateConfigObject {
@@ -48,6 +50,9 @@ export interface StoreItemView {
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
+    availabilityMode: ShopItemAvailabilityMode;
+    startsAt: string | null;
+    endsAt: string | null;
     isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;
@@ -93,6 +98,9 @@ export interface InventoryItemView {
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
+    availabilityMode: ShopItemAvailabilityMode;
+    startsAt: string | null;
+    endsAt: string | null;
     isFeatured: boolean;
     source: InventoryItemSource;
     acquiredAt: string;

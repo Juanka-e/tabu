@@ -18,6 +18,9 @@ export interface MockShopItemSeed {
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
+    availabilityMode?: "always_on" | "scheduled" | "seasonal" | "limited" | "event_only";
+    startsAt?: string | null;
+    endsAt?: string | null;
     isFeatured: boolean;
     isActive: boolean;
     sortOrder: number;

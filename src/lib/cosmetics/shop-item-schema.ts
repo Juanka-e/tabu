@@ -6,9 +6,11 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 import {
+    SHOP_ITEM_AVAILABILITY_MODES,
     STORE_ITEM_RARITIES,
     STORE_ITEM_RENDER_MODES,
     STORE_ITEM_TYPES,
+    type ShopItemAvailabilityMode,
     type StoreItemRarity,
     type StoreItemRenderMode,
     type StoreItemType,
@@ -111,6 +113,9 @@ const shopItemBaseSchema = z.object({
     templateKey: z.string().trim().max(80).optional().nullable(),
     templateConfig: safeTemplateConfigSchema.optional().nullable(),
     badgeText: z.string().trim().max(24).optional().nullable(),
+    availabilityMode: z.enum(SHOP_ITEM_AVAILABILITY_MODES).default("always_on"),
+    startsAt: z.coerce.date().optional().nullable(),
+    endsAt: z.coerce.date().optional().nullable(),
     isFeatured: z.boolean().default(false),
     isActive: z.boolean().default(true),
     sortOrder: z.number().int().min(0).max(10_000).default(0),
@@ -145,6 +150,8 @@ function applyCreateRefinements(value: ShopItemWriteInput, context: z.Refinement
             message: "Avatar items currently support image render mode only.",
         });
     }
+
+    validateAvailabilityWindow(value.availabilityMode, value.startsAt ?? null, value.endsAt ?? null, context);
 }
 
 function applyUpdateRefinements(value: ShopItemUpdateInput, context: z.RefinementCtx) {
@@ -169,6 +176,33 @@ function applyUpdateRefinements(value: ShopItemUpdateInput, context: z.Refinemen
             code: z.ZodIssueCode.custom,
             path: ["renderMode"],
             message: "Avatar items currently support image render mode only.",
+        });
+    }
+
+    if (value.availabilityMode !== undefined || value.startsAt !== undefined || value.endsAt !== undefined) {
+        validateAvailabilityWindow(value.availabilityMode ?? "always_on", value.startsAt ?? null, value.endsAt ?? null, context);
+    }
+}
+
+function validateAvailabilityWindow(
+    availabilityMode: ShopItemAvailabilityMode,
+    startsAt: Date | null,
+    endsAt: Date | null,
+    context: z.RefinementCtx
+) {
+    if (startsAt && endsAt && startsAt >= endsAt) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["endsAt"],
+            message: "End date must be after start date.",
+        });
+    }
+
+    if (availabilityMode === "scheduled" && !startsAt) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["startsAt"],
+            message: "Scheduled items require a start date.",
         });
     }
 }
@@ -223,6 +257,9 @@ export function toPrismaShopItemCreateData(input: ShopItemWriteInput): Prisma.Sh
         templateKey: input.templateKey ?? null,
         templateConfig: input.templateConfig ?? Prisma.JsonNull,
         badgeText: input.badgeText ?? null,
+        availabilityMode: input.availabilityMode,
+        startsAt: input.startsAt ?? null,
+        endsAt: input.endsAt ?? null,
         isFeatured: input.isFeatured,
         isActive: input.isActive,
         sortOrder: input.sortOrder,
@@ -243,6 +280,9 @@ export function toPrismaShopItemUpdateData(input: ShopItemUpdateInput): Prisma.S
             ? { templateConfig: input.templateConfig ?? Prisma.JsonNull }
             : {}),
         ...(input.badgeText !== undefined ? { badgeText: input.badgeText ?? null } : {}),
+        ...(input.availabilityMode !== undefined ? { availabilityMode: input.availabilityMode } : {}),
+        ...(input.startsAt !== undefined ? { startsAt: input.startsAt ?? null } : {}),
+        ...(input.endsAt !== undefined ? { endsAt: input.endsAt ?? null } : {}),
         ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
