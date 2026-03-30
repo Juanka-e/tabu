@@ -385,6 +385,39 @@ function buildPromotionEmptyDescription(
     return `Gösterilecek ${entityLabel} kaydı yok.`;
 }
 
+function PromotionSectionSummaryCard({
+    label,
+    value,
+    activeValue,
+    helper,
+    href,
+    onClick,
+}: {
+    label: string;
+    value: number;
+    activeValue: number;
+    helper: string;
+    href: string;
+    onClick: () => void;
+}) {
+    return (
+        <a
+            href={href}
+            onClick={onClick}
+            className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4 transition hover:border-blue-400/60 hover:bg-background"
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+                    <div className="text-2xl font-black text-foreground">{value}</div>
+                </div>
+                <StatusBadge label={`${activeValue} aktif`} tone={activeValue > 0 ? "success" : "neutral"} />
+            </div>
+            <div className="mt-3 text-xs text-muted-foreground">{helper}</div>
+        </a>
+    );
+}
+
 function FieldLabel({ label, helper }: { label: string; helper?: string }) {
     return (
         <div className="space-y-1">
@@ -1188,21 +1221,30 @@ export default function PromotionsPage() {
                     ))}
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
-                    {([
-                        { id: "bundles", label: "Paketler", value: filteredBundles.length, href: "#bundles" },
-                        { id: "discounts", label: "Kampanyalar", value: filteredDiscounts.length, href: "#discounts" },
-                        { id: "coupons", label: "Kuponlar", value: filteredCoupons.length, href: "#coupons" },
-                    ] as const).map((summary) => (
-                        <a
-                            key={summary.id}
-                            href={summary.href}
-                            onClick={() => setSectionFilter(summary.id)}
-                            className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 transition hover:border-blue-400/60 hover:bg-background"
-                        >
-                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{summary.label}</div>
-                            <div className="mt-2 text-2xl font-black text-foreground">{summary.value}</div>
-                        </a>
-                    ))}
+                    <PromotionSectionSummaryCard
+                        label="Paketler"
+                        value={filteredBundles.length}
+                        activeValue={activeBundleCount}
+                        helper="Paket fiyatı, vitrin sırası ve içerik listesi."
+                        href="#bundles"
+                        onClick={() => setSectionFilter("bundles")}
+                    />
+                    <PromotionSectionSummaryCard
+                        label="Kampanyalar"
+                        value={filteredDiscounts.length}
+                        activeValue={activeDiscountCount}
+                        helper="Kuponsuz otomatik indirim akışını izler."
+                        href="#discounts"
+                        onClick={() => setSectionFilter("discounts")}
+                    />
+                    <PromotionSectionSummaryCard
+                        label="Kuponlar"
+                        value={filteredCoupons.length}
+                        activeValue={activeCouponCount}
+                        helper="Oyuncunun elle girdiği indirim kodlarını toplar."
+                        href="#coupons"
+                        onClick={() => setSectionFilter("coupons")}
+                    />
                 </div>
             </div>
 
@@ -1251,6 +1293,7 @@ export default function PromotionsPage() {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-2">
+                                            <PromotionTypeBadge label="paket" />
                                             <h3 className="font-semibold text-foreground">{bundle.name}</h3>
                                             <StatusBadge label={bundle.isActive ? "Aktif" : "Pasif"} tone={bundle.isActive ? "success" : "neutral"} />
                                             <StatusBadge label={`${bundle.items.length} ürün`} />
@@ -1258,9 +1301,34 @@ export default function PromotionsPage() {
                                         <p className="font-mono text-xs text-muted-foreground">{bundle.code}</p>
                                         <p className="text-sm text-muted-foreground">{bundle.description || "Açıklama eklenmemiş."}</p>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => { setEditingBundleId(bundle.id); setBundleForm({ code: bundle.code, name: bundle.name, description: bundle.description ?? "", priceCoin: String(bundle.priceCoin), isActive: bundle.isActive, sortOrder: String(bundle.sortOrder), items: bundle.items.map((item) => ({ shopItemId: String(item.shopItemId), sortOrder: String(item.sortOrder) })) }); }}><Edit2 size={14} /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("bundles", bundle.id)}><Trash2 size={14} /></Button>
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={() => {
+                                                setEditingBundleId(bundle.id);
+                                                setBundleForm({
+                                                    code: bundle.code,
+                                                    name: bundle.name,
+                                                    description: bundle.description ?? "",
+                                                    priceCoin: String(bundle.priceCoin),
+                                                    isActive: bundle.isActive,
+                                                    sortOrder: String(bundle.sortOrder),
+                                                    items: bundle.items.map((item) => ({
+                                                        shopItemId: String(item.shopItemId),
+                                                        sortOrder: String(item.sortOrder),
+                                                    })),
+                                                });
+                                            }}
+                                        >
+                                            <Edit2 size={14} />
+                                            Düzenle
+                                        </Button>
+                                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("bundles", bundle.id)}>
+                                            <Trash2 size={14} />
+                                            Sil
+                                        </Button>
                                     </div>
                                 </div>
                                 <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
@@ -1317,6 +1385,7 @@ export default function PromotionsPage() {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-2">
+                                            <PromotionTypeBadge label="kampanya" />
                                             <h3 className="font-semibold text-foreground">{discount.name}</h3>
                                             <StatusBadge label={discount.isActive ? "Aktif" : "Pasif"} tone={discount.isActive ? "success" : "neutral"} />
                                             <StatusBadge label={targetTypeLabels[discount.targetType]} tone="accent" />
@@ -1326,9 +1395,38 @@ export default function PromotionsPage() {
                                         <p className="font-mono text-xs text-muted-foreground">{discount.code}</p>
                                         <p className="text-sm text-muted-foreground">{discount.description || "Açıklama eklenmemiş."}</p>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => { setEditingDiscountId(discount.id); setDiscountForm({ code: discount.code, name: discount.name, description: discount.description ?? "", targetType: discount.targetType, discountType: discount.discountType, percentageOff: discount.percentageOff ? String(discount.percentageOff) : "", fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "", shopItemId: discount.shopItemId ? String(discount.shopItemId) : "", bundleId: discount.bundleId ? String(discount.bundleId) : "", usageLimit: discount.usageLimit ? String(discount.usageLimit) : "", startsAt: toDateTimeLocal(discount.startsAt), endsAt: toDateTimeLocal(discount.endsAt), isActive: discount.isActive, stackableWithCoupon: discount.stackableWithCoupon }); }}><Edit2 size={14} /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("discounts", discount.id)}><Trash2 size={14} /></Button>
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={() => {
+                                                setEditingDiscountId(discount.id);
+                                                setDiscountForm({
+                                                    code: discount.code,
+                                                    name: discount.name,
+                                                    description: discount.description ?? "",
+                                                    targetType: discount.targetType,
+                                                    discountType: discount.discountType,
+                                                    percentageOff: discount.percentageOff ? String(discount.percentageOff) : "",
+                                                    fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "",
+                                                    shopItemId: discount.shopItemId ? String(discount.shopItemId) : "",
+                                                    bundleId: discount.bundleId ? String(discount.bundleId) : "",
+                                                    usageLimit: discount.usageLimit ? String(discount.usageLimit) : "",
+                                                    startsAt: toDateTimeLocal(discount.startsAt),
+                                                    endsAt: toDateTimeLocal(discount.endsAt),
+                                                    isActive: discount.isActive,
+                                                    stackableWithCoupon: discount.stackableWithCoupon,
+                                                });
+                                            }}
+                                        >
+                                            <Edit2 size={14} />
+                                            Düzenle
+                                        </Button>
+                                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("discounts", discount.id)}>
+                                            <Trash2 size={14} />
+                                            Sil
+                                        </Button>
                                     </div>
                                 </div>
                                 <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3">
@@ -1380,6 +1478,7 @@ export default function PromotionsPage() {
                             <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-3">
                                     <div className="flex flex-wrap items-center gap-2">
+                                        <PromotionTypeBadge label="kupon" />
                                         <h3 className="font-semibold text-foreground">{coupon.name}</h3>
                                         <StatusBadge label={coupon.isActive ? "Aktif" : "Pasif"} tone={coupon.isActive ? "success" : "neutral"} />
                                         <StatusBadge label={targetTypeLabels[coupon.targetType]} tone="accent" />
@@ -1388,9 +1487,37 @@ export default function PromotionsPage() {
                                     <p className="font-mono text-xs text-muted-foreground">{coupon.code}</p>
                                     <p className="text-sm text-muted-foreground">{coupon.description || "Açıklama eklenmemiş."}</p>
                                 </div>
-                                <div className="flex gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => { setEditingCouponId(coupon.id); setCouponForm({ code: coupon.code, name: coupon.name, description: coupon.description ?? "", targetType: coupon.targetType, discountType: coupon.discountType, percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "", fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "", shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "", bundleId: coupon.bundleId ? String(coupon.bundleId) : "", usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "", startsAt: toDateTimeLocal(coupon.startsAt), endsAt: toDateTimeLocal(coupon.endsAt), isActive: coupon.isActive }); }}><Edit2 size={14} /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => void deactivateEntry("coupons", coupon.id)}><Trash2 size={14} /></Button>
+                                <div className="flex flex-wrap justify-end gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
+                                        onClick={() => {
+                                            setEditingCouponId(coupon.id);
+                                            setCouponForm({
+                                                code: coupon.code,
+                                                name: coupon.name,
+                                                description: coupon.description ?? "",
+                                                targetType: coupon.targetType,
+                                                discountType: coupon.discountType,
+                                                percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "",
+                                                fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "",
+                                                shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "",
+                                                bundleId: coupon.bundleId ? String(coupon.bundleId) : "",
+                                                usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "",
+                                                startsAt: toDateTimeLocal(coupon.startsAt),
+                                                endsAt: toDateTimeLocal(coupon.endsAt),
+                                                isActive: coupon.isActive,
+                                            });
+                                        }}
+                                    >
+                                        <Edit2 size={14} />
+                                        Düzenle
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => void deactivateEntry("coupons", coupon.id)}>
+                                        <Trash2 size={14} />
+                                        Sil
+                                    </Button>
                                 </div>
                             </div>
                             <div className="mt-4 grid gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3">
