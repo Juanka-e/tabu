@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
     Headset,
     LifeBuoy,
@@ -60,6 +60,8 @@ function formatDateTime(value: string): string {
 }
 
 export default function AdminSupportPage() {
+    const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const pendingTicketIdRef = useRef<number | null>(null);
     const [tickets, setTickets] = useState<SupportTicketView[]>([]);
@@ -79,6 +81,34 @@ export default function AdminSupportPage() {
     const [messageMode, setMessageMode] = useState<"public" | "internal">("public");
     const [savingTicket, setSavingTicket] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+
+        if (search.trim()) {
+            params.set("search", search.trim());
+        } else {
+            params.delete("search");
+        }
+
+        if (status !== "all") {
+            params.set("status", status);
+        } else {
+            params.delete("status");
+        }
+
+        if (selectedTicketId) {
+            params.set("ticketId", String(selectedTicketId));
+        } else {
+            params.delete("ticketId");
+        }
+
+        const next = params.toString();
+        const current = searchParams.toString();
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [pathname, router, search, searchParams, selectedTicketId, status]);
 
     useEffect(() => {
         const nextSearch = (searchParams.get("search") ?? "").trim();

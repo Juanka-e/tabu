@@ -75,27 +75,27 @@ function formatTrustedIp(ip: string | null): string {
 
 function summarizeUserAgent(userAgent: string | null): string {
     if (!userAgent) {
-        return "Tarayıcı sinyali yok";
+        return "Tarayici sinyali yok";
     }
 
     return userAgent.length > 72 ? `${userAgent.slice(0, 72)}...` : userAgent;
 }
 
 function getSupportStatusLabel(status: string | null): string {
-    if (!status) return "Kayıt yok";
-    if (status === "open") return "Açık";
-    if (status === "in_progress") return "İşlemde";
-    if (status === "resolved") return "Çözüldü";
-    if (status === "closed") return "Kapalı";
+    if (!status) return "Kayit yok";
+    if (status === "open") return "Acik";
+    if (status === "in_progress") return "Islemde";
+    if (status === "resolved") return "Cozuldu";
+    if (status === "closed") return "Kapali";
     return status;
 }
 
 function getWalletAdjustmentLabel(type: "credit" | "debit" | null): string {
     if (!type) {
-        return "Kayıt yok";
+        return "Kayit yok";
     }
 
-    return type === "credit" ? "Coin ekleme" : "Coin düşme";
+    return type === "credit" ? "Coin ekleme" : "Coin dusme";
 }
 
 function buildSupportHref(user: AdminUserModerationView): string {
@@ -125,6 +125,15 @@ function buildWalletAuditHref(user: AdminUserModerationView): string {
     } else {
         params.set("search", user.username);
     }
+    return `/admin/audit?${params.toString()}`;
+}
+
+function buildModerationAuditHref(user: AdminUserModerationView, actionType: ModerationActionType): string {
+    const params = new URLSearchParams({
+        search: user.username,
+        action: `admin.user.${actionType}`,
+        resourceType: "user",
+    });
     return `/admin/audit?${params.toString()}`;
 }
 
@@ -562,9 +571,12 @@ export default function AdminUsersPage() {
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="space-y-1">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-foreground">
+                                                                    <Link
+                                                                        href={buildModerationAuditHref(user, event.actionType)}
+                                                                        className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                                    >
                                                                         {getEventLabel(event.actionType)}
-                                                                    </span>
+                                                                    </Link>
                                                                     <span className="text-muted-foreground">
                                                                         {formatDateTime(event.createdAt)}
                                                                     </span>
@@ -861,6 +873,7 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+
 
 
 

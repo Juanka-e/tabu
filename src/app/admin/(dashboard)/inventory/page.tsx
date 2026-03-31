@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Gift, Loader2, Search, ShieldAlert, Shirt, Sparkles, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
@@ -119,6 +119,8 @@ function SummaryPill({ label, value }: { label: string; value: string }) {
 }
 
 export default function AdminInventoryPage() {
+    const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const pendingUserIdRef = useRef<number | null>(null);
     const [search, setSearch] = useState("");
@@ -153,6 +155,28 @@ export default function AdminInventoryPage() {
         setDebouncedUserSearch(nextSearch);
         pendingUserIdRef.current = Number.isInteger(nextUserId) && nextUserId > 0 ? nextUserId : null;
     }, [searchParams]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+
+        if (search.trim()) {
+            params.set("search", search.trim());
+        } else {
+            params.delete("search");
+        }
+
+        if (selectedUserId) {
+            params.set("userId", String(selectedUserId));
+        } else {
+            params.delete("userId");
+        }
+
+        const next = params.toString();
+        const current = searchParams.toString();
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [pathname, router, search, searchParams, selectedUserId]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
