@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
     Headset,
@@ -57,6 +58,28 @@ function formatDateTime(value: string): string {
         dateStyle: "short",
         timeStyle: "short",
     });
+}
+
+function buildInventoryHref(userId: number, username: string): string {
+    const params = new URLSearchParams({
+        userId: String(userId),
+        search: username,
+    });
+    return `/admin/inventory?${params.toString()}`;
+}
+
+function buildUsersHref(username: string): string {
+    const params = new URLSearchParams({
+        search: username,
+    });
+    return `/admin/users?${params.toString()}`;
+}
+
+function buildAuditHref(username: string): string {
+    const params = new URLSearchParams({
+        search: username,
+    });
+    return `/admin/audit?${params.toString()}`;
 }
 
 export default function AdminSupportPage() {
@@ -503,6 +526,53 @@ export default function AdminSupportPage() {
                                         ? ` - Atanan yetkili: @${selectedTicket.assignedAdmin.username}`
                                         : ""}
                                 </p>
+                                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Mesaj</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {selectedTicket.messages.length} kayit
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Ic not</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {selectedTicket.messages.filter((entry) => entry.isInternal).length} not
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Gorunur cevap</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {
+                                                selectedTicket.messages.filter(
+                                                    (entry) => !entry.isInternal && entry.author?.role === "admin"
+                                                ).length
+                                            } cevap
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Son hareket</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {formatDateTime(selectedTicket.lastMessageAt)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildInventoryHref(selectedTicket.user.id, selectedTicket.user.username)}>
+                                            Envantere Git
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildUsersHref(selectedTicket.user.username)}>
+                                            Kullanicida Ac
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildAuditHref(selectedTicket.user.username)}>
+                                            Audit Kaydina Git
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="grid gap-4 border-b border-border/60 px-5 py-4 md:grid-cols-3">

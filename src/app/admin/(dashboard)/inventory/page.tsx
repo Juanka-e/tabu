@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Gift, Loader2, Search, ShieldAlert, Shirt, Sparkles, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -116,6 +117,18 @@ function SummaryPill({ label, value }: { label: string; value: string }) {
             <div className="mt-1 text-sm font-semibold text-foreground">{value}</div>
         </div>
     );
+}
+
+function buildSupportHref(username: string): string {
+    return `/admin/support?search=${encodeURIComponent(username)}`;
+}
+
+function buildUsersHref(username: string): string {
+    return `/admin/users?search=${encodeURIComponent(username)}`;
+}
+
+function buildAuditHref(username: string): string {
+    return `/admin/audit?search=${encodeURIComponent(username)}`;
 }
 
 export default function AdminInventoryPage() {
@@ -673,6 +686,53 @@ export default function AdminInventoryPage() {
                     >
                         {inventory ? (
                             <div className="space-y-5">
+                                <div className="rounded-2xl border border-border/70 bg-muted/10 p-4">
+                                    <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <div>
+                                            <div className="text-lg font-semibold text-foreground">
+                                                {inventory.profile.displayName || inventory.username}
+                                            </div>
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                @{inventory.username} · {inventory.role}
+                                            </div>
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                {inventory.email || "E-posta yok"}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button asChild variant="outline" size="sm">
+                                                <Link href={buildSupportHref(inventory.username)}>Destek</Link>
+                                            </Button>
+                                            <Button asChild variant="outline" size="sm">
+                                                <Link href={buildUsersHref(inventory.username)}>Kullanici</Link>
+                                            </Button>
+                                            <Button asChild variant="outline" size="sm">
+                                                <Link href={buildAuditHref(inventory.username)}>Audit</Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                        <SummaryPill
+                                            label="Korumali Sahiplik"
+                                            value={String(
+                                                inventory.items.filter((item) => item.source !== "grant").length
+                                            )}
+                                        />
+                                        <SummaryPill
+                                            label="Son Operasyon"
+                                            value={
+                                                inventory.recentOperations[0]
+                                                    ? formatDateTime(inventory.recentOperations[0].createdAt)
+                                                    : "-"
+                                            }
+                                        />
+                                        <SummaryPill
+                                            label="Operasyon Kaydi"
+                                            value={String(inventory.recentOperations.length)}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                     <SummaryPill label="Toplam Item" value={String(inventory.summary.totalItems)} />
                                     <SummaryPill label="Kuşanılan" value={String(inventory.summary.equippedItems)} />

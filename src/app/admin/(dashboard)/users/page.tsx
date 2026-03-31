@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChevronDown, Coins, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,7 @@ function buildModerationAuditHref(user: AdminUserModerationView, actionType: Mod
 }
 
 export default function AdminUsersPage() {
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState<AdminUserModerationView[]>([]);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
@@ -159,6 +161,21 @@ export default function AdminUsersPage() {
     const [suspendedUntil, setSuspendedUntil] = useState("");
     const [walletSaving, setWalletSaving] = useState(false);
     const [trustProxyEnabled, setTrustProxyEnabled] = useState(false);
+
+    useEffect(() => {
+        const nextSearch = (searchParams.get("search") ?? "").trim();
+        const nextStatus = searchParams.get("status");
+
+        setSearch(nextSearch);
+        setDebouncedSearch(nextSearch);
+        if (nextStatus === "all" || nextStatus === "active" || nextStatus === "suspended") {
+            setStatus(nextStatus);
+        }
+        if (!nextStatus) {
+            setStatus("all");
+        }
+        setPage(1);
+    }, [searchParams]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -354,8 +371,8 @@ export default function AdminUsersPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader
-                title="Kullanici Moderasyonu"
-                description="Askiya alma, yeniden etkinlestirme, ic not ve temel gozlem sinyallerini tek merkezden yonetin."
+                title="Kullanici Operasyonlari"
+                description="Moderasyon, destek, envanter ve temel gozlem sinyallerini tek operasyon yuzeyinden yonetin."
                 meta={`${total} kayit`}
                 icon={<Users className="h-5 w-5 text-amber-500" />}
             />
@@ -398,8 +415,8 @@ export default function AdminUsersPage() {
             ) : null}
 
             <AdminTableShell
-                title="Kullanici Listesi"
-                description="Suspend durumu, son moderasyon olaylari ve trusted access sinyalleriyle birlikte listelenir."
+                title="Kullanici Operasyon Listesi"
+                description="Moderasyon, destek, envanter ve trusted access sinyalleri birlikte listelenir."
                 loading={loading}
                 isEmpty={!loading && users.length === 0}
                 emptyState={
