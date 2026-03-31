@@ -7,6 +7,7 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { recordUserAccessSignal } from "@/lib/security/user-access-signal";
 import { supportTicketCreateSchema } from "@/lib/support/schema";
 import { createSupportTicketForUser, listSupportTicketsForUser } from "@/lib/support/service";
 
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await listSupportTicketsForUser(sessionUser.id);
+    await recordUserAccessSignal({ userId: sessionUser.id, request });
     return NextResponse.json(result, { headers: buildRateLimitHeaders(rateLimit) });
 }
 
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const input = supportTicketCreateSchema.parse(body);
         const ticket = await createSupportTicketForUser(sessionUser.id, input);
+        await recordUserAccessSignal({ userId: sessionUser.id, request });
 
         await writeAuditLog({
             actor: sessionUser,

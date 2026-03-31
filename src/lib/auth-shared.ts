@@ -1,8 +1,9 @@
 import type { NextAuthConfig } from "next-auth";
+import { shouldTrustAuthHost } from "@/lib/auth-host";
 
 export const sharedAuthConfig = {
     providers: [],
-    trustHost: process.env.AUTH_TRUST_HOST === "true",
+    trustHost: shouldTrustAuthHost(),
     pages: {
         signIn: "/login",
     },

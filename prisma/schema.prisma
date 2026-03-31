@@ -114,6 +114,10 @@ model User {
   suspendedAt DateTime? @map("suspended_at")
   suspendedUntil DateTime? @map("suspended_until")
   suspensionReason String? @map("suspension_reason") @db.VarChar(300)
+  lastSeenAt DateTime? @map("last_seen_at")
+  lastTrustedIp String? @map("last_trusted_ip") @db.VarChar(64)
+  lastUserAgent String? @map("last_user_agent") @db.VarChar(255)
+  registeredTrustedIp String? @map("registered_trusted_ip") @db.VarChar(64)
   createdAt DateTime @default(now()) @map("created_at")
 
   profile      UserProfile?
@@ -137,6 +141,7 @@ model User {
 
   @@index([emailVerifiedAt])
   @@index([isSuspended, suspendedUntil])
+  @@index([lastSeenAt])
   @@map("users")
 }
 

@@ -6,6 +6,7 @@ import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
     getRequestIp,
+    shouldTrustProxyHeaders,
 } from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await getAdminUsers(parsedQuery.data);
+    data.trustProxyEnabled = shouldTrustProxyHeaders();
     return NextResponse.json(data, { headers: buildRateLimitHeaders(rateLimit) });
 }
 

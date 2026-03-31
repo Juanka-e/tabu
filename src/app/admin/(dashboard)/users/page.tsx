@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChevronDown, Coins, Loader2, Search, ShieldBan, StickyNote, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -68,12 +70,82 @@ function getEventLabel(actionType: ActionMode): string {
     return "Not";
 }
 
+function formatTrustedIp(ip: string | null): string {
+    return ip ?? "Bilinmiyor";
+}
+
+function summarizeUserAgent(userAgent: string | null): string {
+    if (!userAgent) {
+        return "Tarayici sinyali yok";
+    }
+
+    return userAgent.length > 72 ? `${userAgent.slice(0, 72)}...` : userAgent;
+}
+
+function getSupportStatusLabel(status: string | null): string {
+    if (!status) return "Kayit yok";
+    if (status === "open") return "Acik";
+    if (status === "in_progress") return "Islemde";
+    if (status === "resolved") return "Cozuldu";
+    if (status === "closed") return "Kapali";
+    return status;
+}
+
+function getWalletAdjustmentLabel(type: "credit" | "debit" | null): string {
+    if (!type) {
+        return "Kayit yok";
+    }
+
+    return type === "credit" ? "Coin ekleme" : "Coin dusme";
+}
+
+function buildSupportHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        search: user.username,
+    });
+    if (user.supportTicketSummary.latestTicketId) {
+        params.set("ticketId", String(user.supportTicketSummary.latestTicketId));
+    }
+    return `/admin/support?${params.toString()}`;
+}
+
+function buildInventoryHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        search: user.username,
+        userId: String(user.id),
+    });
+    return `/admin/inventory?${params.toString()}`;
+}
+
+function buildWalletAuditHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        resourceType: "wallet_adjustment",
+    });
+    if (user.walletAdjustmentSummary.latestAdjustmentId) {
+        params.set("search", String(user.walletAdjustmentSummary.latestAdjustmentId));
+    } else {
+        params.set("search", user.username);
+    }
+    return `/admin/audit?${params.toString()}`;
+}
+
+function buildModerationAuditHref(user: AdminUserModerationView, actionType: ModerationActionType): string {
+    const params = new URLSearchParams({
+        search: user.username,
+        action: `admin.user.${actionType}`,
+        resourceType: "user",
+    });
+    return `/admin/audit?${params.toString()}`;
+}
+
 export default function AdminUsersPage() {
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState<AdminUserModerationView[]>([]);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [status, setStatus] = useState<StatusFilter>("all");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -88,6 +160,30 @@ export default function AdminUsersPage() {
     const [reason, setReason] = useState("");
     const [suspendedUntil, setSuspendedUntil] = useState("");
     const [walletSaving, setWalletSaving] = useState(false);
+    const [trustProxyEnabled, setTrustProxyEnabled] = useState(false);
+
+    useEffect(() => {
+        const nextSearch = (searchParams.get("search") ?? "").trim();
+        const nextStatus = searchParams.get("status");
+
+        setSearch(nextSearch);
+        setDebouncedSearch(nextSearch);
+        if (nextStatus === "all" || nextStatus === "active" || nextStatus === "suspended") {
+            setStatus(nextStatus);
+        }
+        if (!nextStatus) {
+            setStatus("all");
+        }
+        setPage(1);
+    }, [searchParams]);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setDebouncedSearch(search.trim());
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [search]);
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -97,8 +193,8 @@ export default function AdminUsersPage() {
                 limit: "12",
                 status,
             });
-            if (search.trim()) {
-                params.set("search", search.trim());
+            if (debouncedSearch) {
+                params.set("search", debouncedSearch);
             }
 
             const response = await fetch(`/api/admin/users?${params.toString()}`, {
@@ -114,12 +210,13 @@ export default function AdminUsersPage() {
             setPage(payload.page);
             setPages(payload.pages);
             setTotal(payload.total);
+            setTrustProxyEnabled(payload.trustProxyEnabled);
         } catch {
             toast.error("Kullanici listesi yuklenemedi.");
         } finally {
             setLoading(false);
         }
-    }, [page, search, status]);
+    }, [debouncedSearch, page, status]);
 
     useEffect(() => {
         void loadUsers();
@@ -127,13 +224,15 @@ export default function AdminUsersPage() {
 
     useEffect(() => {
         setPage(1);
-    }, [search, status]);
+    }, [debouncedSearch, status]);
 
     const counts = useMemo(() => {
         const suspendedCount = users.filter((user) => user.isSuspended).length;
+        const ipSignalCount = users.filter((user) => Boolean(user.lastTrustedIp)).length;
         return {
             visible: users.length,
             suspended: suspendedCount,
+            ipSignals: ipSignalCount,
         };
     }, [users]);
 
@@ -272,8 +371,8 @@ export default function AdminUsersPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader
-                title="Kullanici Moderasyonu"
-                description="Askiya alma, yeniden etkinlestirme ve ic not akislarini tek merkezden yonetin."
+                title="Kullanici Operasyonlari"
+                description="Moderasyon, destek, envanter ve temel gozlem sinyallerini tek operasyon yuzeyinden yonetin."
                 meta={`${total} kayit`}
                 icon={<Users className="h-5 w-5 text-amber-500" />}
             />
@@ -303,14 +402,21 @@ export default function AdminUsersPage() {
                     stats={[
                         { label: "gorunen", value: String(counts.visible) },
                         { label: "askida", value: String(counts.suspended) },
+                        { label: "ip sinyali", value: String(counts.ipSignals) },
                         { label: "sayfa", value: `${page} / ${pages}` },
                     ]}
                 />
             </AdminToolbar>
 
+            {!trustProxyEnabled ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    `TRUST_PROXY` kapalı. Son IP ve kayıt IP alanları yalnız güvenilir proxy arkasında sinyal üretir; bu yüzden bazı kullanıcılar için boş görünebilir.
+                </div>
+            ) : null}
+
             <AdminTableShell
-                title="Kullanici Listesi"
-                description="Suspend durumu ve son moderasyon olaylariyla birlikte listelenir."
+                title="Kullanici Operasyon Listesi"
+                description="Moderasyon, destek, envanter ve trusted access sinyalleri birlikte listelenir."
                 loading={loading}
                 isEmpty={!loading && users.length === 0}
                 emptyState={
@@ -330,6 +436,8 @@ export default function AdminUsersPage() {
                             <TableHead>Kullanici</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead>Coin</TableHead>
+                            <TableHead>Gozlem</TableHead>
+                            <TableHead>Operasyon Ozeti</TableHead>
                             <TableHead>Son Olaylar</TableHead>
                             <TableHead className="text-right">Islemler</TableHead>
                         </TableRow>
@@ -381,6 +489,87 @@ export default function AdminUsersPage() {
                                     {user.coinBalance.toLocaleString("tr-TR")}
                                 </TableCell>
                                 <TableCell>
+                                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son sinyal:</span>{" "}
+                                            {formatDateTime(user.lastSeenAt)}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son IP:</span>{" "}
+                                            {formatTrustedIp(user.lastTrustedIp)}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Kayit IP:</span>{" "}
+                                            {formatTrustedIp(user.registeredTrustedIp)}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.lastUserAgent ?? undefined}>
+                                            <span className="font-semibold text-foreground">UA:</span>{" "}
+                                            {summarizeUserAgent(user.lastUserAgent)}
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div>
+                                            {user.supportTicketSummary.total > 0 ? (
+                                                <Link
+                                                    href={buildSupportHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Support:
+                                                </Link>
+                                            ) : (
+                                                <span className="font-semibold text-foreground">Support:</span>
+                                            )}{" "}
+                                            {user.supportTicketSummary.total > 0
+                                                ? `${user.supportTicketSummary.total} kayit, ${user.supportTicketSummary.openCount} acik`
+                                                : "Kayit yok"}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son ticket:</span>{" "}
+                                            {getSupportStatusLabel(user.supportTicketSummary.latestStatus)}
+                                            {user.supportTicketSummary.latestUpdatedAt
+                                                ? ` • ${formatDateTime(user.supportTicketSummary.latestUpdatedAt)}`
+                                                : ""}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.supportTicketSummary.latestSubject ?? undefined}>
+                                            <span className="font-semibold text-foreground">Konu:</span>{" "}
+                                            {user.supportTicketSummary.latestSubject ?? "Ticket yok"}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold text-foreground">Son coin islemi:</span>{" "}
+                                            {getWalletAdjustmentLabel(user.walletAdjustmentSummary.latestType)}
+                                            {user.walletAdjustmentSummary.latestAmount !== null
+                                                ? ` • ${user.walletAdjustmentSummary.latestAmount.toLocaleString("tr-TR")}`
+                                                : ""}
+                                        </div>
+                                        <div className="max-w-xs truncate" title={user.walletAdjustmentSummary.latestReason ?? undefined}>
+                                            <span className="font-semibold text-foreground">Coin nedeni:</span>{" "}
+                                            {user.walletAdjustmentSummary.latestReason ?? "Wallet adjustment yok"}
+                                        </div>
+                                        {user.supportTicketSummary.latestTicketId ? (
+                                            <div>
+                                                <Link
+                                                    href={buildSupportHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Support kaydina git
+                                                </Link>
+                                            </div>
+                                        ) : null}
+                                        {user.walletAdjustmentSummary.latestAdjustmentId ? (
+                                            <div>
+                                                <Link
+                                                    href={buildWalletAuditHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Coin kaydina git
+                                                </Link>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
                                     <div className="space-y-2">
                                         {user.recentModerationEvents.length === 0 ? (
                                             <div className="text-xs text-muted-foreground">
@@ -399,9 +588,12 @@ export default function AdminUsersPage() {
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="space-y-1">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-foreground">
+                                                                    <Link
+                                                                        href={buildModerationAuditHref(user, event.actionType)}
+                                                                        className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                                    >
                                                                         {getEventLabel(event.actionType)}
-                                                                    </span>
+                                                                    </Link>
                                                                     <span className="text-muted-foreground">
                                                                         {formatDateTime(event.createdAt)}
                                                                     </span>
@@ -496,6 +688,12 @@ export default function AdminUsersPage() {
                                                     onClick={() => openActionModal(user, "note")}
                                                 >
                                                     Ic Not
+                                                </Button>
+                                                <Button asChild type="button" variant="ghost" size="sm">
+                                                    <Link href={buildSupportHref(user)}>Destek</Link>
+                                                </Button>
+                                                <Button asChild type="button" variant="ghost" size="sm">
+                                                    <Link href={buildInventoryHref(user)}>Envanter</Link>
                                                 </Button>
                                             </>
                                         )}
@@ -692,5 +890,7 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+
+
 
 

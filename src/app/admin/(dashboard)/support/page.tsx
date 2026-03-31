@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
     Headset,
     LifeBuoy,
@@ -58,7 +60,34 @@ function formatDateTime(value: string): string {
     });
 }
 
+function buildInventoryHref(userId: number, username: string): string {
+    const params = new URLSearchParams({
+        userId: String(userId),
+        search: username,
+    });
+    return `/admin/inventory?${params.toString()}`;
+}
+
+function buildUsersHref(username: string): string {
+    const params = new URLSearchParams({
+        search: username,
+    });
+    return `/admin/users?${params.toString()}`;
+}
+
+function buildAuditHref(username: string): string {
+    const params = new URLSearchParams({
+        search: username,
+    });
+    return `/admin/audit?${params.toString()}`;
+}
+
 export default function AdminSupportPage() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const pendingTicketIdRef = useRef<number | null>(null);
+    const hydratedRef = useRef(false);
     const [tickets, setTickets] = useState<SupportTicketView[]>([]);
     const [assignableAdmins, setAssignableAdmins] = useState<SupportAdminListResponse["assignableAdmins"]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,6 +105,53 @@ export default function AdminSupportPage() {
     const [messageMode, setMessageMode] = useState<"public" | "internal">("public");
     const [savingTicket, setSavingTicket] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
+
+    useEffect(() => {
+        const nextSearch = (searchParams.get("search") ?? "").trim();
+        const nextStatus = searchParams.get("status");
+        const nextTicketId = Number(searchParams.get("ticketId") ?? "");
+
+        setSearchInput(nextSearch);
+        setSearch(nextSearch);
+        setPage(1);
+        if (nextStatus === "all" || nextStatus === "open" || nextStatus === "in_progress" || nextStatus === "resolved" || nextStatus === "closed") {
+            setStatus(nextStatus);
+        }
+        pendingTicketIdRef.current = Number.isInteger(nextTicketId) && nextTicketId > 0 ? nextTicketId : null;
+        hydratedRef.current = true;
+    }, [searchParams]);
+
+    useEffect(() => {
+        if (!hydratedRef.current) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+
+        if (search.trim()) {
+            params.set("search", search.trim());
+        }
+
+        if (status !== "all") {
+            params.set("status", status);
+        }
+
+        if (selectedTicketId) {
+            params.set("ticketId", String(selectedTicketId));
+        }
+
+        const next = params.toString();
+        const current =
+            typeof window === "undefined"
+                ? ""
+                : window.location.search.startsWith("?")
+                  ? window.location.search.slice(1)
+                  : window.location.search;
+
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [pathname, router, search, selectedTicketId, status]);
 
     const selectedTicket = useMemo(
         () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
@@ -115,13 +191,23 @@ export default function AdminSupportPage() {
                 setAssignableAdmins(payload.assignableAdmins);
                 setTotal(payload.total);
                 setPageCount(payload.pages);
+                const hasPendingTicket =
+                    pendingTicketIdRef.current !== null &&
+                    payload.tickets.some((ticket) => ticket.id === pendingTicketIdRef.current);
+
                 setSelectedTicketId((current) => {
+                    if (hasPendingTicket) {
+                        return pendingTicketIdRef.current;
+                    }
                     if (current && payload.tickets.some((ticket) => ticket.id === current)) {
                         return current;
                     }
 
                     return payload.tickets[0]?.id ?? null;
                 });
+                if (hasPendingTicket) {
+                    pendingTicketIdRef.current = null;
+                }
             } catch {
                 if (abort.signal.aborted) {
                     return;
@@ -177,13 +263,23 @@ export default function AdminSupportPage() {
             setAssignableAdmins(payload.assignableAdmins);
             setTotal(payload.total);
             setPageCount(payload.pages);
+            const hasPendingTicket =
+                pendingTicketIdRef.current !== null &&
+                payload.tickets.some((ticket) => ticket.id === pendingTicketIdRef.current);
+
             setSelectedTicketId((current) => {
+                if (hasPendingTicket) {
+                    return pendingTicketIdRef.current;
+                }
                 if (current && payload.tickets.some((ticket) => ticket.id === current)) {
                     return current;
                 }
 
                 return payload.tickets[0]?.id ?? null;
             });
+            if (hasPendingTicket) {
+                pendingTicketIdRef.current = null;
+            }
         } catch {
             toast.error("Destek kuyrugu yenilenemedi.");
         } finally {
@@ -436,6 +532,53 @@ export default function AdminSupportPage() {
                                         ? ` - Atanan yetkili: @${selectedTicket.assignedAdmin.username}`
                                         : ""}
                                 </p>
+                                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Mesaj</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {selectedTicket.messages.length} kayit
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Ic not</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {selectedTicket.messages.filter((entry) => entry.isInternal).length} not
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Gorunur cevap</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {
+                                                selectedTicket.messages.filter(
+                                                    (entry) => !entry.isInternal && entry.author?.role === "admin"
+                                                ).length
+                                            } cevap
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/15 px-4 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Son hareket</div>
+                                        <div className="mt-1 text-sm font-semibold text-foreground">
+                                            {formatDateTime(selectedTicket.lastMessageAt)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildInventoryHref(selectedTicket.user.id, selectedTicket.user.username)}>
+                                            Envantere Git
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildUsersHref(selectedTicket.user.username)}>
+                                            Kullanicida Ac
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={buildAuditHref(selectedTicket.user.username)}>
+                                            Audit Kaydina Git
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="grid gap-4 border-b border-border/60 px-5 py-4 md:grid-cols-3">

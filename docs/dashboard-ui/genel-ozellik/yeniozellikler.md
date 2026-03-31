@@ -1,6 +1,6 @@
 ﻿# Yeni Ozellikler Yol Haritasi
 
-> Son guncelleme: 30 March 2026
+> Son guncelleme: 31 March 2026
 > Durum: aktif roadmap dokumani
 
 ## Kullanim Kurali
@@ -80,20 +80,19 @@
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-20. `fix/coin-grants-archive-lifecycle`
-21. `feature/admin-user-observability`
-22. `feature/economy-abuse-hardening`
-23. `feature/night-market-foundation`
-24. `feature/cache-and-rate-limit-foundation`
-25. `feature/admin-promotions-ux`
-26. `feature/cosmetic-render-upgrade`
-27. `feature/admin-cosmetic-authoring`
-28. `feature/gameplay-ui-polish`
-29. `feature/analytics-event-foundation`
-30. `feature/word-analytics-liveops`
-31. `feature/release-ops-docs`
-32. `docs/encoding-cleanup`
-33. `feature/wallet-ledger-foundation`
+20. `feature/admin-user-observability`
+21. `feature/economy-abuse-hardening`
+22. `feature/night-market-foundation`
+23. `feature/cache-and-rate-limit-foundation`
+24. `feature/admin-promotions-ux`
+25. `feature/cosmetic-render-upgrade`
+26. `feature/admin-cosmetic-authoring`
+27. `feature/gameplay-ui-polish`
+28. `feature/analytics-event-foundation`
+29. `feature/word-analytics-liveops`
+30. `feature/release-ops-docs`
+31. `docs/encoding-cleanup`
+32. `feature/wallet-ledger-foundation`
 
 ## Admin Shop UX Slice (30 March 2026, completed)
 - `feature/admin-shop-ux`
@@ -147,11 +146,18 @@
   - kelimelerde yalniz gorunen sayfayi secen bulk selection ve guvenli bulk delete eklendi
   - eski sidebar `Toplu Yukleme` girisi kaldirildi, eski URL `Kelime Yonetimi`ne yonlenir
 
-## Coin Grants Archive Lifecycle Slice (30 March 2026, active)
+## Coin Grants Archive Lifecycle Slice (31 March 2026, completed)
 - `fix/coin-grants-archive-lifecycle`
-  - campaign ve code tarafindaki archive semantigi tek modele cekilecek
-  - `Tum`, `Aktif`, `Pasif`, `Arsiv` filtrelerinin ne gosterdigi netlestirilecek
-  - archive, pasiflestirme ve silme davranisi tutarli hale getirilecek
+  - campaign ve code tarafindaki archive semantigi tek modele cekildi
+  - `Tüm operasyonel`, `Aktif`, `Pasif`, `Arşiv` filtrelerinin ne gosterdigi netlesti
+  - archive, pasiflestirme ve restore davranisi tutarli hale getirildi
+  - campaign/code kart yogunlugu azaltildi ve code summary guclendirildi
+
+## Admin User Observability Slice (31 March 2026, active)
+- `feature/admin-user-observability`
+  - kullanici listesi ve detayinda operasyonel gozlem sinyalleri arttirilacak
+  - trusted proxy kararina uygun IP gorunurlugu saglanacak
+  - support, moderation ve economy review icin temel kullanici baglami guclendirilecek
 
 ## Night Market Ve Gorev Sistemi Notu
 - `feature/night-market-foundation` acele uygulanmayacak
@@ -163,8 +169,8 @@
 
 ## Sayisal Durum
 - Tamamlanan feature branch sayisi: 19
-- Planli toplam feature branch sayisi: 33
-- Kalan feature branch sayisi: 14
+- Planli toplam feature branch sayisi: 32
+- Kalan feature branch sayisi: 13
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

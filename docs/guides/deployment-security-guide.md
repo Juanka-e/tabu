@@ -65,6 +65,20 @@ Pratikte daha olasi sonuc:
 - `UntrustedHost` hatasi
 - login/session akisinin bozulmasi
 
+### Local Development Notu
+
+Development ortaminda `localhost` veya benzeri local origin'lerde Auth.js host guveni pratik olarak acik olmalidir.
+
+Bu projede karar:
+
+- `NODE_ENV !== "production"` iken local dev host'lari otomatik trusted kabul edilir
+- production'da ise `AUTH_TRUST_HOST=true` acikca verilmelidir
+
+Yani:
+
+- local development'ta `AUTH_TRUST_HOST` zorunlu degil
+- production'da zorunlu karar alanidir
+
 Dogru guvenlik modeli:
 
 1. `AUTH_TRUST_HOST=true`
