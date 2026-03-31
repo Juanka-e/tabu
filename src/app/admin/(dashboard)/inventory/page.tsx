@@ -136,6 +136,7 @@ export default function AdminInventoryPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const pendingUserIdRef = useRef<number | null>(null);
+    const hydratedRef = useRef(false);
     const [search, setSearch] = useState("");
     const [debouncedUserSearch, setDebouncedUserSearch] = useState("");
     const [users, setUsers] = useState<AdminInventoryUserOption[]>([]);
@@ -167,29 +168,36 @@ export default function AdminInventoryPage() {
         setSearch(nextSearch);
         setDebouncedUserSearch(nextSearch);
         pendingUserIdRef.current = Number.isInteger(nextUserId) && nextUserId > 0 ? nextUserId : null;
+        hydratedRef.current = true;
     }, [searchParams]);
 
     useEffect(() => {
-        const params = new URLSearchParams(searchParams.toString());
+        if (!hydratedRef.current) {
+            return;
+        }
+
+        const params = new URLSearchParams();
 
         if (search.trim()) {
             params.set("search", search.trim());
-        } else {
-            params.delete("search");
         }
 
         if (selectedUserId) {
             params.set("userId", String(selectedUserId));
-        } else {
-            params.delete("userId");
         }
 
         const next = params.toString();
-        const current = searchParams.toString();
+        const current =
+            typeof window === "undefined"
+                ? ""
+                : window.location.search.startsWith("?")
+                  ? window.location.search.slice(1)
+                  : window.location.search;
+
         if (next !== current) {
             router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
         }
-    }, [pathname, router, search, searchParams, selectedUserId]);
+    }, [pathname, router, search, selectedUserId]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {

@@ -87,6 +87,7 @@ export default function AdminSupportPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const pendingTicketIdRef = useRef<number | null>(null);
+    const hydratedRef = useRef(false);
     const [tickets, setTickets] = useState<SupportTicketView[]>([]);
     const [assignableAdmins, setAssignableAdmins] = useState<SupportAdminListResponse["assignableAdmins"]>([]);
     const [loading, setLoading] = useState(true);
@@ -106,34 +107,6 @@ export default function AdminSupportPage() {
     const [sendingMessage, setSendingMessage] = useState(false);
 
     useEffect(() => {
-        const params = new URLSearchParams(searchParams.toString());
-
-        if (search.trim()) {
-            params.set("search", search.trim());
-        } else {
-            params.delete("search");
-        }
-
-        if (status !== "all") {
-            params.set("status", status);
-        } else {
-            params.delete("status");
-        }
-
-        if (selectedTicketId) {
-            params.set("ticketId", String(selectedTicketId));
-        } else {
-            params.delete("ticketId");
-        }
-
-        const next = params.toString();
-        const current = searchParams.toString();
-        if (next !== current) {
-            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-        }
-    }, [pathname, router, search, searchParams, selectedTicketId, status]);
-
-    useEffect(() => {
         const nextSearch = (searchParams.get("search") ?? "").trim();
         const nextStatus = searchParams.get("status");
         const nextTicketId = Number(searchParams.get("ticketId") ?? "");
@@ -145,7 +118,40 @@ export default function AdminSupportPage() {
             setStatus(nextStatus);
         }
         pendingTicketIdRef.current = Number.isInteger(nextTicketId) && nextTicketId > 0 ? nextTicketId : null;
+        hydratedRef.current = true;
     }, [searchParams]);
+
+    useEffect(() => {
+        if (!hydratedRef.current) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+
+        if (search.trim()) {
+            params.set("search", search.trim());
+        }
+
+        if (status !== "all") {
+            params.set("status", status);
+        }
+
+        if (selectedTicketId) {
+            params.set("ticketId", String(selectedTicketId));
+        }
+
+        const next = params.toString();
+        const current =
+            typeof window === "undefined"
+                ? ""
+                : window.location.search.startsWith("?")
+                  ? window.location.search.slice(1)
+                  : window.location.search;
+
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [pathname, router, search, selectedTicketId, status]);
 
     const selectedTicket = useMemo(
         () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
