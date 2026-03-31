@@ -77,11 +77,13 @@
 - referans:
   - `docs/guides/economy-abuse-hardening-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
 
 ## Planning Notlari
 - Store / liveops / economy stratejisi icin ana referanslar:
   - `docs/guides/store-liveops-strategy-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
 - Night market ve gorev sistemi yapisi icin:
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 

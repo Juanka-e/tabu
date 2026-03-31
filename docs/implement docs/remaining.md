@@ -27,6 +27,7 @@
 - planning referanslari:
   - `docs/guides/economy-abuse-hardening-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ### 2. Night Market / Missions Planning

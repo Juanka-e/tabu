@@ -166,8 +166,23 @@ Neden degerli:
 1. coin grants archive lifecycle
 2. admin user observability
 3. economy abuse hardening
-4. gorev / identity / motivation planning revizyonu
-5. sonra gerekirse `feature/night-market-foundation`
+4. economy progression / pricing / XP kararlarini netlestirme
+5. gorev / identity / motivation planning revizyonu
+6. sonra gerekirse `feature/night-market-foundation`
+
+## Gorev Sistemi Ne Zaman Uygundur
+
+Gorev sistemi su kosullar saglanmadan eklenmemeli:
+
+1. gameplay reward guardrail v1 cikmis olmali
+2. source-aware economy mantigi netlesmis olmali
+3. XP/level coin'den ayri konumlanmis olmali
+4. gorev odulunun economy pacing'i bozmayacagi biliniyor olmali
+
+Pratikte bu su anlama gelir:
+
+- gorev, economy foundation'dan sonra gelir
+- night market ise gorev ve retention motivasyonu oturduktan sonra gelir
 
 ## Night Market Implementasyonundan Once Sorulacak Sorular
 
