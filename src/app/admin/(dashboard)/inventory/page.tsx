@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Gift, Loader2, Search, ShieldAlert, Shirt, Sparkles, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
@@ -118,6 +119,8 @@ function SummaryPill({ label, value }: { label: string; value: string }) {
 }
 
 export default function AdminInventoryPage() {
+    const searchParams = useSearchParams();
+    const pendingUserIdRef = useRef<number | null>(null);
     const [search, setSearch] = useState("");
     const [debouncedUserSearch, setDebouncedUserSearch] = useState("");
     const [users, setUsers] = useState<AdminInventoryUserOption[]>([]);
@@ -141,6 +144,15 @@ export default function AdminInventoryPage() {
     const [revokeReason, setRevokeReason] = useState("");
     const [revokeOverrideConfirmed, setRevokeOverrideConfirmed] = useState(false);
     const [resetTargetSlot, setResetTargetSlot] = useState<AdminInventoryEquipSlot | null>(null);
+
+    useEffect(() => {
+        const nextSearch = (searchParams.get("search") ?? "").trim();
+        const nextUserId = Number(searchParams.get("userId") ?? "");
+
+        setSearch(nextSearch);
+        setDebouncedUserSearch(nextSearch);
+        pendingUserIdRef.current = Number.isInteger(nextUserId) && nextUserId > 0 ? nextUserId : null;
+    }, [searchParams]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
@@ -191,11 +203,23 @@ export default function AdminInventoryPage() {
 
             setUsers(mappedUsers);
             setSelectedUserId((current) => {
+                if (
+                    pendingUserIdRef.current &&
+                    mappedUsers.some((user) => user.id === pendingUserIdRef.current)
+                ) {
+                    return pendingUserIdRef.current;
+                }
                 if (current && mappedUsers.some((user) => user.id === current)) {
                     return current;
                 }
                 return mappedUsers[0]?.id ?? null;
             });
+            if (
+                pendingUserIdRef.current &&
+                mappedUsers.some((user) => user.id === pendingUserIdRef.current)
+            ) {
+                pendingUserIdRef.current = null;
+            }
         } finally {
             setLoadingUsers(false);
         }

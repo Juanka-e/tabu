@@ -98,6 +98,36 @@ function getWalletAdjustmentLabel(type: "credit" | "debit" | null): string {
     return type === "credit" ? "Coin ekleme" : "Coin düşme";
 }
 
+function buildSupportHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        search: user.username,
+    });
+    if (user.supportTicketSummary.latestTicketId) {
+        params.set("ticketId", String(user.supportTicketSummary.latestTicketId));
+    }
+    return `/admin/support?${params.toString()}`;
+}
+
+function buildInventoryHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        search: user.username,
+        userId: String(user.id),
+    });
+    return `/admin/inventory?${params.toString()}`;
+}
+
+function buildWalletAuditHref(user: AdminUserModerationView): string {
+    const params = new URLSearchParams({
+        resourceType: "wallet_adjustment",
+    });
+    if (user.walletAdjustmentSummary.latestAdjustmentId) {
+        params.set("search", String(user.walletAdjustmentSummary.latestAdjustmentId));
+    } else {
+        params.set("search", user.username);
+    }
+    return `/admin/audit?${params.toString()}`;
+}
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<AdminUserModerationView[]>([]);
     const [page, setPage] = useState(1);
@@ -455,7 +485,16 @@ export default function AdminUsersPage() {
                                 <TableCell>
                                     <div className="space-y-2 text-xs text-muted-foreground">
                                         <div>
-                                            <span className="font-semibold text-foreground">Support:</span>{" "}
+                                            {user.supportTicketSummary.total > 0 ? (
+                                                <Link
+                                                    href={buildSupportHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Support:
+                                                </Link>
+                                            ) : (
+                                                <span className="font-semibold text-foreground">Support:</span>
+                                            )}{" "}
                                             {user.supportTicketSummary.total > 0
                                                 ? `${user.supportTicketSummary.total} kayit, ${user.supportTicketSummary.openCount} acik`
                                                 : "Kayit yok"}
@@ -482,6 +521,26 @@ export default function AdminUsersPage() {
                                             <span className="font-semibold text-foreground">Coin nedeni:</span>{" "}
                                             {user.walletAdjustmentSummary.latestReason ?? "Wallet adjustment yok"}
                                         </div>
+                                        {user.supportTicketSummary.latestTicketId ? (
+                                            <div>
+                                                <Link
+                                                    href={buildSupportHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Support kaydina git
+                                                </Link>
+                                            </div>
+                                        ) : null}
+                                        {user.walletAdjustmentSummary.latestAdjustmentId ? (
+                                            <div>
+                                                <Link
+                                                    href={buildWalletAuditHref(user)}
+                                                    className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                                                >
+                                                    Coin kaydina git
+                                                </Link>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -602,10 +661,10 @@ export default function AdminUsersPage() {
                                                     Ic Not
                                                 </Button>
                                                 <Button asChild type="button" variant="ghost" size="sm">
-                                                    <Link href="/admin/support">Destek</Link>
+                                                    <Link href={buildSupportHref(user)}>Destek</Link>
                                                 </Button>
                                                 <Button asChild type="button" variant="ghost" size="sm">
-                                                    <Link href="/admin/inventory">Envanter</Link>
+                                                    <Link href={buildInventoryHref(user)}>Envanter</Link>
                                                 </Button>
                                             </>
                                         )}
@@ -802,5 +861,6 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+
 
 

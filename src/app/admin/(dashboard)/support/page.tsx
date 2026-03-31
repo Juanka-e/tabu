@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
     Headset,
     LifeBuoy,
@@ -59,6 +60,8 @@ function formatDateTime(value: string): string {
 }
 
 export default function AdminSupportPage() {
+    const searchParams = useSearchParams();
+    const pendingTicketIdRef = useRef<number | null>(null);
     const [tickets, setTickets] = useState<SupportTicketView[]>([]);
     const [assignableAdmins, setAssignableAdmins] = useState<SupportAdminListResponse["assignableAdmins"]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,6 +79,20 @@ export default function AdminSupportPage() {
     const [messageMode, setMessageMode] = useState<"public" | "internal">("public");
     const [savingTicket, setSavingTicket] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
+
+    useEffect(() => {
+        const nextSearch = (searchParams.get("search") ?? "").trim();
+        const nextStatus = searchParams.get("status");
+        const nextTicketId = Number(searchParams.get("ticketId") ?? "");
+
+        setSearchInput(nextSearch);
+        setSearch(nextSearch);
+        setPage(1);
+        if (nextStatus === "all" || nextStatus === "open" || nextStatus === "in_progress" || nextStatus === "resolved" || nextStatus === "closed") {
+            setStatus(nextStatus);
+        }
+        pendingTicketIdRef.current = Number.isInteger(nextTicketId) && nextTicketId > 0 ? nextTicketId : null;
+    }, [searchParams]);
 
     const selectedTicket = useMemo(
         () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
@@ -115,13 +132,23 @@ export default function AdminSupportPage() {
                 setAssignableAdmins(payload.assignableAdmins);
                 setTotal(payload.total);
                 setPageCount(payload.pages);
+                const hasPendingTicket =
+                    pendingTicketIdRef.current !== null &&
+                    payload.tickets.some((ticket) => ticket.id === pendingTicketIdRef.current);
+
                 setSelectedTicketId((current) => {
+                    if (hasPendingTicket) {
+                        return pendingTicketIdRef.current;
+                    }
                     if (current && payload.tickets.some((ticket) => ticket.id === current)) {
                         return current;
                     }
 
                     return payload.tickets[0]?.id ?? null;
                 });
+                if (hasPendingTicket) {
+                    pendingTicketIdRef.current = null;
+                }
             } catch {
                 if (abort.signal.aborted) {
                     return;
@@ -177,13 +204,23 @@ export default function AdminSupportPage() {
             setAssignableAdmins(payload.assignableAdmins);
             setTotal(payload.total);
             setPageCount(payload.pages);
+            const hasPendingTicket =
+                pendingTicketIdRef.current !== null &&
+                payload.tickets.some((ticket) => ticket.id === pendingTicketIdRef.current);
+
             setSelectedTicketId((current) => {
+                if (hasPendingTicket) {
+                    return pendingTicketIdRef.current;
+                }
                 if (current && payload.tickets.some((ticket) => ticket.id === current)) {
                     return current;
                 }
 
                 return payload.tickets[0]?.id ?? null;
             });
+            if (hasPendingTicket) {
+                pendingTicketIdRef.current = null;
+            }
         } catch {
             toast.error("Destek kuyrugu yenilenemedi.");
         } finally {

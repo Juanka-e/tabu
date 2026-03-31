@@ -127,11 +127,13 @@ function mapAdminUser(user: {
         supportTicketSummary: {
             total: user._count.supportTicketsOwned,
             openCount: user.supportTicketsOwned.filter((ticket) => ticket.status === "open" || ticket.status === "in_progress").length,
+            latestTicketId: user.supportTicketsOwned[0]?.id ?? null,
             latestStatus: user.supportTicketsOwned[0]?.status ?? null,
             latestSubject: user.supportTicketsOwned[0]?.subject ?? null,
             latestUpdatedAt: user.supportTicketsOwned[0]?.updatedAt.toISOString() ?? null,
         },
         walletAdjustmentSummary: {
+            latestAdjustmentId: user.walletAdjustmentsReceived[0]?.id ?? null,
             latestType: user.walletAdjustmentsReceived[0]?.adjustmentType ?? null,
             latestAmount: user.walletAdjustmentsReceived[0]?.amount ?? null,
             latestReason: user.walletAdjustmentsReceived[0]?.reason ?? null,

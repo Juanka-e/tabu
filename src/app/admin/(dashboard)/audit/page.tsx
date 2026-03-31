@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Activity, Search } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
@@ -34,6 +35,7 @@ function renderMetadata(metadata: Record<string, string>): string {
 }
 
 export default function AdminAuditPage() {
+    const searchParams = useSearchParams();
     const [logs, setLogs] = useState<AdminAuditLogView[]>([]);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
@@ -46,6 +48,14 @@ export default function AdminAuditPage() {
     const [resourceTypeOptions, setResourceTypeOptions] = useState<string[]>([]);
     const [roleOptions, setRoleOptions] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setSearch((searchParams.get("search") ?? "").trim());
+        setAction(searchParams.get("action") ?? "");
+        setResourceType(searchParams.get("resourceType") ?? "");
+        setActorRole(searchParams.get("actorRole") ?? "");
+        setPage(1);
+    }, [searchParams]);
 
     const loadLogs = useCallback(async () => {
         setLoading(true);

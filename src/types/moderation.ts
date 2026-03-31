@@ -39,11 +39,13 @@ export interface AdminUserModerationView {
     supportTicketSummary: {
         total: number;
         openCount: number;
+        latestTicketId: number | null;
         latestStatus: string | null;
         latestSubject: string | null;
         latestUpdatedAt: string | null;
     };
     walletAdjustmentSummary: {
+        latestAdjustmentId: number | null;
         latestType: "credit" | "debit" | null;
         latestAmount: number | null;
         latestReason: string | null;
