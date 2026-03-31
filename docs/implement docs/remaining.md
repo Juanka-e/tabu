@@ -5,17 +5,20 @@
 
 ## Su Anki Oncelik Sirasi
 1. `feature/economy-abuse-hardening`
-2. `feature/cache-and-rate-limit-foundation`
-3. `feature/night-market-foundation`
+2. `feature/post-launch-economy-observability-review`
+3. `feature/cache-and-rate-limit-foundation`
 4. `feature/admin-promotions-ux`
 5. `feature/cosmetic-render-upgrade`
 6. `feature/admin-cosmetic-authoring`
 7. `feature/gameplay-ui-polish`
 8. `feature/analytics-event-foundation`
 9. `feature/word-analytics-liveops`
-10. `feature/release-ops-docs`
-11. `docs/encoding-cleanup`
-12. `feature/wallet-ledger-foundation`
+10. `feature/post-launch-xp-level-foundation`
+11. `feature/post-launch-missions-foundation`
+12. `feature/post-launch-night-market-foundation`
+13. `feature/release-ops-docs`
+14. `docs/encoding-cleanup`
+15. `feature/wallet-ledger-foundation`
 
 ## En Kritik Acik Isler
 
@@ -34,8 +37,11 @@
 - night market acele implemente edilmeyecek
 - once economy guardrail ve admin observability yeterli seviyeye gelmeli
 - gorev sistemi, rozetler, banner ve geri donus motivasyonu birlikte dusunulmeli
+- XP ekrani, gorev ekrani ve event claim akisi acilis oncesi implement edilmeyecek
+- bu alanlar urun canliya acildiktan sonra gercek veriyle tekrar kararlandirilacak
 - planning rehberi:
   - `docs/guides/night-market-and-missions-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
 
 ### 3. Cache / Rate Limit Foundation
 - Redis/Valkey abstraction
@@ -44,6 +50,35 @@
 - room/lobi multi-instance mimarisine hazirlik
 - PM2 multi-instance ve websocket koordinasyon notlari:
   - `docs/cache-and-storage-strategy.md`
+
+## Aclis Sonrasi Onerilen Implementasyon Sirasi
+
+1. `feature/economy-abuse-hardening`
+- reward eligibility
+- reward source ayrimi
+- audit metadata
+- safety ceiling
+- repeated-group diminishing returns
+
+2. `feature/post-launch-economy-observability-review`
+- gercek coin kazanimi
+- store satin alma hizi
+- retention ve pacing gozlemi
+- ilk ekonomi tuning kararlari
+
+3. `feature/cache-and-rate-limit-foundation`
+- shared runtime guardrail ve cache temeli
+
+4. `feature/post-launch-xp-level-foundation`
+- yalniz veri bunu gerektirirse
+- coin'den ayri ilerleme katmani
+
+5. `feature/post-launch-missions-foundation`
+- retention ihtiyaci gercekten varsa
+- source-aware reward modeli uzerinde
+
+6. `feature/post-launch-night-market-foundation`
+- ancak store ve retention verisi bunu gerekliyse
 
 ## Son Tamamlanan Dilim
 ### `feature/admin-user-observability`

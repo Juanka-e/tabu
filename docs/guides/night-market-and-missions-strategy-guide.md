@@ -7,6 +7,8 @@ Ana karar:
 - `night market` su an implement edilmek zorunda degil
 - once economy, admin operasyonu ve reward guardrail'leri netlesmeli
 - night market ile gorev sistemi birbirinden tamamen kopuk dusunulmemeli
+- urun canliya acilmadan once implement edilmemeli
+- acilis sonrasi gercek oyuncu davranisi gorulmeden release planina alinmamali
 
 ## Neden Simdi Degil
 
@@ -183,6 +185,7 @@ Pratikte bu su anlama gelir:
 
 - gorev, economy foundation'dan sonra gelir
 - night market ise gorev ve retention motivasyonu oturduktan sonra gelir
+- her ikisi de acilis sonrasi gozlemden once implement backlog'ina alinmaz
 
 ## Night Market Implementasyonundan Once Sorulacak Sorular
 

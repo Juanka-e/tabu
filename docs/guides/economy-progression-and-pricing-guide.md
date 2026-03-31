@@ -17,6 +17,17 @@ Yani:
 
 tek potada eritilmemeli.
 
+Planlaniyor olmasi, hemen implement edilecegi anlamina gelmez.
+
+Asagidaki alanlar acilis oncesi kapsam disidir:
+
+- XP ekrani
+- gorev ekrani
+- event claim akisi
+- night market
+
+Bu alanlar ancak urun canliya acildiktan ve gercek oyuncu davranisi gozlendikten sonra tekrar ele alinmalidir.
+
 ## Bugunku Gercek Durum
 
 Bugun oyuncu coin'i esas olarak oyun oynayarak aliyor.
@@ -151,6 +162,11 @@ Dogru siralama:
 5. haftalik gorev
 6. event gorevleri
 
+Ek urun karari:
+
+- gorev sistemi "hazir gibi gorundugu icin" acilmayacak
+- once retention ve pacing ihtiyaci canli veride gorulecek
+
 ## Gorev Odullerinin Dagilimi
 
 Gorevler yalniz coin vermemeli.
@@ -183,6 +199,11 @@ Ama ekonomi henuz zayifken night market eklemek:
 - indirim guvenini zedeler
 - abuse baskisini artirir
 
+Ek urun karari:
+
+- night market backlog'da kalir
+- store davranisi ve satin alma hizi gozlendikten sonra tekrar degerlendirilir
+
 ## Bu Branch Sonunda Hedeflenen Karar Ciktilari
 
 1. coin source aileleri net tanimli
@@ -190,3 +211,10 @@ Ama ekonomi henuz zayifken night market eklemek:
 3. ilk fiyat ladder'i resmilesti
 4. XP/level'in coin'den ayri bir katman oldugu netlesti
 5. gorevlerin ne zaman eklenmesi gerektigi kararlandi
+
+## Aclis Sonrasi Tekrar Degerlendirilecekler
+
+1. XP / level gercekten gerekli mi
+2. gorev sistemi retention icin gerekli mi
+3. event claim UX'i oyuncu akisina nasil oturacak
+4. night market gercekten deger uretecek mi

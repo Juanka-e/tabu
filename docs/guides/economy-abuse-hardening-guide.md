@@ -75,14 +75,24 @@ Bu branch'in gorevi:
 
 3. night market implementasyonu
 - once ekonomi guardrail oturmali
+- urun canliya acilmadan once implement edilmeyecek
 
 4. gorev sistemi implementasyonu
 - sadece economy ile iliskili dokuman baglaminda kalir
+- urun canliya acilmadan once implement edilmeyecek
 
-5. wallet ledger buyuk refactor
+5. XP / level ekrani
+- bu branch'te yok
+- canli kullanim gorulmeden acilmayacak
+
+6. event claim akisi
+- bu branch'te yok
+- event reward source modeli oturmadan acilmayacak
+
+7. wallet ledger buyuk refactor
 - bu ayri bir foundation isi
 
-6. invasive fingerprint veya sert device enforcement
+8. invasive fingerprint veya sert device enforcement
 - ilk surumde agresif browser fingerprint yok
 - dusuk agirlikli sinyal gerekiyorsa ileride ayri privacy review ile ele alinacak
 
@@ -93,6 +103,15 @@ Bu branch'in gorevi:
 3. cap ve diminishing returns kur
 4. suphe skoru ve audit event'lerini ekle
 5. admin review tarafi icin minimum gorunurluk sagla
+
+Bu siralama acilis oncesi economy foundation icindir.
+
+Asagidaki alanlar acilis sonrasi gozlemden sonra tekrar kararlandirilacak:
+
+- XP / level
+- gorev sistemi
+- event claim ve event odul UX'i
+- night market
 
 ## Source-Aware Ekonomi Modeli
 
