@@ -51,3 +51,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 12. `admin-user-observability-guide.md`
 - admin kullanici listesi ve detayinda operasyonel gozlem sinyallerini guclendirme rehberi
 - IP, son gorulme, trusted proxy ve abuse review'a temel olacak observability sinirlarini tanimlar
+
+13. `economy-abuse-hardening-guide.md`
+- reward eligibility, coin cap ve suphe skoru uygulama rehberi
+- false positive riski yuksek oldugu icin branch sinirlarini ve guardrail'leri netlestirir

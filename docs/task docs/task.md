@@ -1,6 +1,6 @@
 ﻿# Gorev Kaydi
 
-> Son guncelleme: 30 March 2026
+> Son guncelleme: 31 March 2026
 > Durum: aktif execution log
 
 ## Cekirdek Kurallar
@@ -69,12 +69,14 @@
   - `docs/guides/admin-security-hardening-guide.md`
 
 ## Aktif Branch
-### `feature/admin-user-observability`
-- kullanici listesi ve detayinda gozlem sinyallerini arttirma
-- IP / trusted proxy mantigini admin UI tarafinda dogru sekilde yansitma
-- support, moderation ve economy review icin temel kullanici baglamini guclendirme
+### `feature/economy-abuse-hardening`
+- reward eligibility kurallarini merkezi hale getirme
+- coin cap ve diminishing returns temelini kurma
+- repeated-group ve benzeri sinyalleri yumusak suphe skoruna baglama
+- audit ve admin review icin aciklanabilir ekonomi sinyalleri uretme
 - referans:
-  - `docs/guides/admin-user-observability-guide.md`
+  - `docs/guides/economy-abuse-hardening-guide.md`
+  - `docs/guides/economy-abuse-strategy-guide.md`
 
 ## Planning Notlari
 - Store / liveops / economy stratejisi icin ana referanslar:
@@ -84,19 +86,18 @@
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Aktif Sonraki Branch Adaylari
-1. `feature/admin-user-observability`
-2. `feature/economy-abuse-hardening`
+1. `feature/economy-abuse-hardening`
+2. `feature/cache-and-rate-limit-foundation`
 3. `feature/night-market-foundation`
-4. `feature/cache-and-rate-limit-foundation`
-5. `feature/admin-promotions-ux`
-6. `feature/cosmetic-render-upgrade`
-7. `feature/admin-cosmetic-authoring`
-8. `feature/gameplay-ui-polish`
-9. `feature/analytics-event-foundation`
-10. `feature/word-analytics-liveops`
-11. `feature/release-ops-docs`
-12. `docs/encoding-cleanup`
-13. `feature/wallet-ledger-foundation`
+4. `feature/admin-promotions-ux`
+5. `feature/cosmetic-render-upgrade`
+6. `feature/admin-cosmetic-authoring`
+7. `feature/gameplay-ui-polish`
+8. `feature/analytics-event-foundation`
+9. `feature/word-analytics-liveops`
+10. `feature/release-ops-docs`
+11. `docs/encoding-cleanup`
+12. `feature/wallet-ledger-foundation`
 
 ## Temizlenen Eski Icerik
 Bu dosyadan sunlar kaldirildi:
