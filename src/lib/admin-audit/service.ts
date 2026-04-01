@@ -136,9 +136,51 @@ function mapAuditLog(log: {
 export async function getAdminAuditLogs(
     input: AdminAuditListQuery
 ): Promise<AdminAuditListResponse> {
-    const { page, limit, search, action, resourceType, actorRole } = input;
+    const { page, limit, search, action, resourceType, actorRole, economyGuard } = input;
+
+    const economyGuardWhere: Prisma.AuditLogWhereInput =
+        economyGuard === "match_reward"
+            ? {
+                  action: "game.match.finalize",
+              }
+            : economyGuard === "triggered"
+              ? {
+                    action: "game.match.finalize",
+                    OR: [
+                        {
+                            metadata: {
+                                path: "$.rewardGuardTriggered",
+                                equals: true,
+                            },
+                        },
+                        {
+                            metadata: {
+                                path: "$.repeatedGroupTriggered",
+                                equals: true,
+                            },
+                        },
+                    ],
+                }
+              : economyGuard === "ceiling"
+                ? {
+                      action: "game.match.finalize",
+                      metadata: {
+                          path: "$.rewardGuardTriggered",
+                          equals: true,
+                      },
+                  }
+                : economyGuard === "repeated_group"
+                  ? {
+                        action: "game.match.finalize",
+                        metadata: {
+                            path: "$.repeatedGroupTriggered",
+                            equals: true,
+                        },
+                    }
+                  : {};
 
     const where: Prisma.AuditLogWhereInput = {
+        ...economyGuardWhere,
         ...(search
             ? {
                   OR: [
