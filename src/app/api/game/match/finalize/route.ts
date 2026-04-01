@@ -63,10 +63,6 @@ export async function POST(req: Request) {
           alreadyClaimed: true,
           coinEarned: existing.coinEarned,
           won: existing.won,
-          rewardSource: evaluation.source,
-          eligibilityDecision: evaluation.decision,
-          eligibilityReasons: evaluation.reasonCodes,
-          reviewFlags: evaluation.reviewFlags,
         });
       }
 
@@ -189,23 +185,6 @@ export async function POST(req: Request) {
       won: evaluation.won,
       coinBalance: result.wallet?.coinBalance ?? 0,
       matchId: result.created.id,
-      rewardSource: evaluation.source,
-      eligibilityDecision: evaluation.decision,
-      reviewFlags: evaluation.reviewFlags,
-      rewardGuard: {
-        triggered: result.ceiling.triggered,
-        band: result.ceiling.band,
-        requestedRewardCoin: result.ceiling.requestedRewardCoin,
-        allowedRewardCoin: result.ceiling.allowedRewardCoin,
-        blockedRewardCoin: result.ceiling.blockedRewardCoin,
-      },
-      repeatedGroup: {
-        triggered: result.repeatedGroup.triggered,
-        priorMatchingRewards: result.repeatedGroup.priorMatchingRewards,
-        currentOrdinal: result.repeatedGroup.currentOrdinal,
-        allowedRewardCoin: result.repeatedGroup.allowedRewardCoin,
-        blockedRewardCoin: result.repeatedGroup.blockedRewardCoin,
-      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -65,7 +65,11 @@ export async function POST(request: NextRequest) {
             request,
         });
 
-        return NextResponse.json(result);
+        return NextResponse.json({
+            ok: true,
+            coinAmount: result.coinAmount,
+            coinBalance: result.coinBalance,
+        });
     } catch (error) {
         if (error instanceof Error && "issues" in error) {
             const zodError = error as Error & { issues?: Array<{ message?: string }> };
