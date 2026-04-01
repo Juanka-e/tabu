@@ -26,6 +26,9 @@ export interface AdminAuditLogView {
         repeatedGroupTriggered: boolean;
         repeatedGroupOrdinal: number | null;
         repeatedGroupThreshold: number | null;
+        roomCode: string | null;
+        sureSeconds: number | null;
+        lineupPlayers: string[];
     } | null;
 }
 

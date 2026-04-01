@@ -34,10 +34,10 @@ async function testGuestRoomEligibility(): Promise<void> {
             matchStartedAt: "2026-04-01T12:00:00.000Z",
             sureSeconds: 180,
             oyuncular: [
-                { playerId: "user:99", userId: 99, takim: "A" },
-                { playerId: "guest:a", userId: null, takim: "A" },
-                { playerId: "guest:b", userId: null, takim: "B" },
-                { playerId: "guest:c", userId: null, takim: "B" },
+                { playerId: "user:99", userId: 99, ad: "TestUser", takim: "A" },
+                { playerId: "guest:a", userId: null, ad: "Guest A", takim: "A" },
+                { playerId: "guest:b", userId: null, ad: "Guest B", takim: "B" },
+                { playerId: "guest:c", userId: null, ad: "Guest C", takim: "B" },
             ],
         },
     });

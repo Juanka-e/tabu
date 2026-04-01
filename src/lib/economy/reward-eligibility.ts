@@ -16,6 +16,7 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
             guestPlayers: 0,
             matchStartedAt: null,
             sureSeconds: null,
+            lineupPlayers: [],
         };
     }
 
@@ -28,6 +29,13 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
         guestPlayers: Math.max(0, totalPlayers - authenticatedPlayers),
         matchStartedAt: room.matchStartedAt,
         sureSeconds: room.sureSeconds,
+        lineupPlayers: room.oyuncular.map((player) => {
+            if (player.takim === "A" || player.takim === "B") {
+                return `${player.ad} (${player.takim})`;
+            }
+
+            return player.ad;
+        }),
     };
 }
 

@@ -64,52 +64,109 @@ function renderMetadata(metadata: Record<string, string>): string {
     return entries.map(([key, value]) => `${key}: ${value}`).join(" | ");
 }
 
-function renderEconomyGuard(log: AdminAuditLogView): string {
+function renderEconomyPill(
+    label: string,
+    value: string,
+    tone: "neutral" | "emerald" | "amber" = "neutral"
+) {
+    const toneClass =
+        tone === "emerald"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+            : tone === "amber"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-700"
+              : "border-border/60 bg-background text-foreground";
+
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${toneClass}`}
+        >
+            <span className="text-muted-foreground">{label}</span>
+            <span>{value}</span>
+        </span>
+    );
+}
+
+function renderEconomyGuard(log: AdminAuditLogView) {
     if (!log.economyGuard) {
-        return "-";
+        return <span>-</span>;
     }
 
-    const parts: string[] = [];
+    const rewardRequested = log.economyGuard.requestedRewardCoin;
+    const rewardAllowed = log.economyGuard.allowedRewardCoin;
+    const blockedRewardCoin = log.economyGuard.blockedRewardCoin ?? 0;
+    const repeatedGroupLabel =
+        log.economyGuard.repeatedGroupOrdinal !== null &&
+        log.economyGuard.repeatedGroupThreshold !== null
+            ? `${log.economyGuard.repeatedGroupOrdinal}. mac / esik ${log.economyGuard.repeatedGroupThreshold}`
+            : "aktif";
 
-    if (log.actor?.username) {
-        parts.push(`Oyuncu: ${log.actor.username}`);
-    }
+    return (
+        <div className="min-w-[18rem] space-y-2 rounded-2xl border border-border/60 bg-muted/15 p-3">
+            <div className="flex flex-wrap gap-2">
+                {log.actor?.username
+                    ? renderEconomyPill("Oyuncu", log.actor.username, "neutral")
+                    : null}
+                {log.economyGuard.roomCode
+                    ? renderEconomyPill("Lobi", log.economyGuard.roomCode, "neutral")
+                    : null}
+                {log.economyGuard.rewardSource
+                    ? renderEconomyPill("Kaynak", log.economyGuard.rewardSource, "neutral")
+                    : null}
+                {log.economyGuard.sureSeconds !== null
+                    ? renderEconomyPill("Sure", `${log.economyGuard.sureSeconds}s`, "neutral")
+                    : null}
+            </div>
 
-    if (log.economyGuard.rewardSource) {
-        parts.push(`Kaynak: ${log.economyGuard.rewardSource}`);
-    }
+            {rewardRequested !== null && rewardAllowed !== null ? (
+                <div className="rounded-xl bg-background/80 px-3 py-2 text-[12px] leading-5 text-foreground">
+                    <span className="font-semibold">Odul</span>
+                    <span className="mx-2 text-muted-foreground">{rewardRequested}</span>
+                    <span className="text-muted-foreground">-&gt;</span>
+                    <span className="mx-2 font-semibold">{rewardAllowed}</span>
+                    {blockedRewardCoin > 0 ? (
+                        <span className="text-amber-700">
+                            ({blockedRewardCoin} coin kesildi)
+                        </span>
+                    ) : (
+                        <span className="text-emerald-700">(tam odul)</span>
+                    )}
+                </div>
+            ) : null}
 
-    if (
-        log.economyGuard.requestedRewardCoin !== null &&
-        log.economyGuard.allowedRewardCoin !== null
-    ) {
-        parts.push(
-            `Odul: ${log.economyGuard.requestedRewardCoin} -> ${log.economyGuard.allowedRewardCoin}`
-        );
-    }
+            {(log.economyGuard.rewardGuardTriggered || log.economyGuard.repeatedGroupTriggered) && (
+                <div className="flex flex-wrap gap-2">
+                    {log.economyGuard.rewardGuardTriggered
+                        ? renderEconomyPill(
+                              "Ceiling",
+                              log.economyGuard.rewardGuardBand ?? "aktif",
+                              "amber"
+                          )
+                        : null}
+                    {log.economyGuard.repeatedGroupTriggered
+                        ? renderEconomyPill("Tekrar Grup", repeatedGroupLabel, "amber")
+                        : null}
+                </div>
+            )}
 
-    if ((log.economyGuard.blockedRewardCoin ?? 0) > 0) {
-        parts.push(`Kesilen: ${log.economyGuard.blockedRewardCoin}`);
-    }
-
-    if (log.metadata.sureSeconds) {
-        parts.push(`Sure: ${log.metadata.sureSeconds}s`);
-    }
-
-    if (log.economyGuard.rewardGuardTriggered) {
-        parts.push(`Ceiling: ${log.economyGuard.rewardGuardBand ?? "aktif"}`);
-    }
-
-    if (log.economyGuard.repeatedGroupTriggered) {
-        const ordinal =
-            log.economyGuard.repeatedGroupOrdinal !== null &&
-            log.economyGuard.repeatedGroupThreshold !== null
-                ? `${log.economyGuard.repeatedGroupOrdinal}. mac / esik ${log.economyGuard.repeatedGroupThreshold}`
-                : "aktif";
-        parts.push(`Tekrar grup: ${ordinal}`);
-    }
-
-    return parts.length > 0 ? parts.join(" | ") : "-";
+            {log.economyGuard.lineupPlayers.length > 0 ? (
+                <div className="space-y-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Lobi Kadrosu
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        {log.economyGuard.lineupPlayers.map((player) => (
+                            <span
+                                key={player}
+                                className="rounded-full border border-border/60 bg-background px-2 py-1 text-[11px] text-foreground"
+                            >
+                                {player}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+        </div>
+    );
 }
 
 export default function AdminAuditPage() {
@@ -388,7 +445,7 @@ export default function AdminAuditPage() {
                                 <TableCell className="max-w-xs text-sm text-muted-foreground">
                                     {log.note ?? "-"}
                                 </TableCell>
-                                <TableCell className="max-w-sm text-xs text-muted-foreground">
+                                <TableCell className="max-w-md align-top text-xs text-muted-foreground">
                                     {renderEconomyGuard(log)}
                                 </TableCell>
                                 <TableCell className="max-w-md text-xs text-muted-foreground">

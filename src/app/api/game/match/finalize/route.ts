@@ -20,6 +20,28 @@ const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
 });
 
+function toSafeNumber(value: unknown): number {
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  return 0;
+}
+
+async function safeWriteAuditLog(
+  input: Parameters<typeof writeAuditLog>[0]
+): Promise<void> {
+  try {
+    await writeAuditLog(input);
+  } catch (error) {
+    console.error("Audit log could not be written for match finalize", error);
+  }
+}
+
 export async function POST(req: Request) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
@@ -73,7 +95,7 @@ export async function POST(req: Request) {
       const primaryReason = evaluation.reasonCodes[0];
 
       if (primaryReason !== "already_claimed") {
-        await writeAuditLog({
+        await safeWriteAuditLog({
           actor: sessionUser,
           action: "game.match.finalize.denied",
           resourceType: "match_reward",
@@ -89,6 +111,7 @@ export async function POST(req: Request) {
             guestPlayers: evaluation.roomMetrics.guestPlayers,
             matchStartedAt: evaluation.roomMetrics.matchStartedAt,
             sureSeconds: evaluation.roomMetrics.sureSeconds,
+            lineupPlayers: evaluation.roomMetrics.lineupPlayers,
             roomCode: roomCode.toUpperCase(),
             duplicateClaim: false,
           },
@@ -141,7 +164,7 @@ export async function POST(req: Request) {
       });
       const coinEarned = ceiling.allowedRewardCoin;
 
-      await tx.$executeRaw`
+      const affectedRows = await tx.$executeRaw`
         INSERT INTO match_results (
           room_code,
           match_started_at,
@@ -173,10 +196,34 @@ export async function POST(req: Request) {
           ${evaluation.roomMetrics.authenticatedPlayers},
           ${evaluation.roomMetrics.guestPlayers}
         )
+        ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)
       `;
 
-      const createdRows = await tx.$queryRaw<Array<{ id: number }>>`SELECT LAST_INSERT_ID() AS id`;
-      const created = { id: createdRows[0]?.id ?? 0 };
+      const createdRows =
+        await tx.$queryRaw<Array<{ id: number | bigint }>>`SELECT LAST_INSERT_ID() AS id`;
+      const created = { id: toSafeNumber(createdRows[0]?.id ?? 0) };
+
+      if (affectedRows !== 1) {
+        const existingMatchResult = await tx.matchResult.findUnique({
+          where: { id: created.id },
+          select: {
+            id: true,
+            coinEarned: true,
+            won: true,
+          },
+        });
+        const wallet = await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
+
+        return {
+          created,
+          wallet,
+          repeatedGroup,
+          ceiling,
+          coinEarned: existingMatchResult?.coinEarned ?? 0,
+          duplicate: true,
+          won: existingMatchResult?.won ?? evaluation.won,
+        };
+      }
 
       await tx.wallet.update({
         where: { userId: sessionUser.id },
@@ -184,10 +231,26 @@ export async function POST(req: Request) {
       });
 
       const wallet = await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
-      return { created, wallet, repeatedGroup, ceiling, coinEarned };
+      return {
+        created,
+        wallet,
+        repeatedGroup,
+        ceiling,
+        coinEarned,
+        duplicate: false,
+        won: evaluation.won,
+      };
     });
 
-    await writeAuditLog({
+    if (result.duplicate) {
+      return NextResponse.json({
+        alreadyClaimed: true,
+        coinEarned: result.coinEarned,
+        won: result.won,
+      });
+    }
+
+    await safeWriteAuditLog({
       actor: sessionUser,
       action: "game.match.finalize",
       resourceType: "match_result",
@@ -203,6 +266,7 @@ export async function POST(req: Request) {
         guestPlayers: evaluation.roomMetrics.guestPlayers,
         matchStartedAt: evaluation.roomMetrics.matchStartedAt,
         sureSeconds: evaluation.roomMetrics.sureSeconds,
+        lineupPlayers: evaluation.roomMetrics.lineupPlayers,
         roomCode: room.odaKodu,
         won: evaluation.won,
         coinEarned: result.coinEarned,
@@ -249,6 +313,8 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });
     }
+
+    console.error("Match finalize failed", error);
 
     if ((error as { code?: string })?.code === "P2002") {
       return NextResponse.json({ error: "Odul zaten alinmis." }, { status: 409 });

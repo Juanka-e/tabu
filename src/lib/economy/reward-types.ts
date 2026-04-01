@@ -42,6 +42,7 @@ export interface RewardRoomMetrics {
     guestPlayers: number;
     matchStartedAt: string | null;
     sureSeconds: number | null;
+    lineupPlayers: string[];
 }
 
 export interface RewardModifierSummary {

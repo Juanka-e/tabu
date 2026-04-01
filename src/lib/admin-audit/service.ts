@@ -20,14 +20,20 @@ function stringifyMetadataValue(value: Prisma.JsonValue): string {
 }
 
 export function summarizeAuditMetadata(
-    metadata: Prisma.JsonValue | null
+    metadata: Prisma.JsonValue | null,
+    excludedKeys: string[] = []
 ): Record<string, string> {
     if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
         return {};
     }
 
     const entries = Object.entries(metadata)
-        .filter(([key]) => key !== "reason" && key !== "note")
+        .filter(
+            ([key]) =>
+                key !== "reason" &&
+                key !== "note" &&
+                !excludedKeys.includes(key)
+        )
         .slice(0, 8);
     return Object.fromEntries(
         entries.map(([key, value]) => [key, stringifyMetadataValue(value as Prisma.JsonValue)])
@@ -67,6 +73,20 @@ function readMetadataString(
     return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function readMetadataStringArray(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): string[] {
+    const value = record[key];
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(
+        (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+    );
+}
+
 function extractEconomyGuardSummary(
     action: string,
     metadata: Prisma.JsonValue | null
@@ -91,6 +111,9 @@ function extractEconomyGuardSummary(
         repeatedGroupTriggered: readMetadataBoolean(record, "repeatedGroupTriggered"),
         repeatedGroupOrdinal: readMetadataNumber(record, "repeatedGroupCurrentOrdinal"),
         repeatedGroupThreshold: readMetadataNumber(record, "repeatedGroupThreshold"),
+        roomCode: readMetadataString(record, "roomCode"),
+        sureSeconds: readMetadataNumber(record, "sureSeconds"),
+        lineupPlayers: readMetadataStringArray(record, "lineupPlayers"),
     };
 }
 
@@ -107,6 +130,24 @@ function mapAuditLog(log: {
     metadata: Prisma.JsonValue | null;
     actor: { id: number; username: string; role: string } | null;
 }): AdminAuditLogView {
+    const metadataExcludedKeys =
+        log.action === "game.match.finalize"
+            ? [
+                  "rewardSource",
+                  "requestedRewardCoin",
+                  "allowedRewardCoin",
+                  "blockedRewardCoin",
+                  "rewardGuardTriggered",
+                  "rewardGuardBand",
+                  "repeatedGroupTriggered",
+                  "repeatedGroupCurrentOrdinal",
+                  "repeatedGroupThreshold",
+                  "roomCode",
+                  "sureSeconds",
+                  "lineupPlayers",
+              ]
+            : [];
+
     return {
         id: log.id,
         action: log.action,
@@ -128,7 +169,7 @@ function mapAuditLog(log: {
                   username: null,
                   role: log.actorRole,
               },
-        metadata: summarizeAuditMetadata(log.metadata),
+        metadata: summarizeAuditMetadata(log.metadata, metadataExcludedKeys),
         economyGuard: extractEconomyGuardSummary(log.action, log.metadata),
     };
 }

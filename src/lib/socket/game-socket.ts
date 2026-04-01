@@ -84,6 +84,7 @@ export interface RoomMatchSnapshot {
     oyuncular: Array<{
         playerId: string;
         userId: number | null;
+        ad: string;
         takim: "A" | "B" | null;
     }>;
 }
@@ -1548,6 +1549,7 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
         oyuncular: room.oyuncular.map((player) => ({
             playerId: player.playerId,
             userId: player.userId ?? null,
+            ad: player.ad,
             takim: player.takim,
         })),
     };
