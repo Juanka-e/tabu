@@ -50,7 +50,7 @@
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push --skip-generate",
-    "db:generate": "npx prisma generate --no-engine",
+    "db:generate": "npx prisma generate",
     "db:sync": "npm run db:push && npm run db:generate",
     "db:studio": "npx prisma studio"
   },

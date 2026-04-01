@@ -94,6 +94,25 @@ Bu branch'in gorevi:
 8. invasive fingerprint veya sert device enforcement
 - ilk surumde agresif browser fingerprint yok
 - dusuk agirlikli sinyal gerekiyorsa ileride ayri privacy review ile ele alinacak
+## Audit Ve Olcek Notu
+
+Bugunku acilis olceginde game.match.finalize icin audit yazimi kabul edilebilir.
+
+Ama buyume halinde asagidaki optimizasyonlar backlog''da tutulmalidir:
+
+1. Redis / Valkey counter
+- rolling window coin toplamlari DB aggregate yerine memory store uzerinden hesaplanabilir
+- repeated-group tekrar sayaclari DB count yerine keyed counter ile tutulabilir
+
+2. Audit retention / archive
+- eski game.match.finalize kayitlari sicak tablodan ayrilabilir
+- yalniz koruma tetikleyen veya review degeri yuksek kayitlar uzun tutulabilir
+
+3. Non-triggered finalize telemetry ayrimi
+- koruma tetiklenmeyen finalize olaylari tam audit yerine daha hafif telemetry/event akisina tasinabilir
+- audit tablosu admin review icin daha degerli ve daha kompakt kalir
+
+Bu maddeler bugun zorunlu degil, ama buyume halinde ilk alinacak olcek onlemleridir.
 
 ## Uygulama Sirasi
 
@@ -582,3 +601,4 @@ Bu durumda sonraki adim:
 - `docs/guides/economy-abuse-strategy-guide.md`
 - `docs/guides/night-market-and-missions-strategy-guide.md`
 - `docs/guides/admin-user-observability-guide.md`
+

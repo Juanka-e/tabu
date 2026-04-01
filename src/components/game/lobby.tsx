@@ -41,6 +41,7 @@ interface LobbyProps {
     onUpdateDifficulties: (ids: number[]) => void;
     onInitialSet?: (categories: number[], difficulties: number[]) => void;
     onShuffleTeams: () => void;
+    onSwitchTeam: () => void;
     onStartGame: () => void;
     onKickPlayer: (playerId: string) => void;
     onTransferHost: (playerId: string) => void;
@@ -65,10 +66,12 @@ export function Lobby({
     onUpdateDifficulties,
     onInitialSet,
     onShuffleTeams,
+    onSwitchTeam,
     onStartGame,
 }: LobbyProps) {
     const [copied, setCopied] = useState(false);
     const [hideUrl, setHideUrl] = useState(false);
+    const [hideUrlReady, setHideUrlReady] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>(selectedCategories);
@@ -78,6 +81,29 @@ export function Lobby({
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+
+        try {
+            window.sessionStorage.setItem("tabu_activeRoomCode", roomCode);
+            const stored = window.sessionStorage.getItem(`tabu_room_hide_url:${roomCode}`) === "true";
+            setHideUrl(stored);
+        } finally {
+            setHideUrlReady(true);
+        }
+    }, [mounted, roomCode]);
+
+    useEffect(() => {
+        if (!mounted || !hideUrlReady) return;
+
+        const nextPath = hideUrl ? "/room" : `/room/${roomCode}`;
+        if (window.location.pathname !== nextPath) {
+            window.history.replaceState(window.history.state, "", nextPath);
+        }
+
+        window.sessionStorage.setItem(`tabu_room_hide_url:${roomCode}`, hideUrl ? "true" : "false");
+    }, [hideUrl, hideUrlReady, mounted, roomCode]);
 
     const copyRoomLink = () => {
         const link = `${window.location.origin}/room/${roomCode}`;
@@ -128,12 +154,14 @@ export function Lobby({
     );
 
     const toggleCategory = (id: number) => {
+        if (!isHost) return;
         setTempSelectedCategories((prev) =>
             prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
         );
     };
 
     const toggleDifficulty = (level: number) => {
+        if (!isHost) return;
         setTempSelectedDifficulties((prev) => {
             if (prev.includes(level)) {
                 if (prev.length === 1) return prev; // Don't deselect last
@@ -161,11 +189,26 @@ export function Lobby({
     const isAllSelected = flatCategories.length > 0 && flatCategories.every((c) => tempSelectedCategories.includes(c.id));
 
     const toggleAllCategories = () => {
+        if (!isHost) return;
         if (isAllSelected) {
             setTempSelectedCategories([]);
         } else {
             setTempSelectedCategories(flatCategories.map((c) => c.id));
         }
+    };
+
+    const clampTargetScore = (value: number) => {
+        if (!Number.isFinite(value)) return 10;
+        return Math.min(100, Math.max(10, value));
+    };
+
+    const clampRoundCount = (value: number) => {
+        if (!Number.isFinite(value)) return 2;
+        return Math.min(30, Math.max(2, Math.round(value)));
+    };
+
+    const handleHideUrlToggle = () => {
+        setHideUrl((current) => !current);
     };
 
     const getSelectedText = () => {
@@ -238,7 +281,7 @@ export function Lobby({
                     )}
 
                     <button
-                        onClick={() => setHideUrl(!hideUrl)}
+                        onClick={handleHideUrlToggle}
                         className="flex items-center justify-center gap-2 w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                     >
                         {hideUrl ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -260,7 +303,7 @@ export function Lobby({
                                     setTempSelectedDifficulties(selectedDifficulties);
                                     setShowCategoryModal(true);
                                 }}
-                                disabled={!isHost}
+                                disabled={false}
                                 className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 transition-all active:scale-95 disabled:opacity-50"
                             >
                                 <LayoutGrid size={24} />
@@ -283,9 +326,7 @@ export function Lobby({
 
                             {/* Change Team Button */}
                             <button
-                                onClick={() => {
-                                    /* emit handled from parent */
-                                }}
+                                onClick={onSwitchTeam}
                                 className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 transition-all active:scale-95"
                             >
                                 <Users size={24} />
@@ -329,6 +370,7 @@ export function Lobby({
                                         onUpdateSettings({
                                             ...settings,
                                             mod: "tur",
+                                            deger: clampRoundCount(settings.deger),
                                         })
                                     }
                                     disabled={!isHost}
@@ -349,6 +391,7 @@ export function Lobby({
                                         onUpdateSettings({
                                             ...settings,
                                             mod: "skor",
+                                            deger: clampTargetScore(settings.deger),
                                         })
                                     }
                                     disabled={!isHost}
@@ -396,24 +439,30 @@ export function Lobby({
                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1">
                                             <Hash size={12} /> Toplam Tur
                                         </label>
-                                        <select
+                                        <input
+                                            type="number"
+                                            min={2}
+                                            max={30}
+                                            step={1}
                                             value={settings.deger}
                                             onChange={(e) =>
                                                 onUpdateSettings({
                                                     ...settings,
-                                                    deger: Number(
-                                                        e.target.value
-                                                    ),
+                                                    deger: clampRoundCount(Number(e.target.value)),
+                                                })
+                                            }
+                                            onBlur={(e) =>
+                                                onUpdateSettings({
+                                                    ...settings,
+                                                    deger: clampRoundCount(Number(e.target.value)),
                                                 })
                                             }
                                             className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             disabled={!isHost}
-                                        >
-                                            <option value={1}>1 Tur</option>
-                                            <option value={2}>2 Tur</option>
-                                            <option value={3}>3 Tur</option>
-                                            <option value={5}>5 Tur</option>
-                                        </select>
+                                        />
+                                        <p className="mt-1 text-[11px] text-gray-400">
+                                            Minimum 2, maksimum 30 tur.
+                                        </p>
                                     </>
                                 ) : (
                                     <>
@@ -429,15 +478,21 @@ export function Lobby({
                                             onChange={(e) =>
                                                 onUpdateSettings({
                                                     ...settings,
-                                                    deger:
-                                                        Number(
-                                                            e.target.value
-                                                        ) || 10,
+                                                    deger: clampTargetScore(Number(e.target.value)),
+                                                })
+                                            }
+                                            onBlur={(e) =>
+                                                onUpdateSettings({
+                                                    ...settings,
+                                                    deger: clampTargetScore(Number(e.target.value)),
                                                 })
                                             }
                                             className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             disabled={!isHost}
                                         />
+                                        <p className="mt-1 text-[11px] text-gray-400">
+                                            Hedef skoru 5&apos;er 5&apos;er artirabilirsin. Varsayilan baslangic 10.
+                                        </p>
                                     </>
                                 )}
                             </div>
@@ -499,8 +554,9 @@ export function Lobby({
                                     Kategoriler
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Ana kategoriyi seçerek tümünü
-                                    ekleyebilirsin.
+                                    {isHost
+                                        ? "Ana kategoriyi seçerek tümünü ekleyebilirsin."
+                                        : "Bu liste yalnızca görüntüleme amaçlıdır. Kategori ve zorlukları sadece oda yöneticisi değiştirebilir."}
                                 </p>
 
                                 {/* Difficulty Selection */}
@@ -519,6 +575,7 @@ export function Lobby({
                                                 onClick={() =>
                                                     toggleDifficulty(diff)
                                                 }
+                                                disabled={!isHost}
                                                 className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
                                                     isSelected
                                                         ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-transparent"
@@ -547,6 +604,7 @@ export function Lobby({
                                     <div className="flex items-center p-3 gap-3 bg-blue-50/50 dark:bg-blue-900/10">
                                         <button
                                             onClick={toggleAllCategories}
+                                            disabled={!isHost}
                                             className={`flex-shrink-0 transition-colors ${isAllSelected ? "text-blue-600" : "text-gray-300 dark:text-gray-600"}`}
                                         >
                                             {isAllSelected ? (
@@ -591,6 +649,7 @@ export function Lobby({
                                             <div className="flex items-center p-3 gap-3">
                                                 <button
                                                     onClick={() => {
+                                                        if (!isHost) return;
                                                         const ids =
                                                             allItems.map(
                                                                 (c) => c.id
@@ -625,6 +684,7 @@ export function Lobby({
                                                             );
                                                         }
                                                     }}
+                                                    disabled={!isHost}
                                                     className={`flex-shrink-0 transition-colors ${allSubSelected || someSubSelected ? "text-blue-600" : "text-gray-300 dark:text-gray-600"}`}
                                                 >
                                                     {allSubSelected ? (
@@ -700,6 +760,7 @@ export function Lobby({
                                                                         subCat.id
                                                                     )
                                                                 }
+                                                                disabled={!isHost}
                                                                 className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${
                                                                     isSelected
                                                                         ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
@@ -745,6 +806,7 @@ export function Lobby({
                                                                 cat.id
                                                             )
                                                         }
+                                                        disabled={!isHost}
                                                         className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${
                                                             isSelected
                                                                 ? "border-blue-500 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
@@ -777,10 +839,10 @@ export function Lobby({
                         {/* Modal Footer */}
                         <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
                             <button
-                                onClick={confirmCategories}
+                                onClick={isHost ? confirmCategories : () => setShowCategoryModal(false)}
                                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-[0.99]"
                             >
-                                Seçimi Onayla ({tempSelectedCategories.length})
+                                {isHost ? `Seçimi Onayla (${tempSelectedCategories.length})` : "Kapat"}
                             </button>
                         </div>
                     </div>
@@ -789,3 +851,4 @@ export function Lobby({
         </div>
     );
 }
+

@@ -14,6 +14,8 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
             totalPlayers: 0,
             authenticatedPlayers: 0,
             guestPlayers: 0,
+            matchStartedAt: null,
+            sureSeconds: null,
         };
     }
 
@@ -24,6 +26,8 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
         totalPlayers,
         authenticatedPlayers,
         guestPlayers: Math.max(0, totalPlayers - authenticatedPlayers),
+        matchStartedAt: room.matchStartedAt,
+        sureSeconds: room.sureSeconds,
     };
 }
 

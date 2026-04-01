@@ -33,19 +33,10 @@ export async function POST(request: NextRequest) {
 
         if (!result.ok) {
             const status = result.code === "not_found" ? 404 : 409;
-            const messages: Record<string, string> = {
-                not_found: "Coin kodu bulunamadi.",
-                inactive: "Bu coin kodu aktif degil.",
-                expired: "Bu coin kodunun suresi dolmus.",
-                campaign_not_started: "Bu kampanya henuz baslamadi.",
-                campaign_ended: "Bu kampanya sona ermis.",
-                campaign_budget_exhausted: "Bu kampanyanin butcesi tukendi.",
-                campaign_claim_limit_reached: "Bu kampanyanin kullanim limiti doldu.",
-                user_claim_limit_reached: "Bu kampanya icin kendi kullanim limitine ulastin.",
-                code_claim_limit_reached: "Bu coin kodunun kullanim limiti doldu.",
-            };
-
-            return NextResponse.json({ error: messages[result.code] || "Coin kodu kullanilamadi.", code: result.code }, { status });
+            return NextResponse.json(
+                { error: "Coin kodu gecersiz veya su anda kullanilamaz." },
+                { status }
+            );
         }
 
         await writeAuditLog({

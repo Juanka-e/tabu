@@ -31,6 +31,8 @@ async function testGuestRoomEligibility(): Promise<void> {
             odaKodu: "ECO01",
             oyunAktifMi: false,
             skor: { A: 5, B: 3 },
+            matchStartedAt: "2026-04-01T12:00:00.000Z",
+            sureSeconds: 180,
             oyuncular: [
                 { playerId: "user:99", userId: 99, takim: "A" },
                 { playerId: "guest:a", userId: null, takim: "A" },

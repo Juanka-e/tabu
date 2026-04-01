@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";
@@ -42,11 +43,24 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { roomCode } = finalizeSchema.parse(body);
 
-    const existing = await prisma.matchResult.findUnique({
-      where: { roomCode_userId: { roomCode: roomCode.toUpperCase(), userId: sessionUser.id } },
-    });
     const settings = await getSystemSettings();
     const room = getRoomMatchSnapshot(roomCode.toUpperCase());
+    const matchStartedAt =
+      room?.matchStartedAt ? new Date(room.matchStartedAt) : null;
+    const existingRows =
+      matchStartedAt !== null
+        ? await prisma.$queryRaw<Array<{ id: number; coinEarned: number; won: boolean }>>(
+            Prisma.sql`
+              SELECT id, coin_earned AS coinEarned, won
+              FROM match_results
+              WHERE room_code = ${roomCode.toUpperCase()}
+                AND user_id = ${sessionUser.id}
+                AND match_started_at = ${matchStartedAt}
+              LIMIT 1
+            `
+          )
+        : null;
+    const existing = existingRows?.[0] ?? null;
     const evaluation = evaluateMatchRewardEligibility({
       userId: sessionUser.id,
       room,
@@ -57,6 +71,30 @@ export async function POST(req: Request) {
 
     if (evaluation.decision === "deny") {
       const primaryReason = evaluation.reasonCodes[0];
+
+      if (primaryReason !== "already_claimed") {
+        await writeAuditLog({
+          actor: sessionUser,
+          action: "game.match.finalize.denied",
+          resourceType: "match_reward",
+          resourceId: roomCode.toUpperCase(),
+          summary: `Denied match reward finalize for room ${roomCode.toUpperCase()}`,
+          metadata: {
+            rewardSource: evaluation.source,
+            eligibilityDecision: evaluation.decision,
+            eligibilityReasons: evaluation.reasonCodes,
+            reviewFlags: evaluation.reviewFlags,
+            totalPlayers: evaluation.roomMetrics.totalPlayers,
+            authenticatedPlayers: evaluation.roomMetrics.authenticatedPlayers,
+            guestPlayers: evaluation.roomMetrics.guestPlayers,
+            matchStartedAt: evaluation.roomMetrics.matchStartedAt,
+            sureSeconds: evaluation.roomMetrics.sureSeconds,
+            roomCode: roomCode.toUpperCase(),
+            duplicateClaim: false,
+          },
+          request: req,
+        });
+      }
 
       if (primaryReason === "already_claimed" && existing) {
         return NextResponse.json({
@@ -103,23 +141,42 @@ export async function POST(req: Request) {
       });
       const coinEarned = ceiling.allowedRewardCoin;
 
-      const created = await tx.matchResult.create({
-        data: {
-          roomCode: room.odaKodu,
-          userId: sessionUser.id,
-          playerId: evaluation.participantPlayerId,
-          team: evaluation.participantTeam,
-          won: evaluation.won,
-          scoreA: room.skor.A,
-          scoreB: room.skor.B,
-          coinEarned,
-          lineupKey: evaluation.lineupKey,
-          lineupPlayerCount: evaluation.roomMetrics.totalPlayers,
-          lineupAuthenticatedCount: evaluation.roomMetrics.authenticatedPlayers,
-          lineupGuestCount: evaluation.roomMetrics.guestPlayers,
-          gameType: "tabu",
-        },
-      });
+      await tx.$executeRaw`
+        INSERT INTO match_results (
+          room_code,
+          match_started_at,
+          game_type,
+          user_id,
+          player_id,
+          team,
+          won,
+          score_a,
+          score_b,
+          coin_earned,
+          lineup_key,
+          lineup_player_count,
+          lineup_authenticated_count,
+          lineup_guest_count
+        ) VALUES (
+          ${room.odaKodu},
+          ${matchStartedAt ?? new Date()},
+          ${"tabu"},
+          ${sessionUser.id},
+          ${evaluation.participantPlayerId},
+          ${evaluation.participantTeam},
+          ${evaluation.won},
+          ${room.skor.A},
+          ${room.skor.B},
+          ${coinEarned},
+          ${evaluation.lineupKey},
+          ${evaluation.roomMetrics.totalPlayers},
+          ${evaluation.roomMetrics.authenticatedPlayers},
+          ${evaluation.roomMetrics.guestPlayers}
+        )
+      `;
+
+      const createdRows = await tx.$queryRaw<Array<{ id: number }>>`SELECT LAST_INSERT_ID() AS id`;
+      const created = { id: createdRows[0]?.id ?? 0 };
 
       await tx.wallet.update({
         where: { userId: sessionUser.id },
@@ -144,6 +201,8 @@ export async function POST(req: Request) {
         totalPlayers: evaluation.roomMetrics.totalPlayers,
         authenticatedPlayers: evaluation.roomMetrics.authenticatedPlayers,
         guestPlayers: evaluation.roomMetrics.guestPlayers,
+        matchStartedAt: evaluation.roomMetrics.matchStartedAt,
+        sureSeconds: evaluation.roomMetrics.sureSeconds,
         roomCode: room.odaKodu,
         won: evaluation.won,
         coinEarned: result.coinEarned,
@@ -192,6 +251,14 @@ export async function POST(req: Request) {
     }
 
     if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json({ error: "Odul zaten alinmis." }, { status: 409 });
+    }
+
+    if (
+      (error as { code?: string })?.code === "P2010" &&
+      typeof (error as { message?: string })?.message === "string" &&
+      (error as { message: string }).message.includes("Duplicate entry")
+    ) {
       return NextResponse.json({ error: "Odul zaten alinmis." }, { status: 409 });
     }
 

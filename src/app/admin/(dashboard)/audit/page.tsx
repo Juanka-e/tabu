@@ -71,6 +71,10 @@ function renderEconomyGuard(log: AdminAuditLogView): string {
 
     const parts: string[] = [];
 
+    if (log.actor?.username) {
+        parts.push(`Oyuncu: ${log.actor.username}`);
+    }
+
     if (log.economyGuard.rewardSource) {
         parts.push(`Kaynak: ${log.economyGuard.rewardSource}`);
     }
@@ -86,6 +90,10 @@ function renderEconomyGuard(log: AdminAuditLogView): string {
 
     if ((log.economyGuard.blockedRewardCoin ?? 0) > 0) {
         parts.push(`Kesilen: ${log.economyGuard.blockedRewardCoin}`);
+    }
+
+    if (log.metadata.sureSeconds) {
+        parts.push(`Sure: ${log.metadata.sureSeconds}s`);
     }
 
     if (log.economyGuard.rewardGuardTriggered) {

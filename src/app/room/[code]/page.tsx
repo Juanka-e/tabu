@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef, useTransition, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -38,6 +38,11 @@ interface SocketIdentityPayload {
     guestToken: string | null;
 }
 
+const ROOM_SWITCH_TEAM_EVENT = "takim_degistir";
+const ROOM_START_GAME_EVENT = "oyun_baslat";
+const ROOM_GAME_CONTROL_EVENT = "oyun_kontrol";
+const ROOM_RESET_GAME_EVENT = "oyun_sifirla";
+
 const ROOM_CLIENT_BOOTSTRAP_PENDING = "__room_client_bootstrap_pending__";
 
 function subscribeRoomClientBootstrap(onStoreChange: () => void): () => void {
@@ -74,7 +79,8 @@ export default function RoomPage() {
     const [isConnected, setIsConnected] = useState(false);
     const [socketId, setSocketId] = useState("");
     const [myPlayerId, setMyPlayerId] = useState("");
-    const rewardClaimedRoomsRef = useRef<Set<string>>(new Set());
+    const rewardClaimedMatchesRef = useRef<Set<string>>(new Set());
+    const currentMatchSequenceRef = useRef(0);
 
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
@@ -225,6 +231,7 @@ export default function RoomPage() {
                 });
 
                 socket.on("oyunBasladi", () => {
+                    currentMatchSequenceRef.current += 1;
                     setView(GameView.TRANSITION);
                     setIsPrimaryInspector(false);
                     setCardFaceTheme(null);
@@ -268,18 +275,45 @@ export default function RoomPage() {
                     setGameOverData(data);
 
                     if (!session?.user?.id) return;
-                    if (rewardClaimedRoomsRef.current.has(roomCode)) return;
+                    const claimKey = `${roomCode}:${currentMatchSequenceRef.current}`;
+                    if (rewardClaimedMatchesRef.current.has(claimKey)) return;
 
-                    rewardClaimedRoomsRef.current.add(roomCode);
-                    fetch("/api/game/match/finalize", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            roomCode,
-                        }),
-                    }).catch(() => {
-                        rewardClaimedRoomsRef.current.delete(roomCode);
-                    });
+                    rewardClaimedMatchesRef.current.add(claimKey);
+                    const tryFinalizeReward = async (attempt = 0) => {
+                        try {
+                            const response = await fetch("/api/game/match/finalize", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    roomCode,
+                                }),
+                            });
+
+                            if (response.ok) {
+                                return;
+                            }
+
+                            const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+                            const shouldRetry =
+                                attempt < 2 &&
+                                (response.status === 404 ||
+                                    (response.status === 409 &&
+                                        payload?.error === "Mac henuz tamamlanmadi."));
+
+                            if (shouldRetry) {
+                                window.setTimeout(() => {
+                                    void tryFinalizeReward(attempt + 1);
+                                }, 750);
+                                return;
+                            }
+
+                            rewardClaimedMatchesRef.current.delete(claimKey);
+                        } catch {
+                            rewardClaimedMatchesRef.current.delete(claimKey);
+                        }
+                    };
+
+                    void tryFinalizeReward();
                 });
 
                 socket.on("altinSkorBasladi", () => {
@@ -336,7 +370,7 @@ export default function RoomPage() {
     const isHost = myPlayerId && creatorPlayerId ? myPlayerId === creatorPlayerId : false;
 
     const handleStartGame = useCallback(() => {
-        emit("oyunBaslatİsteği", {
+        emit(ROOM_START_GAME_EVENT, {
             seciliKategoriler: selectedCategories,
             seciliZorluklar: selectedDifficulties,
             ayarlar: settings,
@@ -371,8 +405,8 @@ export default function RoomPage() {
                     cardFaceTheme={cardFaceTheme}
                     cardBackTheme={cardBackTheme}
                     onWordAction={handleWordAction}
-                    onPauseResume={() => emit("oyunKontrolİsteği")}
-                    onResetGame={() => emit("oyunuSifirlaİsteği")}
+                    onPauseResume={() => emit(ROOM_GAME_CONTROL_EVENT)}
+                    onResetGame={() => emit(ROOM_RESET_GAME_EVENT)}
                 />
             );
         }
@@ -381,7 +415,7 @@ export default function RoomPage() {
             return (
                 <GameOverScreen
                     gameOverData={gameOverData}
-                    onReturnToLobby={() => emit("oyunuSifirlaİsteği")}
+                    onReturnToLobby={() => emit(ROOM_RESET_GAME_EVENT)}
                 />
             );
         }
@@ -422,6 +456,7 @@ export default function RoomPage() {
                     });
                 }}
                 onShuffleTeams={() => emit("takimlariKaristir")}
+                onSwitchTeam={() => emit(ROOM_SWITCH_TEAM_EVENT)}
                 onStartGame={handleStartGame}
                 onKickPlayer={(playerId) =>
                     emit("oyuncuyuAt", { targetPlayerId: playerId })
@@ -481,7 +516,7 @@ export default function RoomPage() {
                     isMobile={isMobile}
                     onSwitchTeam={
                         view === GameView.LOBBY
-                            ? () => emit("takimDegistirİsteği")
+                            ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
                 />
@@ -527,7 +562,7 @@ export default function RoomPage() {
                     {!isConnected && (
                         <div className="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-800/30">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            Bağlantı kesildi
+                            BaÄŸlantÄ± kesildi
                         </div>
                     )}
 
@@ -560,7 +595,7 @@ export default function RoomPage() {
                     isMobile={isMobile}
                     onSwitchTeam={
                         view === GameView.LOBBY
-                            ? () => emit("takimDegistirİsteği")
+                            ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
                 />
@@ -588,6 +623,8 @@ export default function RoomPage() {
         </>
     );
 }
+
+
 
 
 

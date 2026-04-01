@@ -1,4 +1,4 @@
-﻿# Kalan Isler
+# Kalan Isler
 
 > Son guncelleme: 31 March 2026
 > Durum: aktif uygulanabilir backlog
@@ -29,7 +29,11 @@
 - IP/subnet'i tek basina ceza nedeni degil, yumusak suphe sinyali olarak kullanma
 - ceiling reset mantigi rolling window olacak
 - ilk surumde 0 coin blok yerine once yuzdesel dusus tercih edilecek
-- admin panel ayarlari gelirse bounded ve aciklamali UX ile gelecek
+- admin panel ayarlari gelirse bounded ve aciklamali UX ile gelecek- audit buyurse sonraki olcek onlemleri:
+  - Redis / Valkey counters for rolling reward windows
+  - repeated-group keyed counters outside primary DB counts
+  - audit retention / archive for old game.match.finalize records
+  - lighter telemetry path for non-triggered finalize events
 - planning referanslari:
   - `docs/guides/economy-abuse-hardening-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
@@ -98,3 +102,4 @@ Bu dosyadan sunlar temizlendi:
 - tamamlanmis ve tekrar kullanilmayan test checklist'leri
 - bozuk encoding ile kalan eski maddeler
 - yeni karar almaya yardim etmeyen brainstorming tekrarlar
+

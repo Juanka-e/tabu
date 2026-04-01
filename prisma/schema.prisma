@@ -556,6 +556,7 @@ model Purchase {
 model MatchResult {
   id                       Int      @id @default(autoincrement())
   roomCode                 String   @map("room_code") @db.VarChar(12)
+  matchStartedAt           DateTime @default(now()) @map("match_started_at")
   gameType                 String   @default("tabu") @map("game_type") @db.VarChar(30)
   userId                   Int      @map("user_id")
   playerId                 String   @map("player_id") @db.VarChar(64)
@@ -572,7 +573,7 @@ model MatchResult {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([roomCode, userId])
+  @@unique([roomCode, userId, matchStartedAt])
   @@index([userId, createdAt])
   @@index([userId, lineupKey, createdAt])
   @@map("match_results")

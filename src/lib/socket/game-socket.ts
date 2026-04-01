@@ -1,4 +1,4 @@
-import { Server, Socket } from "socket.io";
+﻿import { Server, Socket } from "socket.io";
 import { z } from "zod";
 import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
@@ -56,6 +56,8 @@ interface GameStateData {
     aktifKart: unknown;
     altinSkorAktif: boolean;
     kalanGecisSuresi?: number;
+    basladiAt?: number | null;
+    bittiAt?: number | null;
 }
 
 interface RoomData {
@@ -77,6 +79,8 @@ export interface RoomMatchSnapshot {
     odaKodu: string;
     oyunAktifMi: boolean;
     skor: { A: number; B: number };
+    matchStartedAt: string | null;
+    sureSeconds: number | null;
     oyuncular: Array<{
         playerId: string;
         userId: number | null;
@@ -86,12 +90,32 @@ export interface RoomMatchSnapshot {
 
 // ─── State ─────────────────────────────────────────────────────
 
-const rooms = new Map<string, RoomData>();
-const wordActionTimestamps = new Map<string, number>();
+const globalForGameSocket = globalThis as typeof globalThis & {
+    __tabuGameSocketState?: {
+        rooms: Map<string, RoomData>;
+        wordActionTimestamps: Map<string, number>;
+        socketToRoom: Map<string, string>;
+        roomJoinAttempts: Map<string, RateLimitEntry>;
+        roomAdminTimeouts: Map<string, NodeJS.Timeout>;
+    };
+};
+
+const sharedGameSocketState =
+    globalForGameSocket.__tabuGameSocketState ??
+    (globalForGameSocket.__tabuGameSocketState = {
+        rooms: new Map<string, RoomData>(),
+        wordActionTimestamps: new Map<string, number>(),
+        socketToRoom: new Map<string, string>(),
+        roomJoinAttempts: new Map<string, RateLimitEntry>(),
+        roomAdminTimeouts: new Map<string, NodeJS.Timeout>(),
+    });
+
+const rooms = sharedGameSocketState.rooms;
+const wordActionTimestamps = sharedGameSocketState.wordActionTimestamps;
 const WORD_ACTION_COOLDOWN_MS = 200;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
-const socketToRoom = new Map<string, string>();
+const socketToRoom = sharedGameSocketState.socketToRoom;
 
 // Rate limiting
 interface RateLimitEntry {
@@ -99,7 +123,7 @@ interface RateLimitEntry {
     resetAt: number;
     timeout: ReturnType<typeof setTimeout>;
 }
-const roomJoinAttempts = new Map<string, RateLimitEntry>();
+const roomJoinAttempts = sharedGameSocketState.roomJoinAttempts;
 
 // Rate limit settings from .env (can be disabled for localhost/testing)
 const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
@@ -107,8 +131,12 @@ const ROOM_JOIN_WINDOW_MS = parseInt(process.env.ROOM_JOIN_WINDOW_SECONDS || "60
 const ROOM_JOIN_MAX_ATTEMPTS = parseInt(process.env.ROOM_JOIN_MAX_ATTEMPTS || "100", 10);
 
 // Admin Transfer Timeout
-const roomAdminTimeouts = new Map<string, NodeJS.Timeout>();
+const roomAdminTimeouts = sharedGameSocketState.roomAdminTimeouts;
 const ADMIN_TIMEOUT_MS = parseInt(process.env.ADMIN_TIMEOUT_MS || "180000", 10); // Default 3 mins
+const ROOM_START_GAME_EVENTS = ["oyun_baslat", "oyunBaslatİsteği", "oyunBaslatÄ°steÄŸi"] as const;
+const ROOM_GAME_CONTROL_EVENTS = ["oyun_kontrol", "oyunKontrolİsteği", "oyunKontrolÄ°steÄŸi"] as const;
+const ROOM_RESET_GAME_EVENTS = ["oyun_sifirla", "oyunuSifirlaİsteği", "oyunuSifirlaÄ°steÄŸi"] as const;
+const ROOM_SWITCH_TEAM_EVENTS = ["takim_degistir", "takimDegistirİsteği", "takimDegistirÄ°steÄŸi"] as const;
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -175,6 +203,8 @@ function createInitialGameState(): GameStateData {
         gozetmen: null,
         aktifKart: null,
         altinSkorAktif: false,
+        basladiAt: null,
+        bittiAt: null,
     };
 }
 
@@ -183,6 +213,22 @@ function sanitizePlayerName(name: unknown): string {
         .trim()
         .slice(0, 50)
         .replace(/[<>]/g, "");
+}
+
+function normalizeRoomSettings(input: {
+    sure: string | number;
+    mod: string;
+    deger: string | number;
+}): { sure: number; mod: "tur" | "skor"; deger: number } {
+    const sure = Math.min(120, Math.max(30, Number.parseInt(String(input.sure), 10) || 60));
+    const mod = input.mod === "skor" ? "skor" : "tur";
+    const rawValue = Number.parseInt(String(input.deger), 10);
+    const deger =
+        mod === "skor"
+            ? Math.min(100, Math.max(10, rawValue || 10))
+            : Math.min(30, Math.max(2, rawValue || 2));
+
+    return { sure, mod, deger };
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -647,6 +693,7 @@ export function setupGameSocket(io: Server): void {
         }
 
         room.oyunDurumu.oyunAktifMi = false;
+        room.oyunDurumu.bittiAt = Date.now();
         if (room.zamanlayici) {
             clearInterval(room.zamanlayici);
         }
@@ -1055,9 +1102,7 @@ export function setupGameSocket(io: Server): void {
         );
 
         // ── Start Game ──
-        socket.on(
-            "oyunBaslatİsteği",
-            async ({
+        const startGameHandler = async ({
                 seciliKategoriler,
                 seciliZorluklar,
                 ayarlar,
@@ -1086,11 +1131,7 @@ export function setupGameSocket(io: Server): void {
                     return;
                 }
 
-                room.ayarlar = {
-                    sure: parseInt(String(ayarlar.sure), 10),
-                    mod: ayarlar.mod as "tur" | "skor",
-                    deger: parseInt(String(ayarlar.deger), 10),
-                };
+                room.ayarlar = normalizeRoomSettings(ayarlar);
 
                 room.gecerliKategoriIdleri = seciliKategoriler;
                 room.gecerliZorlukSeviyeleri = seciliZorluklar;
@@ -1123,16 +1164,20 @@ export function setupGameSocket(io: Server): void {
                     takimA_anlaticiIndex: -1,
                     takimB_anlaticiIndex: -1,
                     altinSkorAktif: false,
+                    basladiAt: Date.now(),
+                    bittiAt: null,
                 };
 
                 persistRoom(room);
                 io.to(room.odaKodu).emit("oyunBasladi");
                 startNewRound(room.odaKodu);
-            }
-        );
+            };
+        for (const eventName of ROOM_START_GAME_EVENTS) {
+            socket.on(eventName, startGameHandler);
+        }
 
         // ── Pause / Resume ──
-        socket.on("oyunKontrolİsteği", () => {
+        const gameControlHandler = () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1157,7 +1202,10 @@ export function setupGameSocket(io: Server): void {
                     creatorId: room.creatorId,
                 });
             }
-        });
+        };
+        for (const eventName of ROOM_GAME_CONTROL_EVENTS) {
+            socket.on(eventName, gameControlHandler);
+        }
 
         // ── Word Action ──
         socket.on(
@@ -1172,7 +1220,7 @@ export function setupGameSocket(io: Server): void {
         );
 
         // ── Reset Game ──
-        socket.on("oyunuSifirlaİsteği", () => {
+        const resetGameHandler = () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1183,10 +1231,13 @@ export function setupGameSocket(io: Server): void {
 
             resetGame(room);
             persistRoom(room);
-        });
+        };
+        for (const eventName of ROOM_RESET_GAME_EVENTS) {
+            socket.on(eventName, resetGameHandler);
+        }
 
         // ── Switch Team ──
-        socket.on("takimDegistirİsteği", () => {
+        const switchTeamHandler = () => {
             const room = getRoomBySocketId(socket.id);
             if (!room || room.oyunDurumu.oyunAktifMi) return;
 
@@ -1195,7 +1246,10 @@ export function setupGameSocket(io: Server): void {
             player.takim = player.takim === "A" ? "B" : "A";
             persistRoom(room);
             broadcastLobby(room);
-        });
+        };
+        for (const eventName of ROOM_SWITCH_TEAM_EVENTS) {
+            socket.on(eventName, switchTeamHandler);
+        }
 
         // ── Update Category Settings ──
         socket.on(
@@ -1479,10 +1533,18 @@ async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {
 export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {
     const room = rooms.get(roomCode);
     if (!room) return null;
+    const startedAt = room.oyunDurumu.basladiAt ?? null;
+    const endedAt = room.oyunDurumu.bittiAt ?? null;
+    const sureSeconds =
+        startedAt !== null
+            ? Math.max(0, Math.round(((endedAt ?? Date.now()) - startedAt) / 1000))
+            : null;
     return {
         odaKodu: room.odaKodu,
         oyunAktifMi: room.oyunDurumu.oyunAktifMi,
         skor: room.oyunDurumu.skor,
+        matchStartedAt: startedAt !== null ? new Date(startedAt).toISOString() : null,
+        sureSeconds,
         oyuncular: room.oyuncular.map((player) => ({
             playerId: player.playerId,
             userId: player.userId ?? null,
