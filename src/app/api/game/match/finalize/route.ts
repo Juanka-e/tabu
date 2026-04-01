@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
 import { evaluateMatchRewardEligibility } from "@/lib/economy/reward-eligibility";
+import { resolveRepeatedGroupReward } from "@/lib/economy/reward-repeated-group";
+import { resolveMatchRewardSafetyCeiling } from "@/lib/economy/reward-safety-ceiling";
 import {
   buildRateLimitHeaders,
   consumeRequestRateLimit,
@@ -87,11 +89,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Oda bulunamadi." }, { status: 404 });
     }
 
-    const coinEarned = evaluation.finalRewardCoin;
-
     await ensureUserCore(sessionUser.id);
 
     const result = await prisma.$transaction(async (tx) => {
+      const repeatedGroup = await resolveRepeatedGroupReward(tx, {
+        userId: sessionUser.id,
+        lineupKey: evaluation.lineupKey,
+        requestedRewardCoin: evaluation.finalRewardCoin,
+        settings,
+        now: new Date(),
+      });
+      const ceiling = await resolveMatchRewardSafetyCeiling(tx, {
+        userId: sessionUser.id,
+        requestedRewardCoin: repeatedGroup.allowedRewardCoin,
+        settings,
+        now: new Date(),
+      });
+      const coinEarned = ceiling.allowedRewardCoin;
+
       const created = await tx.matchResult.create({
         data: {
           roomCode: room.odaKodu,
@@ -102,6 +117,10 @@ export async function POST(req: Request) {
           scoreA: room.skor.A,
           scoreB: room.skor.B,
           coinEarned,
+          lineupKey: evaluation.lineupKey,
+          lineupPlayerCount: evaluation.roomMetrics.totalPlayers,
+          lineupAuthenticatedCount: evaluation.roomMetrics.authenticatedPlayers,
+          lineupGuestCount: evaluation.roomMetrics.guestPlayers,
           gameType: "tabu",
         },
       });
@@ -112,7 +131,7 @@ export async function POST(req: Request) {
       });
 
       const wallet = await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
-      return { created, wallet };
+      return { created, wallet, repeatedGroup, ceiling, coinEarned };
     });
 
     await writeAuditLog({
@@ -131,23 +150,62 @@ export async function POST(req: Request) {
         guestPlayers: evaluation.roomMetrics.guestPlayers,
         roomCode: room.odaKodu,
         won: evaluation.won,
-        coinEarned,
+        coinEarned: result.coinEarned,
         baseRewardCoin: evaluation.baseRewardCoin,
+        requestedRewardCoin: evaluation.finalRewardCoin,
+        lineupKey: evaluation.lineupKey,
+        repeatedGroupTriggered: result.repeatedGroup.triggered,
+        repeatedGroupPriorMatches: result.repeatedGroup.priorMatchingRewards,
+        repeatedGroupCurrentOrdinal: result.repeatedGroup.currentOrdinal,
+        repeatedGroupThreshold: result.repeatedGroup.threshold,
+        repeatedGroupWindowHours: result.repeatedGroup.windowHours,
+        repeatedGroupRequestedRewardCoin: result.repeatedGroup.requestedRewardCoin,
+        repeatedGroupAllowedRewardCoin: result.repeatedGroup.allowedRewardCoin,
+        repeatedGroupBlockedRewardCoin: result.repeatedGroup.blockedRewardCoin,
+        repeatedGroupAppliedMultiplier: result.repeatedGroup.appliedMultiplier,
+        allowedRewardCoin: result.ceiling.allowedRewardCoin,
+        blockedRewardCoin: result.ceiling.blockedRewardCoin,
+        earnedInWindowBefore: result.ceiling.earnedInWindowBefore,
+        rewardGuardWindowHours: result.ceiling.windowHours,
+        rewardGuardSoftCapCoin: result.ceiling.softCapCoin,
+        rewardGuardHardCapCoin: result.ceiling.hardCapCoin,
+        rewardGuardMinMultiplier: result.ceiling.minMultiplier,
+        rewardGuardDampingProfile: result.ceiling.dampingProfile,
+        rewardGuardTriggered: result.ceiling.triggered,
+        rewardGuardBand: result.ceiling.band,
+        rewardGuardAppliedMultiplier: result.ceiling.appliedMultiplier,
         rewardMultiplier: evaluation.modifiers.rewardMultiplier,
         weekendBoostApplied: evaluation.modifiers.weekendBoostApplied,
-        reducedByRules: evaluation.modifiers.reducedByRules,
+        reducedByRules:
+          evaluation.modifiers.reducedByRules ||
+          result.repeatedGroup.triggered ||
+          result.ceiling.triggered,
       },
       request: req,
     });
 
     return NextResponse.json({
-      coinEarned,
+      coinEarned: result.coinEarned,
       won: evaluation.won,
       coinBalance: result.wallet?.coinBalance ?? 0,
       matchId: result.created.id,
       rewardSource: evaluation.source,
       eligibilityDecision: evaluation.decision,
       reviewFlags: evaluation.reviewFlags,
+      rewardGuard: {
+        triggered: result.ceiling.triggered,
+        band: result.ceiling.band,
+        requestedRewardCoin: result.ceiling.requestedRewardCoin,
+        allowedRewardCoin: result.ceiling.allowedRewardCoin,
+        blockedRewardCoin: result.ceiling.blockedRewardCoin,
+      },
+      repeatedGroup: {
+        triggered: result.repeatedGroup.triggered,
+        priorMatchingRewards: result.repeatedGroup.priorMatchingRewards,
+        currentOrdinal: result.repeatedGroup.currentOrdinal,
+        allowedRewardCoin: result.repeatedGroup.allowedRewardCoin,
+        blockedRewardCoin: result.repeatedGroup.blockedRewardCoin,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

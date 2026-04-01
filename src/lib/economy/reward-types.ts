@@ -68,6 +68,7 @@ export interface RewardEligibilityAllowed {
     modifiers: RewardModifierSummary;
     participantPlayerId: string;
     participantTeam: "A" | "B" | null;
+    lineupKey: string | null;
 }
 
 export type RewardEligibilityResult =

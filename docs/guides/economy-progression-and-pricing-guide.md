@@ -98,6 +98,12 @@ Bu yuzden:
 - soft cap ve hard ceiling normal oyuncunun pacing'ini bozmayacak kadar yuksek tutulmali
 - ilk tuning canli veriden once agresif yapilmamali
 
+Not:
+
+- gameplay reward guard ayarlari artik system settings ekonomi bolumunden yonetilmeye baslandi
+- ama bu ayarlar canli oncesi agresif optimize edilmemeli
+- once gercek coin kazanimi ve satin alma verisi gorulmeli
+
 ## Fiyat Kararlarini Dakika Uzerinden Vermeme Sebebi
 
 Ham sure guvenilmezdir.
@@ -237,3 +243,13 @@ Urun canliya acildiktan sonra ve veri geldikten sonra su alanlar acilabilir:
 - store pacing review dashboard'u
 
 Ama ilk acilis oncesi bunlarin hicbiri zorunlu degildir.
+
+## Mevcut Runtime Notu
+
+Su anda kurulan ekonomi runtime'i:
+
+- merkezi `match_reward` eligibility
+- rolling window `soft cap / hard ceiling`
+- repeated-group diminishing returns
+
+Yani acilis oncesi hedeflenen ekonomi guardrail artik tamamen "dokuman fikri" olmaktan cikti; temel runtime katmani kurulmaya baslandi.

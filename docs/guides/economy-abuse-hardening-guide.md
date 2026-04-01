@@ -39,14 +39,13 @@ Bu branch'in gorevi:
 
 1. reward eligibility kontrol katmani
 - odul yazilacak mac veya oturum gercekten uygun mu
-- minimum sure
-- minimum anlamli katilim
-- minimum farkli hesapli oyuncu
+- duplicate claim / participant / completed match dogrulamasi
+- guest ile oynayan authenticated oyuncunun odulunu kesmeden merkezi karar verme
 
 2. coin cap ve diminishing returns temeli
-- gunluk cap
-- zaman penceresi cap
-- tekrar eden pattern'lerde tam blok yerine verim dusurme
+- rolling window soft cap
+- rolling window hard ceiling
+- tekrar eden lineup pattern'lerinde tam blok yerine verim dusurme
 
 3. tekrar eden grup sinyali
 - ayni oyuncu grubunun asiri tekrarini izleme
@@ -100,9 +99,10 @@ Bu branch'in gorevi:
 
 1. mevcut reward / coin yazim noktalarini cikar
 2. eligibility kurallarini merkezi hale getir
-3. cap ve diminishing returns kur
-4. suphe skoru ve audit event'lerini ekle
-5. admin review tarafi icin minimum gorunurluk sagla
+3. rolling window soft cap / hard ceiling kur
+4. repeated-group diminishing returns kur
+5. suphe skoru ve audit event'lerini ekle
+6. admin review tarafi icin minimum gorunurluk sagla
 
 Bu siralama acilis oncesi economy foundation icindir.
 
@@ -471,6 +471,49 @@ Not:
 - bu alanlar acilis oncesi agresif tuning icin degil
 - once guvenli varsayilanlarla gelir
 - sonra evaluator bu ayarlari kullanir
+
+## Branch'te Uygulanan V1
+
+Su an bu branch'te aktif olarak kurulan runtime davranis:
+
+1. merkezi reward eligibility
+- `match finalize` route icindeki daginik kararlar tek katmana toplandi
+- deny / allow_full / allow_reduced karari artik acik reason code ve review flag ile donuyor
+
+2. reward source ayrimi
+- `match_reward`
+- `promo_claim`
+- `admin_adjustment`
+su an runtime ve audit metadata'da ayri tasiniyor
+
+3. rolling window safety ceiling
+- yalniz `match_reward` icin calisiyor
+- `soft cap` ustunde odul kademeli azalir
+- `hard ceiling` ustunde coin sifira kadar inebilir
+- eski oduller pencerenin disina ciktikca oyuncu otomatik olarak tam banda doner
+
+4. repeated-group diminishing returns
+- ayni oyuncu ayni lineup ile ayni pencere icinde tekrar odul aliyorsa verim kademeli dusurulur
+- ilk esige kadar tam odul devam eder
+- esik asildiktan sonra `repeatedGroupMinMultiplier` alt sinirina kadar iner
+
+5. audit aciklanabilirligi
+- `requestedRewardCoin`
+- `allowedRewardCoin`
+- `blockedRewardCoin`
+- `repeatedGroup*`
+- `rewardGuard*`
+alanlari audit metadata'ya yazilir
+
+## Bu Branch'te Bilincli Olarak Hala Yapilmayanlar
+
+- XP / level runtime'i
+- gorev runtime'i
+- event reward runtime'i
+- night market
+- invasive fingerprint
+- otomatik sert enforcement
+- tam suspicion scoring paneli
 
 ## Guardrail'ler
 

@@ -1,6 +1,7 @@
 import type { SystemSettings } from "@/types/system-settings";
 import type { RoomMatchSnapshot } from "@/lib/socket/game-socket";
 import { resolveMatchRewardCoin } from "@/lib/system-settings/economy";
+import { createHash } from "node:crypto";
 import type {
     RewardEligibilityResult,
     RewardReviewFlag,
@@ -44,6 +45,27 @@ function buildReviewFlags(metrics: RewardRoomMetrics): RewardReviewFlag[] {
     return flags;
 }
 
+function buildLineupKey(room: RoomMatchSnapshot | null): string | null {
+    if (!room || room.oyuncular.length === 0) {
+        return null;
+    }
+
+    const identities = room.oyuncular
+        .map((player) =>
+            Number.isInteger(player.userId) && player.userId !== null
+                ? `u:${player.userId}`
+                : `g:${player.playerId}`
+        )
+        .sort()
+        .join("|");
+
+    if (!identities) {
+        return null;
+    }
+
+    return createHash("sha256").update(identities).digest("hex").slice(0, 48);
+}
+
 export function evaluateMatchRewardEligibility(input: {
     userId: number;
     room: RoomMatchSnapshot | null;
@@ -57,6 +79,7 @@ export function evaluateMatchRewardEligibility(input: {
     const { userId, room, existingMatchResult, settings, now } = input;
     const roomMetrics = buildRoomMetrics(room);
     const reviewFlags = buildReviewFlags(roomMetrics);
+    const lineupKey = buildLineupKey(room);
 
     if (existingMatchResult) {
         return {
@@ -137,5 +160,6 @@ export function evaluateMatchRewardEligibility(input: {
         },
         participantPlayerId: participant.playerId,
         participantTeam: participant.takim,
+        lineupKey,
     };
 }
