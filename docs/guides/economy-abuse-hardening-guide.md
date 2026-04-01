@@ -472,6 +472,27 @@ Not:
 - once guvenli varsayilanlarla gelir
 - sonra evaluator bu ayarlari kullanir
 
+## Onerilen Acilis Default'lari
+
+Canli oncesi baslangic profili olarak onerilen conservative varsayilanlar:
+
+- `matchRewardGuardEnabled = true`
+- `matchRewardWindowHours = 24`
+- `matchRewardSoftCapCoin = 3600`
+- `matchRewardHardCapCoin = 5200`
+- `matchRewardMinMultiplier = 0.35`
+- `matchRewardDampingProfile = gentle`
+- `repeatedGroupEnabled = true`
+- `repeatedGroupWindowHours = 12`
+- `repeatedGroupThreshold = 8`
+- `repeatedGroupMinMultiplier = 0.55`
+
+Bu profilin mantigi:
+
+- normal oyuncuyu neredeyse hic hissettirmeden koruma acmak
+- ilk acilista asiri sert dusus kullanmamak
+- organize farm davranisini tam verimde birakmamak
+
 ## Branch'te Uygulanan V1
 
 Su an bu branch'te aktif olarak kurulan runtime davranis:
