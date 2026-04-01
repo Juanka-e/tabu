@@ -78,6 +78,7 @@ export async function POST(
             resourceId: result.adjustment.id,
             summary: `${adjustment.adjustmentType} ${adjustment.amount} coin for ${result.targetUsername}`,
             metadata: {
+                rewardSource: "admin_adjustment",
                 targetUserId: parsedParams.data.id,
                 targetUsername: result.targetUsername,
                 adjustmentType: adjustment.adjustmentType,

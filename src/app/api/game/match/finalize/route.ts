@@ -4,13 +4,13 @@ import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
+import { evaluateMatchRewardEligibility } from "@/lib/economy/reward-eligibility";
 import {
   buildRateLimitHeaders,
   consumeRequestRateLimit,
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
-import { resolveMatchRewardCoin } from "@/lib/system-settings/economy";
 import { getSystemSettings } from "@/lib/system-settings/service";
 
 const finalizeSchema = z.object({
@@ -43,37 +43,51 @@ export async function POST(req: Request) {
     const existing = await prisma.matchResult.findUnique({
       where: { roomCode_userId: { roomCode: roomCode.toUpperCase(), userId: sessionUser.id } },
     });
-    if (existing) {
-      return NextResponse.json({
-        alreadyClaimed: true,
-        coinEarned: existing.coinEarned,
-        won: existing.won,
-      });
+    const settings = await getSystemSettings();
+    const room = getRoomMatchSnapshot(roomCode.toUpperCase());
+    const evaluation = evaluateMatchRewardEligibility({
+      userId: sessionUser.id,
+      room,
+      existingMatchResult: existing,
+      settings,
+      now: new Date(),
+    });
+
+    if (evaluation.decision === "deny") {
+      const primaryReason = evaluation.reasonCodes[0];
+
+      if (primaryReason === "already_claimed" && existing) {
+        return NextResponse.json({
+          alreadyClaimed: true,
+          coinEarned: existing.coinEarned,
+          won: existing.won,
+          rewardSource: evaluation.source,
+          eligibilityDecision: evaluation.decision,
+          eligibilityReasons: evaluation.reasonCodes,
+          reviewFlags: evaluation.reviewFlags,
+        });
+      }
+
+      if (primaryReason === "room_not_found") {
+        return NextResponse.json({ error: "Oda bulunamadi." }, { status: 404 });
+      }
+
+      if (primaryReason === "match_not_completed") {
+        return NextResponse.json({ error: "Mac henuz tamamlanmadi." }, { status: 409 });
+      }
+
+      if (primaryReason === "participant_not_found") {
+        return NextResponse.json({ error: "Oyuncu dogrulanamadi." }, { status: 403 });
+      }
+
+      return NextResponse.json({ error: "Mac odulu icin uygunluk saglanamadi." }, { status: 409 });
     }
 
-    const room = getRoomMatchSnapshot(roomCode.toUpperCase());
     if (!room) {
       return NextResponse.json({ error: "Oda bulunamadi." }, { status: 404 });
     }
-    if (room.oyunAktifMi) {
-      return NextResponse.json({ error: "Mac henuz tamamlanmadi." }, { status: 409 });
-    }
 
-    const participant = room.oyuncular.find((p) => p.userId === sessionUser.id);
-    if (!participant) {
-      return NextResponse.json({ error: "Oyuncu dogrulanamadi." }, { status: 403 });
-    }
-
-    const winner = room.skor.A === room.skor.B ? "Berabere" : room.skor.A > room.skor.B ? "A" : "B";
-    const won = winner !== "Berabere" && participant.takim === winner;
-    const settings = await getSystemSettings();
-    const baseRewardCoin = winner === "Berabere"
-      ? settings.economy.drawRewardCoin
-      : won
-        ? settings.economy.winRewardCoin
-        : settings.economy.lossRewardCoin;
-    const reward = resolveMatchRewardCoin(baseRewardCoin, settings, new Date());
-    const coinEarned = reward.finalRewardCoin;
+    const coinEarned = evaluation.finalRewardCoin;
 
     await ensureUserCore(sessionUser.id);
 
@@ -82,9 +96,9 @@ export async function POST(req: Request) {
         data: {
           roomCode: room.odaKodu,
           userId: sessionUser.id,
-          playerId: participant.playerId,
-          team: participant.takim,
-          won,
+          playerId: evaluation.participantPlayerId,
+          team: evaluation.participantTeam,
+          won: evaluation.won,
           scoreA: room.skor.A,
           scoreB: room.skor.B,
           coinEarned,
@@ -108,21 +122,32 @@ export async function POST(req: Request) {
       resourceId: result.created.id,
       summary: `Finalized match reward for room ${room.odaKodu}`,
         metadata: {
+        rewardSource: evaluation.source,
+        eligibilityDecision: evaluation.decision,
+        eligibilityReasons: evaluation.reasonCodes,
+        reviewFlags: evaluation.reviewFlags,
+        totalPlayers: evaluation.roomMetrics.totalPlayers,
+        authenticatedPlayers: evaluation.roomMetrics.authenticatedPlayers,
+        guestPlayers: evaluation.roomMetrics.guestPlayers,
         roomCode: room.odaKodu,
-        won,
+        won: evaluation.won,
         coinEarned,
-        baseRewardCoin: reward.baseRewardCoin,
-        rewardMultiplier: reward.multiplier,
-        weekendBoostApplied: reward.weekendBoostApplied,
+        baseRewardCoin: evaluation.baseRewardCoin,
+        rewardMultiplier: evaluation.modifiers.rewardMultiplier,
+        weekendBoostApplied: evaluation.modifiers.weekendBoostApplied,
+        reducedByRules: evaluation.modifiers.reducedByRules,
       },
       request: req,
     });
 
     return NextResponse.json({
       coinEarned,
-      won,
+      won: evaluation.won,
       coinBalance: result.wallet?.coinBalance ?? 0,
       matchId: result.created.id,
+      rewardSource: evaluation.source,
+      eligibilityDecision: evaluation.decision,
+      reviewFlags: evaluation.reviewFlags,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

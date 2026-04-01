@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
             resourceId: result.claim.id,
             summary: `claimed ${result.coinAmount} coin via ${result.code.code}`,
             metadata: {
+                rewardSource: "promo_claim",
                 campaignId: result.campaign.id,
                 campaignCode: result.campaign.code,
                 grantCode: result.code.code,
