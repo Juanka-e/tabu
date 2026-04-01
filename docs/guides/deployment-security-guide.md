@@ -304,6 +304,36 @@ Deploy oncesi kontrol:
 9. `HEALTHCHECK_TOKEN` set
 10. canonical host disinda istekler redirect veya reject oluyor
 
+## 12.1 Prisma On Windows
+
+Windows local development'ta `prisma db push` sonundaki otomatik generate asamasi bazen:
+
+- `EPERM`
+- `query_engine-windows.dll.node` rename hatasi
+
+uretebilir.
+
+Bu tipik olarak engine dosyasinin bir baska process tarafindan kullaniliyor olmasindan kaynaklanir.
+
+Bu repo icin tercih edilen akim:
+
+1. `npm run db:push`
+   - `prisma db push --skip-generate`
+2. `npm run db:generate`
+   - `prisma generate --no-engine`
+
+Toplu akim:
+
+```bash
+npm run db:sync
+```
+
+Bu sayede:
+
+- schema sync ayri yapilir
+- generate ayri yapilir
+- Windows'taki gereksiz `EPERM` gürültüsü azalir
+
 ## 13. En Sik Yanlislar
 
 1. `AUTH_TRUST_HOST=false` yapip guvenligi arttirdigini sanmak

@@ -34,6 +34,46 @@ function renderMetadata(metadata: Record<string, string>): string {
     return entries.map(([key, value]) => `${key}: ${value}`).join(" | ");
 }
 
+function renderEconomyGuard(log: AdminAuditLogView): string {
+    if (!log.economyGuard) {
+        return "-";
+    }
+
+    const parts: string[] = [];
+
+    if (log.economyGuard.rewardSource) {
+        parts.push(`Kaynak: ${log.economyGuard.rewardSource}`);
+    }
+
+    if (
+        log.economyGuard.requestedRewardCoin !== null &&
+        log.economyGuard.allowedRewardCoin !== null
+    ) {
+        parts.push(
+            `Odul: ${log.economyGuard.requestedRewardCoin} -> ${log.economyGuard.allowedRewardCoin}`
+        );
+    }
+
+    if ((log.economyGuard.blockedRewardCoin ?? 0) > 0) {
+        parts.push(`Kesilen: ${log.economyGuard.blockedRewardCoin}`);
+    }
+
+    if (log.economyGuard.rewardGuardTriggered) {
+        parts.push(`Ceiling: ${log.economyGuard.rewardGuardBand ?? "aktif"}`);
+    }
+
+    if (log.economyGuard.repeatedGroupTriggered) {
+        const ordinal =
+            log.economyGuard.repeatedGroupOrdinal !== null &&
+            log.economyGuard.repeatedGroupThreshold !== null
+                ? `${log.economyGuard.repeatedGroupOrdinal}. mac / esik ${log.economyGuard.repeatedGroupThreshold}`
+                : "aktif";
+        parts.push(`Tekrar grup: ${ordinal}`);
+    }
+
+    return parts.length > 0 ? parts.join(" | ") : "-";
+}
+
 export default function AdminAuditPage() {
     const searchParams = useSearchParams();
     const [logs, setLogs] = useState<AdminAuditLogView[]>([]);
@@ -99,7 +139,7 @@ export default function AdminAuditPage() {
 
     const stats = useMemo(
         () => [
-            { label: "görünen", value: String(logs.length) },
+            { label: "gorunen", value: String(logs.length) },
             { label: "toplam", value: String(total) },
             { label: "sayfa", value: `${page} / ${pages}` },
         ],
@@ -109,9 +149,9 @@ export default function AdminAuditPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader
-                title="Audit Kayıtları"
-                description="Admin ve sistem operasyonlarının izini tek ekranda takip edin."
-                meta={`${total} kayıt`}
+                title="Audit Kayitlari"
+                description="Admin ve sistem operasyonlarinin izini tek ekranda takip edin."
+                meta={`${total} kayit`}
                 icon={<Activity className="h-5 w-5 text-emerald-500" />}
             />
 
@@ -122,7 +162,7 @@ export default function AdminAuditPage() {
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Action, admin, resource veya özet ara..."
+                            placeholder="Action, admin, resource veya ozet ara..."
                             className="pl-9"
                         />
                     </div>
@@ -132,7 +172,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setAction(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tüm action&apos;lar</option>
+                        <option value="">Tum action&apos;lar</option>
                         {actionOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -145,7 +185,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setResourceType(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tüm resource tipleri</option>
+                        <option value="">Tum resource tipleri</option>
                         {resourceTypeOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -158,7 +198,7 @@ export default function AdminAuditPage() {
                         onChange={(event) => setActorRole(event.target.value)}
                         className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                     >
-                        <option value="">Tüm roller</option>
+                        <option value="">Tum roller</option>
                         {roleOptions.map((option) => (
                             <option key={option} value={option}>
                                 {option}
@@ -170,15 +210,15 @@ export default function AdminAuditPage() {
             </AdminToolbar>
 
             <AdminTableShell
-                title="Audit Geçmişi"
-                description="En son operasyonlar tarih, actor, action, not ve metadata özeti ile listelenir."
+                title="Audit Gecmisi"
+                description="En son operasyonlar tarih, actor, action, not ve koruma ozeti ile listelenir."
                 loading={loading}
                 isEmpty={!loading && logs.length === 0}
                 emptyState={
                     <AdminEmptyState
                         icon={<Activity className="h-6 w-6" />}
-                        title="Audit kaydı bulunamadı"
-                        description="Mevcut filtrelerle eşleşen bir operasyon kaydı yok."
+                        title="Audit kaydi bulunamadi"
+                        description="Mevcut filtrelerle eslesen bir operasyon kaydi yok."
                     />
                 }
                 footer={<AdminPagination page={page} pageCount={pages} onPageChange={setPage} />}
@@ -190,8 +230,9 @@ export default function AdminAuditPage() {
                             <TableHead>Actor</TableHead>
                             <TableHead>Action</TableHead>
                             <TableHead>Resource</TableHead>
-                            <TableHead>Özet</TableHead>
+                            <TableHead>Ozet</TableHead>
                             <TableHead>Not</TableHead>
+                            <TableHead>Koruma</TableHead>
                             <TableHead>Metadata</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -230,6 +271,9 @@ export default function AdminAuditPage() {
                                 </TableCell>
                                 <TableCell className="max-w-xs text-sm text-muted-foreground">
                                     {log.note ?? "-"}
+                                </TableCell>
+                                <TableCell className="max-w-sm text-xs text-muted-foreground">
+                                    {renderEconomyGuard(log)}
                                 </TableCell>
                                 <TableCell className="max-w-md text-xs text-muted-foreground">
                                     {renderMetadata(log.metadata)}

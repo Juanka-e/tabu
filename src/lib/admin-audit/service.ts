@@ -44,6 +44,56 @@ function extractAuditNote(metadata: Prisma.JsonValue | null): string | null {
     return typeof candidate === "string" && candidate.trim().length > 0 ? candidate : null;
 }
 
+function readMetadataNumber(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): number | null {
+    const value = record[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readMetadataBoolean(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): boolean {
+    return record[key] === true;
+}
+
+function readMetadataString(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): string | null {
+    const value = record[key];
+    return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function extractEconomyGuardSummary(
+    action: string,
+    metadata: Prisma.JsonValue | null
+): AdminAuditLogView["economyGuard"] {
+    if (
+        action !== "game.match.finalize" ||
+        !metadata ||
+        typeof metadata !== "object" ||
+        Array.isArray(metadata)
+    ) {
+        return null;
+    }
+
+    const record = metadata as Record<string, Prisma.JsonValue>;
+    return {
+        rewardSource: readMetadataString(record, "rewardSource"),
+        requestedRewardCoin: readMetadataNumber(record, "requestedRewardCoin"),
+        allowedRewardCoin: readMetadataNumber(record, "allowedRewardCoin"),
+        blockedRewardCoin: readMetadataNumber(record, "blockedRewardCoin"),
+        rewardGuardTriggered: readMetadataBoolean(record, "rewardGuardTriggered"),
+        rewardGuardBand: readMetadataString(record, "rewardGuardBand"),
+        repeatedGroupTriggered: readMetadataBoolean(record, "repeatedGroupTriggered"),
+        repeatedGroupOrdinal: readMetadataNumber(record, "repeatedGroupCurrentOrdinal"),
+        repeatedGroupThreshold: readMetadataNumber(record, "repeatedGroupThreshold"),
+    };
+}
+
 function mapAuditLog(log: {
     id: number;
     action: string;
@@ -79,6 +129,7 @@ function mapAuditLog(log: {
                   role: log.actorRole,
               },
         metadata: summarizeAuditMetadata(log.metadata),
+        economyGuard: extractEconomyGuardSummary(log.action, log.metadata),
     };
 }
 
