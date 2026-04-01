@@ -30,6 +30,7 @@
     "test:turnstile-smoke": "tsx scripts/test-turnstile-smoke.ts",
     "test:economy-liveops": "tsx scripts/test-economy-liveops.ts",
     "test:economy-guardrails": "tsx scripts/test-economy-guardrails.ts",
+    "test:economy-guardrails-edge": "tsx scripts/test-economy-guardrails-edge.ts",
     "test:user-email-foundation": "tsx scripts/test-user-email-foundation.ts",
     "test:admin-user-operations": "tsx scripts/test-admin-user-operations.ts",
     "test:admin-audit-viewer": "tsx scripts/test-admin-audit-viewer.ts",

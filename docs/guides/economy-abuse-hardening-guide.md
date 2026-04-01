@@ -526,6 +526,33 @@ su an runtime ve audit metadata'da ayri tasiniyor
 - `rewardGuard*`
 alanlari audit metadata'ya yazilir
 
+## Yuk Ve Cok Oyunculu Senaryo Notu
+
+Su anki finalize maliyeti authenticated oyuncu basina:
+
+1. repeated-group icin bir `count`
+2. rolling ceiling icin bir `aggregate`
+3. `matchResult.create`
+4. `wallet.update`
+5. `auditLog.create`
+
+Bu model acilis seviyesi icin kabul edilebilir cunku:
+
+- sorgular indeksli alanlara dayanir
+- guest oyuncular wallet/audit finalize yazimi yapmaz
+- ayni arkadas grubunun tekrari sistemi mantiksal olarak tetikler ama runtime'i dogrudan cokertmez
+
+Asil buyume riski:
+
+- audit tablosu buyumesi
+- canli trafik buyudugunde finalize throughput'un artmasi
+
+Bu durumda sonraki adim:
+
+- audit retention / arsivleme
+- non-triggered finalize kayitlarini daha hafif telemetry akimina tasima
+- `feature/cache-and-rate-limit-foundation` sonrasinda Redis/Valkey destekli hafif counter yardimi
+
 ## Bu Branch'te Bilincli Olarak Hala Yapilmayanlar
 
 - XP / level runtime'i

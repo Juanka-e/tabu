@@ -59,3 +59,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 14. `economy-progression-and-pricing-guide.md`
 - coin pacing, magazadaki fiyat ladder'i, XP/level ayrimi ve gorev zamanlamasi rehberi
 - ekonomiyi yalniz bugunku match reward tablosuna degil, gelecekteki source ayrimina gore kurar
+
+15. `economy-abuse-validation-checklist.md`
+- economy guardrail branch'i icin manuel kontrol listesi
+- system settings, audit review, repeated-group ve ceiling davranislarini dogrulamak icin kullanilir

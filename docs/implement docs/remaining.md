@@ -62,6 +62,8 @@
 - audit metadata
 - safety ceiling
 - repeated-group diminishing returns
+- manual validation checklist
+- smoke + edge-case guardrail test coverage
 
 2. `feature/post-launch-economy-observability-review`
 - gercek coin kazanimi
