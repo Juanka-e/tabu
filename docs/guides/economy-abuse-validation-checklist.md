@@ -30,7 +30,7 @@ Kontrol:
 
 Beklenen:
 
-- alanlar anlasilir olmalı
+- alanlar anlasilir olmali
 - helper metinler oyuncu etkisini anlatmali
 - ayarlar security/captcha ile karismamali
 
@@ -149,9 +149,9 @@ Su anki modelde authenticated her finalize icin tipik maliyet:
 
 Neden su an kabul edilebilir:
 
-- sorgular `userId + createdAt` ve `userId + lineupKey + createdAt` indekslerine dayanir
+- sorgular `userId + createdAt`, `userId + lineupKey + createdAt` ve `action + createdAt` indekslerine dayanir
 - guest oyuncular finalize/wallet yazimi yapmaz
-- asıl ek yuk audit tablosu buyumesidir, CPU degil
+- asil ek yuk audit tablosu buyumesidir, CPU degil
 
 Ne zaman tekrar ele alinmali:
 
