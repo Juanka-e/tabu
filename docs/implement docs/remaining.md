@@ -27,6 +27,9 @@
 - gunluk ve saatlik coin cap
 - ayni oyuncu gruplarinda kademeli coin verim dusurme
 - IP/subnet'i tek basina ceza nedeni degil, yumusak suphe sinyali olarak kullanma
+- ceiling reset mantigi rolling window olacak
+- ilk surumde 0 coin blok yerine once yuzdesel dusus tercih edilecek
+- admin panel ayarlari gelirse bounded ve aciklamali UX ile gelecek
 - planning referanslari:
   - `docs/guides/economy-abuse-hardening-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`

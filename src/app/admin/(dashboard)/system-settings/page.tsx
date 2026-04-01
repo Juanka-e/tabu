@@ -725,6 +725,93 @@ export default function SystemSettingsPage() {
                         <ToggleField checked={payload.settings.economy.couponsEnabled} label="Kuponlar" description="Coupon preview ve coupon checkout davranisini acar/kapatir." onChange={(checked) => updatePayload("economy", "couponsEnabled", checked)} />
                     </div>
 
+                    <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/20 p-4">
+                        <div className="space-y-1">
+                            <div className="text-sm font-semibold text-foreground">Odul Koruma Tavani</div>
+                            <div className={helperClassName}>
+                                Bu katman normal oyuncuyu hedeflemez. Rolling window icinde asiri match coin birikirse odul once kademeli azalir, cok uc durumda sert tavana yaklasir.
+                            </div>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <ToggleField
+                                checked={payload.settings.economy.matchRewardGuardEnabled}
+                                label="Guard Aktif"
+                                description="Match reward icin rolling window bazli koruma katmanini acar."
+                                onChange={(checked) => updatePayload("economy", "matchRewardGuardEnabled", checked)}
+                            />
+                            <div className="space-y-2">
+                                <FieldLabel label="Window Saat" helper="Son kac saat icindeki match reward toplami izlenecek." />
+                                <input className={inputClassName} type="number" min="1" max="168" value={payload.settings.economy.matchRewardWindowHours} onChange={(event) => updatePayload("economy", "matchRewardWindowHours", Number(event.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel label="Soft Cap Coin" helper="Bu esikten sonra odul tam blok yerine kademeli dusmeye baslar." />
+                                <input className={inputClassName} type="number" min="0" max="100000" value={payload.settings.economy.matchRewardSoftCapCoin} onChange={(event) => updatePayload("economy", "matchRewardSoftCapCoin", Number(event.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel label="Hard Ceiling Coin" helper="Cok uc farm davranisinda kullanilan ust emniyet tavani." />
+                                <input className={inputClassName} type="number" min="0" max="100000" value={payload.settings.economy.matchRewardHardCapCoin} onChange={(event) => updatePayload("economy", "matchRewardHardCapCoin", Number(event.target.value))} />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            <div className="space-y-2">
+                                <FieldLabel label="Min Reward Multiplier" helper="Odul soft cap sonrasinda bu oranin altina dusmez." />
+                                <input className={inputClassName} type="number" min="0" max="1" step="0.05" value={payload.settings.economy.matchRewardMinMultiplier} onChange={(event) => updatePayload("economy", "matchRewardMinMultiplier", Number(event.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel label="Damping Profile" helper="Yuzdesel dususun ne kadar yumusak veya sert davranacagini belirler." />
+                                <select className={inputClassName} value={payload.settings.economy.matchRewardDampingProfile} onChange={(event) => updatePayload("economy", "matchRewardDampingProfile", event.target.value as SystemSettingsResponse["settings"]["economy"]["matchRewardDampingProfile"])}>
+                                    <option value="gentle">gentle</option>
+                                    <option value="standard">standard</option>
+                                    <option value="strict">strict</option>
+                                </select>
+                            </div>
+                            <div className="rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
+                                <div>
+                                    <span className="font-semibold text-foreground">Rolling window:</span> gece yarisi reseti yerine son {payload.settings.economy.matchRewardWindowHours} saat izlenir.
+                                </div>
+                                <div className="mt-2">
+                                    <span className="font-semibold text-foreground">Etkisi:</span> once yuzdesel dusus, sonra sert ceiling.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/20 p-4">
+                        <div className="space-y-1">
+                            <div className="text-sm font-semibold text-foreground">Tekrar Eden Grup Korumasi</div>
+                            <div className={helperClassName}>
+                                Ayni kucuk grubun kisa araliklarla surekli odullu mac oynamasi halinde verimi yumusak sekilde dusurmek icin kullanilir. Tek basina IP veya ayni ev sinyali karar vermez.
+                            </div>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <ToggleField
+                                checked={payload.settings.economy.repeatedGroupEnabled}
+                                label="Koruma Aktif"
+                                description="Ayni lineup tekrarlarinda reward damping uygular."
+                                onChange={(checked) => updatePayload("economy", "repeatedGroupEnabled", checked)}
+                            />
+                            <div className="space-y-2">
+                                <FieldLabel label="Window Saat" helper="Ayni grup tekrarini hangi pencere icinde izleyecegiz." />
+                                <input className={inputClassName} type="number" min="1" max="168" value={payload.settings.economy.repeatedGroupWindowHours} onChange={(event) => updatePayload("economy", "repeatedGroupWindowHours", Number(event.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel label="Tekrar Esigi" helper="Kac tekrar sonrasi damping baslayacagini belirler." />
+                                <input className={inputClassName} type="number" min="2" max="100" value={payload.settings.economy.repeatedGroupThreshold} onChange={(event) => updatePayload("economy", "repeatedGroupThreshold", Number(event.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel label="Min Group Multiplier" helper="Repeated-group damping odulu bu oranin altina dusurmez." />
+                                <input className={inputClassName} type="number" min="0" max="1" step="0.05" value={payload.settings.economy.repeatedGroupMinMultiplier} onChange={(event) => updatePayload("economy", "repeatedGroupMinMultiplier", Number(event.target.value))} />
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
+                            Bu koruma ayni evde oynayan normal oyunculari dogrudan cezalandirmak icin degil, organize farm davranisinda verimi azaltmak icindir. IP ve subnet sadece yardimci sinyal olarak dusunulur.
+                        </div>
+                    </div>
+
                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
                         Canli sonuc ozeti:
                         <span className="ml-2 font-semibold text-foreground">
@@ -736,6 +823,11 @@ export default function SystemSettingsPage() {
                         {payload.settings.economy.weekendCoinMultiplierEnabled ? (
                             <span className="ml-4 font-semibold text-foreground">
                                 Weekend x{payload.settings.economy.weekendCoinMultiplier.toFixed(2)}
+                            </span>
+                        ) : null}
+                        {payload.settings.economy.matchRewardGuardEnabled ? (
+                            <span className="ml-4 font-semibold text-foreground">
+                                Guard {payload.settings.economy.matchRewardSoftCapCoin.toLocaleString("tr-TR")} / {payload.settings.economy.matchRewardHardCapCoin.toLocaleString("tr-TR")}
                             </span>
                         ) : null}
                     </div>

@@ -175,6 +175,28 @@ Amac:
 - cok bariz farm davranisini sinirlamak
 - normal oyuncuya ceza hissettirmemek
 
+### Ceiling nasil normale doner
+
+Ceiling "gun bitti, sifirlandi" mantigiyla degil, rolling window mantigiyla calismalidir.
+
+Ornek:
+
+- pencere `24 saat`
+- oyuncunun son `24 saat` icindeki `match_reward` toplami izlenir
+- eski oduller zaman penceresinden dustukce oyuncu otomatik olarak yeniden tam odul bandina doner
+
+Bu model daha dogrudur cunku:
+
+- gece yarisi reset exploit'i yaratmaz
+- oyuncuya daha dogal davranir
+- ayni gun icinde asiri kasan ile ertesi gun oynayan oyuncuyu daha adil ayirir
+
+Bu branch icin tercih:
+
+- rolling window
+- source-aware takip
+- takvim gunu reset mantigi yok
+
 ### Faz 2
 
 Gorev ve event odulleri gelince:
@@ -185,6 +207,52 @@ Gorev ve event odulleri gelince:
 - `event_reward` icin ayri budget
 
 Bu model gelecekte sistemi kirmaz.
+
+## Soft Cap Ve Hard Ceiling Ayrimi
+
+Tek bir sert ceiling yerine iki katman daha sagliklidir:
+
+1. soft cap
+- odul dususu burada baslar
+- oyuncu tam blok hissetmez
+
+2. hard ceiling
+- en ust emniyet freni
+- sadece asiri uc davranista devreye girer
+
+Ilk surumde hedef:
+
+- normal oyuncu soft cap'i bile nadiren gorsun
+- hard ceiling ise neredeyse yalniz abuse/farm davranisinda devreye girsin
+
+## Yuzdesel Dusus Nasil Olmali
+
+Ilk tercih:
+
+- otomatik ama bounded profil mantigi
+
+Yani admin panelde serbestce "her basamak icin 17 farkli yuzde" girmek yerine:
+
+- `yumusak`
+- `standart`
+- `sert`
+
+gibi damping profilleri daha dogrudur.
+
+Neden:
+
+- ayarlamasi daha kolay
+- operator hatasi daha az
+- ekonomi tuning'i daha izlenebilir
+
+Ikinci asamada istenirse su alanlar acilabilir:
+
+- `softCapCoin`
+- `hardCapCoin`
+- `minRewardMultiplier`
+- `dampingProfile`
+
+Ama ilk surumde serbest cok nokta yuzde editoru acmak istemiyoruz.
 
 ## Fiyatlandirma Ve Satin Alma Temposu
 
@@ -345,11 +413,64 @@ Ornek ileri asama ayarlari:
 - repeated-group damping profile
 - review threshold profile
 
+Ekonomi panelinde ileride acilabilecek bounded alanlar:
+
+- `matchRewardGuardEnabled`
+- `matchRewardWindowHours`
+- `matchRewardSoftCapCoin`
+- `matchRewardHardCapCoin`
+- `matchRewardMinMultiplier`
+- `matchRewardDampingProfile`
+- `repeatedGroupEnabled`
+- `repeatedGroupWindowHours`
+- `repeatedGroupThreshold`
+- `repeatedGroupMinMultiplier`
+
 Yapilmamasi gereken:
 
 - her heuristic icin ayri serbest numeric admin paneli
 
 Bu hem operator hatasini artirir hem sistemi karmasiklastirir.
+
+## Admin Panel UX Ilkesi
+
+Bu ayarlar ileride admin panelde acilacaksa:
+
+- tek tabloda karmasik teknik alan yigini olmamali
+- "oyuncu etkisi" ve "guvenlik etkisi" acikca anlatilmali
+- her alanin altinda kisa yardim metni olmali
+- `soft cap` ve `hard ceiling` farki ayri anlatilmali
+- `tekrar eden grup dususu` ayri kartta toplanmali
+
+Onerilen panel gruplari:
+
+1. `Mac Odul Ayarlari`
+2. `Odul Koruma Tavani`
+3. `Tekrar Eden Grup Korumasi`
+4. `Sinyaller Ve Review`
+
+Yani teknik olarak ayarlanabilir olsun, ama operator icin anlasilir kalsin.
+
+## Su Anda Hazirlanan Runtime Ayarlar
+
+Bu branch'te system settings ekonomi bolumune su bounded alanlar eklenmeye baslandi:
+
+- `matchRewardGuardEnabled`
+- `matchRewardWindowHours`
+- `matchRewardSoftCapCoin`
+- `matchRewardHardCapCoin`
+- `matchRewardMinMultiplier`
+- `matchRewardDampingProfile`
+- `repeatedGroupEnabled`
+- `repeatedGroupWindowHours`
+- `repeatedGroupThreshold`
+- `repeatedGroupMinMultiplier`
+
+Not:
+
+- bu alanlar acilis oncesi agresif tuning icin degil
+- once guvenli varsayilanlarla gelir
+- sonra evaluator bu ayarlari kullanir
 
 ## Guardrail'ler
 

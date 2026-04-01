@@ -91,6 +91,13 @@ Bu baslangic icin kabul edilebilir ama resmi ladder haline getirilmeli.
   - birikim hedefi vermek
   - ama ulaasilamaz duvar yaratmamak
 
+Ekonomi koruma katmanlari bu ladder'i bozmamali.
+
+Bu yuzden:
+
+- soft cap ve hard ceiling normal oyuncunun pacing'ini bozmayacak kadar yuksek tutulmali
+- ilk tuning canli veriden once agresif yapilmamali
+
 ## Fiyat Kararlarini Dakika Uzerinden Vermeme Sebebi
 
 Ham sure guvenilmezdir.
@@ -218,3 +225,15 @@ Ek urun karari:
 2. gorev sistemi retention icin gerekli mi
 3. event claim UX'i oyuncu akisina nasil oturacak
 4. night market gercekten deger uretecek mi
+
+## Gelecekte Eklenebilecek Ayarlar
+
+Urun canliya acildiktan sonra ve veri geldikten sonra su alanlar acilabilir:
+
+- XP/level ac/kapat
+- gorev sistemi gorunurlugu
+- event reward gorunurlugu
+- comeback reward ac/kapat
+- store pacing review dashboard'u
+
+Ama ilk acilis oncesi bunlarin hicbiri zorunlu degildir.

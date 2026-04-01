@@ -1,5 +1,21 @@
 import type { SystemSettings } from "@/types/system-settings";
 
+export interface MatchRewardGuardState {
+    enabled: boolean;
+    windowHours: number;
+    softCapCoin: number;
+    hardCapCoin: number;
+    minMultiplier: number;
+    dampingProfile: "gentle" | "standard" | "strict";
+}
+
+export interface RepeatedGroupGuardState {
+    enabled: boolean;
+    windowHours: number;
+    threshold: number;
+    minMultiplier: number;
+}
+
 const ECONOMY_TIME_ZONE = "Europe/Istanbul";
 
 export interface MatchRewardResolution {
@@ -16,6 +32,33 @@ export interface StoreLiveopsState {
     storePriceMultiplier: number;
     activeMatchCoinMultiplier: number;
     weekendBoostApplied: boolean;
+}
+
+export function getMatchRewardGuardState(
+    settings: SystemSettings
+): MatchRewardGuardState {
+    const softCapCoin = Math.max(0, settings.economy.matchRewardSoftCapCoin);
+    const hardCapCoin = Math.max(softCapCoin, settings.economy.matchRewardHardCapCoin);
+
+    return {
+        enabled: settings.economy.matchRewardGuardEnabled,
+        windowHours: settings.economy.matchRewardWindowHours,
+        softCapCoin,
+        hardCapCoin,
+        minMultiplier: Math.min(1, Math.max(0, settings.economy.matchRewardMinMultiplier)),
+        dampingProfile: settings.economy.matchRewardDampingProfile,
+    };
+}
+
+export function getRepeatedGroupGuardState(
+    settings: SystemSettings
+): RepeatedGroupGuardState {
+    return {
+        enabled: settings.economy.repeatedGroupEnabled,
+        windowHours: settings.economy.repeatedGroupWindowHours,
+        threshold: Math.max(2, settings.economy.repeatedGroupThreshold),
+        minMultiplier: Math.min(1, Math.max(0, settings.economy.repeatedGroupMinMultiplier)),
+    };
 }
 
 function normalizeMultiplier(multiplier: number): number {
