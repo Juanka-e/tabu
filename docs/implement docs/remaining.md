@@ -39,6 +39,7 @@
   - `docs/guides/economy-abuse-strategy-guide.md`
   - `docs/guides/economy-progression-and-pricing-guide.md`
   - `docs/guides/night-market-and-missions-strategy-guide.md`
+  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
 
 ### 2. Night Market / Missions Planning
 - night market acele implemente edilmeyecek
@@ -78,15 +79,22 @@
 3. `feature/cache-and-rate-limit-foundation`
 - shared runtime guardrail ve cache temeli
 
-4. `feature/post-launch-xp-level-foundation`
+4. `feature/gameplay-ui-polish`
+- room / lobby oyuncu kimligi UX'i
+- displayName gosterim karari
+- audit lineup kimlik snapshot'i
+- guest / registered badge ayrimi
+- oyun ici ust bar / profil tetikleyici polish'i
+
+5. `feature/post-launch-xp-level-foundation`
 - yalniz veri bunu gerektirirse
 - coin'den ayri ilerleme katmani
 
-5. `feature/post-launch-missions-foundation`
+6. `feature/post-launch-missions-foundation`
 - retention ihtiyaci gercekten varsa
 - source-aware reward modeli uzerinde
 
-6. `feature/post-launch-night-market-foundation`
+7. `feature/post-launch-night-market-foundation`
 - ancak store ve retention verisi bunu gerekliyse
 
 ## Son Tamamlanan Dilim

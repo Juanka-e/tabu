@@ -545,6 +545,27 @@ su an runtime ve audit metadata'da ayri tasiniyor
 - `rewardGuard*`
 alanlari audit metadata'ya yazilir
 
+6. economy review admin gorunurlugu
+- audit ekranina `Mac Odulleri`, `Koruma Tetikleri`, `Ceiling`, `Tekrar Grup` preset'leri eklendi
+- economy review satirlari tek satir metadata yigini yerine daha okunur bloklar halinde gosterilir
+- ilgili kayitta:
+  - odulu alan oyuncu
+  - lobby kodu
+  - sure
+  - istenen / verilen odul
+  - tetiklenen koruma bandi
+gorunur hale geldi
+
+7. finalize akis stabilitesi
+- duplicate finalize yarisinda odul insert'i idempotent hale getirildi
+- audit yazimi hata verirse oyuncu odul response'u bozulmaz
+- `LAST_INSERT_ID()` BigInt donusunun response'u kirma riski kapatildi
+
+8. room-level review baglami
+- audit economy review kaydinda ayni macin `Lobi Kadrosu` gorunur
+- bu alan o satirdaki oyuncunun ayni maca girdigi tum oyuncu kadrosunu gosterir
+- bu liste "cezali oyuncular" listesi degildir; review baglamidir
+
 ## Yuk Ve Cok Oyunculu Senaryo Notu
 
 Su anki finalize maliyeti authenticated oyuncu basina:
@@ -581,6 +602,8 @@ Bu durumda sonraki adim:
 - invasive fingerprint
 - otomatik sert enforcement
 - tam suspicion scoring paneli
+- displayName snapshot ile guest / registered audit kimlik ayrimi
+- room ici canli gorunen isim degisikligi
 
 ## Guardrail'ler
 
@@ -601,4 +624,5 @@ Bu durumda sonraki adim:
 - `docs/guides/economy-abuse-strategy-guide.md`
 - `docs/guides/night-market-and-missions-strategy-guide.md`
 - `docs/guides/admin-user-observability-guide.md`
+- `docs/guides/player-display-name-and-audit-strategy-guide.md`
 

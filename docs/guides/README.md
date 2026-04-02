@@ -63,3 +63,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 15. `economy-abuse-validation-checklist.md`
 - economy guardrail branch'i icin manuel kontrol listesi
 - system settings, audit review, repeated-group ve ceiling davranislarini dogrulamak icin kullanilir
+
+16. `player-display-name-and-audit-strategy-guide.md`
+- kayitli oyuncunun gorunen adi, hesap username'i ve audit snapshot ayrimini tanimlar
+- displayName degisikligi ile gameplay UI polish backlog'unu ayni cercevede toplar

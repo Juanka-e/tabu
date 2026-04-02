@@ -74,16 +74,21 @@
 - coin cap ve diminishing returns temelini kurma
 - repeated-group ve benzeri sinyalleri yumusak suphe skoruna baglama
 - audit ve admin review icin aciklanabilir ekonomi sinyalleri uretme
+- economy review audit preset ve okunur koruma UI'i
+- finalize duplicate yarislarini idempotent hale getirme
 - kapsam disi:
   - XP ekrani
   - gorev ekrani
   - event claim akisi
   - night market
+  - displayName snapshot ile audit kimlik ayrimi
+  - room ici canli displayName degisikligi
 - bu alanlar urun canliya acildiktan sonra tekrar degerlendirilecek
 - referans:
   - `docs/guides/economy-abuse-hardening-guide.md`
   - `docs/guides/economy-abuse-strategy-guide.md`
   - `docs/guides/economy-progression-and-pricing-guide.md`
+  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
 
 ## Planning Notlari
 - Store / liveops / economy stratejisi icin ana referanslar:
