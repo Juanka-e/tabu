@@ -85,6 +85,10 @@
 - audit lineup kimlik snapshot'i
 - guest / registered badge ayrimi
 - oyun ici ust bar / profil tetikleyici polish'i
+- lobby quick edit ile `displayName` guncelleme
+- settings icinde kalici `displayName` yonetimi
+- oyun basladiktan sonra isim kilitleme kurali
+- guest oyuncu icin session bazli gorunen isim akisi
 
 5. `feature/post-launch-xp-level-foundation`
 - yalniz veri bunu gerektirirse

@@ -106,6 +106,10 @@
 5. `feature/cosmetic-render-upgrade`
 6. `feature/admin-cosmetic-authoring`
 7. `feature/gameplay-ui-polish`
+ - lobby / oyun ust bar kimlik butonu
+ - settings kaynakli `displayName` yonetimi
+ - guest isim akisi ve oyun baslangicinda kilitleme
+ - audit icin username/displayName snapshot ayrimi
 8. `feature/analytics-event-foundation`
 9. `feature/word-analytics-liveops`
 10. `feature/post-launch-xp-level-foundation`

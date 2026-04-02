@@ -36,38 +36,58 @@ Bu sayede:
 - moderation ve audit tarafi gereksiz yere karmasiklasmaz
 - oyuncu her lobby icin ayri maske isim tasimaz
 
-## Neden Lobby Icinde Serbest Rename Simdi Gelmiyor
+## V2 Karari: Lobby Quick Edit
 
-Lobby veya oyun icinde canli ad degistirme ilk bakista kullanisli gorunse de su maliyetleri getirir:
+Sonraki branch planinda su model kabul edilmistir:
+
+1. `Settings`
+- kalici `displayName` yonetiminin ana yeri olmaya devam eder
+
+2. `Lobby` / oyun ust bar quick edit
+- kucuk avatar + gorunen isim butonu olabilir
+- tiklaninca hizli kimlik paneli acilir
+- kayitli oyuncu burada gorunen adini guncelleyebilir
+- bu alan ayri "oda bazli nickname" sistemi degil, `displayName` hizli erisim yuzeyi olarak davranir
+
+3. kilitleme kurali
+- lobby durumunda degistirilebilir
+- oyun basladiktan sonra isim degisimi kilitlenir
+- mac sonuna kadar sabit kalir
+
+Bu model oyuncu acisindan kullanisli, audit acisindan ise savunulabilirdir.
+
+## Neden Oda Bazli Serbest Nickname Simdi Gelmiyor
+
+Her oda icin tamamen bagimsiz nickname sistemi ilk bakista kullanisli gorunse de su maliyetleri getirir:
 
 - moderation review zorlasir
 - support tarafinda "kim kimdi" takibi kirilir
 - audit snapshot'lari daha karmasik hale gelir
 - ayni oyuncu kisa surede birden fazla adla gorunebilir
 
-Bu yuzden v1 urun karari:
+Bu yuzden urun karari:
 
-- `displayName` global ayar olarak degissin
-- lobby / oyun ici canli rename sonraki asamada tekrar degerlendirilsin
+- `displayName` ana gorunen isim modeli olarak kalsin
+- lobby / ust bar quick edit, ayni `displayName` modeline hizli erisim saglasin
+- ayri `roomNickname` modeli ilk asamada eklenmesin
 
-## Sonraki Asamada Dusunulebilecek UX
+## Guest Oyuncu Davranisi
 
-Ileride `gameplay-ui-polish` veya ilgili oyuncu kimligi branch'inde su model dusunulebilir:
+Guest oyuncu icin kalici hesap kimligi yoktur.
 
-1. dashboard / room ust barinda oyuncu kimlik butonu
-- kucuk avatar
-- aktif gorunen isim
-- tiklaninca profil / isim paneli
+Dogru model:
 
-2. canli degisiklik kisiti
-- oyun aktifken degil, sadece lobby durumunda
-- ayni oda icin tek oturumda sinirli sayida degisiklik
+1. guest giriste bir isim yazar
+2. lobby durumunda isterse degistirebilir
+3. oyun basladiktan sonra isim kilitlenir
+4. bu isim yalniz o guest oturumu / room akisi icin gecerlidir
+5. audit'e `displayNameSnapshot` olarak duser
 
-3. oyun ici yansima
-- ad degisikligi yapildiginda room oyuncu listesi ve sidebar guncellenir
-- ama audit snapshot o anki adi ayri saklar
+Yani:
 
-Bu alan simdilik plan seviyesindedir, bu branch'te implement edilmeyecektir.
+- guest'in kalici `displayName` profili yoktur
+- yalniz session / room akisinda gorunen isim vardir
+- audit yine snapshot alir, canli state'e bakmaz
 
 ## Audit Tarafinda Zorunlu Snapshot Alani
 
@@ -87,10 +107,22 @@ Olay aninda su snapshot alinmalidir:
 - kayitli hesabin degismeyen teknik username'i
 
 4. `displayNameSnapshot`
-- o an diger oyunculara gorunen isim
+- mac baslangicinda veya oyun kilitlendiginde diger oyunculara gorunen isim
 
 5. `playerId`
 - room / socket tarafindaki teknik oyuncu kimligi
+
+## Snapshot Zamani
+
+Audit icin dogru zaman:
+
+- mac baslangicinda kimlik snapshot'i almak
+
+Bu sayede:
+
+- oyuncu lobby'de son anda yaptigi degisiklik dogru yakalanir
+- oyun sirasinda isim degisikligi desteklenmedigi icin review kirilmaz
+- finalize zamani canli profile bakmaya gerek kalmaz
 
 ## Audit UI Ilkesi
 
@@ -122,5 +154,11 @@ Bu rehberdeki tam audit kimlik ayrimi ve displayName snapshot isi:
 
 - `feature/economy-abuse-hardening` kapsaminda tamamlanmayacak
 - `feature/gameplay-ui-polish` veya ilgili oyuncu kimligi branch'inde ele alinacak
+- bu branch ayni zamanda:
+  - lobby / ust bar quick edit
+  - settings displayName yonetimi
+  - guest / registered badge sistemi
+  - audit kimlik snapshot'i
+  alanlarini birlikte ele alacak
 
 Bu branch'te mevcut ekonomi review UI okunabilirligi ve finalize akis stabilitesi onceliklidir.
