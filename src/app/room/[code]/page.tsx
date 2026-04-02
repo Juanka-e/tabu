@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useCallback, useRef, useTransition, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
@@ -43,29 +43,6 @@ const ROOM_SWITCH_TEAM_EVENT = "takim_degistir";
 const ROOM_START_GAME_EVENT = "oyun_baslat";
 const ROOM_GAME_CONTROL_EVENT = "oyun_kontrol";
 const ROOM_RESET_GAME_EVENT = "oyun_sifirla";
-
-const ROOM_CLIENT_BOOTSTRAP_PENDING = "__room_client_bootstrap_pending__";
-
-function subscribeRoomClientBootstrap(onStoreChange: () => void): () => void {
-    if (typeof window === "undefined") {
-        return () => undefined;
-    }
-
-    window.addEventListener("storage", onStoreChange);
-    return () => window.removeEventListener("storage", onStoreChange);
-}
-
-function getRoomClientBootstrapSnapshot(): string {
-    if (typeof window === "undefined") {
-        return ROOM_CLIENT_BOOTSTRAP_PENDING;
-    }
-
-    return window.localStorage.getItem("tabu_username") || "";
-}
-
-function getRoomClientBootstrapServerSnapshot(): string {
-    return ROOM_CLIENT_BOOTSTRAP_PENDING;
-}
 
 export default function RoomPage() {
     const params = useParams();
@@ -130,26 +107,32 @@ export default function RoomPage() {
     const [identityDraftName, setIdentityDraftName] = useState("");
     const [identitySaving, setIdentitySaving] = useState(false);
     const [identityError, setIdentityError] = useState("");
-    const storedUsername = useSyncExternalStore(
-        subscribeRoomClientBootstrap,
-        getRoomClientBootstrapSnapshot,
-        getRoomClientBootstrapServerSnapshot
-    );
-    const isRoomClientReady = storedUsername !== ROOM_CLIENT_BOOTSTRAP_PENDING;
+    const [storedUsername, setStoredUsername] = useState<string | null>(null);
+    const isRoomClientReady = storedUsername !== null;
     const isAuthenticatedRoomUser = Boolean(session?.user?.id);
     const showUsernamePrompt =
         isRoomClientReady &&
         !isAuthenticatedRoomUser &&
         !hasConfirmedUsername &&
-        storedUsername.trim().length === 0;
+        (storedUsername || "").trim().length === 0;
     const currentPlayer = players.find((player) => player.playerId === myPlayerId) ?? null;
     const currentVisibleName =
         currentPlayer?.ad ||
-        storedUsername.trim() ||
+        (storedUsername || "").trim() ||
         session?.user?.name ||
         "Oyuncu";
     const currentAvatarUrl = currentPlayer?.cosmetics?.avatarImageUrl ?? null;
     const canEditIdentity = view === GameView.LOBBY;
+
+    useEffect(() => {
+        const syncStoredUsername = () => {
+            setStoredUsername(window.localStorage.getItem("tabu_username") || "");
+        };
+
+        syncStoredUsername();
+        window.addEventListener("storage", syncStoredUsername);
+        return () => window.removeEventListener("storage", syncStoredUsername);
+    }, []);
 
     useEffect(() => {
         setIdentityDraftName(currentVisibleName);
@@ -635,7 +618,18 @@ export default function RoomPage() {
     };
 
     if (!isRoomClientReady) {
-        return null;
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 dark:bg-slate-900">
+                <div className="rounded-3xl border border-gray-200 bg-white px-8 py-6 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                    <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                        Lobby Yukleniyor
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Oda bilgileri hazirlaniyor.
+                    </div>
+                </div>
+            </main>
+        );
     }
 
     return (
