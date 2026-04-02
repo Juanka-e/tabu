@@ -113,5 +113,85 @@ Bu dosyadan sunlar temizlendi:
 - artik tarihsel degeri olmayan ilk migration notlari
 - tamamlanmis ve tekrar kullanilmayan test checklist'leri
 - bozuk encoding ile kalan eski maddeler
+  - lighter telemetry path for non-triggered finalize events
+- planning referanslari:
+  - `docs/guides/economy-abuse-hardening-guide.md`
+  - `docs/guides/economy-abuse-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
+  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+
+### 2. Night Market / Missions Planning
+- night market acele implemente edilmeyecek
+- once economy guardrail ve admin observability yeterli seviyeye gelmeli
+- gorev sistemi, rozetler, banner ve geri donus motivasyonu birlikte dusunulmeli
+- XP ekrani, gorev ekrani ve event claim akisi acilis oncesi implement edilmeyecek
+- bu alanlar urun canliya acildiktan sonra gercek veriyle tekrar kararlandirilacak
+- planning rehberi:
+  - `docs/guides/night-market-and-missions-strategy-guide.md`
+  - `docs/guides/economy-progression-and-pricing-guide.md`
+
+### 3. Cache / Rate Limit Foundation
+- Redis/Valkey abstraction
+- development memory fallback
+- production shared cache and rate limit store
+- room/lobi multi-instance mimarisine hazirlik
+- PM2 multi-instance ve websocket koordinasyon notlari:
+  - `docs/cache-and-storage-strategy.md`
+
+## Aclis Sonrasi Onerilen Implementasyon Sirasi
+
+1. `feature/economy-abuse-hardening`
+- reward eligibility
+- reward source ayrimi
+- audit metadata
+- safety ceiling
+- repeated-group diminishing returns
+- manual validation checklist
+- smoke + edge-case guardrail test coverage
+
+2. `feature/post-launch-economy-observability-review`
+- gercek coin kazanimi
+- store satin alma hizi
+- retention ve pacing gozlemi
+- ilk ekonomi tuning kararlari
+
+3. `feature/cache-and-rate-limit-foundation`
+- shared runtime guardrail ve cache temeli
+
+4. `feature/gameplay-ui-polish`
+- room / lobby oyuncu kimligi UX'i
+- displayName gosterim karari
+- audit lineup kimlik snapshot'i
+- guest / registered badge ayrimi
+- oyun ici ust bar / profil tetikleyici polish'i
+- lobby quick edit ile `displayName` guncelleme
+- settings icinde kalici `displayName` yonetimi
+- oyun basladiktan sonra isim kilitleme kurali
+- guest oyuncu icin session bazli gorunen isim akisi
+
+5. `feature/post-launch-xp-level-foundation`
+- yalniz veri bunu gerektirirse
+- coin'den ayri ilerleme katmani
+
+6. `feature/post-launch-missions-foundation`
+- retention ihtiyaci gercekten varsa
+- source-aware reward modeli uzerinde
+
+7. `feature/post-launch-night-market-foundation`
+- ancak store ve retention verisi bunu gerekliyse
+
+## Son Tamamlanan Dilim
+### `feature/admin-user-observability`
+- kullanici listesi ve operasyon yuzeyine trusted access sinyalleri eklendi
+- support / inventory / audit derin linkleri kuruldu
+- support ve inventory detail panelleri daha zengin baglam bloklariyla guclendirildi
+- auth local-dev host trust kirilmasi kapatildi
+
+## Cikarilan Eski Icerik
+Bu dosyadan sunlar temizlendi:
+- artik tarihsel degeri olmayan ilk migration notlari
+- tamamlanmis ve tekrar kullanilmayan test checklist'leri
+- bozuk encoding ile kalan eski maddeler
 - yeni karar almaya yardim etmeyen brainstorming tekrarlar
 
