@@ -16,6 +16,20 @@ export interface AdminAuditLogView {
     createdAt: string;
     actor: AdminAuditActorView | null;
     metadata: Record<string, string>;
+    economyGuard: {
+        rewardSource: string | null;
+        requestedRewardCoin: number | null;
+        allowedRewardCoin: number | null;
+        blockedRewardCoin: number | null;
+        rewardGuardTriggered: boolean;
+        rewardGuardBand: string | null;
+        repeatedGroupTriggered: boolean;
+        repeatedGroupOrdinal: number | null;
+        repeatedGroupThreshold: number | null;
+        roomCode: string | null;
+        sureSeconds: number | null;
+        lineupPlayers: string[];
+    } | null;
 }
 
 export interface AdminAuditListResponse {

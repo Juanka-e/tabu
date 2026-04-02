@@ -7,6 +7,8 @@ Ana karar:
 - `night market` su an implement edilmek zorunda degil
 - once economy, admin operasyonu ve reward guardrail'leri netlesmeli
 - night market ile gorev sistemi birbirinden tamamen kopuk dusunulmemeli
+- urun canliya acilmadan once implement edilmemeli
+- acilis sonrasi gercek oyuncu davranisi gorulmeden release planina alinmamali
 
 ## Neden Simdi Degil
 
@@ -166,8 +168,24 @@ Neden degerli:
 1. coin grants archive lifecycle
 2. admin user observability
 3. economy abuse hardening
-4. gorev / identity / motivation planning revizyonu
-5. sonra gerekirse `feature/night-market-foundation`
+4. economy progression / pricing / XP kararlarini netlestirme
+5. gorev / identity / motivation planning revizyonu
+6. sonra gerekirse `feature/night-market-foundation`
+
+## Gorev Sistemi Ne Zaman Uygundur
+
+Gorev sistemi su kosullar saglanmadan eklenmemeli:
+
+1. gameplay reward guardrail v1 cikmis olmali
+2. source-aware economy mantigi netlesmis olmali
+3. XP/level coin'den ayri konumlanmis olmali
+4. gorev odulunun economy pacing'i bozmayacagi biliniyor olmali
+
+Pratikte bu su anlama gelir:
+
+- gorev, economy foundation'dan sonra gelir
+- night market ise gorev ve retention motivasyonu oturduktan sonra gelir
+- her ikisi de acilis sonrasi gozlemden once implement backlog'ina alinmaz
 
 ## Night Market Implementasyonundan Once Sorulacak Sorular
 

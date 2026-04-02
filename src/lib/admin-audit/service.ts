@@ -20,14 +20,20 @@ function stringifyMetadataValue(value: Prisma.JsonValue): string {
 }
 
 export function summarizeAuditMetadata(
-    metadata: Prisma.JsonValue | null
+    metadata: Prisma.JsonValue | null,
+    excludedKeys: string[] = []
 ): Record<string, string> {
     if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
         return {};
     }
 
     const entries = Object.entries(metadata)
-        .filter(([key]) => key !== "reason" && key !== "note")
+        .filter(
+            ([key]) =>
+                key !== "reason" &&
+                key !== "note" &&
+                !excludedKeys.includes(key)
+        )
         .slice(0, 8);
     return Object.fromEntries(
         entries.map(([key, value]) => [key, stringifyMetadataValue(value as Prisma.JsonValue)])
@@ -44,6 +50,73 @@ function extractAuditNote(metadata: Prisma.JsonValue | null): string | null {
     return typeof candidate === "string" && candidate.trim().length > 0 ? candidate : null;
 }
 
+function readMetadataNumber(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): number | null {
+    const value = record[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readMetadataBoolean(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): boolean {
+    return record[key] === true;
+}
+
+function readMetadataString(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): string | null {
+    const value = record[key];
+    return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function readMetadataStringArray(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): string[] {
+    const value = record[key];
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(
+        (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+    );
+}
+
+function extractEconomyGuardSummary(
+    action: string,
+    metadata: Prisma.JsonValue | null
+): AdminAuditLogView["economyGuard"] {
+    if (
+        action !== "game.match.finalize" ||
+        !metadata ||
+        typeof metadata !== "object" ||
+        Array.isArray(metadata)
+    ) {
+        return null;
+    }
+
+    const record = metadata as Record<string, Prisma.JsonValue>;
+    return {
+        rewardSource: readMetadataString(record, "rewardSource"),
+        requestedRewardCoin: readMetadataNumber(record, "requestedRewardCoin"),
+        allowedRewardCoin: readMetadataNumber(record, "allowedRewardCoin"),
+        blockedRewardCoin: readMetadataNumber(record, "blockedRewardCoin"),
+        rewardGuardTriggered: readMetadataBoolean(record, "rewardGuardTriggered"),
+        rewardGuardBand: readMetadataString(record, "rewardGuardBand"),
+        repeatedGroupTriggered: readMetadataBoolean(record, "repeatedGroupTriggered"),
+        repeatedGroupOrdinal: readMetadataNumber(record, "repeatedGroupCurrentOrdinal"),
+        repeatedGroupThreshold: readMetadataNumber(record, "repeatedGroupThreshold"),
+        roomCode: readMetadataString(record, "roomCode"),
+        sureSeconds: readMetadataNumber(record, "sureSeconds"),
+        lineupPlayers: readMetadataStringArray(record, "lineupPlayers"),
+    };
+}
+
 function mapAuditLog(log: {
     id: number;
     action: string;
@@ -57,6 +130,24 @@ function mapAuditLog(log: {
     metadata: Prisma.JsonValue | null;
     actor: { id: number; username: string; role: string } | null;
 }): AdminAuditLogView {
+    const metadataExcludedKeys =
+        log.action === "game.match.finalize"
+            ? [
+                  "rewardSource",
+                  "requestedRewardCoin",
+                  "allowedRewardCoin",
+                  "blockedRewardCoin",
+                  "rewardGuardTriggered",
+                  "rewardGuardBand",
+                  "repeatedGroupTriggered",
+                  "repeatedGroupCurrentOrdinal",
+                  "repeatedGroupThreshold",
+                  "roomCode",
+                  "sureSeconds",
+                  "lineupPlayers",
+              ]
+            : [];
+
     return {
         id: log.id,
         action: log.action,
@@ -78,16 +169,59 @@ function mapAuditLog(log: {
                   username: null,
                   role: log.actorRole,
               },
-        metadata: summarizeAuditMetadata(log.metadata),
+        metadata: summarizeAuditMetadata(log.metadata, metadataExcludedKeys),
+        economyGuard: extractEconomyGuardSummary(log.action, log.metadata),
     };
 }
 
 export async function getAdminAuditLogs(
     input: AdminAuditListQuery
 ): Promise<AdminAuditListResponse> {
-    const { page, limit, search, action, resourceType, actorRole } = input;
+    const { page, limit, search, action, resourceType, actorRole, economyGuard } = input;
+
+    const economyGuardWhere: Prisma.AuditLogWhereInput =
+        economyGuard === "match_reward"
+            ? {
+                  action: "game.match.finalize",
+              }
+            : economyGuard === "triggered"
+              ? {
+                    action: "game.match.finalize",
+                    OR: [
+                        {
+                            metadata: {
+                                path: "$.rewardGuardTriggered",
+                                equals: true,
+                            },
+                        },
+                        {
+                            metadata: {
+                                path: "$.repeatedGroupTriggered",
+                                equals: true,
+                            },
+                        },
+                    ],
+                }
+              : economyGuard === "ceiling"
+                ? {
+                      action: "game.match.finalize",
+                      metadata: {
+                          path: "$.rewardGuardTriggered",
+                          equals: true,
+                      },
+                  }
+                : economyGuard === "repeated_group"
+                  ? {
+                        action: "game.match.finalize",
+                        metadata: {
+                            path: "$.repeatedGroupTriggered",
+                            equals: true,
+                        },
+                    }
+                  : {};
 
     const where: Prisma.AuditLogWhereInput = {
+        ...economyGuardWhere,
         ...(search
             ? {
                   OR: [

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         action: searchParams.get("action") ?? undefined,
         resourceType: searchParams.get("resourceType") ?? undefined,
         actorRole: searchParams.get("actorRole") ?? undefined,
+        economyGuard: searchParams.get("economyGuard") ?? undefined,
     });
 
     if (!parsedQuery.success) {

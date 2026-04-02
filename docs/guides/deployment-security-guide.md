@@ -304,6 +304,45 @@ Deploy oncesi kontrol:
 9. `HEALTHCHECK_TOKEN` set
 10. canonical host disinda istekler redirect veya reject oluyor
 
+## 12.1 Prisma On Windows
+
+Windows local development'ta `prisma db push` sonundaki otomatik generate asamasi bazen:
+
+- `EPERM`
+- `query_engine-windows.dll.node` rename hatasi
+
+uretebilir.
+
+Bu tipik olarak engine dosyasinin bir baska process tarafindan kullaniliyor olmasindan kaynaklanir.
+
+Bu repo icin tercih edilen akim:
+
+1. `npm run db:push`
+   - `prisma db push --skip-generate`
+2. `npm run db:generate`
+   - `prisma generate`
+
+Toplu akim:
+
+```bash
+npm run db:sync
+```
+
+Bu sayede:
+
+- schema sync ayri yapilir
+- generate ayri yapilir
+- Windows'taki gereksiz `EPERM` gürültüsü azalir
+Not:
+- Bu repo icin --no-engine akisi tercih edilmiyor.
+- Local MySQL development icin klasik prisma generate kullanilmali.
+- EPERM gorursen en sik neden dev server veya baska bir process''in Prisma engine dosyasini kilitlemesidir.
+- Bu durumda:
+  1. dev server''i durdur
+  2. 
+pm run db:generate calistir
+  3. dev server''i yeniden baslat
+
 ## 13. En Sik Yanlislar
 
 1. `AUTH_TRUST_HOST=false` yapip guvenligi arttirdigini sanmak
@@ -333,3 +372,4 @@ Bu proje icin guvenli production modeli:
 6. Health endpoint token ile korunmus
 
 Bu model, host trust ve reverse proxy konusunu en dusuk operasyonel riskle yonetir.
+

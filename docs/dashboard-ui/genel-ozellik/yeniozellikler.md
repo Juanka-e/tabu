@@ -80,19 +80,18 @@
   - `docs/guides/night-market-and-missions-strategy-guide.md`
 
 ## Sonraki Oncelikli Branch'ler
-20. `feature/admin-user-observability`
-21. `feature/economy-abuse-hardening`
+20. `feature/economy-abuse-hardening`
+21. `feature/cache-and-rate-limit-foundation`
 22. `feature/night-market-foundation`
-23. `feature/cache-and-rate-limit-foundation`
-24. `feature/admin-promotions-ux`
-25. `feature/cosmetic-render-upgrade`
-26. `feature/admin-cosmetic-authoring`
-27. `feature/gameplay-ui-polish`
-28. `feature/analytics-event-foundation`
-29. `feature/word-analytics-liveops`
-30. `feature/release-ops-docs`
-31. `docs/encoding-cleanup`
-32. `feature/wallet-ledger-foundation`
+23. `feature/admin-promotions-ux`
+24. `feature/cosmetic-render-upgrade`
+25. `feature/admin-cosmetic-authoring`
+26. `feature/gameplay-ui-polish`
+27. `feature/analytics-event-foundation`
+28. `feature/word-analytics-liveops`
+29. `feature/release-ops-docs`
+30. `docs/encoding-cleanup`
+31. `feature/wallet-ledger-foundation`
 
 ## Admin Shop UX Slice (30 March 2026, completed)
 - `feature/admin-shop-ux`
@@ -153,11 +152,19 @@
   - archive, pasiflestirme ve restore davranisi tutarli hale getirildi
   - campaign/code kart yogunlugu azaltildi ve code summary guclendirildi
 
-## Admin User Observability Slice (31 March 2026, active)
+## Admin User Observability Slice (31 March 2026, completed)
 - `feature/admin-user-observability`
-  - kullanici listesi ve detayinda operasyonel gozlem sinyalleri arttirilacak
-  - trusted proxy kararina uygun IP gorunurlugu saglanacak
-  - support, moderation ve economy review icin temel kullanici baglami guclendirilecek
+  - kullanici listesi ve operasyon yuzeyine trusted access sinyalleri eklendi
+  - support, inventory ve audit tarafina derin link akisi kuruldu
+  - support ve inventory detail panelleri daha zengin baglam kartlariyla guclendirildi
+  - local development auth host trust kirilmasi kapatildi
+
+## Economy Abuse Hardening Slice (31 March 2026, active)
+- `feature/economy-abuse-hardening`
+  - reward eligibility kurallari merkezi hale getirilecek
+  - coin cap ve diminishing returns temeli kurulacak
+  - repeated-group sinyalleri yumusak suphe skoruna baglanacak
+  - audit ve admin review icin aciklanabilir ekonomi metadata'si eklenecek
 
 ## Night Market Ve Gorev Sistemi Notu
 - `feature/night-market-foundation` acele uygulanmayacak
@@ -169,8 +176,8 @@
 
 ## Sayisal Durum
 - Tamamlanan feature branch sayisi: 19
-- Planli toplam feature branch sayisi: 32
-- Kalan feature branch sayisi: 13
+- Planli toplam feature branch sayisi: 31
+- Kalan feature branch sayisi: 12
 
 ## Notlar
 - `fix/*` branch'ler bu sayiya dahil degildir.

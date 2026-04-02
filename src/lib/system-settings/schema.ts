@@ -3,6 +3,7 @@ import {
     CAPTCHA_FAIL_MODES,
     CAPTCHA_PROVIDERS,
     CAPTCHA_TURNSTILE_MODES,
+    ECONOMY_DAMPING_PROFILES,
     type SystemSettings,
 } from "@/types/system-settings";
 
@@ -65,6 +66,16 @@ const economySettingsSchema = z.object({
     bundlesEnabled: z.boolean().default(true),
     discountCampaignsEnabled: z.boolean().default(true),
     couponsEnabled: z.boolean().default(true),
+    matchRewardGuardEnabled: z.boolean().default(true),
+    matchRewardWindowHours: z.number().int().min(1).max(168).default(24),
+    matchRewardSoftCapCoin: z.number().int().min(0).max(100_000).default(3600),
+    matchRewardHardCapCoin: z.number().int().min(0).max(100_000).default(5200),
+    matchRewardMinMultiplier: z.number().min(0).max(1).default(0.35),
+    matchRewardDampingProfile: z.enum(ECONOMY_DAMPING_PROFILES).default("gentle"),
+    repeatedGroupEnabled: z.boolean().default(true),
+    repeatedGroupWindowHours: z.number().int().min(1).max(168).default(12),
+    repeatedGroupThreshold: z.number().int().min(2).max(100).default(8),
+    repeatedGroupMinMultiplier: z.number().min(0).max(1).default(0.55),
 });
 
 const captchaSettingsSchema = z.object({
@@ -114,10 +125,15 @@ export const DEFAULT_SYSTEM_SETTINGS = systemSettingsSchema.parse({}) satisfies 
 
 export function normalizeSystemSettings(input: unknown): SystemSettings {
     const parsed = systemSettingsSchema.parse(input);
+    const normalizedEconomy = {
+        ...parsed.economy,
+        matchRewardHardCapCoin: Math.max(parsed.economy.matchRewardSoftCapCoin, parsed.economy.matchRewardHardCapCoin),
+    };
 
     if (parsed.security.captcha.provider === "none") {
         return {
             ...parsed,
+            economy: normalizedEconomy,
             security: {
                 ...parsed.security,
                 captcha: {
@@ -128,5 +144,8 @@ export function normalizeSystemSettings(input: unknown): SystemSettings {
         };
     }
 
-    return parsed;
+    return {
+        ...parsed,
+        economy: normalizedEconomy,
+    };
 }

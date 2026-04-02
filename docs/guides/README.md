@@ -51,3 +51,19 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 12. `admin-user-observability-guide.md`
 - admin kullanici listesi ve detayinda operasyonel gozlem sinyallerini guclendirme rehberi
 - IP, son gorulme, trusted proxy ve abuse review'a temel olacak observability sinirlarini tanimlar
+
+13. `economy-abuse-hardening-guide.md`
+- reward eligibility, coin cap ve suphe skoru uygulama rehberi
+- false positive riski yuksek oldugu icin branch sinirlarini ve guardrail'leri netlestirir
+
+14. `economy-progression-and-pricing-guide.md`
+- coin pacing, magazadaki fiyat ladder'i, XP/level ayrimi ve gorev zamanlamasi rehberi
+- ekonomiyi yalniz bugunku match reward tablosuna degil, gelecekteki source ayrimina gore kurar
+
+15. `economy-abuse-validation-checklist.md`
+- economy guardrail branch'i icin manuel kontrol listesi
+- system settings, audit review, repeated-group ve ceiling davranislarini dogrulamak icin kullanilir
+
+16. `player-display-name-and-audit-strategy-guide.md`
+- kayitli oyuncunun gorunen adi, hesap username'i ve audit snapshot ayrimini tanimlar
+- displayName degisikligi ile gameplay UI polish backlog'unu ayni cercevede toplar

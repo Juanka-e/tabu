@@ -179,6 +179,7 @@ model AuditLog {
   actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
   @@index([resourceType, createdAt])
   @@map("audit_logs")
 }
@@ -553,22 +554,28 @@ model Purchase {
 }
 
 model MatchResult {
-  id         Int      @id @default(autoincrement())
-  roomCode   String   @map("room_code") @db.VarChar(12)
-  gameType   String   @default("tabu") @map("game_type") @db.VarChar(30)
-  userId     Int      @map("user_id")
-  playerId   String   @map("player_id") @db.VarChar(64)
-  team       String?  @db.VarChar(1)
-  won        Boolean
-  scoreA     Int      @map("score_a")
-  scoreB     Int      @map("score_b")
-  coinEarned Int      @default(0) @map("coin_earned")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id                       Int      @id @default(autoincrement())
+  roomCode                 String   @map("room_code") @db.VarChar(12)
+  matchStartedAt           DateTime @default(now()) @map("match_started_at")
+  gameType                 String   @default("tabu") @map("game_type") @db.VarChar(30)
+  userId                   Int      @map("user_id")
+  playerId                 String   @map("player_id") @db.VarChar(64)
+  team                     String?  @db.VarChar(1)
+  won                      Boolean
+  scoreA                   Int      @map("score_a")
+  scoreB                   Int      @map("score_b")
+  coinEarned               Int      @default(0) @map("coin_earned")
+  lineupKey                String?  @map("lineup_key") @db.VarChar(96)
+  lineupPlayerCount        Int      @default(0) @map("lineup_player_count")
+  lineupAuthenticatedCount Int      @default(0) @map("lineup_authenticated_count")
+  lineupGuestCount         Int      @default(0) @map("lineup_guest_count")
+  createdAt                DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([roomCode, userId])
+  @@unique([roomCode, userId, matchStartedAt])
   @@index([userId, createdAt])
+  @@index([userId, lineupKey, createdAt])
   @@map("match_results")
 }
 

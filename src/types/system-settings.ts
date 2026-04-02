@@ -11,6 +11,9 @@ export const CAPTCHA_TURNSTILE_MODES = [
 ] as const;
 export type CaptchaTurnstileMode = (typeof CAPTCHA_TURNSTILE_MODES)[number];
 
+export const ECONOMY_DAMPING_PROFILES = ["gentle", "standard", "strict"] as const;
+export type EconomyDampingProfile = (typeof ECONOMY_DAMPING_PROFILES)[number];
+
 export interface PlatformSettings {
     maintenanceEnabled: boolean;
     maintenanceMessage: string;
@@ -51,6 +54,16 @@ export interface EconomySettings {
     bundlesEnabled: boolean;
     discountCampaignsEnabled: boolean;
     couponsEnabled: boolean;
+    matchRewardGuardEnabled: boolean;
+    matchRewardWindowHours: number;
+    matchRewardSoftCapCoin: number;
+    matchRewardHardCapCoin: number;
+    matchRewardMinMultiplier: number;
+    matchRewardDampingProfile: EconomyDampingProfile;
+    repeatedGroupEnabled: boolean;
+    repeatedGroupWindowHours: number;
+    repeatedGroupThreshold: number;
+    repeatedGroupMinMultiplier: number;
 }
 
 export interface CaptchaSettings {
