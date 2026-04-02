@@ -87,8 +87,10 @@
 - oyun ici ust bar / profil tetikleyici polish'i
 - lobby quick edit ile `displayName` guncelleme
 - settings icinde kalici `displayName` yonetimi
+- `username` ile `displayName` ayrimini kullaniciya acik gosteren UI copy
 - oyun basladiktan sonra isim kilitleme kurali
 - guest oyuncu icin session bazli gorunen isim akisi
+- her oyuncunun yalniz kendi gorunen adini duzenleyebilmesi
 
 5. `feature/post-launch-xp-level-foundation`
 - yalniz veri bunu gerektirirse
@@ -167,6 +169,7 @@ Bu dosyadan sunlar temizlendi:
 - oyun ici ust bar / profil tetikleyici polish'i
 - lobby quick edit ile `displayName` guncelleme
 - settings icinde kalici `displayName` yonetimi
+- `username` ile `displayName` ayrimini kullaniciya acik gosteren UI copy
 - oyun basladiktan sonra isim kilitleme kurali
 - guest oyuncu icin session bazli gorunen isim akisi
 

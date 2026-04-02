@@ -48,6 +48,7 @@ Sonraki branch planinda su model kabul edilmistir:
 - tiklaninca hizli kimlik paneli acilir
 - kayitli oyuncu burada gorunen adini guncelleyebilir
 - bu alan ayri "oda bazli nickname" sistemi degil, `displayName` hizli erisim yuzeyi olarak davranir
+- mobilde kompakt ve tek oyunculuk bir panel olarak davranir
 
 3. kilitleme kurali
 - lobby durumunda degistirilebilir
@@ -78,7 +79,7 @@ Guest oyuncu icin kalici hesap kimligi yoktur.
 Dogru model:
 
 1. guest giriste bir isim yazar
-2. lobby durumunda isterse degistirebilir
+2. lobby durumunda yalniz kendi panelinden isterse degistirebilir
 3. oyun basladiktan sonra isim kilitlenir
 4. bu isim yalniz o guest oturumu / room akisi icin gecerlidir
 5. audit'e `displayNameSnapshot` olarak duser
@@ -159,6 +160,8 @@ Bu rehberdeki tam audit kimlik ayrimi ve displayName snapshot isi:
   - settings displayName yonetimi
   - guest / registered badge sistemi
   - audit kimlik snapshot'i
+  - lobby editable / oyun ici readonly akisi
+  - settings ve lobby icinde `username` / `displayName` ayrimini netlestirme
   alanlarini birlikte ele alacak
 
 Bu branch'te mevcut ekonomi review UI okunabilirligi ve finalize akis stabilitesi onceliklidir.

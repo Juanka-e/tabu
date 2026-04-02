@@ -138,6 +138,7 @@ const ROOM_START_GAME_EVENTS = ["oyun_baslat", "oyunBaslatİsteği", "oyunBaslat
 const ROOM_GAME_CONTROL_EVENTS = ["oyun_kontrol", "oyunKontrolİsteği", "oyunKontrolÄ°steÄŸi"] as const;
 const ROOM_RESET_GAME_EVENTS = ["oyun_sifirla", "oyunuSifirlaİsteği", "oyunuSifirlaÄ°steÄŸi"] as const;
 const ROOM_SWITCH_TEAM_EVENTS = ["takim_degistir", "takimDegistirİsteği", "takimDegistirÄ°steÄŸi"] as const;
+const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -252,6 +253,10 @@ const OdaIstegiSchema = z.object({
 const KategoriAyarlariSchema = z.object({
     seciliKategoriler: z.array(z.number().int().positive()).max(100),
     seciliZorluklar: z.array(z.number().int().min(1).max(3)).max(3),
+});
+
+const DisplayNameUpdateSchema = z.object({
+    displayName: z.string().trim().min(1).max(60),
 });
 
 const OyunVerisiSchema = z.object({
@@ -772,12 +777,6 @@ export function setupGameSocket(io: Server): void {
                 }
 
                 try {
-                    const sanitizedName = sanitizePlayerName(kullaniciAdi);
-                    if (!sanitizedName) {
-                        socket.emit("hata", "Geçerli bir kullanıcı adı girin.");
-                        return;
-                    }
-
                     const socketAuthState = await getSocketAuthState(socket);
                     const socketAuthRole = await getSocketAuthRole(socket);
                     if (socketAuthState.isSuspended) {
@@ -788,6 +787,15 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
                     const effectiveAuthUserId = socketAuthState.userId ?? null;
+                    const requestedDisplayName = sanitizePlayerName(kullaniciAdi);
+                    const effectiveDisplayName = effectiveAuthUserId
+                        ? await resolveRegisteredDisplayName(effectiveAuthUserId)
+                        : requestedDisplayName;
+
+                    if (!effectiveDisplayName) {
+                        socket.emit("hata", "Geçerli bir kullanıcı adı girin.");
+                        return;
+                    }
 
                     const identity = resolveSocketPlayerIdentity(
                         effectiveAuthUserId,
@@ -887,7 +895,7 @@ export function setupGameSocket(io: Server): void {
 
                     if (reconnectingPlayer) {
                         reconnectingPlayer.id = socket.id;
-                        reconnectingPlayer.ad = sanitizedName;
+                        reconnectingPlayer.ad = effectiveDisplayName;
                         reconnectingPlayer.online = true;
                         reconnectingPlayer.ip = ip;
                         if (effectiveAuthUserId) {
@@ -920,7 +928,7 @@ export function setupGameSocket(io: Server): void {
                             id: socket.id,
                             playerId: effectivePlayerId,
                             userId: effectiveAuthUserId,
-                            ad: sanitizedName,
+                            ad: effectiveDisplayName,
                             takim: isSpectator ? null : "A",
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
@@ -1252,6 +1260,59 @@ export function setupGameSocket(io: Server): void {
             socket.on(eventName, switchTeamHandler);
         }
 
+        socket.on(
+            ROOM_UPDATE_DISPLAY_NAME_EVENT,
+            (
+                rawPayload: unknown,
+                callback?: (response: {
+                    ok: boolean;
+                    error?: string;
+                    displayName?: string;
+                }) => void
+            ) => {
+                const parsed = DisplayNameUpdateSchema.safeParse(rawPayload);
+                if (!parsed.success) {
+                    callback?.({ ok: false, error: "Gecerli bir gorunen ad girin." });
+                    return;
+                }
+
+                const room = getRoomBySocketId(socket.id);
+                if (!room) {
+                    callback?.({ ok: false, error: "Lobi bulunamadi." });
+                    return;
+                }
+
+                if (room.oyunDurumu.oyunAktifMi) {
+                    callback?.({
+                        ok: false,
+                        error: "Mac basladiktan sonra gorunen ad degistirilemez.",
+                    });
+                    return;
+                }
+
+                const player = room.oyuncular.find((entry) => entry.id === socket.id);
+                if (!player) {
+                    callback?.({ ok: false, error: "Oyuncu bulunamadi." });
+                    return;
+                }
+
+                const nextDisplayName = sanitizePlayerName(parsed.data.displayName);
+                if (!nextDisplayName) {
+                    callback?.({ ok: false, error: "Gecerli bir gorunen ad girin." });
+                    return;
+                }
+
+                player.ad = nextDisplayName;
+                persistRoom(room);
+                broadcastLobby(room);
+
+                callback?.({
+                    ok: true,
+                    displayName: nextDisplayName,
+                });
+            }
+        );
+
         // ── Update Category Settings ──
         socket.on(
             "kategoriAyarlariGuncelle",
@@ -1529,6 +1590,26 @@ async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {
         console.error("Player cosmetics could not be loaded", error);
         player.cosmetics = createEmptyPlayerCosmetics();
     }
+}
+
+async function resolveRegisteredDisplayName(userId: number): Promise<string | null> {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            username: true,
+            profile: {
+                select: {
+                    displayName: true,
+                },
+            },
+        },
+    });
+
+    if (!user) {
+        return null;
+    }
+
+    return sanitizePlayerName(user.profile?.displayName || user.username);
 }
 
 export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {

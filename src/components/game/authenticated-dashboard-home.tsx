@@ -54,7 +54,9 @@ export function AuthenticatedDashboardHome({
   const sessionUsername = session.user.name || "";
 
   const handleJoinOrCreate = async (isCreate: boolean) => {
-    const currentUsername = sessionUsername.trim();
+    const currentUsername = (
+      window.localStorage.getItem("tabu_username") || sessionUsername
+    ).trim();
 
     if (!currentUsername) {
       setError("Lutfen bir kullanici adi girin.");

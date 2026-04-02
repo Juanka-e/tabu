@@ -1,15 +1,16 @@
-﻿"use client";
+"use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback, useRef, useTransition, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
 import { Sidebar } from "@/components/game/sidebar";
-import { Lobby } from "@/components/game/lobby";
 import { RulesModal } from "@/components/game/rules-modal";
+import { Lobby } from "@/components/game/lobby";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
-import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard } from "lucide-react";
+import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
@@ -125,16 +126,47 @@ export default function RoomPage() {
     const [showDashboard, setShowDashboard] = useState(false);
     const [hasConfirmedUsername, setHasConfirmedUsername] = useState(false);
     const [entryError, setEntryError] = useState("");
+    const [showIdentityEditor, setShowIdentityEditor] = useState(false);
+    const [identityDraftName, setIdentityDraftName] = useState("");
+    const [identitySaving, setIdentitySaving] = useState(false);
+    const [identityError, setIdentityError] = useState("");
     const storedUsername = useSyncExternalStore(
         subscribeRoomClientBootstrap,
         getRoomClientBootstrapSnapshot,
         getRoomClientBootstrapServerSnapshot
     );
     const isRoomClientReady = storedUsername !== ROOM_CLIENT_BOOTSTRAP_PENDING;
+    const isAuthenticatedRoomUser = Boolean(session?.user?.id);
     const showUsernamePrompt =
         isRoomClientReady &&
+        !isAuthenticatedRoomUser &&
         !hasConfirmedUsername &&
         storedUsername.trim().length === 0;
+    const currentPlayer = players.find((player) => player.playerId === myPlayerId) ?? null;
+    const currentVisibleName =
+        currentPlayer?.ad ||
+        storedUsername.trim() ||
+        session?.user?.name ||
+        "Oyuncu";
+    const currentAvatarUrl = currentPlayer?.cosmetics?.avatarImageUrl ?? null;
+    const canEditIdentity = view === GameView.LOBBY;
+
+    useEffect(() => {
+        setIdentityDraftName(currentVisibleName);
+    }, [currentVisibleName]);
+
+    useEffect(() => {
+        if (currentVisibleName.trim().length > 0) {
+            window.localStorage.setItem("tabu_username", currentVisibleName);
+        }
+    }, [currentVisibleName]);
+
+    useEffect(() => {
+        if (view !== GameView.LOBBY) {
+            setShowIdentityEditor(false);
+            setIdentityError("");
+        }
+    }, [view]);
 
     // Responsive check
     useEffect(() => {
@@ -162,7 +194,7 @@ export default function RoomPage() {
 
         let isMounted = true;
         let activeSocket: Socket | null = null;
-        const username = storedUsername || "Oyuncu";
+        const username = storedUsername || session?.user?.name || "Oyuncu";
 
         async function connectToRoom(): Promise<void> {
             try {
@@ -356,7 +388,7 @@ export default function RoomPage() {
             isMounted = false;
             activeSocket?.disconnect();
         };
-    }, [isRoomClientReady, roomCode, router, session?.user?.id, showUsernamePrompt, storedUsername]);
+    }, [isRoomClientReady, roomCode, router, session?.user?.id, session?.user?.name, showUsernamePrompt, storedUsername]);
 
     // Actions
 
@@ -368,6 +400,140 @@ export default function RoomPage() {
     );
 
     const isHost = myPlayerId && creatorPlayerId ? myPlayerId === creatorPlayerId : false;
+
+    const handleIdentitySave = useCallback(async () => {
+        const nextDisplayName = identityDraftName.trim();
+
+        if (!nextDisplayName) {
+            setIdentityError("Gecerli bir gorunen ad gir.");
+            return;
+        }
+
+        if (!canEditIdentity) {
+            setIdentityError("Mac basladiktan sonra gorunen ad degistirilemez.");
+            return;
+        }
+
+        if (nextDisplayName === currentVisibleName) {
+            setShowIdentityEditor(false);
+            setIdentityError("");
+            return;
+        }
+
+        setIdentitySaving(true);
+        setIdentityError("");
+
+        try {
+            if (isAuthenticatedRoomUser) {
+                const response = await fetch("/api/user/profile", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        displayName: nextDisplayName,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const payload = (await response.json().catch(() => null)) as {
+                        error?: string;
+                    } | null;
+                    setIdentityError(payload?.error || "Gorunen ad guncellenemedi.");
+                    return;
+                }
+
+                const payload = (await response.json()) as {
+                    profile?: {
+                        displayName?: string | null;
+                    };
+                };
+                const persistedDisplayName =
+                    payload.profile?.displayName?.trim() || nextDisplayName;
+
+                window.localStorage.setItem("tabu_username", persistedDisplayName);
+                setPlayers((currentPlayers) =>
+                    currentPlayers.map((player) =>
+                        player.playerId === myPlayerId
+                            ? { ...player, ad: persistedDisplayName }
+                            : player
+                    )
+                );
+                setIdentityDraftName(persistedDisplayName);
+                setShowIdentityEditor(false);
+                setIdentitySaving(false);
+
+                socketRef.current?.emit(
+                    "gorunen_ad_guncelle",
+                    { displayName: persistedDisplayName },
+                    (response: { ok: boolean; error?: string; displayName?: string }) => {
+                        if (!response.ok) {
+                            setEntryError(response.error || "Lobi gorunen adi guncellenemedi.");
+                            return;
+                        }
+
+                        const syncedDisplayName = response.displayName || persistedDisplayName;
+                        window.localStorage.setItem("tabu_username", syncedDisplayName);
+                        setPlayers((currentPlayers) =>
+                            currentPlayers.map((player) =>
+                                player.playerId === myPlayerId
+                                    ? { ...player, ad: syncedDisplayName }
+                                    : player
+                            )
+                        );
+                    }
+                );
+                return;
+            }
+
+            const socket = socketRef.current;
+            if (!socket) {
+                setIdentityError("Baglanti bulunamadi.");
+                return;
+            }
+
+            const result = await new Promise<{
+                ok: boolean;
+                error?: string;
+                displayName?: string;
+            }>((resolve) => {
+                socket.emit(
+                    "gorunen_ad_guncelle",
+                    { displayName: nextDisplayName },
+                    (response: {
+                        ok: boolean;
+                        error?: string;
+                        displayName?: string;
+                    }) => resolve(response)
+                );
+            });
+
+            if (!result.ok) {
+                setIdentityError(result.error || "Gorunen ad guncellenemedi.");
+                return;
+            }
+
+            const confirmedDisplayName = result.displayName || nextDisplayName;
+            window.localStorage.setItem("tabu_username", confirmedDisplayName);
+            setPlayers((currentPlayers) =>
+                currentPlayers.map((player) =>
+                    player.playerId === myPlayerId
+                        ? { ...player, ad: confirmedDisplayName }
+                        : player
+                )
+            );
+            setIdentityDraftName(confirmedDisplayName);
+            setShowIdentityEditor(false);
+        } catch {
+            setIdentityError("Gorunen ad guncellenemedi.");
+        } finally {
+            setIdentitySaving(false);
+        }
+    }, [
+        canEditIdentity,
+        currentVisibleName,
+        identityDraftName,
+        isAuthenticatedRoomUser,
+        myPlayerId,
+    ]);
 
     const handleStartGame = useCallback(() => {
         emit(ROOM_START_GAME_EVENT, {
@@ -524,7 +690,101 @@ export default function RoomPage() {
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
                     {/* Header Buttons */}
-                    <div className="absolute top-4 right-6 z-30 flex gap-2">
+                    <div className="absolute top-4 right-6 z-30 flex items-start gap-2">
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!canEditIdentity) return;
+                                    setIdentityDraftName(currentVisibleName);
+                                    setIdentityError("");
+                                    setShowIdentityEditor((current) => !current);
+                                }}
+                                className={`flex max-w-[min(13rem,calc(100vw-8rem))] items-center gap-2 rounded-2xl border bg-white/95 px-2.5 py-2 shadow-lg backdrop-blur dark:bg-slate-800/95 ${
+                                    canEditIdentity
+                                        ? "border-gray-100 text-gray-700 hover:text-indigo-600 dark:border-slate-700 dark:text-gray-200 dark:hover:text-indigo-300"
+                                        : "border-amber-200/70 text-gray-700 dark:border-amber-700/40 dark:text-gray-200"
+                                }`}
+                            >
+                                {currentAvatarUrl ? (
+                                    <Image
+                                        src={currentAvatarUrl}
+                                        alt=""
+                                        width={30}
+                                        height={30}
+                                        unoptimized
+                                        className="h-8 w-8 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                                        <UserRound size={14} />
+                                    </div>
+                                )}
+                                <div className="min-w-0 text-left">
+                                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                                        Gorunen Ad
+                                    </div>
+                                    <div className="max-w-[8rem] truncate text-sm font-bold">
+                                        {currentVisibleName}
+                                    </div>
+                                </div>
+                                {canEditIdentity ? <Pencil size={14} /> : <Lock size={14} />}
+                            </button>
+
+                            {showIdentityEditor && canEditIdentity ? (
+                                <div className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                                    <div className="space-y-3">
+                                        <div className="space-y-1">
+                                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+                                                Gorunen Ad Degistir
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                {isAuthenticatedRoomUser
+                                                    ? "Kayitli hesaplarda bu ad lobby ve oyunda gorunur."
+                                                    : "Guest oyuncular sadece bu lobby icin ad degistirir."}
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={identityDraftName}
+                                            onChange={(event) => setIdentityDraftName(event.target.value)}
+                                            maxLength={60}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-800 outline-none focus:border-transparent focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-100"
+                                        />
+                                        <div className="text-[11px] text-gray-400 dark:text-gray-500">
+                                            Oyun baslayinca isim kilitlenir. Yalniz kendi gorunen adini degistirebilirsin.
+                                        </div>
+                                        {identityError ? (
+                                            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                                                {identityError}
+                                            </div>
+                                        ) : null}
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowIdentityEditor(false);
+                                                    setIdentityDraftName(currentVisibleName);
+                                                    setIdentityError("");
+                                                }}
+                                                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                                            >
+                                                Vazgec
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleIdentitySave()}
+                                                disabled={identitySaving}
+                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <Save size={14} />
+                                                {identitySaving ? "Kaydediliyor" : "Kaydet"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                         {session?.user && (
                             <button
                                 onClick={() => setShowDashboard(true)}
@@ -562,7 +822,7 @@ export default function RoomPage() {
                     {!isConnected && (
                         <div className="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-800/30">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            BaÄŸlantÄ± kesildi
+                            Bağlantı kesildi
                         </div>
                     )}
 

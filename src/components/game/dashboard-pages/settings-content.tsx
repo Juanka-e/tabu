@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
@@ -31,6 +31,13 @@ export function SettingsContent() {
   const [settings, setSettings] = useState<DashboardSettingsState>(defaultDashboardSettings);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const username = session?.user?.name || "";
+
+  useEffect(() => {
+    writeDashboardSettings(settings);
+  }, [settings]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -48,7 +55,10 @@ export function SettingsContent() {
         }
 
         const payload = (await response.json()) as UserInventoryResponse;
-        setDisplayName(payload.profile.displayName || payload.name || session.user.name || "");
+        const resolvedDisplayName =
+          payload.profile.displayName || payload.name || session.user.name || "";
+        setDisplayName(resolvedDisplayName);
+        localStorage.setItem("tabu_username", resolvedDisplayName);
         setEmail(payload.email || "");
         setEmailVerifiedAt(payload.emailVerifiedAt);
         setBio(payload.profile.bio || "");
@@ -60,15 +70,11 @@ export function SettingsContent() {
     void load();
   }, [session]);
 
-  useEffect(() => {
-    writeDashboardSettings(settings);
-  }, [settings]);
-
   const languageOptions = useMemo(
     () => [
-      { value: "tr" as DashboardLanguage, label: "Türkçe" },
+      { value: "tr" as DashboardLanguage, label: "Turkce" },
       { value: "en" as DashboardLanguage, label: "English (US)" },
-      { value: "es" as DashboardLanguage, label: "Español" },
+      { value: "es" as DashboardLanguage, label: "Espanol" },
     ],
     []
   );
@@ -76,6 +82,7 @@ export function SettingsContent() {
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError("");
 
     try {
       const trimmedEmail = email.trim();
@@ -89,12 +96,25 @@ export function SettingsContent() {
         }),
       });
 
-      if (response.ok) {
-        setSaved(true);
-        window.setTimeout(() => setSaved(false), 2000);
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setSaveError(payload?.error || "Profil guncellenemedi.");
+        return;
       }
+
+      const payload = (await response.json()) as {
+        profile?: { displayName?: string | null };
+      };
+      const nextDisplayName =
+        payload.profile?.displayName?.trim() || session?.user?.name || displayName.trim();
+      localStorage.setItem("tabu_username", nextDisplayName);
+      setDisplayName(nextDisplayName);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
     } catch {
-      // Keep current inputs on failure.
+      setSaveError("Profil guncellenemedi.");
     } finally {
       setSaving(false);
     }
@@ -104,22 +124,32 @@ export function SettingsContent() {
     <DashboardPageShell
       eyebrow="Tercihler"
       title="Ayarlar"
-      description="Profil alanları kalıcıdır. Ses ve oynanış tercihleri şu an yerel geçici ayar olarak tutuluyor."
+      description="Profil alanlari hesapta saklanir. Ses ve oynanis tercihleri su an yerel ayar olarak tutuluyor."
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <DashboardSection
-            title="Profil Ayarları"
-            description="Hesapta kalıcı olarak saklanan kimlik alanları."
+            title="Profil Ayarlari"
+            description="Kalici hesap kimligi ile oyunda gorunen adi ayri tutuyoruz."
             action={<User size={18} className="text-blue-500" />}
           >
             <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                <div className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  Kullanici Adi
+                </div>
+                <div className="text-sm font-black text-slate-800 dark:text-slate-100">@{username}</div>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Giris yaptigin kalici hesap adi. Login, audit ve destek tarafinda ana kimlik olarak kalir.
+                </div>
+              </div>
+
               <div>
                 <label
                   className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
                   htmlFor="displayName"
                 >
-                  Görünen Ad
+                  Gorunen Ad
                 </label>
                 <input
                   id="displayName"
@@ -129,7 +159,11 @@ export function SettingsContent() {
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   maxLength={60}
                 />
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Lobby ve oyunda diger oyuncularin gordugu ad. Kayitli hesaplarda istedigin zaman degistirebilirsin.
+                </div>
               </div>
+
               <div>
                 <label
                   className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
@@ -154,8 +188,12 @@ export function SettingsContent() {
                     : "Bu hesapta henuz e-posta tanimli degil."}
                 </div>
               </div>
+
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400" htmlFor="bio">
+                <label
+                  className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
+                  htmlFor="bio"
+                >
                   Biyografi
                 </label>
                 <textarea
@@ -167,6 +205,13 @@ export function SettingsContent() {
                   maxLength={300}
                 />
               </div>
+
+              {saveError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                  {saveError}
+                </div>
+              ) : null}
+
               <div className="pt-2 text-right">
                 <button
                   onClick={() => void handleSave()}
@@ -175,18 +220,17 @@ export function SettingsContent() {
                   type="button"
                 >
                   <Save size={14} />
-                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Degisiklikleri Kaydet"}
                 </button>
               </div>
             </div>
           </DashboardSection>
-
         </div>
 
         <div className="space-y-6">
           <DashboardSection
-            title="Oyun Ayarları"
-            description="Konfor, ses ve dil tercihleri için istemci taraflı kontroller."
+            title="Oyun Ayarlari"
+            description="Konfor, ses ve dil tercihleri icin istemci tarafli kontroller."
             action={<Gamepad2 size={18} className="text-orange-500" />}
           >
             <div className="space-y-5">
@@ -206,7 +250,7 @@ export function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <Music size={18} className="text-slate-400" />
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Arka Plan Müziği
+                    Arka Plan Muzigi
                   </span>
                 </div>
                 <ToggleSwitch
@@ -240,7 +284,7 @@ export function SettingsContent() {
 
           <DashboardSection
             title="Hesap"
-            description="Hesap seviyesi işlemler ve giriş kontrolleri."
+            description="Hesap seviyesi islemler ve giris kontrolleri."
             action={<UserCog size={18} className="text-red-500" />}
           >
             <div className="space-y-3">
@@ -249,7 +293,7 @@ export function SettingsContent() {
                 type="button"
               >
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Şifre Değiştir
+                  Sifre Degistir
                 </span>
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-500" />
               </button>
@@ -258,7 +302,7 @@ export function SettingsContent() {
                 className="group flex w-full items-center justify-between rounded-xl p-3 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 type="button"
               >
-                <span className="text-sm font-bold">Çıkış Yap</span>
+                <span className="text-sm font-bold">Cikis Yap</span>
                 <LogOut size={18} />
               </button>
             </div>

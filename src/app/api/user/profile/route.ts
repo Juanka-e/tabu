@@ -68,6 +68,12 @@ export async function PATCH(req: Request) {
       select: {
         email: true,
         normalizedEmail: true,
+        username: true,
+        profile: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
     if (!currentUser) {
@@ -86,6 +92,11 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: "Bu e-posta adresi zaten kullaniliyor." }, { status: 409 });
       }
     }
+
+    const requestedDisplayName = parsed.displayName?.trim();
+    const currentDisplayName = currentUser.profile?.displayName?.trim() ?? null;
+    const displayNameChanged =
+      requestedDisplayName !== undefined && requestedDisplayName !== currentDisplayName;
 
     const updated = await prisma.$transaction(async (tx) => {
       if (normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)) {
@@ -128,6 +139,21 @@ export async function PATCH(req: Request) {
       },
       request: req,
     });
+
+    if (displayNameChanged) {
+      await writeAuditLog({
+        actor: sessionUser,
+        action: "user.profile.display_name_update",
+        resourceType: "user_profile",
+        resourceId: sessionUser.id,
+        summary: `Updated display name for user ${currentUser.username}`,
+        metadata: {
+          previousDisplayName: currentDisplayName,
+          nextDisplayName: updated.displayName,
+        },
+        request: req,
+      });
+    }
 
     return NextResponse.json({ profile: updated });
   } catch (error) {
