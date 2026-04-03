@@ -580,7 +580,6 @@ export default function RoomPage() {
             return (
                 <TransitionScreen
                     transition={transition}
-                    cardBackTheme={cardBackTheme}
                     isHost={Boolean(isHost)}
                     onPauseResume={handleTransitionControl}
                 />
