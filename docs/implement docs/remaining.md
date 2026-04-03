@@ -56,6 +56,12 @@
 - development memory fallback
 - production shared cache and rate limit store
 - room/lobi multi-instance mimarisine hazirlik
+- dashboard summary cache
+- store catalog cache
+- notification unread counter
+- economy guard rolling window counters
+- repeated-group keyed counters
+- targeted cache invalidation kurallari
 - PM2 multi-instance ve websocket koordinasyon notlari:
   - `docs/cache-and-storage-strategy.md`
 

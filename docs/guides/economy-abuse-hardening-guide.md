@@ -112,6 +112,14 @@ Ama buyume halinde asagidaki optimizasyonlar backlog''da tutulmalidir:
 - koruma tetiklenmeyen finalize olaylari tam audit yerine daha hafif telemetry/event akisina tasinabilir
 - audit tablosu admin review icin daha degerli ve daha kompakt kalir
 
+4. Dashboard / player surface cache
+- economy ile ilgili ikincil yuzeyler (dashboard summary, unread count, store catalog) Redis/Valkey ile kisa TTL cache'e alinabilir
+- bu, oyun loop'unu etkilemeden oyuncu panellerindeki tekrar fetch yukunu azaltir
+
+5. Reward guard counters
+- rolling reward window toplamlari ve repeated-group tekrar sayaçlari buyume halinde DB aggregate/count yerine Redis/Valkey counter ile hesaplanabilir
+- MySQL yine audit ve match_result truth kaynagi olarak kalir
+
 Bu maddeler bugun zorunlu degil, ama buyume halinde ilk alinacak olcek onlemleridir.
 
 ## Uygulama Sirasi
@@ -592,6 +600,14 @@ Bu durumda sonraki adim:
 - audit retention / arsivleme
 - non-triggered finalize kayitlarini daha hafif telemetry akimina tasima
 - `feature/cache-and-rate-limit-foundation` sonrasinda Redis/Valkey destekli hafif counter yardimi
+
+Oyuncu paneli tarafinda da:
+
+- dashboard summary local event sync
+- unread count shared counter
+- catalog / profile mini-summary cache
+
+gibi katmanlar eklenirse, oyun disi fetch yukleri DB uzerinde daha hafif kalir.
 
 ## Bu Branch'te Bilincli Olarak Hala Yapilmayanlar
 
