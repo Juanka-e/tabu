@@ -1,8 +1,9 @@
 ﻿"use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { ArrowUpRight, Plus, Sparkles, UserRound } from "lucide-react";
 import { CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
@@ -23,16 +24,13 @@ interface ProfileSidebarProps {
 
 interface SidebarState {
   displayName: string;
+  avatarImageUrl: string | null;
   coinBalance: number;
   totalMatches: number;
   winRate: number;
   equippedItems: InventoryItemView[];
 }
 
-function getInitial(name: string): string {
-  const trimmed = name.trim();
-  return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "P";
-}
 
 function sortStoreItemsByPriority(items: CatalogStoreItemView[]): CatalogStoreItemView[] {
   return [...items].sort((left, right) => {
@@ -91,6 +89,8 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
 
         setProfile({
           displayName: inventory.profile.displayName || inventory.name || session.user.name || "Player",
+          avatarImageUrl:
+            inventory.items.find((item) => item.equipped && item.type === "avatar")?.imageUrl || null,
           coinBalance: dashboard.coinBalance,
           totalMatches: dashboard.totalMatches,
           winRate: dashboard.winRate,
@@ -134,7 +134,6 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
   }, [session]);
 
   const name = profile?.displayName || session?.user?.name || "Player";
-  const initial = getInitial(name);
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
   const discoveryLeadItem = discoveryItems[0] ?? null;
   const discoverySecondaryItems = useMemo(() => discoveryItems.slice(1, 4), [discoveryItems]);
@@ -152,11 +151,25 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
       <div className="flex flex-1 flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
           <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
-            <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
-              {initial}
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
+              {profile?.avatarImageUrl ? (
+                <Image
+                  src={profile.avatarImageUrl}
+                  alt=""
+                  width={96}
+                  height={96}
+                  unoptimized
+                  className="h-24 w-24 object-cover"
+                />
+              ) : (
+                <UserRound className="h-10 w-10" />
+              )}
             </div>
           </div>
 
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            G?r?nen Ad
+          </p>
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
           <p className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-blue-500 dark:text-blue-400">
             {profile?.totalMatches ?? 0} maç oynandı
