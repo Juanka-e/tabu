@@ -17,6 +17,7 @@ import {
   Megaphone,
   LogOut,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
@@ -244,7 +245,20 @@ export function AuthenticatedDashboardHome({
               </Button>
             ) : null}
             <Separator orientation="vertical" className="mx-1 h-5" />
-            <span className="hidden text-xs font-bold uppercase tracking-[0.14em] text-foreground sm:inline">{sessionUsername}</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/80 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt=""
+                  width={32}
+                  height={32}
+                  unoptimized
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-4 w-4" />
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"

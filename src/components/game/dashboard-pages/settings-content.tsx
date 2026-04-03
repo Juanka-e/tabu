@@ -72,9 +72,9 @@ export function SettingsContent() {
 
   const languageOptions = useMemo(
     () => [
-      { value: "tr" as DashboardLanguage, label: "Turkce" },
+      { value: "tr" as DashboardLanguage, label: "Türkçe" },
       { value: "en" as DashboardLanguage, label: "English (US)" },
-      { value: "es" as DashboardLanguage, label: "Espanol" },
+      { value: "es" as DashboardLanguage, label: "Español" },
     ],
     []
   );
@@ -100,7 +100,7 @@ export function SettingsContent() {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setSaveError(payload?.error || "Profil guncellenemedi.");
+        setSaveError(payload?.error || "Profil güncellenemedi.");
         return;
       }
 
@@ -114,7 +114,7 @@ export function SettingsContent() {
       setSaved(true);
       window.setTimeout(() => setSaved(false), 2000);
     } catch {
-      setSaveError("Profil guncellenemedi.");
+      setSaveError("Profil güncellenemedi.");
     } finally {
       setSaving(false);
     }
@@ -124,23 +124,23 @@ export function SettingsContent() {
     <DashboardPageShell
       eyebrow="Tercihler"
       title="Ayarlar"
-      description="Profil alanlari hesapta saklanir. Ses ve oynanis tercihleri su an yerel ayar olarak tutuluyor."
+      description="Profil alanları hesapta saklanır. Ses ve oynanış tercihleri şimdilik bu cihazda tutuluyor."
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <DashboardSection
-            title="Profil Ayarlari"
-            description="Kalici hesap kimligi ile oyunda gorunen adi ayri tutuyoruz."
+            title="Profil Ayarları"
+            description="Hesap adı ile oyunda görünen adı ayrı tutuyoruz."
             action={<User size={18} className="text-blue-500" />}
           >
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
                 <div className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Kullanici Adi
+                  Kullanıcı Adı
                 </div>
                 <div className="text-sm font-black text-slate-800 dark:text-slate-100">@{username}</div>
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Giris yaptigin kalici hesap adi. Login, audit ve destek tarafinda ana kimlik olarak kalir.
+                  Giriş yaparken kullandığın hesap adı. Sabit kalır.
                 </div>
               </div>
 
@@ -149,7 +149,7 @@ export function SettingsContent() {
                   className="mb-1.5 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
                   htmlFor="displayName"
                 >
-                  Gorunen Ad
+                  Görünen Ad
                 </label>
                 <input
                   id="displayName"
@@ -160,7 +160,7 @@ export function SettingsContent() {
                   maxLength={60}
                 />
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Lobby ve oyunda diger oyuncularin gordugu ad. Kayitli hesaplarda istedigin zaman degistirebilirsin.
+                  Lobide ve oyunda diğer oyuncuların gördüğü ad. İstediğin zaman değiştirebilirsin.
                 </div>
               </div>
 
@@ -183,9 +183,9 @@ export function SettingsContent() {
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {email
                     ? emailVerifiedAt
-                      ? "E-posta dogrulandi."
-                      : "E-posta kayitli, dogrulama akisi daha sonra eklenecek."
-                    : "Bu hesapta henuz e-posta tanimli degil."}
+                      ? "E-posta doğrulandı."
+                      : "E-posta kayıtlı, doğrulama akışı daha sonra eklenecek."
+                    : "Bu hesapta henüz e-posta tanımlı değil."}
                 </div>
               </div>
 
@@ -220,7 +220,7 @@ export function SettingsContent() {
                   type="button"
                 >
                   <Save size={14} />
-                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Degisiklikleri Kaydet"}
+                  {saved ? "Kaydedildi" : saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
                 </button>
               </div>
             </div>
@@ -229,8 +229,8 @@ export function SettingsContent() {
 
         <div className="space-y-6">
           <DashboardSection
-            title="Oyun Ayarlari"
-            description="Konfor, ses ve dil tercihleri icin istemci tarafli kontroller."
+            title="Oyun Ayarları"
+            description="Konfor, ses ve dil tercihleri için istemci taraflı kontroller."
             action={<Gamepad2 size={18} className="text-orange-500" />}
           >
             <div className="space-y-5">
@@ -250,7 +250,7 @@ export function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <Music size={18} className="text-slate-400" />
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    Arka Plan Muzigi
+                    Arka Plan Müziği
                   </span>
                 </div>
                 <ToggleSwitch
@@ -284,7 +284,7 @@ export function SettingsContent() {
 
           <DashboardSection
             title="Hesap"
-            description="Hesap seviyesi islemler ve giris kontrolleri."
+            description="Hesap seviyesi işlemler ve giriş kontrolleri."
             action={<UserCog size={18} className="text-red-500" />}
           >
             <div className="space-y-3">
@@ -293,7 +293,7 @@ export function SettingsContent() {
                 type="button"
               >
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Sifre Degistir
+                  Şifre Değiştir
                 </span>
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-500" />
               </button>
@@ -302,7 +302,7 @@ export function SettingsContent() {
                 className="group flex w-full items-center justify-between rounded-xl p-3 text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 type="button"
               >
-                <span className="text-sm font-bold">Cikis Yap</span>
+                <span className="text-sm font-bold">Çıkış Yap</span>
                 <LogOut size={18} />
               </button>
             </div>

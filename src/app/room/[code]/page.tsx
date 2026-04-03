@@ -694,7 +694,7 @@ export default function RoomPage() {
                                     setIdentityError("");
                                     setShowIdentityEditor((current) => !current);
                                 }}
-                                className={`flex max-w-[min(13rem,calc(100vw-8rem))] items-center gap-2 rounded-2xl border bg-white/95 px-2.5 py-2 shadow-lg backdrop-blur dark:bg-slate-800/95 ${
+                                className={`flex max-w-[min(10.5rem,calc(100vw-10rem))] items-center gap-2 rounded-full border bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur dark:bg-slate-800/95 ${
                                     canEditIdentity
                                         ? "border-gray-100 text-gray-700 hover:text-indigo-600 dark:border-slate-700 dark:text-gray-200 dark:hover:text-indigo-300"
                                         : "border-amber-200/70 text-gray-700 dark:border-amber-700/40 dark:text-gray-200"
@@ -714,13 +714,8 @@ export default function RoomPage() {
                                         <UserRound size={14} />
                                     </div>
                                 )}
-                                <div className="min-w-0 text-left">
-                                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                                        Gorunen Ad
-                                    </div>
-                                    <div className="max-w-[8rem] truncate text-sm font-bold">
-                                        {currentVisibleName}
-                                    </div>
+                                <div className="max-w-[6.5rem] truncate text-sm font-bold">
+                                    {currentVisibleName}
                                 </div>
                                 {canEditIdentity ? <Pencil size={14} /> : <Lock size={14} />}
                             </button>
