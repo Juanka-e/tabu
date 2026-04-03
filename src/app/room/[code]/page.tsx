@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useState, useEffect, useCallback, useRef, useTransition } from "react";
@@ -128,10 +128,22 @@ export default function RoomPage() {
         const syncStoredUsername = () => {
             setStoredUsername(window.localStorage.getItem("tabu_username") || "");
         };
+        const syncDisplayNameEvent = (event: Event) => {
+            const nextDisplayName =
+                event instanceof CustomEvent &&
+                typeof event.detail?.displayName === "string"
+                    ? event.detail.displayName
+                    : window.localStorage.getItem("tabu_username") || "";
+            setStoredUsername(nextDisplayName);
+        };
 
         syncStoredUsername();
         window.addEventListener("storage", syncStoredUsername);
-        return () => window.removeEventListener("storage", syncStoredUsername);
+        window.addEventListener("tabu:display-name-updated", syncDisplayNameEvent);
+        return () => {
+            window.removeEventListener("storage", syncStoredUsername);
+            window.removeEventListener("tabu:display-name-updated", syncDisplayNameEvent);
+        };
     }, []);
 
     useEffect(() => {
@@ -387,7 +399,7 @@ export default function RoomPage() {
     const handleIdentitySave = useCallback(async () => {
         const nextDisplayName = identityDraftName.trim();
 
-        if (!nextDisplayName) {
+        if (!isAuthenticatedRoomUser && !nextDisplayName) {
             setIdentityError("Gecerli bir gorunen ad gir.");
             return;
         }
@@ -430,9 +442,16 @@ export default function RoomPage() {
                     };
                 };
                 const persistedDisplayName =
-                    payload.profile?.displayName?.trim() || nextDisplayName;
+                    payload.profile?.displayName?.trim() ||
+                    session?.user?.name ||
+                    currentVisibleName;
 
                 window.localStorage.setItem("tabu_username", persistedDisplayName);
+                window.dispatchEvent(
+                    new CustomEvent("tabu:display-name-updated", {
+                        detail: { displayName: persistedDisplayName },
+                    })
+                );
                 setPlayers((currentPlayers) =>
                     currentPlayers.map((player) =>
                         player.playerId === myPlayerId
@@ -455,6 +474,11 @@ export default function RoomPage() {
 
                         const syncedDisplayName = response.displayName || persistedDisplayName;
                         window.localStorage.setItem("tabu_username", syncedDisplayName);
+                        window.dispatchEvent(
+                            new CustomEvent("tabu:display-name-updated", {
+                                detail: { displayName: syncedDisplayName },
+                            })
+                        );
                         setPlayers((currentPlayers) =>
                             currentPlayers.map((player) =>
                                 player.playerId === myPlayerId
@@ -496,6 +520,11 @@ export default function RoomPage() {
 
             const confirmedDisplayName = result.displayName || nextDisplayName;
             window.localStorage.setItem("tabu_username", confirmedDisplayName);
+            window.dispatchEvent(
+                new CustomEvent("tabu:display-name-updated", {
+                    detail: { displayName: confirmedDisplayName },
+                })
+            );
             setPlayers((currentPlayers) =>
                 currentPlayers.map((player) =>
                     player.playerId === myPlayerId
@@ -516,6 +545,7 @@ export default function RoomPage() {
         identityDraftName,
         isAuthenticatedRoomUser,
         myPlayerId,
+        session?.user?.name,
     ]);
 
     const handleStartGame = useCallback(() => {
@@ -729,7 +759,7 @@ export default function RoomPage() {
                                             </div>
                                             <div className="text-xs text-gray-500 dark:text-gray-400">
                                                 {isAuthenticatedRoomUser
-                                                    ? "Kayıtlı hesaplarda bu ad lobby ve oyunda görünür."
+                                                    ? "Boş bırakırsan hesap adına geri döner. Lobby ve oyunda bu ad görünür."
                                                     : "Guest oyuncular yalnız bu lobby için ad değiştirir."}
                                             </div>
                                         </div>
@@ -811,7 +841,7 @@ export default function RoomPage() {
                     {!isConnected && (
                         <div className="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-800/30">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            Bağlantı kesildi
+                            BaÄŸlantÄ± kesildi
                         </div>
                     )}
 
@@ -872,6 +902,10 @@ export default function RoomPage() {
         </>
     );
 }
+
+
+
+
 
 
 

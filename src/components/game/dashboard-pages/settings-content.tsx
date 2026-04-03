@@ -110,6 +110,11 @@ export function SettingsContent() {
       const nextDisplayName =
         payload.profile?.displayName?.trim() || session?.user?.name || displayName.trim();
       localStorage.setItem("tabu_username", nextDisplayName);
+      window.dispatchEvent(
+        new CustomEvent("tabu:display-name-updated", {
+          detail: { displayName: nextDisplayName },
+        })
+      );
       setDisplayName(nextDisplayName);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 2000);
