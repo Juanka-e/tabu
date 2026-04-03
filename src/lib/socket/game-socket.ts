@@ -410,6 +410,10 @@ export function setupGameSocket(io: Server): void {
                 : null,
             kalanSure: room.oyunDurumu.kalanGecisSuresi,
             oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
+            ilkGecis:
+                room.oyunDurumu.mevcutTur === 1 &&
+                room.oyunDurumu.skor.A === 0 &&
+                room.oyunDurumu.skor.B === 0,
             creatorId: room.creatorId,
             cardBackTheme: narratorCardThemes.cardBackTheme,
         });
@@ -422,14 +426,17 @@ export function setupGameSocket(io: Server): void {
             }
 
             if (!currentRoom.oyunDurumu.oyunDurduruldu) {
-                currentRoom.oyunDurumu.kalanGecisSuresi =
-                    (currentRoom.oyunDurumu.kalanGecisSuresi ?? 0) - 1;
+                const nextCountdown = Math.max(
+                    0,
+                    (currentRoom.oyunDurumu.kalanGecisSuresi ?? 0) - 1
+                );
+                currentRoom.oyunDurumu.kalanGecisSuresi = nextCountdown;
                 io.to(roomCode).emit("turGecisDurumGuncelle", {
                     oyunDurduruldu: currentRoom.oyunDurumu.oyunDurduruldu,
                     kalanSure: currentRoom.oyunDurumu.kalanGecisSuresi,
                 });
 
-                if ((currentRoom.oyunDurumu.kalanGecisSuresi ?? 0) < 0) {
+                if ((currentRoom.oyunDurumu.kalanGecisSuresi ?? 0) <= 0) {
                     clearInterval(currentRoom.zamanlayici!);
                     const narratorStillOnline = currentRoom.oyuncular.find(
                         (player) => player.id === narrator.id
