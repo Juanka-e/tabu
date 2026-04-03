@@ -273,7 +273,13 @@ export default function RoomPage() {
 
                 socket.on("turGecisDurumGuncelle", (data: { oyunDurduruldu: boolean; kalanSure: number }) => {
                     setTransition((prev) =>
-                        prev ? { ...prev, kalanSure: data.kalanSure } : null
+                        prev
+                            ? {
+                                  ...prev,
+                                  kalanSure: data.kalanSure,
+                                  oyunDurduruldu: data.oyunDurduruldu,
+                              }
+                            : null
                     );
                 });
 
@@ -563,11 +569,22 @@ export default function RoomPage() {
         [emit]
     );
 
+    const handleTransitionControl = useCallback(() => {
+        emit(ROOM_GAME_CONTROL_EVENT);
+    }, [emit]);
+
     // Render
 
     const renderGameContent = () => {
         if (view === GameView.TRANSITION && transition) {
-            return <TransitionScreen transition={transition} cardBackTheme={cardBackTheme} />;
+            return (
+                <TransitionScreen
+                    transition={transition}
+                    cardBackTheme={cardBackTheme}
+                    isHost={Boolean(isHost)}
+                    onPauseResume={handleTransitionControl}
+                />
+            );
         }
 
         if (view === GameView.PLAYING) {

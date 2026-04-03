@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import {
     Settings,
@@ -21,6 +22,7 @@ import {
     Play,
 } from "lucide-react";
 import type { Player, CategoryItem } from "@/types/game";
+import { useBranding } from "@/components/providers/branding-provider";
 
 interface LobbyProps {
     roomCode: string;
@@ -69,6 +71,7 @@ export function Lobby({
     onSwitchTeam,
     onStartGame,
 }: LobbyProps) {
+    const branding = useBranding();
     const [copied, setCopied] = useState(false);
     const [hideUrl, setHideUrl] = useState(false);
     const [hideUrlReady, setHideUrlReady] = useState(false);
@@ -222,11 +225,23 @@ export function Lobby({
     return (
         <div className="flex flex-col items-center w-full max-w-xl mx-auto p-4 sm:p-6 animate-fade-in">
             {/* Logo */}
-            <div className="mb-6 sm:mb-8">
-                <h1 className="font-black text-5xl sm:text-6xl">
-                    <span className="text-red-500">TA</span>
-                    <span className="text-blue-500">BU</span>
-                </h1>
+            <div className="mb-6 sm:mb-8 flex justify-center">
+                <div className="rounded-[1.8rem] border border-white/70 bg-white/88 px-5 py-4 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/72">
+                    {branding.logoUrl ? (
+                        <Image
+                            src={branding.logoUrl}
+                            alt={`${branding.siteName} logo`}
+                            width={280}
+                            height={84}
+                            unoptimized
+                            className="h-12 w-auto max-w-[220px] object-contain sm:h-14 sm:max-w-[280px]"
+                        />
+                    ) : (
+                        <div className="bg-gradient-to-r from-red-500 via-orange-500 to-blue-500 bg-clip-text text-center text-4xl font-black uppercase tracking-[0.2em] text-transparent sm:text-5xl">
+                            {branding.siteShortName || "TABU"}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden">

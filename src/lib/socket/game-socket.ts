@@ -409,6 +409,7 @@ export function setupGameSocket(io: Server): void {
                 ? { ad: inspector.ad, takim: inspector.takim }
                 : null,
             kalanSure: room.oyunDurumu.kalanGecisSuresi,
+            oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
             creatorId: room.creatorId,
             cardBackTheme: narratorCardThemes.cardBackTheme,
         });

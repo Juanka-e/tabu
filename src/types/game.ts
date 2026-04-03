@@ -113,6 +113,7 @@ export interface TransitionData {
     anlatici: { ad: string; takim: string };
     gozetmen: { ad: string; takim: string } | null;
     kalanSure: number;
+    oyunDurduruldu: boolean;
     creatorId: string;
     cardBackTheme: ResolvedCardBackTheme | null;
 }
