@@ -128,11 +128,36 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
       void Promise.all([loadProfile(), loadDiscovery()]);
     };
 
+    const handleDisplayNameUpdated = (event: Event) => {
+      const nextDisplayName =
+        event instanceof CustomEvent && typeof event.detail?.displayName === "string"
+          ? event.detail.displayName
+          : window.localStorage.getItem("tabu_username") || session.user.name || "Player";
+
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              displayName: nextDisplayName,
+            }
+          : {
+              displayName: nextDisplayName,
+              avatarImageUrl: null,
+              coinBalance: 0,
+              totalMatches: 0,
+              winRate: 0,
+              equippedItems: [],
+            }
+      );
+    };
+
     window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
     window.addEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdated);
+    window.addEventListener("tabu:display-name-updated", handleDisplayNameUpdated);
     return () => {
       window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
       window.removeEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdated);
+      window.removeEventListener("tabu:display-name-updated", handleDisplayNameUpdated);
     };
   }, [session]);
 
