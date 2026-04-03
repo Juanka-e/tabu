@@ -57,6 +57,24 @@ Sonraki branch planinda su model kabul edilmistir:
 
 Bu model oyuncu acisindan kullanisli, audit acisindan ise savunulabilirdir.
 
+## Uygulanan V1 Dilimi
+
+`feature/gameplay-ui-polish` icinde ilk kimlik akisi su seviyeye getirildi:
+
+- kayitli oyuncu room join olurken gorunen ad server tarafinda cozulur
+- oncelik:
+  - `displayName`
+  - yoksa `username`
+- `Settings` ekraninda `Gorunen Ad` bos birakilirsa profil kaydi `null` olur
+- bu durumda istemci tekrar `username` fallback'i ile devam eder
+- guest oyuncu session / lobby bazli ad akisini korur
+
+Bu karar onemlidir cunku:
+
+- oyuncu "gorunen adimi silmek istiyorum" diyebilir
+- ama sistem bos isimle kalmaz
+- kayitli oyuncu yeniden hesap adina duser
+
 ## Neden Oda Bazli Serbest Nickname Simdi Gelmiyor
 
 Her oda icin tamamen bagimsiz nickname sistemi ilk bakista kullanisli gorunse de su maliyetleri getirir:
@@ -148,6 +166,23 @@ Bu sayede:
 
 - displayName sonradan degisse bile eski audit bozulmaz
 - support / moderation / economy review tek veri modeliyle ilerler
+
+## Uygulanan Audit Kimlik Gorunumu
+
+Ekonomi audit kayitlarinda lineup artik yalniz duz metin olarak degil, kimlik kartlariyla gorunur:
+
+- `displayNameSnapshot`
+- `identityType`
+- kayitli oyuncuda `@username`
+- kayitli oyuncuda `userId`
+- guest oyuncuda `playerId`
+- takim bilgisi
+
+Bu sayede audit review sirasinda:
+
+- guest / kayitli ayrimi tek bakista anlasilir
+- gorunen ad ile hesap kimligi karismaz
+- koruma sistemlerinin `userId` / `playerId` bazli calistigi daha okunur hale gelir
 
 ## Branch Planlama Notu
 

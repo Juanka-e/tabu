@@ -1,9 +1,10 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getRequestIp } from "@/lib/security/request-rate-limit";
 
-type AuditMetadataValue = string | number | boolean | null;
-type AuditMetadata = Record<string, AuditMetadataValue | AuditMetadataValue[]>;
-type AuditMetadataEntry = [string, AuditMetadataValue | AuditMetadataValue[]];
+type AuditMetadataValue = Prisma.InputJsonValue | null;
+type AuditMetadata = { [key: string]: AuditMetadataValue };
+type AuditMetadataEntry = [string, AuditMetadataValue];
 
 export interface AuditActor {
     id: number | null;
@@ -30,29 +31,45 @@ function normalizeMetadata(
     const entries: AuditMetadataEntry[] = [];
 
     for (const [key, value] of Object.entries(metadata)) {
-        if (
-            value === null ||
-            typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean"
-        ) {
-            entries.push([key, value]);
-            continue;
-        }
-
-        if (Array.isArray(value)) {
-            const normalizedArray = value.filter(
-                (entry): entry is AuditMetadataValue =>
-                    entry === null ||
-                    typeof entry === "string" ||
-                    typeof entry === "number" ||
-                    typeof entry === "boolean"
-            );
-            entries.push([key, normalizedArray]);
+        const normalizedValue = normalizeMetadataValue(value);
+        if (normalizedValue !== undefined) {
+            entries.push([key, normalizedValue]);
         }
     }
 
     return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+function normalizeMetadataValue(value: unknown): AuditMetadataValue | undefined {
+    if (
+        value === null ||
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+    ) {
+        return value;
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map((entry) => normalizeMetadataValue(entry))
+            .filter((entry): entry is AuditMetadataValue => entry !== undefined);
+    }
+
+    if (value && typeof value === "object") {
+        const normalizedEntries = Object.entries(value)
+            .map(([key, entryValue]) => {
+                const normalizedEntryValue = normalizeMetadataValue(entryValue);
+                return normalizedEntryValue === undefined
+                    ? null
+                    : ([key, normalizedEntryValue] as const);
+            })
+            .filter((entry): entry is readonly [string, AuditMetadataValue] => entry !== null);
+
+        return Object.fromEntries(normalizedEntries);
+    }
+
+    return undefined;
 }
 
 function getUserAgent(request: Request | null | undefined): string | null {

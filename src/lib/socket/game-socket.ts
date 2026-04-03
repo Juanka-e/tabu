@@ -24,6 +24,8 @@ interface PlayerData {
     id: string;
     playerId: string;
     userId: number | null;
+    identityType: "registered" | "guest";
+    usernameSnapshot: string | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
@@ -84,6 +86,8 @@ export interface RoomMatchSnapshot {
     oyuncular: Array<{
         playerId: string;
         userId: number | null;
+        identityType: "registered" | "guest";
+        usernameSnapshot: string | null;
         ad: string;
         takim: "A" | "B" | null;
     }>;
@@ -788,9 +792,13 @@ export function setupGameSocket(io: Server): void {
                     }
                     const effectiveAuthUserId = socketAuthState.userId ?? null;
                     const requestedDisplayName = sanitizePlayerName(kullaniciAdi);
-                    const effectiveDisplayName = effectiveAuthUserId
-                        ? await resolveRegisteredDisplayName(effectiveAuthUserId)
-                        : requestedDisplayName;
+                    const registeredIdentity = effectiveAuthUserId
+                        ? await resolveRegisteredIdentity(effectiveAuthUserId)
+                        : null;
+                    const effectiveDisplayName =
+                        registeredIdentity?.displayName ?? requestedDisplayName;
+                    const usernameSnapshot = registeredIdentity?.username ?? null;
+                    const identityType = effectiveAuthUserId ? "registered" : "guest";
 
                     if (!effectiveDisplayName) {
                         socket.emit("hata", "Geçerli bir kullanıcı adı girin.");
@@ -898,6 +906,8 @@ export function setupGameSocket(io: Server): void {
                         reconnectingPlayer.ad = effectiveDisplayName;
                         reconnectingPlayer.online = true;
                         reconnectingPlayer.ip = ip;
+                        reconnectingPlayer.identityType = identityType;
+                        reconnectingPlayer.usernameSnapshot = usernameSnapshot;
                         if (effectiveAuthUserId) {
                             reconnectingPlayer.userId = effectiveAuthUserId;
                         }
@@ -928,6 +938,8 @@ export function setupGameSocket(io: Server): void {
                             id: socket.id,
                             playerId: effectivePlayerId,
                             userId: effectiveAuthUserId,
+                            identityType,
+                            usernameSnapshot,
                             ad: effectiveDisplayName,
                             takim: isSpectator ? null : "A",
                             online: true,
@@ -1592,7 +1604,10 @@ async function hydratePlayerCosmetics(player: PlayerData): Promise<void> {
     }
 }
 
-async function resolveRegisteredDisplayName(userId: number): Promise<string | null> {
+async function resolveRegisteredIdentity(userId: number): Promise<{
+    username: string;
+    displayName: string;
+} | null> {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -1609,7 +1624,10 @@ async function resolveRegisteredDisplayName(userId: number): Promise<string | nu
         return null;
     }
 
-    return sanitizePlayerName(user.profile?.displayName || user.username);
+    return {
+        username: user.username,
+        displayName: sanitizePlayerName(user.profile?.displayName || user.username),
+    };
 }
 
 export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null {
@@ -1630,6 +1648,8 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
         oyuncular: room.oyuncular.map((player) => ({
             playerId: player.playerId,
             userId: player.userId ?? null,
+            identityType: player.identityType,
+            usernameSnapshot: player.usernameSnapshot,
             ad: player.ad,
             takim: player.takim,
         })),

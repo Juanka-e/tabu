@@ -29,6 +29,14 @@ export interface AdminAuditLogView {
         roomCode: string | null;
         sureSeconds: number | null;
         lineupPlayers: string[];
+        lineupIdentities: Array<{
+            playerId: string;
+            userId: number | null;
+            identityType: "registered" | "guest";
+            usernameSnapshot: string | null;
+            displayNameSnapshot: string;
+            team: "A" | "B" | null;
+        }>;
     } | null;
 }
 

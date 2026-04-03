@@ -84,6 +84,7 @@
 - displayName gosterim karari
 - audit lineup kimlik snapshot'i
 - guest / registered badge ayrimi
+- settings'te bos `displayName` icin `username` fallback davranisi
 - oyun ici ust bar / profil tetikleyici polish'i
 - lobby quick edit ile `displayName` guncelleme
 - settings icinde kalici `displayName` yonetimi

@@ -86,6 +86,47 @@ function renderEconomyPill(
     );
 }
 
+function renderLineupIdentityCard(
+    player: NonNullable<NonNullable<AdminAuditLogView["economyGuard"]>["lineupIdentities"][number]>
+) {
+    const badgeClass =
+        player.identityType === "registered"
+            ? "border-blue-500/30 bg-blue-500/10 text-blue-700"
+            : "border-slate-300/80 bg-slate-100 text-slate-700";
+    const teamLabel = player.team ? `Takım ${player.team}` : "İzleyici";
+
+    return (
+        <div
+            key={`${player.identityType}:${player.playerId}`}
+            className="min-w-[10.5rem] rounded-2xl border border-border/60 bg-background/90 px-3 py-2"
+        >
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-foreground">
+                        {player.displayNameSnapshot}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                        {player.identityType === "registered" ? (
+                            <>
+                                @{player.usernameSnapshot ?? "hesap"}
+                                {player.userId ? ` · id:${player.userId}` : ""}
+                            </>
+                        ) : (
+                            <>guest · player:{player.playerId}</>
+                        )}
+                    </div>
+                </div>
+                <span
+                    className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${badgeClass}`}
+                >
+                    {player.identityType === "registered" ? "Kayıtlı" : "Guest"}
+                </span>
+            </div>
+            <div className="mt-2 text-[11px] font-medium text-muted-foreground">{teamLabel}</div>
+        </div>
+    );
+}
+
 function renderEconomyGuard(log: AdminAuditLogView) {
     if (!log.economyGuard) {
         return <span>-</span>;
@@ -148,7 +189,18 @@ function renderEconomyGuard(log: AdminAuditLogView) {
                 </div>
             )}
 
-            {log.economyGuard.lineupPlayers.length > 0 ? (
+            {log.economyGuard.lineupIdentities.length > 0 ? (
+                <div className="space-y-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Lobi Kadrosu
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {log.economyGuard.lineupIdentities.map((player) =>
+                            renderLineupIdentityCard(player)
+                        )}
+                    </div>
+                </div>
+            ) : log.economyGuard.lineupPlayers.length > 0 ? (
                 <div className="space-y-1">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Lobi Kadrosu

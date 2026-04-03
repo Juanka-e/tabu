@@ -87,6 +87,63 @@ function readMetadataStringArray(
     );
 }
 
+function readMetadataLineupIdentities(
+    record: Record<string, Prisma.JsonValue>,
+    key: string
+): NonNullable<NonNullable<AdminAuditLogView["economyGuard"]>["lineupIdentities"]> {
+    const value = record[key];
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((entry) => {
+            if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+                return null;
+            }
+
+            const item = entry as Record<string, Prisma.JsonValue>;
+            const playerId = typeof item.playerId === "string" ? item.playerId : null;
+            const userId = typeof item.userId === "number" ? item.userId : null;
+            const identityType =
+                item.identityType === "registered" || item.identityType === "guest"
+                    ? item.identityType
+                    : null;
+            const usernameSnapshot =
+                typeof item.usernameSnapshot === "string" && item.usernameSnapshot.trim().length > 0
+                    ? item.usernameSnapshot
+                    : null;
+            const displayNameSnapshot =
+                typeof item.displayNameSnapshot === "string" && item.displayNameSnapshot.trim().length > 0
+                    ? item.displayNameSnapshot
+                    : null;
+            const team =
+                item.team === "A" || item.team === "B"
+                    ? item.team
+                    : null;
+
+            if (!playerId || !identityType || !displayNameSnapshot) {
+                return null;
+            }
+
+            return {
+                playerId,
+                userId,
+                identityType,
+                usernameSnapshot,
+                displayNameSnapshot,
+                team,
+            };
+        })
+        .filter(
+            (
+                entry
+            ): entry is NonNullable<
+                AdminAuditLogView["economyGuard"]
+            >["lineupIdentities"][number] => entry !== null
+        );
+}
+
 function extractEconomyGuardSummary(
     action: string,
     metadata: Prisma.JsonValue | null
@@ -114,6 +171,7 @@ function extractEconomyGuardSummary(
         roomCode: readMetadataString(record, "roomCode"),
         sureSeconds: readMetadataNumber(record, "sureSeconds"),
         lineupPlayers: readMetadataStringArray(record, "lineupPlayers"),
+        lineupIdentities: readMetadataLineupIdentities(record, "lineupIdentities"),
     };
 }
 
@@ -145,6 +203,7 @@ function mapAuditLog(log: {
                   "roomCode",
                   "sureSeconds",
                   "lineupPlayers",
+                  "lineupIdentities",
               ]
             : [];
 

@@ -17,7 +17,17 @@ import {
 } from "@/lib/users/email";
 
 const profileSchema = z.object({
-  displayName: z.string().trim().min(1).max(60).optional(),
+  displayName: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmedValue = value.trim();
+      return trimmedValue.length === 0 ? null : trimmedValue;
+    },
+    z.string().trim().min(1).max(60).nullable().optional()
+  ),
   bio: z.string().trim().max(300).optional(),
   email: z.preprocess(
     (value) => {
@@ -93,7 +103,8 @@ export async function PATCH(req: Request) {
       }
     }
 
-    const requestedDisplayName = parsed.displayName?.trim();
+    const requestedDisplayName =
+      parsed.displayName === undefined ? undefined : parsed.displayName?.trim() ?? null;
     const currentDisplayName = currentUser.profile?.displayName?.trim() ?? null;
     const displayNameChanged =
       requestedDisplayName !== undefined && requestedDisplayName !== currentDisplayName;

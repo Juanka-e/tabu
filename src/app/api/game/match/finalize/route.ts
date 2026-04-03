@@ -20,6 +20,26 @@ const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
 });
 
+function toAuditLineupIdentities(
+  lineupIdentities: {
+    playerId: string;
+    userId: number | null;
+    identityType: "registered" | "guest";
+    usernameSnapshot: string | null;
+    displayNameSnapshot: string;
+    team: "A" | "B" | null;
+  }[]
+): Prisma.InputJsonValue {
+  return lineupIdentities.map((entry) => ({
+    playerId: entry.playerId,
+    userId: entry.userId,
+    identityType: entry.identityType,
+    usernameSnapshot: entry.usernameSnapshot,
+    displayNameSnapshot: entry.displayNameSnapshot,
+    team: entry.team,
+  })) as Prisma.InputJsonValue;
+}
+
 function toSafeNumber(value: unknown): number {
   if (typeof value === "bigint") {
     return Number(value);
@@ -112,6 +132,9 @@ export async function POST(req: Request) {
             matchStartedAt: evaluation.roomMetrics.matchStartedAt,
             sureSeconds: evaluation.roomMetrics.sureSeconds,
             lineupPlayers: evaluation.roomMetrics.lineupPlayers,
+            lineupIdentities: toAuditLineupIdentities(
+              evaluation.roomMetrics.lineupIdentities
+            ),
             roomCode: roomCode.toUpperCase(),
             duplicateClaim: false,
           },
@@ -267,6 +290,9 @@ export async function POST(req: Request) {
         matchStartedAt: evaluation.roomMetrics.matchStartedAt,
         sureSeconds: evaluation.roomMetrics.sureSeconds,
         lineupPlayers: evaluation.roomMetrics.lineupPlayers,
+        lineupIdentities: toAuditLineupIdentities(
+          evaluation.roomMetrics.lineupIdentities
+        ),
         roomCode: room.odaKodu,
         won: evaluation.won,
         coinEarned: result.coinEarned,
