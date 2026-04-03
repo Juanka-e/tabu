@@ -66,6 +66,7 @@ function buildDiscoveryRail(items: CatalogStoreItemView[]): CatalogStoreItemView
 export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: ProfileSidebarProps) {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<SidebarState | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [discoveryItems, setDiscoveryItems] = useState<CatalogStoreItemView[]>([]);
 
   useEffect(() => {
@@ -98,6 +99,8 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
         });
       } catch {
         // Sidebar can render fallback values.
+      } finally {
+        setProfileLoaded(true);
       }
     };
 
@@ -151,7 +154,7 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
       <div className="flex flex-1 flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
           <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl font-black text-white shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:ring-slate-700">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-3xl font-black text-slate-500 shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
               {profile?.avatarImageUrl ? (
                 <Image
                   src={profile.avatarImageUrl}
@@ -161,15 +164,14 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
                   unoptimized
                   className="h-24 w-24 object-cover"
                 />
+              ) : !profileLoaded ? (
+                <div className="h-24 w-24 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
               ) : (
                 <UserRound className="h-10 w-10" />
               )}
             </div>
           </div>
 
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-            G?r?nen Ad
-          </p>
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
           <p className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-blue-500 dark:text-blue-400">
             {profile?.totalMatches ?? 0} maç oynandı

@@ -83,7 +83,13 @@ export function DashboardLayout({
     playContent?: ReactNode;
 }) {
     const [activeTab, setActiveTab] = useState<DashboardTab>(defaultTab);
-    const [sidebarMode, setSidebarMode] = useState<"pending" | "inline" | "desktop">("pending");
+    const [sidebarMode, setSidebarMode] = useState<"inline" | "desktop">(() => {
+        if (typeof window !== "undefined") {
+            return window.matchMedia("(min-width: 1280px)").matches ? "desktop" : "inline";
+        }
+
+        return "desktop";
+    });
     const [supportOpen, setSupportOpen] = useState(false);
     const [supportFocusTicketId, setSupportFocusTicketId] = useState<number | null>(null);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
