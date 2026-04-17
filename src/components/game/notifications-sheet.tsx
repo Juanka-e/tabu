@@ -51,6 +51,26 @@ export function NotificationsSheet({
     const [busyNotificationIds, setBusyNotificationIds] = useState<number[]>([]);
     const [filter, setFilter] = useState<"all" | "unread">("all");
 
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent("tabu:notifications-sheet-state", {
+                detail: {
+                    open: isOpen,
+                },
+            })
+        );
+
+        return () => {
+            window.dispatchEvent(
+                new CustomEvent("tabu:notifications-sheet-state", {
+                    detail: {
+                        open: false,
+                    },
+                })
+            );
+        };
+    }, [isOpen]);
+
     const loadNotifications = useCallback(
         async (options?: { silent?: boolean }) => {
             if (!options?.silent) {
