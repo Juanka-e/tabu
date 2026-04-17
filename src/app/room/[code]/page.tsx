@@ -53,6 +53,8 @@ export default function RoomPage() {
     const roomCode = params.code as string;
     const { data: session } = useSession();
     const branding = useBranding();
+    const activeRoomPresenceKey = session?.user?.id ? `tabu_active_room_presence:${session.user.id}` : null;
+    const roomPresenceTabIdRef = useRef("");
 
     // Socket
     const socketRef = useRef<Socket | null>(null);
@@ -152,6 +154,59 @@ export default function RoomPage() {
             window.removeEventListener("tabu:display-name-updated", syncDisplayNameEvent);
         };
     }, []);
+
+    useEffect(() => {
+        if (!activeRoomPresenceKey) {
+            return;
+        }
+
+        const tabId =
+            roomPresenceTabIdRef.current ||
+            window.sessionStorage.getItem("tabu_room_presence_tab_id") ||
+            window.crypto.randomUUID();
+
+        roomPresenceTabIdRef.current = tabId;
+        window.sessionStorage.setItem("tabu_room_presence_tab_id", tabId);
+
+        const writePresence = () => {
+            window.localStorage.setItem(
+                activeRoomPresenceKey,
+                JSON.stringify({
+                    roomCode,
+                    tabId,
+                    updatedAt: Date.now(),
+                })
+            );
+        };
+
+        const clearPresence = () => {
+            const raw = window.localStorage.getItem(activeRoomPresenceKey);
+            if (!raw) {
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(raw) as { tabId?: string };
+                if (parsed.tabId === tabId) {
+                    window.localStorage.removeItem(activeRoomPresenceKey);
+                }
+            } catch {
+                window.localStorage.removeItem(activeRoomPresenceKey);
+            }
+        };
+
+        writePresence();
+        const intervalId = window.setInterval(writePresence, 5_000);
+        window.addEventListener("pagehide", clearPresence);
+        window.addEventListener("beforeunload", clearPresence);
+
+        return () => {
+            window.clearInterval(intervalId);
+            window.removeEventListener("pagehide", clearPresence);
+            window.removeEventListener("beforeunload", clearPresence);
+            clearPresence();
+        };
+    }, [activeRoomPresenceKey, roomCode]);
 
     useEffect(() => {
         setIdentityDraftName(currentVisibleName);
@@ -983,7 +1038,7 @@ export default function RoomPage() {
                     {!isConnected && (
                         <div className="absolute left-4 top-16 z-50 flex items-center gap-2 rounded-full border border-red-200 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            BaÄŸlantÄ± kesildi
+                            Bağlantı kesildi
                         </div>
                     )}
 

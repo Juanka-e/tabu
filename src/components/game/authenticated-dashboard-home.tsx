@@ -59,9 +59,36 @@ export function AuthenticatedDashboardHome({
       window.localStorage.getItem("tabu_username") || sessionUsername
     ).trim();
     const currentPath = window.location.pathname;
+    const activeRoomPresenceKey = session.user.id ? `tabu_active_room_presence:${session.user.id}` : null;
 
     if (!currentPath.startsWith("/room")) {
       window.sessionStorage.removeItem("tabu_activeRoomCode");
+    }
+
+    if (activeRoomPresenceKey) {
+      const rawPresence = window.localStorage.getItem(activeRoomPresenceKey);
+      if (rawPresence) {
+        try {
+          const parsed = JSON.parse(rawPresence) as {
+            roomCode?: string;
+            updatedAt?: number;
+          };
+          const roomPresenceFresh =
+            typeof parsed.updatedAt === "number" &&
+            Date.now() - parsed.updatedAt < 15_000 &&
+            typeof parsed.roomCode === "string" &&
+            parsed.roomCode.length > 0;
+
+          if (roomPresenceFresh) {
+            setError(`Zaten ${parsed.roomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
+            return;
+          }
+
+          window.localStorage.removeItem(activeRoomPresenceKey);
+        } catch {
+          window.localStorage.removeItem(activeRoomPresenceKey);
+        }
+      }
     }
 
     if (!currentUsername) {
