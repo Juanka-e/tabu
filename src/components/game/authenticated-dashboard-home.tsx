@@ -58,9 +58,15 @@ export function AuthenticatedDashboardHome({
     const currentUsername = (
       window.localStorage.getItem("tabu_username") || sessionUsername
     ).trim();
+    const activeRoomCode = window.sessionStorage.getItem("tabu_activeRoomCode") || "";
+    const currentPath = window.location.pathname;
 
     if (!currentUsername) {
       setError("Lutfen bir kullanici adi girin.");
+      return;
+    }
+    if (activeRoomCode && currentPath !== `/room/${activeRoomCode}` && currentPath !== "/room") {
+      setError(`Zaten ${activeRoomCode} odasindasin. Yeni oda acmadan once mevcut odadan cik.`);
       return;
     }
     if (!isCreate && !roomCode.trim()) {

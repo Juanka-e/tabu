@@ -8,6 +8,8 @@ import { CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import { INVENTORY_UPDATED_EVENT } from "@/lib/inventory-events";
+import { resolveFrameTheme } from "@/lib/cosmetics/frame";
+import { buildCosmeticPatternStyle, getCosmeticMotionClass, getCosmeticMotionStyle } from "@/lib/cosmetics/effects";
 import type {
   CatalogStoreItemView,
   DashboardDataResponse,
@@ -163,6 +165,10 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
 
   const name = profile?.displayName || session?.user?.name || "Player";
   const quickEquipItems = useMemo(() => (profile?.equippedItems ?? []).slice(0, 3), [profile?.equippedItems]);
+  const equippedFrame = useMemo(
+    () => profile?.equippedItems.find((item) => item.type === "frame") ?? null,
+    [profile?.equippedItems]
+  );
   const discoveryLeadItem = discoveryItems[0] ?? null;
   const discoverySecondaryItems = useMemo(() => discoveryItems.slice(1, 4), [discoveryItems]);
 
@@ -178,23 +184,8 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
     <aside className="hidden h-full min-w-[300px] w-[320px] flex-col overflow-y-auto border-l border-slate-200/60 bg-white/55 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:flex 2xl:w-[340px]">
       <div className="flex flex-1 flex-col p-6 text-center">
         <div className="rounded-[28px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/70 dark:bg-slate-950/55">
-          <div className="group relative mb-4 mx-auto w-fit cursor-pointer">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-3xl font-black text-slate-500 shadow-xl ring-2 ring-white/50 transition-transform group-hover:scale-105 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
-              {profile?.avatarImageUrl ? (
-                <Image
-                  src={profile.avatarImageUrl}
-                  alt=""
-                  width={96}
-                  height={96}
-                  unoptimized
-                  className="h-24 w-24 object-cover"
-                />
-              ) : !profileLoaded ? (
-                <div className="h-24 w-24 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-              ) : (
-                <UserRound className="h-10 w-10" />
-              )}
-            </div>
+          <div className="group relative mb-4 mx-auto w-fit cursor-pointer transition-transform hover:scale-[1.02]">
+            <ProfileAvatarFrame avatarImageUrl={profile?.avatarImageUrl ?? null} frameItem={equippedFrame} profileLoaded={profileLoaded} />
           </div>
 
           <h2 className="text-xl font-black text-slate-800 dark:text-white">{name}</h2>
@@ -257,12 +248,12 @@ function QuickEquipPanel({
       <h3 className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
         Hızlı Kuşan
       </h3>
-      <div className={compact ? "grid grid-cols-4 gap-2" : "grid grid-cols-4 gap-2"}>
+      <div className={compact ? "grid grid-cols-4 gap-2" : "grid grid-cols-2 gap-3"}>
         {items.map((item) => (
           <button
             key={item.inventoryItemId}
             onClick={onOpenInventory}
-            className="ring-indigo-400 flex h-16 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-1 shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]"
+            className={`ring-indigo-400 flex items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.52),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.88))] p-1 shadow-md transition-all hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))] ${compact ? "h-16" : "h-[88px]"}`}
             title={`${item.name} • ${formatCosmeticTypeLabel(item.type)}`}
             type="button"
           >
@@ -271,12 +262,81 @@ function QuickEquipPanel({
         ))}
         <button
           onClick={onOpenInventory}
-          className="flex h-16 items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800"
+          className={`flex items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 ${compact ? "h-16" : "h-[88px]"}`}
           type="button"
           aria-label="Envanteri aç"
         >
           <Plus size={18} />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileAvatarFrame({
+  avatarImageUrl,
+  frameItem,
+  profileLoaded,
+}: {
+  avatarImageUrl: string | null;
+  frameItem: InventoryItemView | null;
+  profileLoaded: boolean;
+}) {
+  const frameTheme = frameItem
+    ? resolveFrameTheme({
+        renderMode: frameItem.renderMode,
+        imageUrl: frameItem.imageUrl,
+        templateKey: frameItem.templateKey,
+        templateConfig: frameItem.templateConfig,
+        rarity: frameItem.rarity,
+      })
+    : null;
+
+  const framePatternStyle = frameTheme
+    ? buildCosmeticPatternStyle({
+        pattern: frameTheme.pattern,
+        primaryColor: frameTheme.accentColor,
+        secondaryColor: frameTheme.secondaryColor,
+        scale: frameTheme.patternScale,
+        opacity: frameTheme.patternOpacity,
+      })
+    : undefined;
+
+  return (
+    <div
+      className={`relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[30px] shadow-xl ring-2 ring-white/50 dark:ring-slate-700 ${
+        frameTheme ? getCosmeticMotionClass(frameTheme.motionPreset) : ""
+      }`}
+      style={
+        frameTheme
+          ? {
+              padding: `${frameTheme.thickness}px`,
+              borderRadius: `${frameTheme.radius}px`,
+              backgroundColor: frameTheme.accentColor,
+              boxShadow: `0 0 ${frameTheme.glowBlur}px ${frameTheme.glowColor}${Math.round(
+                frameTheme.glowOpacity * 255
+              )
+                .toString(16)
+                .padStart(2, "0")}`,
+              ...getCosmeticMotionStyle(frameTheme.motionSpeedMs),
+            }
+          : undefined
+      }
+    >
+      {frameTheme?.imageUrl ? (
+        <Image src={frameTheme.imageUrl} alt="" fill unoptimized className="pointer-events-none absolute inset-0 object-cover opacity-85" />
+      ) : null}
+      {framePatternStyle ? (
+        <div className="pointer-events-none absolute inset-0" style={framePatternStyle} aria-hidden="true" />
+      ) : null}
+      <div className="relative z-10 flex h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-full bg-slate-200 text-3xl font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+        {avatarImageUrl ? (
+          <Image src={avatarImageUrl} alt="" width={92} height={92} unoptimized className="h-[92px] w-[92px] rounded-full object-cover" />
+        ) : !profileLoaded ? (
+          <div className="h-[92px] w-[92px] animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+        ) : (
+          <UserRound className="h-10 w-10" />
+        )}
       </div>
     </div>
   );

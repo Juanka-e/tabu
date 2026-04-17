@@ -411,9 +411,8 @@ export function setupGameSocket(io: Server): void {
             kalanSure: room.oyunDurumu.kalanGecisSuresi,
             oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
             ilkGecis:
-                room.oyunDurumu.mevcutTur === 1 &&
-                room.oyunDurumu.skor.A === 0 &&
-                room.oyunDurumu.skor.B === 0,
+                room.oyunDurumu.anlatici === null &&
+                room.oyunDurumu.gozetmen === null,
             creatorId: room.creatorId,
             cardBackTheme: narratorCardThemes.cardBackTheme,
         });
@@ -534,7 +533,10 @@ export function setupGameSocket(io: Server): void {
                 rol = "Tahminci";
             }
 
-            const shouldSeeCard = rol === "Anlatıcı" || rol === "Gözetmen";
+            const shouldSeeCard =
+                rol === "Anlatıcı" ||
+                rol === "Gözetmen" ||
+                (player.takim !== null && narrator.takim !== null && player.takim !== narrator.takim);
 
             playerSocket.emit("yeniTurBilgisi", {
                 rol,

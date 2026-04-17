@@ -41,7 +41,6 @@ interface ActiveGameProps {
 const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 const MODERATOR_LABEL = "Gözetmen";
 const GUESS_PROMPT_TITLE = "Tahmin Et";
-const GUESS_PROMPT_DESCRIPTION = "kelimeyi anlatıyor. Doğru cevabı bulmaya çalış.";
 const GAME_PAUSED_LABEL = "Oyun duraklatıldı";
 const RETURN_TO_LOBBY_LABEL = "Lobiye Dön";
 const CORRECT_LABEL = "DOĞRU";
@@ -65,8 +64,8 @@ export function ActiveGame({
     const timerPercent = gameState
         ? (gameState.kalanZaman / (gameState.toplamSure || settings.sure || 60)) * 100
         : 100;
-    const showGuessPanel = shouldShowGuessPanel(myRole);
-    const canSeeCard = isCardViewerRole(myRole);
+    const canSeeCard = Boolean(card) && (isCardViewerRole(myRole) || shouldShowGuessPanel(myRole));
+    const showGuessPanel = !canSeeCard && shouldShowGuessPanel(myRole);
     const canSubmitTabu = canUseTabuAction(myRole, isPrimaryInspector);
     const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
     const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
@@ -177,7 +176,7 @@ export function ActiveGame({
                     cardBackTheme ? (
                         <div className="w-full max-w-[320px] sm:max-w-[360px] animate-fade-in">
                             <div
-                                className="relative min-h-[320px] overflow-hidden rounded-[2rem] border-4 shadow-2xl"
+                                className="relative overflow-hidden rounded-3xl border-4 shadow-xl ring-1 dark:ring-slate-900"
                                 style={{
                                     backgroundColor: cardBackTheme.surfaceColor,
                                     borderColor: cardBackTheme.borderColor,
@@ -212,17 +211,7 @@ export function ActiveGame({
                                         background: `radial-gradient(circle at top left, ${cardBackTheme.accentColor}33, transparent 35%), radial-gradient(circle at bottom right, ${cardBackTheme.borderColor}33, transparent 38%)`,
                                     }}
                                 />
-                                <div className="relative z-10 flex h-full min-h-[320px] flex-col items-center justify-center gap-4 px-8 py-10 text-center">
-                                    <div
-                                        className="rounded-full border px-4 py-1 text-[10px] font-black uppercase tracking-[0.35em]"
-                                        style={{
-                                            color: cardBackTheme.titleColor,
-                                            borderColor: `${cardBackTheme.detailColor}66`,
-                                            backgroundColor: `${cardBackTheme.accentColor}1F`,
-                                        }}
-                                    >
-                                        Tabu
-                                    </div>
+                                <div className="relative z-10 flex min-h-[474px] flex-col items-center justify-center px-8 py-10 text-center sm:min-h-[500px]">
                                     <div className="space-y-3">
                                         <h3
                                             className="text-3xl font-black uppercase tracking-[0.18em]"
@@ -230,24 +219,21 @@ export function ActiveGame({
                                         >
                                             {GUESS_PROMPT_TITLE}
                                         </h3>
-                                        <p
-                                            className="text-sm font-semibold"
-                                            style={{ color: cardBackTheme.detailColor }}
-                                        >
-                                            {`${narratorName} ${GUESS_PROMPT_DESCRIPTION}`}
-                                        </p>
                                     </div>
                                 </div>
+                                <div
+                                    className="h-4 border-t dark:border-slate-700"
+                                    style={{ backgroundColor: cardBackTheme.secondaryColor }}
+                                />
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center p-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 max-w-sm animate-fade-in">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                        <div className="w-full max-w-[320px] sm:max-w-[360px] animate-fade-in">
+                            <div className="flex min-h-[474px] flex-col items-center justify-center rounded-3xl border-4 border-gray-200 bg-white px-8 py-10 text-center shadow-xl dark:border-slate-700 dark:bg-slate-800 sm:min-h-[500px]">
+                                <h3 className="text-3xl font-black uppercase tracking-[0.18em] text-slate-800 dark:text-white">
                                 {`${GUESS_PROMPT_TITLE}!`}
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400">
-                                {`${narratorName} ${GUESS_PROMPT_DESCRIPTION}`}
-                            </p>
+                                </h3>
+                            </div>
                         </div>
                     )
                 )}
@@ -318,11 +304,11 @@ export function ActiveGame({
             )}
 
             {gameState?.oyunDurduruldu && (
-                <div className="absolute inset-0 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm flex items-center justify-center">
+                <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm dark:bg-slate-900/60">
                     {isHost ? (
                         <button
                             onClick={onPauseResume}
-                            className="w-20 h-20 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-transform"
+                            className="pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-600 text-white shadow-2xl transition-transform hover:scale-105"
                         >
                             <Play size={32} className="ml-1" />
                         </button>
@@ -339,3 +325,5 @@ export function ActiveGame({
         </div>
     );
 }
+
+

@@ -12,6 +12,7 @@ import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
 import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useBranding } from "@/components/providers/branding-provider";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import { ROOM_ROLE_GUESSER } from "@/lib/game/room-display";
@@ -51,6 +52,7 @@ export default function RoomPage() {
     const [, startTransition] = useTransition();
     const roomCode = params.code as string;
     const { data: session } = useSession();
+    const branding = useBranding();
 
     // Socket
     const socketRef = useRef<Socket | null>(null);
@@ -59,6 +61,7 @@ export default function RoomPage() {
     const [myPlayerId, setMyPlayerId] = useState("");
     const rewardClaimedMatchesRef = useRef<Set<string>>(new Set());
     const currentMatchSequenceRef = useRef(0);
+    const isInitialTransitionRef = useRef(false);
 
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
@@ -104,6 +107,7 @@ export default function RoomPage() {
     const [hasConfirmedUsername, setHasConfirmedUsername] = useState(false);
     const [entryError, setEntryError] = useState("");
     const [showIdentityEditor, setShowIdentityEditor] = useState(false);
+    const [showUtilityMenu, setShowUtilityMenu] = useState(false);
     const [identityDraftName, setIdentityDraftName] = useState("");
     const [identitySaving, setIdentitySaving] = useState(false);
     const [identityError, setIdentityError] = useState("");
@@ -122,7 +126,10 @@ export default function RoomPage() {
         session?.user?.name ||
         "Oyuncu";
     const currentAvatarUrl = currentPlayer?.cosmetics?.avatarImageUrl ?? null;
+    const currentFrameUrl = currentPlayer?.cosmetics?.frameImageUrl ?? null;
+    const currentFrameAccentColor = currentPlayer?.cosmetics?.frameAccentColor ?? null;
     const canEditIdentity = view === GameView.LOBBY;
+    const shouldShowIdentityLabel = !isMobile && view === GameView.LOBBY;
 
     useEffect(() => {
         const syncStoredUsername = () => {
@@ -162,6 +169,12 @@ export default function RoomPage() {
             setIdentityError("");
         }
     }, [view]);
+
+    useEffect(() => {
+        if (!isMobile) {
+            setShowUtilityMenu(false);
+        }
+    }, [isMobile]);
 
     // Responsive check
     useEffect(() => {
@@ -259,6 +272,7 @@ export default function RoomPage() {
 
                 socket.on("oyunBasladi", () => {
                     currentMatchSequenceRef.current += 1;
+                    isInitialTransitionRef.current = true;
                     setView(GameView.TRANSITION);
                     setIsPrimaryInspector(false);
                     setCardFaceTheme(null);
@@ -267,7 +281,10 @@ export default function RoomPage() {
                 socket.on("turGecisiBaslat", (data: TransitionData) => {
                     setView(GameView.TRANSITION);
                     setIsPrimaryInspector(false);
-                    setTransition(data);
+                    setTransition({
+                        ...data,
+                        ilkGecis: isInitialTransitionRef.current,
+                    });
                     setCardBackTheme(data.cardBackTheme);
                 });
 
@@ -284,6 +301,7 @@ export default function RoomPage() {
                 });
 
                 socket.on("yeniTurBilgisi", (data: TurnInfo) => {
+                    isInitialTransitionRef.current = false;
                     setMyRole(data.rol);
                     setIsPrimaryInspector(data.isPrimaryGozetmen);
                     setCard(data.kart);
@@ -354,6 +372,7 @@ export default function RoomPage() {
                 });
 
                 socket.on("lobiyeDon", () => {
+                    isInitialTransitionRef.current = false;
                     setView(GameView.LOBBY);
                     setGameState(null);
                     setCard(null);
@@ -682,12 +701,13 @@ export default function RoomPage() {
         <>
             {/* Username Prompt */}
             {showUsernamePrompt && (
-                <UsernamePrompt
-                    onConfirm={(username) => {
-                        localStorage.setItem("tabu_username", username);
-                        setHasConfirmedUsername(true);
-                    }}
-                />
+                    <UsernamePrompt
+                        onConfirm={(username) => {
+                            localStorage.setItem("tabu_username", username);
+                            setStoredUsername(username);
+                            setHasConfirmedUsername(true);
+                        }}
+                    />
             )}
 
             <div className="flex h-screen w-screen overflow-hidden bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
@@ -725,46 +745,152 @@ export default function RoomPage() {
                             ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
+                    onKickPlayer={isHost ? (playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId }) : undefined}
+                    onTransferHost={isHost ? (playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId }) : undefined}
                 />
 
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
+                    <div className="absolute left-4 top-4 z-[70] flex max-w-[10rem] items-center rounded-full border border-white/60 bg-white/82 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/82">
+                        {branding.logoUrl ? (
+                            <Image
+                                src={branding.logoUrl}
+                                alt={`${branding.siteName} logo`}
+                                width={120}
+                                height={28}
+                                unoptimized
+                                className="h-7 w-auto max-w-full object-contain"
+                            />
+                        ) : (
+                            <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.2em] text-transparent">
+                                {branding.siteShortName}
+                            </span>
+                        )}
+                    </div>
                     {/* Header Buttons */}
-                    <div className="absolute top-4 right-6 z-30 flex items-start gap-2">
+                    <div className="absolute right-4 top-4 z-[80] flex max-w-[calc(100%-8rem)] items-start gap-2">
                         <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (!canEditIdentity) return;
-                                    setIdentityDraftName(currentVisibleName);
-                                    setIdentityError("");
-                                    setShowIdentityEditor((current) => !current);
-                                }}
-                                className={`flex max-w-[min(10.5rem,calc(100vw-10rem))] items-center gap-2 rounded-full border bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur dark:bg-slate-800/95 ${
-                                    canEditIdentity
-                                        ? "border-gray-100 text-gray-700 hover:text-indigo-600 dark:border-slate-700 dark:text-gray-200 dark:hover:text-indigo-300"
-                                        : "border-amber-200/70 text-gray-700 dark:border-amber-700/40 dark:text-gray-200"
-                                }`}
-                            >
-                                {currentAvatarUrl ? (
-                                    <Image
-                                        src={currentAvatarUrl}
-                                        alt=""
-                                        width={30}
-                                        height={30}
-                                        unoptimized
-                                        className="h-8 w-8 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
-                                        <UserRound size={14} />
+                            {!isMobile ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!canEditIdentity) return;
+                                        setIdentityDraftName(currentVisibleName);
+                                        setIdentityError("");
+                                        setShowIdentityEditor((current) => !current);
+                                    }}
+                                    className={`flex items-center gap-2 rounded-full border bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur dark:bg-slate-800/95 ${
+                                        canEditIdentity
+                                            ? "border-gray-100 text-gray-700 hover:text-indigo-600 dark:border-slate-700 dark:text-gray-200 dark:hover:text-indigo-300"
+                                            : "border-amber-200/70 text-gray-700 dark:border-amber-700/40 dark:text-gray-200"
+                                    }`}
+                                >
+                                    <div
+                                        className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full"
+                                        style={currentFrameAccentColor ? { boxShadow: `0 0 0 2px ${currentFrameAccentColor}55` } : undefined}
+                                    >
+                                        {currentFrameUrl ? (
+                                            <Image
+                                                src={currentFrameUrl}
+                                                alt=""
+                                                fill
+                                                unoptimized
+                                                className="pointer-events-none absolute inset-0 object-cover opacity-95"
+                                            />
+                                        ) : null}
+                                        {currentAvatarUrl ? (
+                                            <Image
+                                                src={currentAvatarUrl}
+                                                alt=""
+                                                width={30}
+                                                height={30}
+                                                unoptimized
+                                                className="relative z-10 h-7 w-7 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                                                <UserRound size={14} />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                <div className="max-w-[6.5rem] truncate text-sm font-bold">
-                                    {currentVisibleName}
+                                    {shouldShowIdentityLabel ? (
+                                        <div className="max-w-[6.5rem] truncate text-sm font-bold">
+                                            {currentVisibleName}
+                                        </div>
+                                    ) : null}
+                                    {canEditIdentity ? <Pencil size={14} /> : <Lock size={14} />}
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    {session?.user ? (
+                                        <button
+                                            onClick={() => setShowDashboard(true)}
+                                            className="rounded-xl border border-gray-100 bg-white p-2.5 text-gray-600 shadow-lg transition-all hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-indigo-400"
+                                        >
+                                            <LayoutDashboard size={20} />
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUtilityMenu((current) => !current)}
+                                        className="rounded-xl border border-gray-100 bg-white p-2.5 text-gray-600 shadow-lg transition-all hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                                    >
+                                        <Menu size={20} />
+                                    </button>
                                 </div>
-                                {canEditIdentity ? <Pencil size={14} /> : <Lock size={14} />}
-                            </button>
+                            )}
+
+                            {showUtilityMenu && isMobile ? (
+                                <div className="absolute right-0 mt-2 w-[min(15rem,calc(100vw-1.5rem))] rounded-2xl border border-gray-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowUtilityMenu(false);
+                                            if (!canEditIdentity) return;
+                                            setIdentityDraftName(currentVisibleName);
+                                            setIdentityError("");
+                                            setShowIdentityEditor(true);
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
+                                    >
+                                        <Pencil size={16} />
+                                        Görünen Ad
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowUtilityMenu(false);
+                                            setShowAnnouncements(true);
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
+                                    >
+                                        <Megaphone size={16} />
+                                        Duyurular
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowUtilityMenu(false);
+                                            setShowRules(true);
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
+                                    >
+                                        <Book size={16} />
+                                        Kurallar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowUtilityMenu(false);
+                                            setTheme(theme === "dark" ? "light" : "dark");
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-800"
+                                    >
+                                        {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                                        Tema
+                                    </button>
+                                </div>
+                            ) : null}
 
                             {showIdentityEditor && canEditIdentity ? (
                                 <div className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
@@ -820,7 +946,7 @@ export default function RoomPage() {
                                 </div>
                             ) : null}
                         </div>
-                        {session?.user && (
+                        {!isMobile && session?.user && (
                             <button
                                 onClick={() => setShowDashboard(true)}
                                 className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all"
@@ -828,19 +954,19 @@ export default function RoomPage() {
                                 <LayoutDashboard size={20} />
                             </button>
                         )}
-                        <button
+                        {!isMobile ? <button
                             onClick={() => setShowAnnouncements(true)}
                             className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 transition-all"
                         >
                             <Megaphone size={20} />
-                        </button>
-                        <button
+                        </button> : null}
+                        {!isMobile ? <button
                             onClick={() => setShowRules(true)}
                             className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-lg border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all"
                         >
                             <Book size={20} />
-                        </button>
-                        <button
+                        </button> : null}
+                        {!isMobile ? <button
                             onClick={() =>
                                 setTheme(theme === "dark" ? "light" : "dark")
                             }
@@ -850,12 +976,12 @@ export default function RoomPage() {
                                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                             </span>
-                        </button>
+                        </button> : null}
                     </div>
 
                     {/* Connection indicator */}
                     {!isConnected && (
-                        <div className="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-800/30">
+                        <div className="absolute left-4 top-16 z-50 flex items-center gap-2 rounded-full border border-red-200 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                             BaÄŸlantÄ± kesildi
                         </div>
@@ -893,6 +1019,8 @@ export default function RoomPage() {
                             ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
+                    onKickPlayer={isHost ? (playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId }) : undefined}
+                    onTransferHost={isHost ? (playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId }) : undefined}
                 />
 
                 {/* Rules Modal */}
