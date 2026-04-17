@@ -1,126 +1,62 @@
-﻿# Gorev Kaydi
+﻿# Görev Kaydı
 
-> Son guncelleme: 31 March 2026
+> Son güncelleme: 17 April 2026
 > Durum: aktif execution log
 
-## Cekirdek Kurallar
-- Her branch tek konu tasir.
-- Implementasyon sonunda `review`, `test`, `refactor`, `docs`, `push` kapanisi zorunludur.
-- PR olmadan once branch kapsam disina cikilmaz.
+## Çekirdek Kurallar
+- Her branch tek konu taşır.
+- Implementasyon sonunda `review`, `test`, `refactor`, `docs`, `push` kapanışı zorunludur.
+- PR olmadan önce branch kapsam dışına çıkılmaz.
 
-## Guncel Tamamlanan Feature Branch'ler
-- `feature/liveops-system-settings-foundation`
-- `feature/security-entry-gates`
-- `feature/admin-table-foundation`
-- `feature/moderation-foundation`
-- `feature/economy-liveops-controls`
-- `feature/user-email-foundation`
-- `feature/admin-user-operations`
-- `feature/admin-audit-viewer`
-- `feature/coin-grant-campaigns`
-- `feature/support-desk-foundation`
-- `feature/system-notifications-foundation`
-- `feature/admin-access-gateway`
-- `feature/branding-seo-settings`
-- `feature/branding-assets-upload`
-- `feature/integration-hub`
-- `feature/dashboard-visual-polish`
-- `feature/store-merchandising`
-- `feature/admin-shop-ux`
-- `feature/admin-inventory-operations`
-
-## Son Tamamlanan Fix Branch
-### `fix/coin-grants-archive-lifecycle`
-- coin grant campaign ve code tarafinda lifecycle ayni modele cekildi
-- `Tüm operasyonel`, `Aktif`, `Pasif`, `Arşiv` filtre semantigi netlesti
-- `Pasife al`, `Arşive kaldır`, `Arşivden çıkar` davranislari ayrildi
-- campaign/code kart yogunlugu azaltildi
-- campaign bazli kod ozeti ve arama daraltmasi guclendirildi
-- referans:
-  - `docs/guides/coin-grants-archive-lifecycle-guide.md`
-
-## Bir Onceki Fix Branch
-### `fix/admin-content-ops`
-- duyuru kartlari compact ve oyuncu-odakli hale getirildi
-- duplicate metin ve block count gibi ic metadata kaldirildi
-- admin preview oyuncu renderina yaklastirildi
-- kelime bulk upload iki modlu hale geldi:
-  - `csv_categories`
-  - `fixed_categories`
-- duplicate / skipped / error sonucu gorunur oldu
-- kelimelerde sayfa-bazli secim ve guvenli bulk delete eklendi
-- eski `Toplu Yukleme` girisi kaldirildi, dogrudan URL `Kelime Yonetimi`ne yonlenir
-- referans:
-  - `docs/guides/admin-content-ops-guide.md`
-
-## Son Tamamlanan Fix Branch
-### `fix/admin-security-hardening`
-- admin API read/write route'larina tutarli rate limit kapsami yayildi
-- `TRUST_PROXY` artik request rate limit ve audit IP kaydinda gercekten uygulanir hale geldi
-- admin guvenlik kapsam rehberi ve deployment guide guncellendi
-- oyuncu tarafinda:
-  - `user/me`
-  - `user/dashboard`
-  - `user/inventory`
-  - `support/tickets`
-  - `store/items`
-  read route'larina rate limit eklendi
-- referans:
-  - `docs/guides/admin-security-hardening-guide.md`
+## Yakın Zamanda Tamamlanan Branch'ler
+- `feature/admin-user-observability`
+- `feature/economy-abuse-hardening`
 
 ## Aktif Branch
-### `feature/economy-abuse-hardening`
-- reward eligibility kurallarini merkezi hale getirme
-- coin cap ve diminishing returns temelini kurma
-- repeated-group ve benzeri sinyalleri yumusak suphe skoruna baglama
-- audit ve admin review icin aciklanabilir ekonomi sinyalleri uretme
-- economy review audit preset ve okunur koruma UI'i
-- finalize duplicate yarislarini idempotent hale getirme
-- kapsam disi:
-  - XP ekrani
-  - gorev ekrani
-  - event claim akisi
-  - night market
-  - displayName snapshot ile audit kimlik ayrimi
-  - room ici canli displayName degisikligi
-- bu alanlar urun canliya acildiktan sonra tekrar degerlendirilecek
-- referans:
-  - `docs/guides/economy-abuse-hardening-guide.md`
-  - `docs/guides/economy-abuse-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+### `feature/gameplay-ui-polish`
+Hedef:
+- room, lobby ve dashboard arasında oyuncu kimliği UX'ini sadeleştirmek
+- `displayName` akışını tutarlı hale getirmek
+- audit kimlik snapshot'ını gelecekteki moderasyon akışlarına hazırlamak
+- gameplay yüzeylerindeki gereksiz gürültüyü azaltmak
 
-## Planning Notlari
-- Store / liveops / economy stratejisi icin ana referanslar:
-  - `docs/guides/store-liveops-strategy-guide.md`
-  - `docs/guides/economy-abuse-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-- Night market ve gorev sistemi yapisi icin:
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
+Bu branch'te tamamlanan ana işler:
+- settings kaynaklı `displayName` yönetimi
+- lobby quick edit ile kayıtlı / guest isim akışı
+- kayıtlı kullanıcıda boş isim için `username` fallback
+- audit identity snapshot alanları
+- audit tarafında guest / kayıtlı ayrımı
+- room üst bar ve mobil yardımcı menü temizliği
+- pause sırasında üst modallara erişim
+- hazırlık ekranı UX iyileştirmesi
+- ilk geçişte `Oyun başlıyor`, sonraki geçişlerde `Anlatıcı değişiyor` copy'si
+- countdown'ın `0`'da bitmesi
+- stale room storage yüzünden oluşan yanlış oda blokajının kaldırılması
+- bildirim sheet close aksiyonunun yeniden üst sağa alınması
+- hızlı kuşan bölümünün tekrar tek satıra alınması
 
-## Aktif Sonraki Branch Adaylari
-1. `feature/economy-abuse-hardening`
-2. `feature/post-launch-economy-observability-review`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/admin-promotions-ux`
-5. `feature/cosmetic-render-upgrade`
-6. `feature/admin-cosmetic-authoring`
-7. `feature/gameplay-ui-polish`
- - lobby / oyun ust bar kimlik butonu
- - settings kaynakli `displayName` yonetimi
- - guest isim akisi ve oyun baslangicinda kilitleme
- - audit icin username/displayName snapshot ayrimi
-8. `feature/analytics-event-foundation`
-9. `feature/word-analytics-liveops`
-10. `feature/post-launch-xp-level-foundation`
-11. `feature/post-launch-missions-foundation`
-12. `feature/post-launch-night-market-foundation`
-13. `feature/release-ops-docs`
-14. `docs/encoding-cleanup`
-15. `feature/wallet-ledger-foundation`
+Bu branch'te açık kalan takip maddeleri:
+- admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama
+- gameplay header / logo responsive son turu
+- bildirim sheet ve toast yerleşimini cihazlarda son kez kontrol etme
+- hızlı kuşan ve önerilenler oranlarını küçük bir polish turundan geçirme
 
-## Temizlenen Eski Icerik
-Bu dosyadan sunlar kaldirildi:
-- artik karar aldirma degeri olmayan ilk migration checklist'leri
-- bozuk encoding'li eski durum notlari
-- tarihsel ama operasyonel olmayan uzun tekrarlar
+Kapsam dışı bırakılanlar:
+- admin detaylı maç geçmişi yüzeyi
+- room şifre akışı
+- oda kapasitesi / oyuncu sırası yönetimi
+- XP, görev ve event runtime
+
+## Sonraki Branch Adayları
+1. `feature/admin-match-history-review`
+2. `feature/admin-categories-dnd-polish`
+3. `feature/room-rules-and-capacity-controls`
+4. `feature/cache-and-rate-limit-foundation`
+5. `feature/post-launch-economy-observability-review`
+6. `feature/admin-player-messaging`
+
+## Referanslar
+- `docs/guides/economy-abuse-hardening-guide.md`
+- `docs/guides/player-display-name-and-audit-strategy-guide.md`
+- `docs/cache-and-storage-strategy.md`
+- `docs/implement docs/remaining.md`

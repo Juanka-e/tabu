@@ -1,207 +1,103 @@
-# Kalan Isler
+﻿# Kalan İşler
 
-> Son guncelleme: 31 March 2026
+> Son güncelleme: 17 April 2026
 > Durum: aktif uygulanabilir backlog
 
-## Su Anki Oncelik Sirasi
-1. `feature/economy-abuse-hardening`
-2. `feature/post-launch-economy-observability-review`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/admin-promotions-ux`
-5. `feature/cosmetic-render-upgrade`
-6. `feature/admin-cosmetic-authoring`
-7. `feature/gameplay-ui-polish`
-8. `feature/analytics-event-foundation`
-9. `feature/word-analytics-liveops`
-10. `feature/post-launch-xp-level-foundation`
-11. `feature/post-launch-missions-foundation`
-12. `feature/post-launch-night-market-foundation`
-13. `feature/release-ops-docs`
-14. `docs/encoding-cleanup`
-15. `feature/wallet-ledger-foundation`
+## Şu Anki Öncelik Sırası
+1. `feature/gameplay-ui-polish`
+2. `feature/admin-match-history-review`
+3. `feature/admin-categories-dnd-polish`
+4. `feature/room-rules-and-capacity-controls`
+5. `feature/post-launch-economy-observability-review`
+6. `feature/cache-and-rate-limit-foundation`
+7. `feature/admin-promotions-ux`
+8. `feature/cosmetic-render-upgrade`
+9. `feature/admin-cosmetic-authoring`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/post-launch-xp-level-foundation`
+13. `feature/post-launch-missions-foundation`
+14. `feature/post-launch-night-market-foundation`
+15. `feature/release-ops-docs`
+16. `docs/encoding-cleanup`
+17. `feature/wallet-ledger-foundation`
 
-## En Kritik Acik Isler
+## Aktif Branch
+### `feature/gameplay-ui-polish`
+Tamamlananlar:
+- kayıtlı kullanıcı için `displayName -> username` fallback akışı
+- settings ve lobby quick edit arasında canlı isim senkronu
+- boş `displayName` temizlendiğinde kayıtlı kullanıcıda hesap adına dönüş
+- guest isim akışının lobby bazlı kalması
+- oyun başladıktan sonra isim düzenlemeyi kilitleme
+- audit lineup identity snapshot yapısı
+- audit tarafında guest / kayıtlı kimlik ayrımı
+- room üst barı ve mobil yardımcı menü sadeleştirmesi
+- pause sırasında sağ üst modalları erişilebilir kılma
+- lobby branding logosunu system settings ile dinamik kullanma
+- hazırlık ekranının sadeleştirilmesi ve ilk geçiş mesajlarının düzeltilmesi
+- dashboard profil alanında avatar + frame görünümünün toparlanması
+- stale `tabu_activeRoomCode` yüzünden oluşan yanlış `lobidesin` blokajının kaldırılması
+- bildirim sheet başlığının ve close aksiyonunun yeniden düzenlenmesi
+- hızlı kuşan alanının tekrar tek satıra çekilmesi
 
-### 1. Economy / Abuse Hardening
-- guest coin yok kurali ustune hesapli kullanicilar icin reward eligibility
-- gunluk ve saatlik coin cap
-- ayni oyuncu gruplarinda kademeli coin verim dusurme
-- IP/subnet'i tek basina ceza nedeni degil, yumusak suphe sinyali olarak kullanma
-- ceiling reset mantigi rolling window olacak
-- ilk surumde 0 coin blok yerine once yuzdesel dusus tercih edilecek
-- admin panel ayarlari gelirse bounded ve aciklamali UX ile gelecek- audit buyurse sonraki olcek onlemleri:
-  - Redis / Valkey counters for rolling reward windows
-  - repeated-group keyed counters outside primary DB counts
-  - audit retention / archive for old game.match.finalize records
-  - lighter telemetry path for non-triggered finalize events
-- planning referanslari:
-  - `docs/guides/economy-abuse-hardening-guide.md`
-  - `docs/guides/economy-abuse-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+Açık kalanlar:
+- admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama ve gerekiyorsa polish
+- room / lobby logo konumlandırmasını son bir responsive turdan geçirmek
+- in-game ve dashboard hızlı kuşan görsellerinde son oran / boşluk iyileştirmeleri
+- bildirim sheet ile toast çakışmasını gerçek cihazlarda son bir tur kontrol etmek
 
-### 2. Night Market / Missions Planning
-- night market acele implemente edilmeyecek
-- once economy guardrail ve admin observability yeterli seviyeye gelmeli
-- gorev sistemi, rozetler, banner ve geri donus motivasyonu birlikte dusunulmeli
-- XP ekrani, gorev ekrani ve event claim akisi acilis oncesi implement edilmeyecek
-- bu alanlar urun canliya acildiktan sonra gercek veriyle tekrar kararlandirilacak
-- planning rehberi:
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
+Bilinçli olarak bu branch'te yapmıyoruz:
+- admin detaylı maç geçmişi yüzeyi
+- room şifre sistemi
+- oda kapasitesi ve oyuncu sırası kural paneli
+- XP / görev / event runtime
 
-### 3. Cache / Rate Limit Foundation
-- Redis/Valkey abstraction
+## Yakın Sonraki Branch'ler
+
+### `feature/admin-match-history-review`
+- admin kullanıcı inceleme akışına maç geçmişi yüzeyi
+- maç süresi, skor tipi, takım dağılımı, anlatıcı rotasyonu ve ekonomi etkisi görünürlüğü
+- audit ile maç detayı arasında daha adil moderasyon geçişi
+
+### `feature/admin-categories-dnd-polish`
+- kategori sürükle-bırak akışını doğrulama
+- reorder sonrası geri bildirim / hata durumları
+- kategoriler sayfasındaki UTF-8 ve copy temizliği
+- mobil / düşük hassasiyetli pointer davranışını iyileştirme
+
+### `feature/room-rules-and-capacity-controls`
+- oda kapasitesi için net üst sınır kararı
+- dengesiz takım senaryoları için yönetici davranışı
+- gerekirse bounded oyuncu sırası / anlatıcı sırası kontrolü
+- oda şifresi eklenirse ayrı, sade bir akışla ele alma
+
+### `feature/cache-and-rate-limit-foundation`
+- Redis / Valkey abstraction
 - development memory fallback
-- production shared cache and rate limit store
-- room/lobi multi-instance mimarisine hazirlik
-- dashboard summary cache
+- production shared cache ve rate limit store
+- dashboard summary short TTL cache
 - store catalog cache
 - notification unread counter
-- economy guard rolling window counters
+- economy guard rolling counters
 - repeated-group keyed counters
-- targeted cache invalidation kurallari
-- PM2 multi-instance ve websocket koordinasyon notlari:
-  - `docs/cache-and-storage-strategy.md`
+- websocket / multi-instance koordinasyon hazırlığı
+- referans: `docs/cache-and-storage-strategy.md`
 
-## Aclis Sonrasi Onerilen Implementasyon Sirasi
+### `feature/post-launch-economy-observability-review`
+- canlıdan sonra gerçek coin kazanımı gözlemi
+- mağaza satın alma hızı
+- retention ve pacing ayarları
+- economy guard tetiklerinin saha verisiyle yeniden tuning edilmesi
 
-1. `feature/economy-abuse-hardening`
-- reward eligibility
-- reward source ayrimi
-- audit metadata
-- safety ceiling
-- repeated-group diminishing returns
-- manual validation checklist
-- smoke + edge-case guardrail test coverage
+## Uzun Vadeli Notlar
+- Redis geldiğinde source of truth yine MySQL olacak; Redis yalnız cache / counter / coordination katmanı olacak.
+- non-triggered finalize kayıtları ileride daha hafif telemetry yoluna taşınabilir.
+- eski `game.match.finalize` kayıtları için retention / archive planı gerekli.
+- admin kullanıcı mesajlaşma sistemi ayrı bir operasyon branch'i olarak düşünülmeli.
 
-2. `feature/post-launch-economy-observability-review`
-- gercek coin kazanimi
-- store satin alma hizi
-- retention ve pacing gozlemi
-- ilk ekonomi tuning kararlari
-
-3. `feature/cache-and-rate-limit-foundation`
-- shared runtime guardrail ve cache temeli
-
-4. `feature/gameplay-ui-polish`
-- room / lobby oyuncu kimligi UX'i
-- displayName gosterim karari
-- audit lineup kimlik snapshot'i
-- guest / registered badge ayrimi
-- settings'te bos `displayName` icin `username` fallback davranisi
-- oyun ici ust bar / profil tetikleyici polish'i
-- lobby quick edit ile `displayName` guncelleme
-- settings icinde kalici `displayName` yonetimi
-- `username` ile `displayName` ayrimini kullaniciya acik gosteren UI copy
-- oyun basladiktan sonra isim kilitleme kurali
-- guest oyuncu icin session bazli gorunen isim akisi
-- her oyuncunun yalniz kendi gorunen adini duzenleyebilmesi
-
-5. `feature/post-launch-xp-level-foundation`
-- yalniz veri bunu gerektirirse
-- coin'den ayri ilerleme katmani
-
-6. `feature/post-launch-missions-foundation`
-- retention ihtiyaci gercekten varsa
-- source-aware reward modeli uzerinde
-
-7. `feature/post-launch-night-market-foundation`
-- ancak store ve retention verisi bunu gerekliyse
-
-## Son Tamamlanan Dilim
-### `feature/admin-user-observability`
-- kullanici listesi ve operasyon yuzeyine trusted access sinyalleri eklendi
-- support / inventory / audit derin linkleri kuruldu
-- support ve inventory detail panelleri daha zengin baglam bloklariyla guclendirildi
-- auth local-dev host trust kirilmasi kapatildi
-
-## Cikarilan Eski Icerik
-Bu dosyadan sunlar temizlendi:
-- artik tarihsel degeri olmayan ilk migration notlari
-- tamamlanmis ve tekrar kullanilmayan test checklist'leri
-- bozuk encoding ile kalan eski maddeler
-  - lighter telemetry path for non-triggered finalize events
-- planning referanslari:
-  - `docs/guides/economy-abuse-hardening-guide.md`
-  - `docs/guides/economy-abuse-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
-
-### 2. Night Market / Missions Planning
-- night market acele implemente edilmeyecek
-- once economy guardrail ve admin observability yeterli seviyeye gelmeli
-- gorev sistemi, rozetler, banner ve geri donus motivasyonu birlikte dusunulmeli
-- XP ekrani, gorev ekrani ve event claim akisi acilis oncesi implement edilmeyecek
-- bu alanlar urun canliya acildiktan sonra gercek veriyle tekrar kararlandirilacak
-- planning rehberi:
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-
-### 3. Cache / Rate Limit Foundation
-- Redis/Valkey abstraction
-- development memory fallback
-- production shared cache and rate limit store
-- room/lobi multi-instance mimarisine hazirlik
-- PM2 multi-instance ve websocket koordinasyon notlari:
-  - `docs/cache-and-storage-strategy.md`
-
-## Aclis Sonrasi Onerilen Implementasyon Sirasi
-
-1. `feature/economy-abuse-hardening`
-- reward eligibility
-- reward source ayrimi
-- audit metadata
-- safety ceiling
-- repeated-group diminishing returns
-- manual validation checklist
-- smoke + edge-case guardrail test coverage
-
-2. `feature/post-launch-economy-observability-review`
-- gercek coin kazanimi
-- store satin alma hizi
-- retention ve pacing gozlemi
-- ilk ekonomi tuning kararlari
-
-3. `feature/cache-and-rate-limit-foundation`
-- shared runtime guardrail ve cache temeli
-
-4. `feature/gameplay-ui-polish`
-- room / lobby oyuncu kimligi UX'i
-- displayName gosterim karari
-- audit lineup kimlik snapshot'i
-- guest / registered badge ayrimi
-- oyun ici ust bar / profil tetikleyici polish'i
-- lobby quick edit ile `displayName` guncelleme
-- settings icinde kalici `displayName` yonetimi
-- `username` ile `displayName` ayrimini kullaniciya acik gosteren UI copy
-- oyun basladiktan sonra isim kilitleme kurali
-- guest oyuncu icin session bazli gorunen isim akisi
-
-5. `feature/post-launch-xp-level-foundation`
-- yalniz veri bunu gerektirirse
-- coin'den ayri ilerleme katmani
-
-6. `feature/post-launch-missions-foundation`
-- retention ihtiyaci gercekten varsa
-- source-aware reward modeli uzerinde
-
-7. `feature/post-launch-night-market-foundation`
-- ancak store ve retention verisi bunu gerekliyse
-
-## Son Tamamlanan Dilim
-### `feature/admin-user-observability`
-- kullanici listesi ve operasyon yuzeyine trusted access sinyalleri eklendi
-- support / inventory / audit derin linkleri kuruldu
-- support ve inventory detail panelleri daha zengin baglam bloklariyla guclendirildi
-- auth local-dev host trust kirilmasi kapatildi
-
-## Cikarilan Eski Icerik
-Bu dosyadan sunlar temizlendi:
-- artik tarihsel degeri olmayan ilk migration notlari
-- tamamlanmis ve tekrar kullanilmayan test checklist'leri
-- bozuk encoding ile kalan eski maddeler
-- yeni karar almaya yardim etmeyen brainstorming tekrarlar
-
+## Referans Rehberler
+- `docs/guides/economy-abuse-hardening-guide.md`
+- `docs/guides/economy-progression-and-pricing-guide.md`
+- `docs/guides/player-display-name-and-audit-strategy-guide.md`
+- `docs/cache-and-storage-strategy.md`
