@@ -1,6 +1,6 @@
 ﻿# Görev Kaydı
 
-> Son güncelleme: 17 April 2026
+> Son güncelleme: 18 April 2026
 > Durum: aktif execution log
 
 ## Çekirdek Kurallar
@@ -33,6 +33,7 @@ Bu branch'te tamamlanan ana işler:
 - countdown'ın `0`'da bitmesi
 - stale room storage yüzünden oluşan yanlış oda blokajının kaldırılması
 - kayıtlı kullanıcı için server-side aktif oda korumasının eklenmesi
+- create/join anında O(1) lookup için process-local registered room index optimizasyonu
 - bildirim sheet close aksiyonunun yeniden üst sağa alınması
 - hızlı kuşan bölümünün tekrar tek satıra alınması
 - envanterde kuşanılan kozmetiği doğrudan çıkarabilme
@@ -41,6 +42,7 @@ Bu branch'te tamamlanan ana işler:
 Bu branch'te açık kalan takip maddeleri:
 - admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama
 - gameplay header / logo responsive son turu
+- aktif oda korumasını reconnect ve farklı browser senaryolarında son kez kontrol etme
 - bildirim sheet ve toast yerleşimini cihazlarda son kez kontrol etme
 - hızlı kuşan ve önerilenler oranlarını küçük bir polish turundan geçirme
 

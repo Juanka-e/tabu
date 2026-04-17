@@ -100,6 +100,8 @@ const globalForGameSocket = globalThis as typeof globalThis & {
         rooms: Map<string, RoomData>;
         wordActionTimestamps: Map<string, number>;
         socketToRoom: Map<string, string>;
+        registeredUserRoomIndex: Map<number, string>;
+        roomRegisteredUsersIndex: Map<string, Set<number>>;
         roomJoinAttempts: Map<string, RateLimitEntry>;
         roomAdminTimeouts: Map<string, NodeJS.Timeout>;
     };
@@ -111,6 +113,8 @@ const sharedGameSocketState =
         rooms: new Map<string, RoomData>(),
         wordActionTimestamps: new Map<string, number>(),
         socketToRoom: new Map<string, string>(),
+        registeredUserRoomIndex: new Map<number, string>(),
+        roomRegisteredUsersIndex: new Map<string, Set<number>>(),
         roomJoinAttempts: new Map<string, RateLimitEntry>(),
         roomAdminTimeouts: new Map<string, NodeJS.Timeout>(),
     });
@@ -121,6 +125,8 @@ const WORD_ACTION_COOLDOWN_MS = 200;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
 const socketToRoom = sharedGameSocketState.socketToRoom;
+const registeredUserRoomIndex = sharedGameSocketState.registeredUserRoomIndex;
+const roomRegisteredUsersIndex = sharedGameSocketState.roomRegisteredUsersIndex;
 
 // Rate limiting
 interface RateLimitEntry {
@@ -285,11 +291,44 @@ export function setupGameSocket(io: Server): void {
 
     function persistRoom(room: RoomData): void {
         rooms.set(room.odaKodu, room);
+        syncRegisteredUserRoomIndex(room);
     }
 
     function destroyRoom(roomCode: string): void {
+        const indexedUsers = roomRegisteredUsersIndex.get(roomCode);
+        if (indexedUsers) {
+            for (const userId of indexedUsers) {
+                if (registeredUserRoomIndex.get(userId) === roomCode) {
+                    registeredUserRoomIndex.delete(userId);
+                }
+            }
+            roomRegisteredUsersIndex.delete(roomCode);
+        }
         rooms.delete(roomCode);
         clearWordPool(roomCode);
+    }
+
+    function syncRegisteredUserRoomIndex(room: RoomData): void {
+        const previousIndexedUsers = roomRegisteredUsersIndex.get(room.odaKodu);
+        if (previousIndexedUsers) {
+            for (const userId of previousIndexedUsers) {
+                if (registeredUserRoomIndex.get(userId) === room.odaKodu) {
+                    registeredUserRoomIndex.delete(userId);
+                }
+            }
+        }
+
+        const nextIndexedUsers = new Set<number>();
+        for (const player of room.oyuncular) {
+            if (!player.online || typeof player.userId !== "number") {
+                continue;
+            }
+
+            nextIndexedUsers.add(player.userId);
+            registeredUserRoomIndex.set(player.userId, room.odaKodu);
+        }
+
+        roomRegisteredUsersIndex.set(room.odaKodu, nextIndexedUsers);
     }
 
     function broadcastLobby(room: RoomData): void {
@@ -1477,17 +1516,7 @@ export function getRoomMetrics(): {
 }
 
 export function findOnlineRoomCodeForUser(userId: number): string | null {
-    for (const room of rooms.values()) {
-        const hasOnlineRegisteredPlayer = room.oyuncular.some(
-            (player) => player.userId === userId && player.online
-        );
-
-        if (hasOnlineRegisteredPlayer) {
-            return room.odaKodu;
-        }
-    }
-
-    return null;
+    return registeredUserRoomIndex.get(userId) ?? null;
 }
 
 function createEmptyPlayerCosmetics(): PlayerCosmetics {

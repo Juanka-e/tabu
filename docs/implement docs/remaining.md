@@ -1,6 +1,6 @@
 ﻿# Kalan İşler
 
-> Son güncelleme: 17 April 2026
+> Son güncelleme: 18 April 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Şu Anki Öncelik Sırası
@@ -41,6 +41,7 @@ Tamamlananlar:
 - bildirim sheet başlığının ve close aksiyonunun yeniden düzenlenmesi
 - hızlı kuşan alanının tekrar tek satıra çekilmesi
 - kayıtlı kullanıcı için server-side aktif oda kontrolü
+- process-local `userId -> roomCode` room index optimizasyonu
 - envanterde kuşanılan kozmetiği doğrudan çıkarabilme
 - room / lobby logosunun üst merkezde daha dengeli konumlanması
 
@@ -50,6 +51,7 @@ Açık kalanlar:
 - in-game ve dashboard hızlı kuşan görsellerinde son oran / boşluk iyileştirmeleri
 - bildirim sheet ile toast çakışmasını gerçek cihazlarda son bir tur kontrol etmek
 - aktif oda korumasını çoklu sekme / reconnect senaryolarında son bir tur doğrulamak
+- process-local registered room index optimizasyonunu Redis/Valkey shared presence katmanına taşıma notunu korumak
 
 Bilinçli olarak bu branch'te yapmıyoruz:
 - admin detaylı maç geçmişi yüzeyi
@@ -86,6 +88,7 @@ Bilinçli olarak bu branch'te yapmıyoruz:
 - economy guard rolling counters
 - repeated-group keyed counters
 - websocket / multi-instance koordinasyon hazırlığı
+- registered `userId -> roomCode` shared presence index
 - referans: `docs/cache-and-storage-strategy.md`
 
 ### `feature/post-launch-economy-observability-review`
@@ -96,6 +99,7 @@ Bilinçli olarak bu branch'te yapmıyoruz:
 
 ## Uzun Vadeli Notlar
 - Redis geldiğinde source of truth yine MySQL olacak; Redis yalnız cache / counter / coordination katmanı olacak.
+- bugünkü registered room index tek-instance için process-local yeterlidir; multi-instance aşamasında shared presence katmanına taşınmalıdır.
 - non-triggered finalize kayıtları ileride daha hafif telemetry yoluna taşınabilir.
 - eski `game.match.finalize` kayıtları için retention / archive planı gerekli.
 - admin kullanıcı mesajlaşma sistemi ayrı bir operasyon branch'i olarak düşünülmeli.

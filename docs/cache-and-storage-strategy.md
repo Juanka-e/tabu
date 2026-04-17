@@ -1,7 +1,7 @@
 # Cache And Storage Strategy
 
 > Status: working architecture note
-> Last updated: 24 March 2026
+> Last updated: 18 April 2026
 
 ## Goal
 - Keep MySQL as the source of truth.
@@ -47,6 +47,29 @@ Redis/Valkey must never become the only place where the business truth exists.
 - cache invalidation fan-out
 - future websocket adapter state
 - future room presence / ephemeral coordination state
+
+## Current Pre-Redis Optimizations Already In Place
+
+Redis gelmeden once de bazi yukleri dusurecek process-local optimizasyonlar alinabilir.
+
+Bugun aktif olan mantik:
+
+1. in-memory registered room index
+- registered kullanici icin `userId -> roomCode` process-local index tutulur
+- bu sayede "zaten odada misin?" kontrolu tum odalari taramadan O(1) lookup ile yapilir
+- bu, tek instance veya local development icin yeterli ve ucuzdur
+
+2. same-browser cross-tab presence heartbeat
+- ayni browser'da room acik sekme kisa aralikli `localStorage` heartbeat yazar
+- dashboard sekmesi yeni oda acmadan once bunu okuyup aninda bloklayabilir
+- network, DB veya server maliyeti yoktur
+
+3. server-side room state fallback
+- farkli browser veya cihaz senaryosunda `localStorage` paylasilmaz
+- bu durumda socket room state icindeki registered user index devreye girer
+
+Bu model bugunku tek-instance yapida yeterlidir.
+Multi-instance veya Redis adapter asamasinda bu index process-local olmaktan cikarilip shared coordination katmanina tasinmalidir.
 
 ## Application-Side Optimization Notes
 
@@ -287,6 +310,7 @@ Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuze
 - room presence coordination
 - reconnect grace-period helpers
 - cross-instance room transfer signals
+- registered `userId -> roomCode` shared presence index
 
 ## What Still Stays In MySQL Even After Redis
 

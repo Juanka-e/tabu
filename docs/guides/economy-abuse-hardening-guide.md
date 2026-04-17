@@ -120,6 +120,10 @@ Ama buyume halinde asagidaki optimizasyonlar backlog''da tutulmalidir:
 - rolling reward window toplamlari ve repeated-group tekrar sayaçlari buyume halinde DB aggregate/count yerine Redis/Valkey counter ile hesaplanabilir
 - MySQL yine audit ve match_result truth kaynagi olarak kalir
 
+6. Registered room presence coordination
+- bugunku tek-instance yapida registered kullanici icin process-local `userId -> roomCode` index yeterlidir
+- multi-instance veya Redis adapter asamasinda bu koordinasyon Redis/Valkey-backed presence/index katmanina tasinmalidir
+- bu, farkli process'lerde ayni hesabin ikinci oda acma denemelerini de dogru bloklamayi saglar
 Bu maddeler bugun zorunlu degil, ama buyume halinde ilk alinacak olcek onlemleridir.
 
 ## Uygulama Sirasi
@@ -641,4 +645,6 @@ gibi katmanlar eklenirse, oyun disi fetch yukleri DB uzerinde daha hafif kalir.
 - `docs/guides/night-market-and-missions-strategy-guide.md`
 - `docs/guides/admin-user-observability-guide.md`
 - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+
+
 
