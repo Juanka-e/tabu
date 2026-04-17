@@ -40,12 +40,16 @@ Tamamlananlar:
 - stale `tabu_activeRoomCode` yüzünden oluşan yanlış `lobidesin` blokajının kaldırılması
 - bildirim sheet başlığının ve close aksiyonunun yeniden düzenlenmesi
 - hızlı kuşan alanının tekrar tek satıra çekilmesi
+- kayıtlı kullanıcı için server-side aktif oda kontrolü
+- envanterde kuşanılan kozmetiği doğrudan çıkarabilme
+- room / lobby logosunun üst merkezde daha dengeli konumlanması
 
 Açık kalanlar:
 - admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama ve gerekiyorsa polish
 - room / lobby logo konumlandırmasını son bir responsive turdan geçirmek
 - in-game ve dashboard hızlı kuşan görsellerinde son oran / boşluk iyileştirmeleri
 - bildirim sheet ile toast çakışmasını gerçek cihazlarda son bir tur kontrol etmek
+- aktif oda korumasını çoklu sekme / reconnect senaryolarında son bir tur doğrulamak
 
 Bilinçli olarak bu branch'te yapmıyoruz:
 - admin detaylı maç geçmişi yüzeyi

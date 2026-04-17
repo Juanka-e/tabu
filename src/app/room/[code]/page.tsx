@@ -751,24 +751,24 @@ export default function RoomPage() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
-                    <div className="absolute left-4 top-4 z-[70] flex max-w-[10rem] items-center rounded-full border border-white/60 bg-white/82 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/82">
+                    <div className="pointer-events-none absolute left-1/2 top-4 z-[70] flex w-[9.5rem] -translate-x-1/2 items-center justify-center rounded-full border border-white/60 bg-white/82 px-4 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/82 sm:w-[11rem] md:w-[12rem]">
                         {branding.logoUrl ? (
                             <Image
                                 src={branding.logoUrl}
                                 alt={`${branding.siteName} logo`}
-                                width={120}
-                                height={28}
+                                width={160}
+                                height={40}
                                 unoptimized
-                                className="h-7 w-auto max-w-full object-contain"
+                                className="h-8 w-auto max-w-full object-contain sm:h-9"
                             />
                         ) : (
-                            <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.2em] text-transparent">
+                            <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.22em] text-transparent sm:text-base">
                                 {branding.siteShortName}
                             </span>
                         )}
                     </div>
                     {/* Header Buttons */}
-                    <div className="absolute right-4 top-4 z-[80] flex max-w-[calc(100%-8rem)] items-start gap-2">
+                    <div className="absolute right-4 top-4 z-[80] flex max-w-[calc(100%-10rem)] items-start gap-2 sm:max-w-[calc(100%-12rem)] md:max-w-[calc(100%-14rem)]">
                         <div className="relative">
                             {!isMobile ? (
                                 <button

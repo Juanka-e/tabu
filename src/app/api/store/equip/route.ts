@@ -14,7 +14,8 @@ import {
 } from "@/lib/system-settings/policies";
 
 const equipSchema = z.object({
-  shopItemId: z.number().int().positive(),
+  shopItemId: z.number().int().positive().nullable(),
+  itemType: z.enum(["avatar", "frame", "card_back", "card_face"]),
 });
 
 export async function POST(req: Request) {
@@ -43,12 +44,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { shopItemId } = equipSchema.parse(body);
+    const { shopItemId, itemType } = equipSchema.parse(body);
 
-    const result = await equipStoreItem(sessionUser.id, shopItemId);
+    const result = await equipStoreItem(sessionUser.id, itemType, shopItemId);
     if (!result.ok) {
       if (result.code === "not_found") {
         return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
+      }
+      if (result.code === "type_mismatch") {
+        return NextResponse.json({ error: "Kozmetik slotu gecersiz." }, { status: 409 });
       }
       return NextResponse.json({ error: "Urun envanterde degil." }, { status: 409 });
     }

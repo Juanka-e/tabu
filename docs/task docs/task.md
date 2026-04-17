@@ -32,8 +32,11 @@ Bu branch'te tamamlanan ana işler:
 - ilk geçişte `Oyun başlıyor`, sonraki geçişlerde `Anlatıcı değişiyor` copy'si
 - countdown'ın `0`'da bitmesi
 - stale room storage yüzünden oluşan yanlış oda blokajının kaldırılması
+- kayıtlı kullanıcı için server-side aktif oda korumasının eklenmesi
 - bildirim sheet close aksiyonunun yeniden üst sağa alınması
 - hızlı kuşan bölümünün tekrar tek satıra alınması
+- envanterde kuşanılan kozmetiği doğrudan çıkarabilme
+- room / lobby logosunun üst merkezde yeniden dengelenmesi
 
 Bu branch'te açık kalan takip maddeleri:
 - admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama

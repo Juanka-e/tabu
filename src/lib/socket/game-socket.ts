@@ -824,6 +824,16 @@ export function setupGameSocket(io: Server): void {
                     const requestedCode = odaKodu
                         ? String(odaKodu).toUpperCase()
                         : undefined;
+                    const activeRoomCode = effectiveAuthUserId
+                        ? findOnlineRoomCodeForUser(effectiveAuthUserId)
+                        : null;
+                    if (activeRoomCode && activeRoomCode !== requestedCode) {
+                        socket.emit(
+                            "hata",
+                            `Zaten ${activeRoomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`
+                        );
+                        return;
+                    }
                     let targetCode = requestedCode;
                     let room = targetCode ? getRoom(targetCode) : undefined;
                     const existingPlayer = room?.oyuncular.find(
@@ -1464,6 +1474,20 @@ export function getRoomMetrics(): {
         aktifLobiSayisi: rooms.size,
         onlineKullaniciSayisi,
     };
+}
+
+export function findOnlineRoomCodeForUser(userId: number): string | null {
+    for (const room of rooms.values()) {
+        const hasOnlineRegisteredPlayer = room.oyuncular.some(
+            (player) => player.userId === userId && player.online
+        );
+
+        if (hasOnlineRegisteredPlayer) {
+            return room.odaKodu;
+        }
+    }
+
+    return null;
 }
 
 function createEmptyPlayerCosmetics(): PlayerCosmetics {

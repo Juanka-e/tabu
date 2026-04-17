@@ -1524,23 +1524,32 @@ export async function purchaseStoreBundle(
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
 
-export async function equipStoreItem(userId: number, shopItemId: number) {
+export async function equipStoreItem(userId: number, itemType: StoreItemType, shopItemId: number | null) {
     await ensureUserCore(userId);
-    const [item, owned] = await Promise.all([
-        prisma.shopItem.findUnique({ where: { id: shopItemId } }),
-        prisma.inventoryItem.findUnique({
-            where: { userId_shopItemId: { userId, shopItemId } },
-        }),
-    ]);
 
-    if (!item) return { ok: false as const, code: "not_found" as const };
-    if (!owned) return { ok: false as const, code: "not_owned" as const };
+    const data: Record<string, number | null> = {};
+    if (itemType === "avatar") data.avatarItemId = null;
+    if (itemType === "frame") data.frameItemId = null;
+    if (itemType === "card_back") data.cardBackItemId = null;
+    if (itemType === "card_face") data.cardFaceItemId = null;
 
-    const data: Record<string, number> = {};
-    if (item.type === "avatar") data.avatarItemId = item.id;
-    if (item.type === "frame") data.frameItemId = item.id;
-    if (item.type === "card_back") data.cardBackItemId = item.id;
-    if (item.type === "card_face") data.cardFaceItemId = item.id;
+    if (shopItemId !== null) {
+        const [item, owned] = await Promise.all([
+            prisma.shopItem.findUnique({ where: { id: shopItemId } }),
+            prisma.inventoryItem.findUnique({
+                where: { userId_shopItemId: { userId, shopItemId } },
+            }),
+        ]);
+
+        if (!item) return { ok: false as const, code: "not_found" as const };
+        if (!owned) return { ok: false as const, code: "not_owned" as const };
+        if (item.type !== itemType) return { ok: false as const, code: "type_mismatch" as const };
+
+        if (item.type === "avatar") data.avatarItemId = item.id;
+        if (item.type === "frame") data.frameItemId = item.id;
+        if (item.type === "card_back") data.cardBackItemId = item.id;
+        if (item.type === "card_face") data.cardFaceItemId = item.id;
+    }
 
     const profile = await prisma.userProfile.update({
         where: { userId },
