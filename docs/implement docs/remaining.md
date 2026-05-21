@@ -10,17 +10,18 @@
 4. `feature/room-rules-and-capacity-controls`
 5. `feature/post-launch-economy-observability-review`
 6. `feature/cache-and-rate-limit-foundation`
-7. `feature/admin-promotions-ux`
-8. `feature/cosmetic-render-upgrade`
-9. `feature/admin-cosmetic-authoring`
-10. `feature/analytics-event-foundation`
-11. `feature/word-analytics-liveops`
-12. `feature/post-launch-xp-level-foundation`
-13. `feature/post-launch-missions-foundation`
-14. `feature/post-launch-night-market-foundation`
-15. `feature/release-ops-docs`
-16. `docs/encoding-cleanup`
-17. `feature/wallet-ledger-foundation`
+7. `feature/audit-retention-and-telemetry-foundation`
+8. `feature/admin-promotions-ux`
+9. `feature/cosmetic-render-upgrade`
+10. `feature/admin-cosmetic-authoring`
+11. `feature/analytics-event-foundation`
+12. `feature/word-analytics-liveops`
+13. `feature/post-launch-xp-level-foundation`
+14. `feature/post-launch-missions-foundation`
+15. `feature/post-launch-night-market-foundation`
+16. `feature/release-ops-docs`
+17. `docs/encoding-cleanup`
+18. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
 ### `feature/gameplay-ui-polish`
@@ -90,6 +91,21 @@ Bilinçli olarak bu branch'te yapmıyoruz:
 - websocket / multi-instance koordinasyon hazırlığı
 - registered `userId -> roomCode` shared presence index
 - referans: `docs/cache-and-storage-strategy.md`
+
+### `feature/audit-retention-and-telemetry-foundation`
+- hot audit ve archive audit ayrimi
+- scheduled retention / archive job
+- signal-first audit siniflandirmasi
+- non-triggered high-volume event'leri telemetry hattina tasima
+- economy finalize audit hacmini kontrollu hale getirme
+- admin review icin archive read path veya archive arama yuzeyi
+
+### `feature/cosmetic-render-upgrade`
+- mağaza grid'inde thumbnail-first preview stratejisi
+- buyuk preview ile grid preview'ini ayirma
+- gerekirse `previewImageUrl` / `thumbnailUrl` alanlarini kataloga ekleme
+- kart / cerceve / avatar mini preview maliyetini dusurme
+- lazy loading, pagination veya virtualization ihtiyacini veri hacmine gore uygulama
 
 ### `feature/post-launch-economy-observability-review`
 - canlıdan sonra gerçek coin kazanımı gözlemi

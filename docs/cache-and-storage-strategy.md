@@ -324,6 +324,47 @@ Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuze
 
 Redis/Valkey burada hizlandirici katmandir, hakikat katmani degildir.
 
+## Audit Retention And Telemetry Strategy
+
+Audit icin kalici cozum "butun olaylari sonsuza kadar ayni sicak tabloda tutmak" olmamalidir.
+
+Onerilen model:
+
+1. hot audit
+- admin'in gunluk inceledigi son 30-90 gunluk kritik olaylar
+- hizli sorgu ve filtreleme burada kalir
+
+2. archive audit
+- daha eski audit kayitlari sicak tablodan ayrilir
+- ayri archive tablo seti veya daha ucuz storage/read path kullanilir
+
+3. signal-first audit
+- admin mutation
+- wallet adjustment
+- moderation / support action
+- reward guard tetikleyen economy olaylari
+- guvenlik acisindan anlamli hata / red event'leri
+tam audit olarak tutulur
+
+4. non-triggered telemetry
+- review degeri dusuk, hacmi yuksek kullanici olaylari tam audit yerine hafif event/telemetry hattina tasinabilir
+- ornek: guard tetiklenmeyen siradan `game.match.finalize` olaylari
+
+Temel retention kurali:
+- hot audit -> otomatik retention
+- eski kayitlar -> archive
+- dusuk degerli event'ler -> daha kisa retention veya telemetry-only
+
+Bu is manuel DB temizligi olarak dusunulmemelidir.
+Scheduled retention/archive job ile policy-driven calismalidir.
+
+Redis/Valkey burada sunlari hizlandirabilir:
+- archive job coordination lock'lari
+- telemetry counter / aggregation
+- unread / review queue counter'lari
+
+Ama audit truth ve admin inceleme izi yine MySQL/kalici storage tarafinda kalmalidir.
+
 ## Integration With Future Features
 New features should not connect to Redis/Valkey by default.
 They should connect only if one of these is true:
