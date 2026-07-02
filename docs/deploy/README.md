@@ -10,3 +10,4 @@ Baslangic okuma sirasi:
 4. [cloudflare-admin.md](./cloudflare-admin.md)
 5. [subdomain-and-cors.md](./subdomain-and-cors.md)
 6. [redis-rollout.md](./redis-rollout.md)
+7. [prisma-build-hardening.md](./prisma-build-hardening.md)
