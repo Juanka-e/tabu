@@ -6,6 +6,7 @@ import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePay
 import { prisma } from "@/lib/prisma";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
+import { consumeDistributedRequestRateLimit } from "@/lib/security/request-rate-limit";
 import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
@@ -102,7 +103,6 @@ const globalForGameSocket = globalThis as typeof globalThis & {
         socketToRoom: Map<string, string>;
         registeredUserRoomIndex: Map<number, string>;
         roomRegisteredUsersIndex: Map<string, Set<number>>;
-        roomJoinAttempts: Map<string, RateLimitEntry>;
         roomAdminTimeouts: Map<string, NodeJS.Timeout>;
     };
 };
@@ -115,7 +115,6 @@ const sharedGameSocketState =
         socketToRoom: new Map<string, string>(),
         registeredUserRoomIndex: new Map<number, string>(),
         roomRegisteredUsersIndex: new Map<string, Set<number>>(),
-        roomJoinAttempts: new Map<string, RateLimitEntry>(),
         roomAdminTimeouts: new Map<string, NodeJS.Timeout>(),
     });
 
@@ -127,14 +126,6 @@ const WORD_ACTION_COOLDOWN_MS = 200;
 const socketToRoom = sharedGameSocketState.socketToRoom;
 const registeredUserRoomIndex = sharedGameSocketState.registeredUserRoomIndex;
 const roomRegisteredUsersIndex = sharedGameSocketState.roomRegisteredUsersIndex;
-
-// Rate limiting
-interface RateLimitEntry {
-    count: number;
-    resetAt: number;
-    timeout: ReturnType<typeof setTimeout>;
-}
-const roomJoinAttempts = sharedGameSocketState.roomJoinAttempts;
 
 // Rate limit settings from .env (can be disabled for localhost/testing)
 const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
@@ -151,36 +142,6 @@ const ROOM_SWITCH_TEAM_EVENTS = ["takim_degistir", "takimDegistirİsteği", "tak
 const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 // ─── Helpers ───────────────────────────────────────────────────
-
-function consumeRateLimit(
-    store: Map<string, RateLimitEntry>,
-    key: string,
-    windowMs: number,
-    maxAttempts: number
-): { allowed: boolean; retryAfterSeconds?: number; remaining?: number } {
-    const now = Date.now();
-    let entry = store.get(key);
-
-    if (!entry || now >= entry.resetAt) {
-        if (entry?.timeout) clearTimeout(entry.timeout);
-        const timeout = setTimeout(() => store.delete(key), windowMs);
-        if (typeof (timeout as NodeJS.Timeout).unref === "function") {
-            (timeout as NodeJS.Timeout).unref();
-        }
-        entry = { count: 0, resetAt: now + windowMs, timeout };
-        store.set(key, entry);
-    }
-
-    if (entry.count >= maxAttempts) {
-        return {
-            allowed: false,
-            retryAfterSeconds: Math.ceil((entry.resetAt - now) / 1000),
-        };
-    }
-
-    entry.count += 1;
-    return { allowed: true, remaining: maxAttempts - entry.count };
-}
 
 function normalizeIp(rawIp: string | undefined): string {
     if (!rawIp) return "unknown";
@@ -813,12 +774,12 @@ export function setupGameSocket(io: Server): void {
 
                 // Skip rate limit check if disabled (useful for localhost/testing)
                 if (RATE_LIMIT_ENABLED) {
-                    const rate = consumeRateLimit(
-                        roomJoinAttempts,
-                        ip,
-                        ROOM_JOIN_WINDOW_MS,
-                        ROOM_JOIN_MAX_ATTEMPTS
-                    );
+                    const rate = await consumeDistributedRequestRateLimit({
+                        bucket: "socket-room-join",
+                        key: `ip:${ip}`,
+                        windowMs: ROOM_JOIN_WINDOW_MS,
+                        maxRequests: ROOM_JOIN_MAX_ATTEMPTS,
+                    });
 
                     if (!rate.allowed) {
                         socket.emit(

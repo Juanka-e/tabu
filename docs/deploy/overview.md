@@ -14,6 +14,7 @@ Temel kural:
 
 - local gelistirme ile production orkestrasyonu ayri kalir
 - localde her degisiklikte tam Docker build beklenmez
+- Redis yoksa uygulama memory fallback ile calismaya devam eder
 - production'da sadece Nginx `80/443` acik eder
 - app, MySQL ve Redis private Docker networkte kalir
 
