@@ -19,6 +19,12 @@ npm run build
 npm run db:sync
 ```
 
+Infra-only local development:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
 ## Production Shape
 
 Recommended production stack:
@@ -61,3 +67,4 @@ The compose stack includes:
 - In Docker, the app must bind `HOST=0.0.0.0`. It is still private because no app port is published.
 - Outside Docker, a host-level reverse proxy setup can bind the app to `127.0.0.1`.
 - See `docs/guides/deployment-security-guide.md` for the security topology and Cloudflare/Nginx notes.
+- See `docs/guides/deployment-ops-runbook.md` for Ubuntu 24.04, GitHub Actions deploy, local-dev split, and MySQL backup flow.
