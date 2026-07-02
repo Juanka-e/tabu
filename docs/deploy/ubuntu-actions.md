@@ -43,3 +43,6 @@ Not:
 
 - Production Environment kullanip manual approval eklemek mantikli.
 - Sunucuda `.env.production` ve `nginx/ssl/*.pem` dosyalari repodan bagimsiz kalici durmali.
+- `REDIS_URL` degerini production'da acik yazmak daha temizdir. Docker icinde standart deger `redis://redis:6379` olur.
+- `docker-compose.yml` icinde Redis healthcheck vardir; app container Redis hazir olmadan baslamaz.
+- Cloudflare Origin Certificate kullaniyorsan `nginx/ssl` altinda `.pem` ve key dosyalari sunucuda kalici tutulmali, workflow bunlari overwrite etmemeli.
