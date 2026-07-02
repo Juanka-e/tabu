@@ -12,7 +12,7 @@ import {
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-branding-asset-upload",
         key: `${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 5 * 60_000,

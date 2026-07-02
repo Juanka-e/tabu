@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-words-bulk-upload",
         key: `admin:${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,

@@ -24,6 +24,24 @@ Subdomain'e gecerken kontrol listesi:
 4. cookie domain ihtiyaci
 5. Cloudflare Access scope
 
+## Gelecekte Cift Host Desteği Gerekirse
+
+Hem:
+
+1. `/admin`
+2. `admin.hushle.com`
+
+uzun sure bir arada desteklenecekse acik bir migration listesiyle ilerlemeliyiz:
+
+1. host allowlist
+2. auth callback URL listesi
+3. cookie domain ve same-site davranisi
+4. Socket.IO trusted origin allowlist
+5. canonical URL karari
+6. Cloudflare Access policy kapsamlarinin ayrimi
+
+Bu is gelecek is listesinde durmali; "sonradan bakariz" seviyesinde bir konu degil.
+
 Onerim:
 
 1. kisa vadede `/admin`

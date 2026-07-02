@@ -6,7 +6,7 @@ import { applyAdminWalletAdjustment } from "@/lib/admin-user-operations/service"
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 
@@ -32,7 +32,7 @@ export async function POST(
     }
 
     try {
-        const rateLimit = consumeRequestRateLimit({
+        const rateLimit = await consumeDistributedRequestRateLimit({
             bucket: "admin-wallet-adjustment",
             key: `admin:${adminSession.id}:${getRequestIp(request)}`,
             windowMs: 60_000,

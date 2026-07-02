@@ -6,7 +6,7 @@ import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { hasCategoryHierarchyConflict } from "@/lib/categories/admin-category-policy";
@@ -26,7 +26,7 @@ export async function POST(
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-category-move-delete",
         key: `admin:${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,

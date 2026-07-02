@@ -3,7 +3,11 @@ import { getSessionUser } from "@/lib/session";
 import { coinGrantRedeemSchema } from "@/lib/coin-grants/schema";
 import { redeemCoinGrantCode } from "@/lib/coin-grants/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
-import { buildRateLimitHeaders, consumeRequestRateLimit, getRequestIp } from "@/lib/security/request-rate-limit";
+import {
+    buildRateLimitHeaders,
+    consumeDistributedRequestRateLimit,
+    getRequestIp,
+} from "@/lib/security/request-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +17,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "coin-grant-redeem",
         key: `user:${sessionUser.id}:${getRequestIp(request)}`,
         windowMs: 60_000,

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "support-ticket-read",
         key: `user:${sessionUser.id}:${getRequestIp(request)}`,
         windowMs: 60_000,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "support-ticket-create",
         key: `user:${sessionUser.id}:${getRequestIp(request)}`,
         windowMs: 60 * 60 * 1000,
