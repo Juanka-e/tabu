@@ -47,7 +47,7 @@ export async function resolveFixedCategoryIds(
     });
 
     if (categories.length !== uniqueCategoryIds.length) {
-        return { error: "Seçilen kategori veya alt kategori bulunamadı." };
+        return { error: "Secilen kategori veya alt kategori bulunamadi." };
     }
 
     if (subcategoryIdValue) {
@@ -56,11 +56,13 @@ export async function resolveFixedCategoryIds(
         const subcategory = categories.find((category) => category.id === subcategoryId);
 
         if (!subcategory || subcategory.parentId !== parentCategoryId) {
-            return { error: "Alt kategori seçimi üst kategori ile eşleşmiyor." };
+            return { error: "Alt kategori secimi ust kategori ile eslesmiyor." };
         }
+
+        return subcategoryId ? [subcategoryId] : [];
     }
 
-    return uniqueCategoryIds;
+    return categoryIdValue ? [parsePositiveInteger(categoryIdValue)!] : [];
 }
 
 export function buildCategoryIndex(categories: CategoryRecord[]) {
@@ -101,7 +103,7 @@ export function extractCsvCategoryIds(
 
     const rootCategory = categoryIndex.byRootName.get(normalizeLabel(categoryName));
     if (!rootCategory) {
-        return { error: `Satır ${rowIndex}: "${categoryName}" kategorisi bulunamadı.` };
+        return { error: `Satir ${rowIndex}: "${categoryName}" kategorisi bulunamadi.` };
     }
 
     if (!subcategoryName) {
@@ -113,11 +115,11 @@ export function extractCsvCategoryIds(
     );
     if (!subcategory) {
         return {
-            error: `Satır ${rowIndex}: "${subcategoryName}" alt kategorisi "${categoryName}" altında bulunamadı.`,
+            error: `Satir ${rowIndex}: "${subcategoryName}" alt kategorisi "${categoryName}" altinda bulunamadi.`,
         };
     }
 
-    return { categoryIds: [rootCategory.id, subcategory.id], tabooOffset: 4 };
+    return { categoryIds: [subcategory.id], tabooOffset: 4 };
 }
 
 export async function processBulkWordUpload(options: {
@@ -130,7 +132,7 @@ export async function processBulkWordUpload(options: {
 
     const lines = text.split("\n").filter((line) => line.trim());
     if (lines.length === 0) {
-        return { error: "CSV dosyası boş." } as const;
+        return { error: "CSV dosyasi bos." } as const;
     }
 
     let fixedCategoryIds: number[] = [];
@@ -171,8 +173,8 @@ export async function processBulkWordUpload(options: {
         if (cols.length < minimumColumns) {
             results.errors.push(
                 mode === "csv_categories"
-                    ? `Satır ${rowNumber}: En az 5 sütun gerekli (kelime, zorluk, kategori, alt_kategori, yasaklı1).`
-                    : `Satır ${rowNumber}: En az 3 sütun gerekli (kelime, zorluk, yasaklı1).`
+                    ? `Satir ${rowNumber}: En az 5 sutun gerekli (kelime, zorluk, kategori, alt_kategori, yasakli1).`
+                    : `Satir ${rowNumber}: En az 3 sutun gerekli (kelime, zorluk, yasakli1).`
             );
             continue;
         }
@@ -196,17 +198,17 @@ export async function processBulkWordUpload(options: {
         const tabooWords = cols.slice(tabooOffset).filter(Boolean);
 
         if (!wordText) {
-            results.errors.push(`Satır ${rowNumber}: Kelime boş.`);
+            results.errors.push(`Satir ${rowNumber}: Kelime bos.`);
             continue;
         }
 
         if (Number.isNaN(difficulty) || difficulty < 1 || difficulty > 3) {
-            results.errors.push(`Satır ${rowNumber}: Zorluk 1-3 arasında olmalı.`);
+            results.errors.push(`Satir ${rowNumber}: Zorluk 1-3 arasinda olmali.`);
             continue;
         }
 
         if (tabooWords.length === 0) {
-            results.errors.push(`Satır ${rowNumber}: En az 1 yasaklı kelime gerekli.`);
+            results.errors.push(`Satir ${rowNumber}: En az 1 yasakli kelime gerekli.`);
             continue;
         }
 
@@ -215,7 +217,7 @@ export async function processBulkWordUpload(options: {
         });
         if (existing) {
             results.skipped += 1;
-            results.skippedRows.push(`Satır ${rowNumber}: "${wordText}" zaten mevcut, atlandı.`);
+            results.skippedRows.push(`Satir ${rowNumber}: "${wordText}" zaten mevcut, atlandi.`);
             continue;
         }
 
@@ -230,16 +232,16 @@ export async function processBulkWordUpload(options: {
                     wordCategories:
                         categoryIds.length > 0
                             ? {
-                                create: Array.from(new Set(categoryIds)).map((categoryId) => ({
-                                    categoryId,
-                                })),
-                            }
+                                  create: Array.from(new Set(categoryIds)).map((categoryId) => ({
+                                      categoryId,
+                                  })),
+                              }
                             : undefined,
                 },
             });
             results.success += 1;
         } catch {
-            results.errors.push(`Satır ${rowNumber}: Veritabanı hatası.`);
+            results.errors.push(`Satir ${rowNumber}: Veritabani hatasi.`);
         }
     }
 

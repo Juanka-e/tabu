@@ -127,6 +127,18 @@ export function Lobby({
         return result;
     }, [categories]);
 
+    const categoryPathLabelById = useMemo(() => {
+        const entries = new Map<number, string>();
+        for (const cat of categories) {
+            const children = (cat as { children?: CategoryItem[] }).children || [];
+            entries.set(cat.id, cat.name);
+            for (const child of children) {
+                entries.set(child.id, `${cat.name} / ${child.name}`);
+            }
+        }
+        return entries;
+    }, [categories]);
+
     // Initialize categories and difficulties when first loaded (run once)
     useEffect(() => {
         // Only initialize if both are empty (first time loading)
@@ -213,9 +225,9 @@ export function Lobby({
     const getSelectedText = () => {
         if (selectedCategories.length === 0) return "Henüz kategori seçilmedi";
         if (flatCategories.length > 0 && selectedCategories.length === flatCategories.length) return "Tüm Kategoriler";
-        const first = flatCategories.find((c) => c.id === selectedCategories[0]);
-        if (selectedCategories.length === 1) return first?.name || "1 kategori";
-        return `${first?.name || "?"} +${selectedCategories.length - 1} diğer`;
+        const firstLabel = categoryPathLabelById.get(selectedCategories[0]) || "1 kategori";
+        if (selectedCategories.length === 1) return firstLabel;
+        return `${firstLabel} +${selectedCategories.length - 1} diğer`;
     };
 
     return (
@@ -617,10 +629,7 @@ export function Lobby({
                                             children?: CategoryItem[];
                                         }
                                     ).children || [];
-                                    const allItems =
-                                        children.length > 0
-                                            ? children
-                                            : [mainCat];
+                                    const allItems = [mainCat, ...children];
                                     const allSubSelected = allItems.every((c) =>
                                         tempSelectedCategories.includes(c.id)
                                     );
@@ -743,6 +752,7 @@ export function Lobby({
                                                             tempSelectedCategories.includes(
                                                                 subCat.id
                                                             );
+                                                        const isParentRow = subCat.id === mainCat.id;
                                                         return (
                                                             <button
                                                                 key={subCat.id}
@@ -758,11 +768,20 @@ export function Lobby({
                                                                         : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                                                                     }`}
                                                             >
-                                                                <span className="text-xs sm:text-sm font-medium truncate">
-                                                                    {
-                                                                        subCat.name
-                                                                    }
-                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <span className="block truncate text-xs sm:text-sm font-medium">
+                                                                        {subCat.name}
+                                                                    </span>
+                                                                    {isParentRow ? (
+                                                                        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">
+                                                                            Ana kategori
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">
+                                                                            {mainCat.name} alt kategorisi
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 {isSelected && (
                                                                     <Check
                                                                         size={

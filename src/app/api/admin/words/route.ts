@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { validateWordCategorySelection } from "@/lib/words/category-assignment-policy";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const data = createWordSchema.parse(body);
+        const { normalizedCategoryIds } = await validateWordCategorySelection(data.categoryIds ?? []);
 
         // Check for duplicate
         const existing = await prisma.word.findUnique({
@@ -133,9 +135,9 @@ export async function POST(request: NextRequest) {
                 tabooWords: {
                     create: data.tabooWords.map((tw) => ({ tabooWordText: tw })),
                 },
-                wordCategories: data.categoryIds
+                wordCategories: normalizedCategoryIds.length > 0
                     ? {
-                        create: data.categoryIds.map((catId) => ({
+                        create: normalizedCategoryIds.map((catId) => ({
                             categoryId: catId,
                         })),
                     }
@@ -157,6 +159,9 @@ export async function POST(request: NextRequest) {
                 { error: "Geçersiz veri.", details: error.issues },
                 { status: 400 }
             );
+        }
+        if (error instanceof Error) {
+            return NextResponse.json({ error: error.message }, { status: 400 });
         }
         console.error("Failed to create word:", error);
         return NextResponse.json(

@@ -6,7 +6,7 @@
     "dev": "tsx server.ts",
     "dev:next": "next dev",
     "build": "next build",
-    "start": "node server.js",
+    "start": "tsx server.ts",
     "lint": "eslint",
     "seed:catalog": "tsx scripts/seed-store-catalog.ts",
     "test:catalog": "tsx scripts/test-mock-catalog.ts",

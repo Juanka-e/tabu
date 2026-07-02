@@ -1104,7 +1104,7 @@ function buildCosmeticRenderSnapshot(input: {
     templateKey: string | null;
     templateConfig: Prisma.JsonValue | null;
     badgeText?: string | null;
-}): CosmeticRenderSnapshot {
+}): Prisma.InputJsonObject & CosmeticRenderSnapshot {
     return {
         type: input.type,
         rarity: input.rarity,
@@ -1114,7 +1114,7 @@ function buildCosmeticRenderSnapshot(input: {
         templateKey: input.templateKey,
         templateConfig: normalizeTemplateConfig(input.templateConfig),
         badgeText: input.badgeText ?? null,
-    };
+    } as Prisma.InputJsonObject & CosmeticRenderSnapshot;
 }
 
 function readCosmeticRenderSnapshot(snapshot: Prisma.JsonValue | null): CosmeticRenderSnapshot | null {

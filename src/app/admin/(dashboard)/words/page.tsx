@@ -137,6 +137,41 @@ export default function AdminWordsPage() {
         return result;
     }, [categories]);
 
+    const categorySelectionWarning = useMemo(() => {
+        if (formCategoryIds.length === 0) {
+            return "";
+        }
+
+        const categoryById = new Map<number, CategoryOption>();
+        for (const category of categories) {
+            categoryById.set(category.id, category);
+            for (const child of category.children ?? []) {
+                categoryById.set(child.id, {
+                    id: child.id,
+                    name: child.name,
+                    color: null,
+                });
+            }
+        }
+
+        for (const category of categories) {
+            const childIds = new Set((category.children ?? []).map((child) => child.id));
+            if (!formCategoryIds.includes(category.id)) {
+                continue;
+            }
+
+            const selectedChild = formCategoryIds.find((categoryId) => childIds.has(categoryId));
+            if (!selectedChild) {
+                continue;
+            }
+
+            const childName = categoryById.get(selectedChild)?.name ?? "Alt kategori";
+            return `"${category.name}" ve "${childName}" birlikte secili. Aynı kelimeyi hem ana kategoriye hem alt kategorisine baglama.`;
+        }
+
+        return "";
+    }, [categories, formCategoryIds]);
+
     const fetchWords = useCallback(async () => {
         setLoading(true);
         const params = new URLSearchParams({
@@ -729,6 +764,17 @@ export default function AdminWordsPage() {
                                         </label>
                                     ))}
                                 </div>
+                                <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
+                                    <p>
+                                        Alt kategorili bir ana kategoriye kelime eklersen bu kelime o ana kategorinin genel havuzuna girer.
+                                        Alt kategori secilirse yalniz alt kategoriye baglamak daha temizdir.
+                                    </p>
+                                    {categorySelectionWarning ? (
+                                        <p className="font-semibold text-amber-600 dark:text-amber-300">
+                                            {categorySelectionWarning}
+                                        </p>
+                                    ) : null}
+                                </div>
                             </div>
                         </div>
 
@@ -826,13 +872,13 @@ export default function AdminWordsPage() {
                                 </div>
                                 <p className="mt-2">
                                     {bulkMode === "csv_categories"
-                                        ? "Farklı kategorilerde çok sayıda kelime yüklemek için kategori ve alt kategori adlarını CSV içinde ver."
-                                        : "Tüm satırlara aynı kategori veya alt kategori atanacaksa bu modu kullan."}
+                                        ? "Farkli kategorilerde cok sayida kelime yuklemek icin kategori ve alt kategori adlarini CSV icinde ver."
+                                        : "Tum satirlara ayni kategori veya alt kategori atanacaksa bu modu kullan."}
                                 </p>
                                 <p className="mt-2 text-xs">
                                     {bulkMode === "csv_categories"
-                                        ? "Alt kategori yoksa alt_kategori sütununu boş bırak. Kategori ve alt kategori adları sistemde zaten var olmalı."
-                                        : "Bu modda CSV içinden kategori okunmaz. Seçtiğin kategori ve varsa alt kategori tüm satırlara uygulanır."}
+                                        ? "Alt kategori yoksa alt_kategori sutununu bos birak. Alt kategori verilirse kelime yalniz alt kategoriye baglanir."
+                                        : "Bu modda CSV icinden kategori okunmaz. Alt kategori secersen kelime parent + child yerine yalniz alt kategoriye yazilir."}
                                 </p>
                                 <p className="mt-2 text-xs">
                                     Kategori taksonomisi bulk upload sırasında otomatik açılmaz. Yeni kategori gerekiyorsa önce kategori yönetiminden oluştur.

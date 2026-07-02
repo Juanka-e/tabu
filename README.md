@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hushle
 
-## Getting Started
+Hushle is the Next.js game and admin panel project in this repository. It includes the live room flow, Socket.IO game server, admin content tools, and the evolving cosmetic card system.
 
-First, run the development server:
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful commands:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+npm run db:sync
+```
 
-## Learn More
+## Production Shape
 
-To learn more about Next.js, take a look at the following resources:
+Recommended production stack:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Cloudflare
+2. Nginx
+3. Hushle app container
+4. MySQL container
+5. Redis container
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Notes:
 
-## Deploy on Vercel
+- Only Nginx should publish `80/443`.
+- The app should stay private on the Docker network.
+- Cloudflare Origin Certificate files should be mounted into `nginx/ssl/`.
+- Redis is provisioned now for cache, rate-limit, session coordination, and future realtime scaling work.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Docker Compose
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Copy `.env.production.example` to `.env.production`.
+2. Fill in real secrets and domain values.
+3. Put Cloudflare origin cert files here:
+   - `nginx/ssl/origin-cert.pem`
+   - `nginx/ssl/origin-key.pem`
+4. Start the stack:
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+The compose stack includes:
+
+- `app`
+- `mysql`
+- `redis`
+- `nginx`
+
+## Deployment Notes
+
+- In Docker, the app must bind `HOST=0.0.0.0`. It is still private because no app port is published.
+- Outside Docker, a host-level reverse proxy setup can bind the app to `127.0.0.1`.
+- See `docs/guides/deployment-security-guide.md` for the security topology and Cloudflare/Nginx notes.
