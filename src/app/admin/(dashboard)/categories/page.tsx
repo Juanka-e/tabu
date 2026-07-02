@@ -44,11 +44,19 @@ interface Category {
     _count?: { wordCategories: number };
 }
 
+interface DeleteCandidate {
+    id: number;
+    name: string;
+    parentId: number | null;
+    childCount: number;
+    wordCount: number;
+}
+
 interface SortableCategoryProps {
     category: Category;
     expanded: Set<number>;
     onCreateChild: (parentId: number) => void;
-    onDelete: (id: number) => void;
+    onDelete: (category: DeleteCandidate) => void;
     onEdit: (category: Category) => void;
     onToggleExpand: (id: number) => void;
     onToggleVisibility: (category: Category) => void;
@@ -140,7 +148,15 @@ function SortableCategory({
                         <Pencil size={15} />
                     </button>
                     <button
-                        onClick={() => onDelete(category.id)}
+                        onClick={() =>
+                            onDelete({
+                                id: category.id,
+                                name: category.name,
+                                parentId: category.parentId,
+                                childCount: category.children.length,
+                                wordCount: category._count?.wordCategories ?? 0,
+                            })
+                        }
                         className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                         title="Sil"
                     >
@@ -201,7 +217,15 @@ function SortableCategory({
                                     <Pencil size={15} />
                                 </button>
                                 <button
-                                    onClick={() => onDelete(child.id)}
+                                    onClick={() =>
+                                        onDelete({
+                                            id: child.id,
+                                            name: child.name,
+                                            parentId: child.parentId,
+                                            childCount: 0,
+                                            wordCount: child._count?.wordCategories ?? 0,
+                                        })
+                                    }
                                     className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                                     title="Sil"
                                 >
@@ -230,6 +254,11 @@ export default function AdminCategoriesPage() {
     const [formVisible, setFormVisible] = useState(true);
     const [formSaving, setFormSaving] = useState(false);
     const [formError, setFormError] = useState("");
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState<DeleteCandidate | null>(null);
+    const [deleteTargetId, setDeleteTargetId] = useState("");
+    const [deleteError, setDeleteError] = useState("");
+    const [deleteSaving, setDeleteSaving] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -288,6 +317,50 @@ export default function AdminCategoriesPage() {
     const totalSubcategories = useMemo(
         () => categories.reduce((sum, category) => sum + category.children.length, 0),
         [categories]
+    );
+
+    const flatCategoryOptions = useMemo(
+        () =>
+            categories.flatMap((category) => {
+                const rootOption = {
+                    id: category.id,
+                    name: category.name,
+                    parentId: category.parentId,
+                    label: `${category.name} (Ana kategori)`,
+                };
+
+                const childOptions = category.children.map((child) => ({
+                    id: child.id,
+                    name: child.name,
+                    parentId: child.parentId,
+                    label: `${category.name} / ${child.name}`,
+                }));
+
+                return [rootOption, ...childOptions];
+            }),
+        [categories]
+    );
+
+    const deleteTargetOptions = useMemo(() => {
+        if (!deleteCandidate) {
+            return [];
+        }
+
+        return flatCategoryOptions.filter((category) => {
+            if (category.id === deleteCandidate.id) {
+                return false;
+            }
+
+            if (deleteCandidate.parentId === null) {
+                return category.parentId === null;
+            }
+
+            return true;
+        });
+    }, [deleteCandidate, flatCategoryOptions]);
+
+    const deleteRequiresMove = Boolean(
+        deleteCandidate && (deleteCandidate.wordCount > 0 || deleteCandidate.childCount > 0)
     );
 
     const openCreate = useCallback((parentId: number | null = null) => {
@@ -398,28 +471,46 @@ export default function AdminCategoriesPage() {
         }
     }, [editing, fetchCategories, formColor, formName, formParentId, formVisible]);
 
-    const handleDelete = useCallback(async (categoryId: number) => {
-        if (!window.confirm("Bu kategoriyi silmek istediginize emin misiniz?")) {
+    const handleDelete = useCallback(async () => {
+        if (!deleteCandidate) {
             return;
         }
 
+        setDeleteSaving(true);
+        setDeleteError("");
         try {
-            const response = await fetch(`/api/admin/categories/${categoryId}`, {
-                method: "DELETE",
-            });
+            const response = deleteRequiresMove
+                ? await fetch(`/api/admin/categories/${deleteCandidate.id}/move-delete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ targetCategoryId: Number.parseInt(deleteTargetId, 10) }),
+                })
+                : await fetch(`/api/admin/categories/${deleteCandidate.id}`, {
+                    method: "DELETE",
+                });
             const payload = await response.json().catch(() => null) as { error?: string } | null;
 
             if (!response.ok) {
-                setPageError(payload?.error ?? "Kategori silinemedi.");
+                const message = payload?.error ?? "Kategori silinemedi.";
+                setDeleteError(message);
+                setPageError(message);
                 return;
             }
 
+            setDeleteOpen(false);
+            setDeleteCandidate(null);
+            setDeleteTargetId("");
+            setDeleteError("");
             setPageError("");
             await fetchCategories();
         } catch {
-            setPageError("Kategori silinirken ag hatasi olustu.");
+            const message = "Kategori silinirken ag hatasi olustu.";
+            setDeleteError(message);
+            setPageError(message);
+        } finally {
+            setDeleteSaving(false);
         }
-    }, [fetchCategories]);
+    }, [deleteCandidate, deleteRequiresMove, deleteTargetId, fetchCategories]);
 
     const toggleVisibility = useCallback(async (category: Category) => {
         try {
@@ -541,7 +632,12 @@ export default function AdminCategoriesPage() {
                                         category={category}
                                         expanded={expanded}
                                         onCreateChild={openCreate}
-                                        onDelete={handleDelete}
+                                        onDelete={(selectedCategory) => {
+                                            setDeleteCandidate(selectedCategory);
+                                            setDeleteTargetId("");
+                                            setDeleteError("");
+                                            setDeleteOpen(true);
+                                        }}
                                         onEdit={openEdit}
                                         onToggleExpand={toggleExpand}
                                         onToggleVisibility={toggleVisibility}
@@ -670,6 +766,106 @@ export default function AdminCategoriesPage() {
                             >
                                 {formSaving ? <Loader2 size={16} className="animate-spin" /> : null}
                                 {editing ? "Guncelle" : "Kaydet"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {deleteOpen && deleteCandidate ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-slate-700">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kategoriyi Sil</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {deleteCandidate.name}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setDeleteOpen(false);
+                                    setDeleteCandidate(null);
+                                    setDeleteTargetId("");
+                                    setDeleteError("");
+                                }}
+                                className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                                    <div className="text-xs text-slate-500">Bagli kelime</div>
+                                    <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                                        {deleteCandidate.wordCount}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                                    <div className="text-xs text-slate-500">Alt kategori</div>
+                                    <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                                        {deleteCandidate.childCount}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {deleteRequiresMove ? (
+                                <div className="space-y-3">
+                                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                                        Bu kategori bos degil. Silmeden once bagli kelimeler ve varsa alt kategoriler baska bir kategoriye tasinacak.
+                                    </div>
+                                    <div>
+                                        <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                            Hedef kategori
+                                        </label>
+                                        <select
+                                            value={deleteTargetId}
+                                            onChange={(event) => setDeleteTargetId(event.target.value)}
+                                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+                                        >
+                                            <option value="">Hedef kategori sec</option>
+                                            {deleteTargetOptions.map((category) => (
+                                                <option key={category.id} value={String(category.id)}>
+                                                    {category.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                                    Bu kategori bos. Direkt silinecek.
+                                </div>
+                            )}
+
+                            {deleteError ? (
+                                <div className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                                    {deleteError}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="flex justify-end gap-3 border-t border-gray-100 p-5 dark:border-slate-700">
+                            <button
+                                onClick={() => {
+                                    setDeleteOpen(false);
+                                    setDeleteCandidate(null);
+                                    setDeleteTargetId("");
+                                    setDeleteError("");
+                                }}
+                                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
+                            >
+                                Vazgec
+                            </button>
+                            <button
+                                onClick={() => void handleDelete()}
+                                disabled={deleteSaving || (deleteRequiresMove && !deleteTargetId)}
+                                className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {deleteSaving ? <Loader2 size={16} className="animate-spin" /> : null}
+                                {deleteRequiresMove ? "Tasiyip Sil" : "Sil"}
                             </button>
                         </div>
                     </div>

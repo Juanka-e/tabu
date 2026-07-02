@@ -67,3 +67,23 @@ export async function assertCategoryCanBeDeleted(categoryId: number): Promise<vo
         throw new Error("Bu kategoriye bagli kelimeler var. Once kelime baglarini temizleyin.");
     }
 }
+
+export function hasCategoryHierarchyConflict(
+    categoryIds: number[],
+    categoriesById: Map<number, { id: number; name: string; parentId: number | null }>
+): boolean {
+    const categorySet = new Set(categoryIds);
+
+    for (const categoryId of categorySet) {
+        const category = categoriesById.get(categoryId);
+        if (!category?.parentId) {
+            continue;
+        }
+
+        if (categorySet.has(category.parentId)) {
+            return true;
+        }
+    }
+
+    return false;
+}
