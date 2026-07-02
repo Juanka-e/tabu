@@ -19,6 +19,10 @@ import {
     refreshOnlineRoomMembership,
     releaseOnlineRoomMembership,
 } from "./room-membership";
+import {
+    clearPendingRoomAdminHandoff,
+    setPendingRoomAdminHandoff,
+} from "./room-admin-handoff";
 import type { PlayerCosmetics } from "@/types/game";
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -293,6 +297,7 @@ export function setupGameSocket(io: Server): void {
         }
         rooms.delete(roomCode);
         clearWordPool(roomCode);
+        void clearPendingRoomAdminHandoff(roomCode);
     }
 
     function syncRegisteredUserRoomIndex(room: RoomData): void {
@@ -986,6 +991,10 @@ export function setupGameSocket(io: Server): void {
                         // This fixes the issue where refreshing lost admin rights
                         if (reconnectingPlayer.playerId === room.creatorPlayerId) {
                             room.creatorId = socket.id;
+                            void clearPendingRoomAdminHandoff(
+                                room.odaKodu,
+                                reconnectingPlayer.playerId
+                            );
 
                             // Clear any pending admin timeout
                             const timeout = roomAdminTimeouts.get(room.odaKodu);
@@ -1098,6 +1107,7 @@ export function setupGameSocket(io: Server): void {
                 if (newAdmin) {
                     room.creatorId = newAdmin.id;
                     room.creatorPlayerId = newAdmin.playerId;
+                    void clearPendingRoomAdminHandoff(room.odaKodu);
                     persistRoom(room);
                     broadcastLobby(room);
                     if (room.oyunDurumu.oyunAktifMi) {
@@ -1169,6 +1179,8 @@ export function setupGameSocket(io: Server): void {
                         room.oyuncular[0];
                     if (nextAdmin) {
                         room.creatorId = nextAdmin.id;
+                        room.creatorPlayerId = nextAdmin.playerId;
+                        void clearPendingRoomAdminHandoff(room.odaKodu);
                     }
                 }
 
@@ -1495,6 +1507,11 @@ export function setupGameSocket(io: Server): void {
                 // Admin Disconnect Logic
                 // Start Timeout to transfer admin
                 const roomCode = room.odaKodu; // Capture room code for timeout closure
+                void setPendingRoomAdminHandoff(
+                    roomCode,
+                    room.creatorPlayerId,
+                    ADMIN_TIMEOUT_MS
+                );
 
                 const timeout = setTimeout(() => {
                     const currentRoom = getRoom(roomCode); // Use room code instead of socket.id
@@ -1510,10 +1527,19 @@ export function setupGameSocket(io: Server): void {
                         if (nextAdmin) {
                             currentRoom.creatorId = nextAdmin.id;
                             currentRoom.creatorPlayerId = nextAdmin.playerId;
+                            void clearPendingRoomAdminHandoff(
+                                roomCode,
+                                adminPlayer.playerId
+                            );
                             persistRoom(currentRoom);
                             broadcastLobby(currentRoom);
                             io.to(roomCode).emit("hata", `Yönetici süresi doldu. Yeni yönetici: ${nextAdmin.ad}`);
                         }
+                    } else if (adminPlayer) {
+                        void clearPendingRoomAdminHandoff(
+                            roomCode,
+                            adminPlayer.playerId
+                        );
                     }
                     roomAdminTimeouts.delete(roomCode);
 

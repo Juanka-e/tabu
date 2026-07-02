@@ -29,6 +29,7 @@ Asama 2 mevcut durum:
 - Redis yoksa local memory fallback ile gelistirme akisi korunuyor
 - join tamamlanamazsa membership claim temizleniyor
 - socket disconnect sonrasinda kayit kontrollu sekilde serbest birakiliyor
+- pending admin handoff metadata'si TTL ile takip ediliyor ve reconnect / manuel devir / timeout sonrasinda temizleniyor
 
 Asama 3:
 
