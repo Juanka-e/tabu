@@ -25,6 +25,7 @@ Asama 2 mevcut durum:
 
 - authenticated kullanici icin server-side `userId -> roomCode` membership index eklendi
 - authenticated dashboard girisinde aktif oda kontrolu `/api/user/active-room` uzerinden server-side okunuyor
+- dashboard aktif oda baglamini room code + pending handoff bilgisiyle okuyup kullaniciya dogrudan "odana don" aksiyonu sunuyor
 - Redis varsa TTL yenilenen dagitik kayit kullaniliyor
 - Redis yoksa local memory fallback ile gelistirme akisi korunuyor
 - join tamamlanamazsa membership claim temizleniyor
