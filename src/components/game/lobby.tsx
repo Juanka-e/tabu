@@ -602,7 +602,7 @@ export function Lobby({
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {isHost
-                                        ? "Ana kategoriyi seçerek tümünü ekleyebilirsin."
+                                        ? "Soldaki grup kutusu ana kategori ile alt kategorilerini birlikte seçer. Kart listesindeki ana kategori satiri ise yalnizca ana kategoriye bagli kelimeleri ekler."
                                         : "Bu liste yalnızca görüntüleme amaçlıdır. Kategori ve zorlukları sadece oda yöneticisi değiştirebilir."}
                                 </p>
 
@@ -818,7 +818,7 @@ export function Lobby({
                                                                     </span>
                                                                     {isParentRow ? (
                                                                         <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">
-                                                                            Ana kategori
+                                                                            Sadece ana kategori kelimeleri
                                                                         </span>
                                                                     ) : (
                                                                         <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">

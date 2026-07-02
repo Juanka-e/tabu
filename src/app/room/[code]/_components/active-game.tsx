@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { ArrowRight, Check, Pause, Play, RotateCcw, Sparkles, X } from "lucide-react";
 import { GameCard } from "@/components/game/game-card";
@@ -11,6 +11,10 @@ import {
     getCosmeticMotionClass,
     getCosmeticMotionStyle,
 } from "@/lib/cosmetics/effects";
+import {
+    readCardFlipSettings,
+    writeCardFlipSettings,
+} from "@/lib/game/card-flip-settings";
 import {
     canUseTabuAction,
     getActiveNarratorTeam,
@@ -45,7 +49,10 @@ const GUESS_PROMPT_TITLE = "Tahmin Et";
 const GAME_PAUSED_LABEL = "Oyun duraklatıldı";
 const RETURN_TO_LOBBY_LABEL = "Lobiye Dön";
 const CORRECT_LABEL = "DOĞRU";
-const CARD_FLIP_LABEL = "Flip";
+const CARD_FLIP_LABEL = "Kart Flip";
+const CARD_FLIP_ON_LABEL = "Acik";
+const CARD_FLIP_OFF_LABEL = "Kapali";
+const CARD_FLIP_HINT_LABEL = "Acikken karta tiklayarak on ve arka yuz arasinda gecis yapabilirsin.";
 
 export function ActiveGame({
     gameState,
@@ -272,7 +279,7 @@ export function ActiveGame({
     );
 }
 
-function ViewerCardPreview({
+export function ViewerCardPreview({
     card,
     cardFaceTheme,
     cardBackTheme,
@@ -281,12 +288,22 @@ function ViewerCardPreview({
     cardFaceTheme: ResolvedCardFaceTheme | null;
     cardBackTheme: ResolvedCardBackTheme | null;
 }) {
-    const [isFlipEnabled, setIsFlipEnabled] = useState(true);
+    const [isFlipEnabled, setIsFlipEnabled] = useState(false);
     const [isFlipped, setIsFlipped] = useState(false);
+    const canFlip = isFlipEnabled && Boolean(cardBackTheme);
+
+    useEffect(() => {
+        setIsFlipEnabled(readCardFlipSettings().enabled);
+    }, []);
+
+    useEffect(() => {
+        setIsFlipped(false);
+    }, [card.id]);
 
     const handleFlipToggle = () => {
         setIsFlipEnabled((current) => {
             const next = !current;
+            writeCardFlipSettings({ enabled: next });
             if (!next) {
                 setIsFlipped(false);
             }
@@ -302,6 +319,7 @@ function ViewerCardPreview({
                     role="switch"
                     aria-checked={isFlipEnabled}
                     onClick={handleFlipToggle}
+                    data-testid="card-flip-toggle"
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
                         isFlipEnabled
                             ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
@@ -310,20 +328,26 @@ function ViewerCardPreview({
                 >
                     {CARD_FLIP_LABEL}
                     <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] dark:bg-slate-900/20">
-                        {isFlipEnabled ? "Acik" : "Kapali"}
+                        {isFlipEnabled ? CARD_FLIP_ON_LABEL : CARD_FLIP_OFF_LABEL}
                     </span>
                 </button>
             </div>
+            {canFlip ? (
+                <p className="mb-4 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {CARD_FLIP_HINT_LABEL}
+                </p>
+            ) : null}
             <div className="flex justify-center">
                 <button
                     type="button"
                     onClick={() => {
-                        if (isFlipEnabled) {
+                        if (canFlip) {
                             setIsFlipped((current) => !current);
                         }
                     }}
-                    disabled={!isFlipEnabled}
-                    className={`relative h-[500px] w-full max-w-[360px] [perspective:1600px] ${isFlipEnabled ? "cursor-pointer" : "cursor-default"}`}
+                    data-testid="viewer-card-preview"
+                    aria-pressed={isFlipped}
+                    className={`relative h-[500px] w-full max-w-[360px] [perspective:1600px] ${canFlip ? "cursor-pointer" : "cursor-default"}`}
                 >
                     <div
                         className={`relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] ${
@@ -343,7 +367,7 @@ function ViewerCardPreview({
     );
 }
 
-function CardBackPanel({ cardBackTheme }: { cardBackTheme: ResolvedCardBackTheme | null }) {
+export function CardBackPanel({ cardBackTheme }: { cardBackTheme: ResolvedCardBackTheme | null }) {
     const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
     const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
     const cardBackPatternStyle = cardBackTheme

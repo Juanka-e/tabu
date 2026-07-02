@@ -124,7 +124,9 @@ function shouldFallbackToDefaultSettings(error: unknown): boolean {
         error.message.includes("Can't reach database server") ||
         error.message.includes("Can't connect to database server") ||
         error.message.includes("Connection refused") ||
-        error.message.includes("ECONNREFUSED")
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("the URL must start with the protocol `prisma://`") ||
+        error.message.includes("the URL must start with the protocol `prisma+postgres://`")
     );
 }
 

@@ -61,6 +61,7 @@ Redis'e tasinmasi uygun state:
 - request rate limit sayaclari
 - `userId -> roomCode` aktif oda membership kaydi
 - pending admin handoff metadata'si
+- kisa TTL room action lock'lari (`start-game`, `reset-game`, `game-control`, `transfer-host`, `shuffle-teams`)
 - ileride gerekiyorsa invalidation anahtarlari ve kisa omurlu coordination lock'lari
 
 Redis'e tasinmamasi gereken state:

@@ -28,6 +28,10 @@ import { AdminSelectionBar } from "@/components/admin/admin-selection-bar";
 import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
 import { useAdminSelection } from "@/hooks/use-admin-selection";
+import {
+    describeBulkCategoryAssignment,
+    resolveWordCategoryToggle,
+} from "@/lib/words/category-selection-ui";
 
 interface TabooWord {
     id: number;
@@ -107,6 +111,7 @@ export default function AdminWordsPage() {
     const [formCategoryIds, setFormCategoryIds] = useState<number[]>([]);
     const [formSaving, setFormSaving] = useState(false);
     const [formError, setFormError] = useState("");
+    const [formHelperText, setFormHelperText] = useState("");
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -171,6 +176,11 @@ export default function AdminWordsPage() {
 
         return "";
     }, [categories, formCategoryIds]);
+
+    const bulkAssignmentSummary = useMemo(
+        () => describeBulkCategoryAssignment(bulkCategoryId, bulkSubcategoryId, categories),
+        [bulkCategoryId, bulkSubcategoryId, categories]
+    );
 
     const fetchWords = useCallback(async () => {
         setLoading(true);
@@ -250,6 +260,7 @@ export default function AdminWordsPage() {
         setFormTabooWords(buildEmptyTabooFields());
         setFormCategoryIds([]);
         setFormError("");
+        setFormHelperText("");
     }, []);
 
     const openCreate = useCallback(() => {
@@ -268,6 +279,7 @@ export default function AdminWordsPage() {
         setFormTabooWords(tabooWords);
         setFormCategoryIds(word.wordCategories.map((entry) => entry.category.id));
         setFormError("");
+        setFormHelperText("");
         setFormOpen(true);
     }, []);
 
@@ -280,12 +292,12 @@ export default function AdminWordsPage() {
     }, []);
 
     const toggleCategory = useCallback((categoryId: number) => {
-        setFormCategoryIds((current) =>
-            current.includes(categoryId)
-                ? current.filter((itemId) => itemId !== categoryId)
-                : [...current, categoryId]
-        );
-    }, []);
+        setFormCategoryIds((current) => {
+            const result = resolveWordCategoryToggle(current, categoryId, categories);
+            setFormHelperText(result.helperText);
+            return result.nextSelection;
+        });
+    }, [categories]);
 
     const handleSave = useCallback(async () => {
         const cleanedTaboos = formTabooWords
@@ -299,6 +311,11 @@ export default function AdminWordsPage() {
 
         if (cleanedTaboos.length === 0) {
             setFormError("En az bir yasakli kelime gerekli.");
+            return;
+        }
+
+        if (categorySelectionWarning) {
+            setFormError("Ana kategori ve onun alt kategorisi ayni kelimede birlikte tutulamaz.");
             return;
         }
 
@@ -766,9 +783,16 @@ export default function AdminWordsPage() {
                                 </div>
                                 <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
                                     <p>
-                                        Alt kategorili bir ana kategoriye kelime eklersen bu kelime o ana kategorinin genel havuzuna girer.
-                                        Alt kategori secilirse yalniz alt kategoriye baglamak daha temizdir.
+                                        Ana kategori satiri genel havuzu temsil eder. Alt kategori satiri ise yalniz kendi alt havuzunu temsil eder.
                                     </p>
+                                    <p>
+                                        UI parent + child secimini ayni anda tutmaz; alt kategori secersen parent otomatik kaldirilir.
+                                    </p>
+                                    {formHelperText ? (
+                                        <p className="font-semibold text-sky-700 dark:text-sky-300">
+                                            {formHelperText}
+                                        </p>
+                                    ) : null}
                                     {categorySelectionWarning ? (
                                         <p className="font-semibold text-amber-600 dark:text-amber-300">
                                             {categorySelectionWarning}
@@ -880,6 +904,11 @@ export default function AdminWordsPage() {
                                         ? "Alt kategori yoksa alt_kategori sutununu bos birak. Alt kategori verilirse kelime yalniz alt kategoriye baglanir."
                                         : "Bu modda CSV icinden kategori okunmaz. Alt kategori secersen kelime parent + child yerine yalniz alt kategoriye yazilir."}
                                 </p>
+                                {bulkAssignmentSummary ? (
+                                    <p className="mt-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs font-medium text-sky-700 dark:text-sky-300">
+                                        {bulkAssignmentSummary}
+                                    </p>
+                                ) : null}
                                 <p className="mt-2 text-xs">
                                     Kategori taksonomisi bulk upload sırasında otomatik açılmaz. Yeni kategori gerekiyorsa önce kategori yönetiminden oluştur.
                                 </p>

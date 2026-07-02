@@ -10,7 +10,7 @@ import { RulesModal } from "@/components/game/rules-modal";
 import { Lobby } from "@/components/game/lobby";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
-import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound } from "lucide-react";
+import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, Hash } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useBranding } from "@/components/providers/branding-provider";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
@@ -45,6 +45,20 @@ const ROOM_SWITCH_TEAM_EVENT = "takim_degistir";
 const ROOM_START_GAME_EVENT = "oyun_baslat";
 const ROOM_GAME_CONTROL_EVENT = "oyun_kontrol";
 const ROOM_RESET_GAME_EVENT = "oyun_sifirla";
+
+function flattenCategoryIds(items: CategoryItem[]): number[] {
+    const ids: number[] = [];
+
+    for (const item of items) {
+        ids.push(item.id);
+        const children = item.children ?? [];
+        for (const child of children) {
+            ids.push(child.id);
+        }
+    }
+
+    return ids;
+}
 
 export default function RoomPage() {
     const params = useParams();
@@ -134,6 +148,17 @@ export default function RoomPage() {
     const currentFrameAccentColor = currentPlayer?.cosmetics?.frameAccentColor ?? null;
     const canEditIdentity = view === GameView.LOBBY;
     const shouldShowIdentityLabel = !isMobile && view === GameView.LOBBY;
+    const allCategoryIds = flattenCategoryIds(categories);
+    const activeStageLabel =
+        view === GameView.PLAYING
+            ? "Oyun"
+            : view === GameView.TRANSITION
+                ? "Hazirlik"
+                : view === GameView.GAME_OVER
+                    ? "Mac Sonu"
+                    : "Lobi";
+    const brandLabel = branding.siteName.trim() || "Hushle";
+    const brandShortLabel = branding.siteShortName.trim() || "H";
 
     useEffect(() => {
         const syncStoredUsername = () => {
@@ -728,7 +753,7 @@ export default function RoomPage() {
                 onUpdateDifficulties={(diffs) => {
                     setSelectedDifficulties(diffs);
                     emit("kategoriAyarlariGuncelle", {
-                        seciliKategoriler: selectedCategories.length > 0 ? selectedCategories : categories.map(c => c.id),
+                        seciliKategoriler: selectedCategories.length > 0 ? selectedCategories : allCategoryIds,
                         seciliZorluklar: diffs,
                     });
                 }}
@@ -814,27 +839,48 @@ export default function RoomPage() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
-                    <div className="relative z-[80] grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
-                        <div className="min-h-[2.75rem]" />
-                        <div className="pointer-events-none flex min-w-0 items-center justify-center">
-                            <div className="flex max-w-[8.5rem] items-center justify-center rounded-full border border-white/60 bg-white/86 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/84 sm:max-w-[10.5rem] sm:px-4 md:max-w-[12rem]">
-                                {branding.logoUrl ? (
-                                    <Image
-                                        src={branding.logoUrl}
-                                        alt={`${branding.siteName} logo`}
-                                        width={176}
-                                        height={44}
-                                        unoptimized
-                                        className="h-7 w-auto max-w-full object-contain sm:h-8 lg:h-9"
-                                    />
-                                ) : (
-                                    <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.22em] text-transparent sm:text-sm lg:text-base">
-                                        {branding.siteShortName}
-                                    </span>
-                                )}
+                    <div className="relative z-[80] flex items-start justify-between gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
+                        <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+                            <div className="flex min-w-0 items-center gap-3 rounded-[1.4rem] border border-white/60 bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:px-4">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950">
+                                    {branding.logoUrl ? (
+                                        <Image
+                                            src={branding.logoUrl}
+                                            alt={`${branding.siteName} logo`}
+                                            width={44}
+                                            height={44}
+                                            unoptimized
+                                            className="h-8 w-8 object-contain"
+                                        />
+                                    ) : (
+                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.22em] text-transparent">
+                                            {brandShortLabel}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300/90 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:border-slate-600/80 dark:bg-slate-800/70 dark:text-slate-500 md:flex">
+                                    FX
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm font-black tracking-[0.18em] text-slate-900 dark:text-white sm:text-base">
+                                        {brandLabel}
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                        <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            {activeStageLabel}
+                                        </span>
+                                        <span className="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800 sm:inline-flex">
+                                            <Hash size={11} />
+                                            {roomCode}
+                                        </span>
+                                        <span className="hidden rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800 md:inline-flex">
+                                            Amblem Yakinda
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="justify-self-end flex items-start gap-2">
+                        <div className="flex items-start gap-2">
                         <div className="relative">
                             {!isMobile ? (
                                 <button

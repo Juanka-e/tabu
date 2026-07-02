@@ -16,6 +16,11 @@ import {
     setPendingRoomAdminHandoff,
 } from "../src/lib/socket/room-admin-handoff";
 import {
+    acquireRoomActionLock,
+    releaseRoomActionLock,
+    resetRoomActionLockState,
+} from "../src/lib/socket/room-action-lock";
+import {
     resetRedisTestClient,
     setRedisTestClient,
     type RedisLikeClient,
@@ -167,6 +172,15 @@ async function run(): Promise<void> {
     await clearPendingRoomAdminHandoff("ROOM42", "user:42");
     assert.equal(await getPendingRoomAdminHandoff("ROOM42"), null);
 
+    const firstLock = await acquireRoomActionLock("ROOM42", "start-game", 5_000);
+    assert.equal(firstLock, true);
+    const secondLock = await acquireRoomActionLock("ROOM42", "start-game", 5_000);
+    assert.equal(secondLock, false);
+    await releaseRoomActionLock("ROOM42", "start-game");
+    const thirdLock = await acquireRoomActionLock("ROOM42", "start-game", 5_000);
+    assert.equal(thirdLock, true);
+    await releaseRoomActionLock("ROOM42", "start-game");
+
     console.log("distributed coordination smoke test passed");
 }
 
@@ -180,6 +194,7 @@ run()
         resetRequestRateLimitBuckets();
         resetRoomMembershipState();
         resetRoomAdminHandoffState();
+        resetRoomActionLockState();
 
         if (originalRedisUrl === undefined) {
             delete process.env.REDIS_URL;

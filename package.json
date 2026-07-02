@@ -19,6 +19,7 @@
     "test:admin-guards": "tsx scripts/test-admin-route-guards.ts",
     "test:card-face": "tsx scripts/test-card-face-theme.ts",
     "test:card-back": "tsx scripts/test-card-back-theme.ts",
+    "test:card-flip-settings": "tsx scripts/test-card-flip-settings.ts",
     "test:room-card-themes": "tsx scripts/test-room-card-themes.ts",
     "test:room-display": "tsx scripts/test-room-display.ts",
     "test:frame-theme": "tsx scripts/test-frame-theme.ts",
@@ -52,6 +53,7 @@
     "test:integration-hub": "tsx scripts/test-integration-hub.ts",
     "test:health-guard": "tsx scripts/test-health-guard.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
+    "test:word-category-selection-ui": "tsx scripts/test-word-category-selection-ui.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push --skip-generate",
     "db:generate": "npx prisma generate",
@@ -98,6 +100,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",

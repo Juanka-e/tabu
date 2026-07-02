@@ -24,6 +24,7 @@ import {
     getPendingRoomAdminHandoff,
     setPendingRoomAdminHandoff,
 } from "./room-admin-handoff";
+import { runWithRoomActionLock } from "./room-action-lock";
 import type { PlayerCosmetics } from "@/types/game";
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -1086,48 +1087,56 @@ export function setupGameSocket(io: Server): void {
         );
 
         // ── Team Shuffle ──
-        socket.on("takimlariKaristir", () => {
+        socket.on("takimlariKaristir", async () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player || player.playerId !== room.creatorPlayerId) return;
-
-            shuffleArray(room.oyuncular);
-            const half = Math.ceil(room.oyuncular.length / 2);
-            room.oyuncular.forEach((player, index) => {
-                player.takim = index < half ? "A" : "B";
+            const lock = await runWithRoomActionLock(room.odaKodu, "shuffle-teams", 2_500, async () => {
+                shuffleArray(room.oyuncular);
+                const half = Math.ceil(room.oyuncular.length / 2);
+                room.oyuncular.forEach((player, index) => {
+                    player.takim = index < half ? "A" : "B";
+                });
+                persistRoom(room);
+                broadcastLobby(room);
             });
-            persistRoom(room);
-            broadcastLobby(room);
+            if (!lock.acquired) {
+                socket.emit("hata", "Takimlar zaten guncelleniyor. Lutfen tekrar deneyin.");
+            }
         });
 
         // ── Transfer Host ──
         // ── Transfer Host ──
         socket.on(
             "yoneticiligiDevret",
-            ({ targetPlayerId }: { targetPlayerId: string }) => {
+            async ({ targetPlayerId }: { targetPlayerId: string }) => {
                 const room = getRoomBySocketId(socket.id);
                 if (!room) return;
                 const player = room.oyuncular.find((p) => p.id === socket.id);
                 if (!player || player.playerId !== room.creatorPlayerId) return;
-
-                const newAdmin = room.oyuncular.find(
-                    (player) =>
-                        player.playerId === targetPlayerId && player.online
-                );
-                if (newAdmin) {
-                    room.creatorId = newAdmin.id;
-                    room.creatorPlayerId = newAdmin.playerId;
-                    void clearPendingRoomAdminHandoff(room.odaKodu);
-                    void emitAdminHandoffStatus(room.odaKodu);
-                    persistRoom(room);
-                    broadcastLobby(room);
-                    if (room.oyunDurumu.oyunAktifMi) {
-                        io.to(room.odaKodu).emit("oyunDurumuGuncelle", {
-                            ...room.oyunDurumu,
-                            creatorId: room.creatorId,
-                        });
+                const lock = await runWithRoomActionLock(room.odaKodu, "transfer-host", 2_500, async () => {
+                    const newAdmin = room.oyuncular.find(
+                        (player) =>
+                            player.playerId === targetPlayerId && player.online
+                    );
+                    if (newAdmin) {
+                        room.creatorId = newAdmin.id;
+                        room.creatorPlayerId = newAdmin.playerId;
+                        await clearPendingRoomAdminHandoff(room.odaKodu);
+                        await emitAdminHandoffStatus(room.odaKodu);
+                        persistRoom(room);
+                        broadcastLobby(room);
+                        if (room.oyunDurumu.oyunAktifMi) {
+                            io.to(room.odaKodu).emit("oyunDurumuGuncelle", {
+                                ...room.oyunDurumu,
+                                creatorId: room.creatorId,
+                            });
+                        }
                     }
+                });
+                if (!lock.acquired) {
+                    socket.emit("hata", "Yoneticilik devri zaten isleniyor. Lutfen tekrar deneyin.");
                 }
             }
         );
@@ -1245,92 +1254,99 @@ export function setupGameSocket(io: Server): void {
                 if (!room) return;
                 const player = room.oyuncular.find((p) => p.id === socket.id);
                 if (!player || player.playerId !== room.creatorPlayerId) return;
-
-                const teamA = room.oyuncular.filter(
-                    (player) => player.takim === "A" && player.online
-                );
-                const teamB = room.oyuncular.filter(
-                    (player) => player.takim === "B" && player.online
-                );
-
-                if (teamA.length < 2 || teamB.length < 2) {
-                    socket.emit(
-                        "hata",
-                        "Oyunu başlatabilmek için her iki takımda da en az ikişer çevrimiçi oyuncu bulunmalı."
+                const lock = await runWithRoomActionLock(room.odaKodu, "start-game", 4_000, async () => {
+                    const teamA = room.oyuncular.filter(
+                        (player) => player.takim === "A" && player.online
                     );
-                    return;
+                    const teamB = room.oyuncular.filter(
+                        (player) => player.takim === "B" && player.online
+                    );
+
+                    if (teamA.length < 2 || teamB.length < 2) {
+                        socket.emit(
+                            "hata",
+                            "Oyunu başlatabilmek için her iki takımda da en az ikişer çevrimiçi oyuncu bulunmalı."
+                        );
+                        return;
+                    }
+
+                    room.ayarlar = normalizeRoomSettings(ayarlar);
+                    room.gecerliKategoriIdleri = seciliKategoriler;
+                    room.gecerliZorlukSeviyeleri = seciliZorluklar;
+
+                    if (
+                        !room.gecerliKategoriIdleri ||
+                        room.gecerliKategoriIdleri.length === 0
+                    ) {
+                        socket.emit("hata", "Lütfen en az bir kategori seçin.");
+                        return;
+                    }
+                    if (
+                        !room.gecerliZorlukSeviyeleri ||
+                        room.gecerliZorlukSeviyeleri.length === 0
+                    ) {
+                        socket.emit("hata", "Lütfen en az bir zorluk seviyesi seçin.");
+                        return;
+                    }
+
+                    const toplamTur =
+                        room.ayarlar.mod === "tur" ? room.ayarlar.deger : 0;
+
+                    room.oyunDurumu = {
+                        ...room.oyunDurumu,
+                        oyunAktifMi: true,
+                        skor: { A: 0, B: 0 },
+                        mevcutTur: 0,
+                        toplamTur,
+                        anlatacakTakim: "A",
+                        takimA_anlaticiIndex: -1,
+                        takimB_anlaticiIndex: -1,
+                        altinSkorAktif: false,
+                        basladiAt: Date.now(),
+                        bittiAt: null,
+                    };
+
+                    persistRoom(room);
+                    io.to(room.odaKodu).emit("oyunBasladi");
+                    startNewRound(room.odaKodu);
+                });
+                if (!lock.acquired) {
+                    socket.emit("hata", "Oyun zaten baslatiliyor. Lutfen bekleyin.");
                 }
-
-                room.ayarlar = normalizeRoomSettings(ayarlar);
-
-                room.gecerliKategoriIdleri = seciliKategoriler;
-                room.gecerliZorlukSeviyeleri = seciliZorluklar;
-
-                if (
-                    !room.gecerliKategoriIdleri ||
-                    room.gecerliKategoriIdleri.length === 0
-                ) {
-                    socket.emit("hata", "Lütfen en az bir kategori seçin.");
-                    return;
-                }
-                if (
-                    !room.gecerliZorlukSeviyeleri ||
-                    room.gecerliZorlukSeviyeleri.length === 0
-                ) {
-                    socket.emit("hata", "Lütfen en az bir zorluk seviyesi seçin.");
-                    return;
-                }
-
-                const toplamTur =
-                    room.ayarlar.mod === "tur" ? room.ayarlar.deger : 0;
-
-                room.oyunDurumu = {
-                    ...room.oyunDurumu,
-                    oyunAktifMi: true,
-                    skor: { A: 0, B: 0 },
-                    mevcutTur: 0,
-                    toplamTur,
-                    anlatacakTakim: "A",
-                    takimA_anlaticiIndex: -1,
-                    takimB_anlaticiIndex: -1,
-                    altinSkorAktif: false,
-                    basladiAt: Date.now(),
-                    bittiAt: null,
-                };
-
-                persistRoom(room);
-                io.to(room.odaKodu).emit("oyunBasladi");
-                startNewRound(room.odaKodu);
             };
         for (const eventName of ROOM_START_GAME_EVENTS) {
             socket.on(eventName, startGameHandler);
         }
 
         // ── Pause / Resume ──
-        const gameControlHandler = () => {
+        const gameControlHandler = async () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player || player.playerId !== room.creatorPlayerId) return;
+            const lock = await runWithRoomActionLock(room.odaKodu, "game-control", 2_500, async () => {
+                room.oyunDurumu.oyunDurduruldu = !room.oyunDurumu.oyunDurduruldu;
+                persistRoom(room);
 
-            room.oyunDurumu.oyunDurduruldu = !room.oyunDurumu.oyunDurduruldu;
-            persistRoom(room);
-
-            if (room.oyunDurumu.gecisEkraninda) {
-                io.to(room.odaKodu).emit("turGecisDurumGuncelle", {
-                    oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
-                    kalanSure: room.oyunDurumu.kalanGecisSuresi,
-                });
-            } else if (room.oyunDurumu.oyunAktifMi) {
-                if (room.oyunDurumu.oyunDurduruldu && room.zamanlayici) {
-                    clearInterval(room.zamanlayici);
-                } else {
-                    startTimer(room.odaKodu);
+                if (room.oyunDurumu.gecisEkraninda) {
+                    io.to(room.odaKodu).emit("turGecisDurumGuncelle", {
+                        oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
+                        kalanSure: room.oyunDurumu.kalanGecisSuresi,
+                    });
+                } else if (room.oyunDurumu.oyunAktifMi) {
+                    if (room.oyunDurumu.oyunDurduruldu && room.zamanlayici) {
+                        clearInterval(room.zamanlayici);
+                    } else {
+                        startTimer(room.odaKodu);
+                    }
+                    io.to(room.odaKodu).emit("oyunDurumuGuncelle", {
+                        ...room.oyunDurumu,
+                        creatorId: room.creatorId,
+                    });
                 }
-                io.to(room.odaKodu).emit("oyunDurumuGuncelle", {
-                    ...room.oyunDurumu,
-                    creatorId: room.creatorId,
-                });
+            });
+            if (!lock.acquired) {
+                socket.emit("hata", "Oyun kontrol islemi zaten isleniyor. Lutfen bekleyin.");
             }
         };
         for (const eventName of ROOM_GAME_CONTROL_EVENTS) {
@@ -1350,7 +1366,7 @@ export function setupGameSocket(io: Server): void {
         );
 
         // ── Reset Game ──
-        const resetGameHandler = () => {
+        const resetGameHandler = async () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
             const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -1359,8 +1375,13 @@ export function setupGameSocket(io: Server): void {
             // But strict admin check is safer for "reset game"
             if (!player || player.playerId !== room.creatorPlayerId) return;
 
-            resetGame(room);
-            persistRoom(room);
+            const lock = await runWithRoomActionLock(room.odaKodu, "reset-game", 4_000, async () => {
+                resetGame(room);
+                persistRoom(room);
+            });
+            if (!lock.acquired) {
+                socket.emit("hata", "Oyun zaten sifirlaniyor. Lutfen bekleyin.");
+            }
         };
         for (const eventName of ROOM_RESET_GAME_EVENTS) {
             socket.on(eventName, resetGameHandler);
