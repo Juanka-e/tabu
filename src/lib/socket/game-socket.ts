@@ -21,6 +21,7 @@ import {
 } from "./room-membership";
 import {
     clearPendingRoomAdminHandoff,
+    getPendingRoomAdminHandoff,
     setPendingRoomAdminHandoff,
 } from "./room-admin-handoff";
 import type { PlayerCosmetics } from "@/types/game";
@@ -349,6 +350,11 @@ export function setupGameSocket(io: Server): void {
         } catch (error) {
             console.error("Visible categories could not be sent", error);
         }
+    }
+
+    async function emitAdminHandoffStatus(roomCode: string): Promise<void> {
+        const pending = await getPendingRoomAdminHandoff(roomCode);
+        io.to(roomCode).emit("yoneticiDevriDurumu", pending);
     }
 
     // ─── Round & Turn Management ───────────────────────────────
@@ -1002,6 +1008,7 @@ export function setupGameSocket(io: Server): void {
                                 clearTimeout(timeout);
                                 roomAdminTimeouts.delete(room.odaKodu);
                             }
+                            void emitAdminHandoffStatus(room.odaKodu);
                         }
 
                         if (
@@ -1043,6 +1050,10 @@ export function setupGameSocket(io: Server): void {
                     }
 
                     await sendVisibleCategories(socket);
+                    socket.emit(
+                        "yoneticiDevriDurumu",
+                        await getPendingRoomAdminHandoff(room.odaKodu)
+                    );
 
                     if (room.oyunDurumu.oyunAktifMi) {
                         socket.emit("oyunBasladi");
@@ -1108,6 +1119,7 @@ export function setupGameSocket(io: Server): void {
                     room.creatorId = newAdmin.id;
                     room.creatorPlayerId = newAdmin.playerId;
                     void clearPendingRoomAdminHandoff(room.odaKodu);
+                    void emitAdminHandoffStatus(room.odaKodu);
                     persistRoom(room);
                     broadcastLobby(room);
                     if (room.oyunDurumu.oyunAktifMi) {
@@ -1181,6 +1193,7 @@ export function setupGameSocket(io: Server): void {
                         room.creatorId = nextAdmin.id;
                         room.creatorPlayerId = nextAdmin.playerId;
                         void clearPendingRoomAdminHandoff(room.odaKodu);
+                        void emitAdminHandoffStatus(room.odaKodu);
                     }
                 }
 
@@ -1512,6 +1525,7 @@ export function setupGameSocket(io: Server): void {
                     room.creatorPlayerId,
                     ADMIN_TIMEOUT_MS
                 );
+                void emitAdminHandoffStatus(roomCode);
 
                 const timeout = setTimeout(() => {
                     const currentRoom = getRoom(roomCode); // Use room code instead of socket.id
@@ -1531,6 +1545,7 @@ export function setupGameSocket(io: Server): void {
                                 roomCode,
                                 adminPlayer.playerId
                             );
+                            void emitAdminHandoffStatus(roomCode);
                             persistRoom(currentRoom);
                             broadcastLobby(currentRoom);
                             io.to(roomCode).emit("hata", `Yönetici süresi doldu. Yeni yönetici: ${nextAdmin.ad}`);
@@ -1540,6 +1555,7 @@ export function setupGameSocket(io: Server): void {
                             roomCode,
                             adminPlayer.playerId
                         );
+                        void emitAdminHandoffStatus(roomCode);
                     }
                     roomAdminTimeouts.delete(roomCode);
 

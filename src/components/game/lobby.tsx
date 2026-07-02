@@ -18,8 +18,9 @@ import {
     Square,
     CheckSquare,
     Play,
+    ShieldAlert,
 } from "lucide-react";
-import type { Player, CategoryItem } from "@/types/game";
+import type { Player, CategoryItem, PendingAdminHandoffState } from "@/types/game";
 
 interface LobbyProps {
     roomCode: string;
@@ -31,6 +32,7 @@ interface LobbyProps {
     creatorId: string;
     currentSocketId: string;
     isHost: boolean;
+    pendingAdminHandoff: PendingAdminHandoffState | null;
     onUpdateSettings: (settings: {
         sure: number;
         mod: "tur" | "skor";
@@ -60,6 +62,7 @@ export function Lobby({
     selectedDifficulties,
     categories,
     isHost,
+    pendingAdminHandoff,
     onUpdateSettings,
     onUpdateCategories,
     onUpdateDifficulties,
@@ -76,6 +79,7 @@ export function Lobby({
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>(selectedCategories);
     const [tempSelectedDifficulties, setTempSelectedDifficulties] = useState<number[]>(selectedDifficulties);
     const [mounted, setMounted] = useState(false);
+    const [handoffRemainingSeconds, setHandoffRemainingSeconds] = useState<number | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -103,6 +107,25 @@ export function Lobby({
 
         window.localStorage.setItem(`tabu_room_hide_url:${roomCode}`, hideUrl ? "true" : "false");
     }, [hideUrl, hideUrlReady, mounted, roomCode]);
+
+    useEffect(() => {
+        if (!pendingAdminHandoff) {
+            setHandoffRemainingSeconds(null);
+            return;
+        }
+
+        const updateRemaining = () => {
+            const seconds = Math.max(
+                0,
+                Math.ceil((pendingAdminHandoff.deadlineAt - Date.now()) / 1000)
+            );
+            setHandoffRemainingSeconds(seconds);
+        };
+
+        updateRemaining();
+        const intervalId = window.setInterval(updateRemaining, 1000);
+        return () => window.clearInterval(intervalId);
+    }, [pendingAdminHandoff]);
 
     const copyRoomLink = () => {
         const link = `${window.location.origin}/room/${roomCode}`;
@@ -353,6 +376,27 @@ export function Lobby({
                     </div>
 
                     <div className="h-px bg-gray-100 dark:bg-slate-700" />
+
+                    {pendingAdminHandoff && handoffRemainingSeconds !== null ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                                    <ShieldAlert size={18} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
+                                        Yonetici Devri Bekleniyor
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold">
+                                        Mevcut yonetici geri donmezse otomatik devir {handoffRemainingSeconds} saniye icinde tamamlanacak.
+                                    </div>
+                                    <div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+                                        Bu sure dolarsa sistem odadaki bir sonraki cevrimici oyuncuyu yonetici yapar.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
 
                     {/* Game Settings */}
                     <div>

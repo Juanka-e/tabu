@@ -64,6 +64,12 @@ export interface RoomData {
     };
 }
 
+export interface PendingAdminHandoffState {
+    roomCode: string;
+    adminPlayerId: string;
+    deadlineAt: number;
+}
+
 // ─── Card ──────────────────────────────────────────────────────
 
 export type Difficulty = 1 | 2 | 3;

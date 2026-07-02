@@ -27,6 +27,7 @@ import type {
     TurnInfo,
     GameOverData,
     CategoryItem,
+    PendingAdminHandoffState,
 } from "@/types/game";
 
 // Sub-components
@@ -70,6 +71,7 @@ export default function RoomPage() {
     const [players, setPlayers] = useState<Player[]>([]);
     const [creatorId, setCreatorId] = useState("");
     const [creatorPlayerId, setCreatorPlayerId] = useState("");
+    const [pendingAdminHandoff, setPendingAdminHandoff] = useState<PendingAdminHandoffState | null>(null);
 
     // Settings
     const [settings, setSettings] = useState({
@@ -313,6 +315,10 @@ export default function RoomPage() {
                     if (data.seciliZorluklar) setSelectedDifficulties(data.seciliZorluklar);
                 });
 
+                socket.on("yoneticiDevriDurumu", (data: PendingAdminHandoffState | null) => {
+                    setPendingAdminHandoff(data);
+                });
+
                 socket.on("kategoriListesiGonder", (cats: CategoryItem[]) => {
                     setCategories(cats);
                 });
@@ -436,6 +442,7 @@ export default function RoomPage() {
                     setTransition(null);
                     setCardFaceTheme(null);
                     setCardBackTheme(null);
+                    setPendingAdminHandoff(null);
                 });
 
                 socket.on("odadanAtildin", () => {
@@ -701,6 +708,7 @@ export default function RoomPage() {
                 creatorId={creatorId}
                 currentSocketId={socketId}
                 isHost={isHost as boolean}
+                pendingAdminHandoff={pendingAdminHandoff}
                 onUpdateSettings={setSettings}
                 onInitialSet={(cats, diffs) => {
                     setSelectedCategories(cats);
