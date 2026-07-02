@@ -21,6 +21,14 @@ Asama 2:
 - reconnect token / oyuncu geri donus koordinasyonu
 - birden fazla instance arasinda duplicate join savunmasi
 
+Asama 2 mevcut durum:
+
+- authenticated kullanici icin server-side `userId -> roomCode` membership index eklendi
+- Redis varsa TTL yenilenen dagitik kayit kullaniliyor
+- Redis yoksa local memory fallback ile gelistirme akisi korunuyor
+- join tamamlanamazsa membership claim temizleniyor
+- socket disconnect sonrasinda kayit kontrollu sekilde serbest birakiliyor
+
 Asama 3:
 
 - room event fan-out icin Redis adapter degerlendirmesi
@@ -47,6 +55,6 @@ Hangi state hemen tasinmamali:
 
 Bir sonraki teknik hedef:
 
-- authenticated room presence kaydini server-side koordine etmek
-- room membership icin minimal Redis-backed index tasarlamak
+- reconnect ve host handoff akislarini instance bagimsiz ele almak
+- authenticated room presence bilgisini istemci localStorage ipucundan daha az bagimli hale getirmek
 - bunun uzerine coklu instance smoke testleri eklemek

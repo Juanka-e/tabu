@@ -13,6 +13,12 @@ import { getSystemSettings } from "@/lib/system-settings/service";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
+import {
+    claimOnlineRoomMembership,
+    getOnlineRoomMembership,
+    refreshOnlineRoomMembership,
+    releaseOnlineRoomMembership,
+} from "./room-membership";
 import type { PlayerCosmetics } from "@/types/game";
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -105,6 +111,7 @@ const globalForGameSocket = globalThis as typeof globalThis & {
         registeredUserRoomIndex: Map<number, string>;
         roomRegisteredUsersIndex: Map<string, Set<number>>;
         roomAdminTimeouts: Map<string, NodeJS.Timeout>;
+        socketMembershipHeartbeats: Map<string, NodeJS.Timeout>;
     };
 };
 
@@ -117,6 +124,7 @@ const sharedGameSocketState =
         registeredUserRoomIndex: new Map<number, string>(),
         roomRegisteredUsersIndex: new Map<string, Set<number>>(),
         roomAdminTimeouts: new Map<string, NodeJS.Timeout>(),
+        socketMembershipHeartbeats: new Map<string, NodeJS.Timeout>(),
     });
 
 const rooms = sharedGameSocketState.rooms;
@@ -127,6 +135,7 @@ const WORD_ACTION_COOLDOWN_MS = 200;
 const socketToRoom = sharedGameSocketState.socketToRoom;
 const registeredUserRoomIndex = sharedGameSocketState.registeredUserRoomIndex;
 const roomRegisteredUsersIndex = sharedGameSocketState.roomRegisteredUsersIndex;
+const socketMembershipHeartbeats = sharedGameSocketState.socketMembershipHeartbeats;
 
 // Rate limit settings from .env (can be disabled for localhost/testing)
 const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
@@ -146,6 +155,34 @@ const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 function getClientIp(socket: Socket): string {
     return getSocketClientIp(socket);
+}
+
+function clearSocketMembershipHeartbeat(socketId: string): void {
+    const heartbeat = socketMembershipHeartbeats.get(socketId);
+    if (!heartbeat) {
+        return;
+    }
+
+    clearInterval(heartbeat);
+    socketMembershipHeartbeats.delete(socketId);
+}
+
+function startSocketMembershipHeartbeat(
+    socketId: string,
+    userId: number,
+    roomCode: string
+): void {
+    clearSocketMembershipHeartbeat(socketId);
+
+    const heartbeat = setInterval(() => {
+        void refreshOnlineRoomMembership(userId, roomCode);
+    }, 10_000);
+
+    if (typeof heartbeat.unref === "function") {
+        heartbeat.unref();
+    }
+
+    socketMembershipHeartbeats.set(socketId, heartbeat);
 }
 
 function createInitialGameState(): GameStateData {
@@ -753,6 +790,9 @@ export function setupGameSocket(io: Server): void {
         socket.on(
             "room:request",
             async (rawPayload: unknown) => {
+                let claimedMembershipUserId: number | null = null;
+                let claimedMembershipRoomCode: string | null = null;
+                let joinedRoom = false;
                 const parsed = OdaIstegiSchema.safeParse(rawPayload);
                 if (!parsed.success) {
                     socket.emit("hata", "Geçersiz istek verisi.");
@@ -814,7 +854,7 @@ export function setupGameSocket(io: Server): void {
                         ? String(odaKodu).toUpperCase()
                         : undefined;
                     const activeRoomCode = effectiveAuthUserId
-                        ? findOnlineRoomCodeForUser(effectiveAuthUserId)
+                        ? await findOnlineRoomCodeForUser(effectiveAuthUserId)
                         : null;
                     if (activeRoomCode && activeRoomCode !== requestedCode) {
                         socket.emit(
@@ -906,11 +946,31 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
+                    if (effectiveAuthUserId) {
+                        const membershipClaim = await claimOnlineRoomMembership(
+                            effectiveAuthUserId,
+                            room.odaKodu
+                        );
+                        if (!membershipClaim.allowed) {
+                            socket.emit(
+                                "hata",
+                                `Zaten ${membershipClaim.currentRoomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`
+                            );
+                            return;
+                        }
+
+                        claimedMembershipUserId = effectiveAuthUserId;
+                        claimedMembershipRoomCode = room.odaKodu;
+                    }
+
                     const reconnectingPlayer = room.oyuncular.find(
                         (player) => player.playerId === effectivePlayerId
                     );
 
                     if (reconnectingPlayer) {
+                        if (reconnectingPlayer.id !== socket.id) {
+                            clearSocketMembershipHeartbeat(reconnectingPlayer.id);
+                        }
                         reconnectingPlayer.id = socket.id;
                         reconnectingPlayer.ad = effectiveDisplayName;
                         reconnectingPlayer.online = true;
@@ -968,6 +1028,10 @@ export function setupGameSocket(io: Server): void {
                     persistRoom(room);
                     socket.join(targetCode!);
                     socketToRoom.set(socket.id, targetCode!);
+                    joinedRoom = true;
+                    if (effectiveAuthUserId) {
+                        startSocketMembershipHeartbeat(socket.id, effectiveAuthUserId, room.odaKodu);
+                    }
 
                     await sendVisibleCategories(socket);
 
@@ -986,6 +1050,17 @@ export function setupGameSocket(io: Server): void {
                         "hata",
                         (error as Error).message || "Odaya katılırken hata oluştu."
                     );
+                } finally {
+                    if (
+                        !joinedRoom &&
+                        claimedMembershipUserId !== null &&
+                        claimedMembershipRoomCode
+                    ) {
+                        await releaseOnlineRoomMembership(
+                            claimedMembershipUserId,
+                            claimedMembershipRoomCode
+                        );
+                    }
                 }
             }
         );
@@ -1362,8 +1437,9 @@ export function setupGameSocket(io: Server): void {
         );
 
         // ── Disconnect ──
-        socket.on("disconnect", () => {
+        socket.on("disconnect", async () => {
             wordActionTimestamps.delete(socket.id);
+            clearSocketMembershipHeartbeat(socket.id);
             const roomCode = socketToRoom.get(socket.id);
             const room = roomCode ? getRoom(roomCode) : undefined;
             socketToRoom.delete(socket.id);
@@ -1373,6 +1449,18 @@ export function setupGameSocket(io: Server): void {
             if (!player) return;
 
             player.online = false;
+            if (typeof player.userId === "number") {
+                const hasOtherOnlineSession = room.oyuncular.some(
+                    (entry) =>
+                        entry.id !== socket.id &&
+                        entry.userId === player.userId &&
+                        entry.online
+                );
+
+                if (!hasOtherOnlineSession) {
+                    await releaseOnlineRoomMembership(player.userId, room.odaKodu);
+                }
+            }
             const onlinePlayers = room.oyuncular.filter((p) => p.online);
 
             if (onlinePlayers.length === 0) {
@@ -1465,8 +1553,8 @@ export function getRoomMetrics(): {
     };
 }
 
-export function findOnlineRoomCodeForUser(userId: number): string | null {
-    return registeredUserRoomIndex.get(userId) ?? null;
+export async function findOnlineRoomCodeForUser(userId: number): Promise<string | null> {
+    return (await getOnlineRoomMembership(userId)) ?? registeredUserRoomIndex.get(userId) ?? null;
 }
 
 function createEmptyPlayerCosmetics(): PlayerCosmetics {

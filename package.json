@@ -26,6 +26,7 @@
     "test:player-identity": "tsx scripts/test-player-identity.ts",
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:client-ip-security": "tsx scripts/test-client-ip-security.ts",
+    "test:room-membership": "tsx scripts/test-room-membership.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",
     "test:captcha-security": "tsx scripts/test-captcha-security.ts",
     "test:turnstile-smoke": "tsx scripts/test-turnstile-smoke.ts",
