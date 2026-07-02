@@ -806,24 +806,27 @@ export default function RoomPage() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
-                    <div className="pointer-events-none absolute left-1/2 top-3 z-[70] flex w-[7.75rem] -translate-x-1/2 items-center justify-center rounded-full border border-white/60 bg-white/82 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/82 sm:top-4 sm:w-[10rem] sm:px-4 md:w-[11rem] lg:w-[12rem]">
-                        {branding.logoUrl ? (
-                            <Image
-                                src={branding.logoUrl}
-                                alt={`${branding.siteName} logo`}
-                                width={160}
-                                height={40}
-                                unoptimized
-                                className="h-7 w-auto max-w-full object-contain sm:h-8 lg:h-9"
-                            />
-                        ) : (
-                            <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.22em] text-transparent sm:text-sm lg:text-base">
-                                {branding.siteShortName}
-                            </span>
-                        )}
-                    </div>
-                    {/* Header Buttons */}
-                    <div className="absolute right-3 top-3 z-[80] flex max-w-[calc(100%-8.5rem)] items-start gap-2 sm:right-4 sm:top-4 sm:max-w-[calc(100%-12rem)] md:max-w-[calc(100%-14rem)]">
+                    <div className="relative z-[80] grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
+                        <div className="min-h-[2.75rem]" />
+                        <div className="pointer-events-none flex min-w-0 items-center justify-center">
+                            <div className="flex max-w-[8.5rem] items-center justify-center rounded-full border border-white/60 bg-white/86 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/84 sm:max-w-[10.5rem] sm:px-4 md:max-w-[12rem]">
+                                {branding.logoUrl ? (
+                                    <Image
+                                        src={branding.logoUrl}
+                                        alt={`${branding.siteName} logo`}
+                                        width={176}
+                                        height={44}
+                                        unoptimized
+                                        className="h-7 w-auto max-w-full object-contain sm:h-8 lg:h-9"
+                                    />
+                                ) : (
+                                    <span className="truncate bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.22em] text-transparent sm:text-sm lg:text-base">
+                                        {branding.siteShortName}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="justify-self-end flex items-start gap-2">
                         <div className="relative">
                             {!isMobile ? (
                                 <button
@@ -1033,18 +1036,23 @@ export default function RoomPage() {
                             </span>
                         </button> : null}
                     </div>
+                    </div>
 
                     {/* Connection indicator */}
-                    {!isConnected && (
-                        <div className="absolute left-4 top-16 z-50 flex items-center gap-2 rounded-full border border-red-200 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
-                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            Bağlantı kesildi
-                        </div>
-                    )}
+                    {!isConnected || entryError ? (
+                        <div className="relative z-[75] flex flex-col gap-2 px-3 pt-3 sm:px-4">
+                            {!isConnected ? (
+                                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                    Bağlantı kesildi
+                                </div>
+                            ) : null}
 
-                    {entryError ? (
-                        <div className="absolute top-16 left-4 z-50 max-w-sm rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive shadow-lg">
-                            {entryError}
+                            {entryError ? (
+                                <div className="max-w-sm rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive shadow-lg">
+                                    {entryError}
+                                </div>
+                            ) : null}
                         </div>
                     ) : null}
 

@@ -399,6 +399,7 @@ model ShopItem {
   name      String       @db.VarChar(120)
   rarity    ItemRarity   @default(common)
   renderMode CosmeticRenderMode @default(image) @map("render_mode")
+  renderSpecVersion Int  @default(1) @map("render_spec_version")
   priceCoin Int          @map("price_coin")
   imageUrl  String       @map("image_url") @db.Text
   templateKey String?    @map("template_key") @db.VarChar(80)
@@ -520,6 +521,7 @@ model InventoryItem {
   userId     Int             @map("user_id")
   shopItemId Int             @map("shop_item_id")
   source     InventorySource @default(purchase)
+  renderSnapshot Json?       @map("render_snapshot") @db.Json
   acquiredAt DateTime        @default(now()) @map("acquired_at")
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)

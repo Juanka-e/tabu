@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { ArrowRight, Check, Pause, Play, RotateCcw, Sparkles, X } from "lucide-react";
 import { GameCard } from "@/components/game/game-card";
@@ -44,6 +45,7 @@ const GUESS_PROMPT_TITLE = "Tahmin Et";
 const GAME_PAUSED_LABEL = "Oyun duraklatıldı";
 const RETURN_TO_LOBBY_LABEL = "Lobiye Dön";
 const CORRECT_LABEL = "DOĞRU";
+const CARD_FLIP_LABEL = "Flip";
 
 export function ActiveGame({
     gameState,
@@ -67,17 +69,6 @@ export function ActiveGame({
     const canSeeCard = Boolean(card) && (isCardViewerRole(myRole) || shouldShowGuessPanel(myRole));
     const showGuessPanel = !canSeeCard && shouldShowGuessPanel(myRole);
     const canSubmitTabu = canUseTabuAction(myRole, isPrimaryInspector);
-    const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
-    const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
-    const cardBackPatternStyle = cardBackTheme
-        ? buildCosmeticPatternStyle({
-            pattern: cardBackTheme.pattern,
-            primaryColor: cardBackTheme.borderColor,
-            secondaryColor: cardBackTheme.secondaryColor,
-            scale: cardBackTheme.patternScale,
-            opacity: cardBackTheme.patternOpacity,
-        })
-        : undefined;
     const narratorColorClass =
         activeNarratorTeam === "A"
             ? "text-red-600 dark:text-red-400"
@@ -167,65 +158,20 @@ export function ActiveGame({
 
             <div className="flex-1 flex items-center justify-center relative min-h-[350px]">
                 {card && canSeeCard && (
-                    <div className="w-full flex justify-center animate-fade-in">
-                        <GameCard card={card} theme={cardFaceTheme} />
+                    <div className="w-full animate-fade-in">
+                        <ViewerCardPreview
+                            key={`${card.id}-${myRole}`}
+                            card={card}
+                            cardFaceTheme={cardFaceTheme}
+                            cardBackTheme={cardBackTheme}
+                        />
                     </div>
                 )}
 
                 {showGuessPanel && (
                     cardBackTheme ? (
                         <div className="w-full max-w-[320px] sm:max-w-[360px] animate-fade-in">
-                            <div
-                                className="relative overflow-hidden rounded-3xl border-4 shadow-xl ring-1 dark:ring-slate-900"
-                                style={{
-                                    backgroundColor: cardBackTheme.surfaceColor,
-                                    borderColor: cardBackTheme.borderColor,
-                                    boxShadow: `0 20px 50px -25px ${cardBackTheme.accentColor}, 0 0 ${cardBackTheme.glowBlur}px -12px ${cardBackTheme.glowColor}${Math.round(cardBackTheme.glowOpacity * 255)
-                                        .toString(16)
-                                        .padStart(2, "0")}`,
-                                }}
-                            >
-                                {cardBackTheme.overlayImageUrl && (
-                                    <Image
-                                        loader={passthroughImageLoader}
-                                        unoptimized
-                                        src={cardBackTheme.overlayImageUrl}
-                                        alt=""
-                                        aria-hidden="true"
-                                        fill
-                                        className="object-cover pointer-events-none"
-                                        style={{ opacity: cardBackTheme.overlayOpacity }}
-                                    />
-                                )}
-                                {cardBackPatternStyle && (
-                                    <div
-                                        className={`absolute inset-0 pointer-events-none ${cardBackMotionClass}`}
-                                        aria-hidden="true"
-                                        style={{ ...cardBackPatternStyle, ...cardBackMotionStyle }}
-                                    />
-                                )}
-                                <div
-                                    className="absolute inset-0 pointer-events-none"
-                                    aria-hidden="true"
-                                    style={{
-                                        background: `radial-gradient(circle at top left, ${cardBackTheme.accentColor}33, transparent 35%), radial-gradient(circle at bottom right, ${cardBackTheme.borderColor}33, transparent 38%)`,
-                                    }}
-                                />
-                                <div className="relative z-10 flex min-h-[474px] flex-col items-center justify-center px-8 py-10 text-center sm:min-h-[500px]">
-                                    <div className="space-y-3">
-                                        <h3
-                                            className="text-3xl font-black uppercase tracking-[0.18em]"
-                                            style={{ color: cardBackTheme.titleColor }}
-                                        >
-                                            {GUESS_PROMPT_TITLE}
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div
-                                    className="h-4 border-t dark:border-slate-700"
-                                    style={{ backgroundColor: cardBackTheme.secondaryColor }}
-                                />
-                            </div>
+                            <CardBackPanel cardBackTheme={cardBackTheme} />
                         </div>
                     ) : (
                         <div className="w-full max-w-[320px] sm:max-w-[360px] animate-fade-in">
@@ -322,6 +268,149 @@ export function ActiveGame({
                     )}
                 </div>
             )}
+        </div>
+    );
+}
+
+function ViewerCardPreview({
+    card,
+    cardFaceTheme,
+    cardBackTheme,
+}: {
+    card: CardData;
+    cardFaceTheme: ResolvedCardFaceTheme | null;
+    cardBackTheme: ResolvedCardBackTheme | null;
+}) {
+    const [isFlipEnabled, setIsFlipEnabled] = useState(true);
+    const [isFlipped, setIsFlipped] = useState(false);
+
+    const handleFlipToggle = () => {
+        setIsFlipEnabled((current) => {
+            const next = !current;
+            if (!next) {
+                setIsFlipped(false);
+            }
+            return next;
+        });
+    };
+
+    return (
+        <>
+            <div className="mb-4 flex justify-center gap-2">
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isFlipEnabled}
+                    onClick={handleFlipToggle}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
+                        isFlipEnabled
+                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                            : "bg-slate-200/70 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                >
+                    {CARD_FLIP_LABEL}
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] dark:bg-slate-900/20">
+                        {isFlipEnabled ? "Acik" : "Kapali"}
+                    </span>
+                </button>
+            </div>
+            <div className="flex justify-center">
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (isFlipEnabled) {
+                            setIsFlipped((current) => !current);
+                        }
+                    }}
+                    disabled={!isFlipEnabled}
+                    className={`relative h-[500px] w-full max-w-[360px] [perspective:1600px] ${isFlipEnabled ? "cursor-pointer" : "cursor-default"}`}
+                >
+                    <div
+                        className={`relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] ${
+                            isFlipped ? "[transform:rotateY(180deg)]" : ""
+                        }`}
+                    >
+                        <div className="absolute inset-0 [backface-visibility:hidden]">
+                            <GameCard card={card} theme={cardFaceTheme} />
+                        </div>
+                        <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                            <CardBackPanel cardBackTheme={cardBackTheme} />
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </>
+    );
+}
+
+function CardBackPanel({ cardBackTheme }: { cardBackTheme: ResolvedCardBackTheme | null }) {
+    const cardBackMotionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
+    const cardBackMotionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
+    const cardBackPatternStyle = cardBackTheme
+        ? buildCosmeticPatternStyle({
+            pattern: cardBackTheme.pattern,
+            primaryColor: cardBackTheme.borderColor,
+            secondaryColor: cardBackTheme.secondaryColor,
+            scale: cardBackTheme.patternScale,
+            opacity: cardBackTheme.patternOpacity,
+        })
+        : undefined;
+
+    if (!cardBackTheme) {
+        return null;
+    }
+
+    return (
+        <div
+            className="relative overflow-hidden rounded-3xl border-4 shadow-xl ring-1 dark:ring-slate-900"
+            style={{
+                backgroundColor: cardBackTheme.surfaceColor,
+                borderColor: cardBackTheme.borderColor,
+                boxShadow: `0 20px 50px -25px ${cardBackTheme.accentColor}, 0 0 ${cardBackTheme.glowBlur}px -12px ${cardBackTheme.glowColor}${Math.round(cardBackTheme.glowOpacity * 255)
+                    .toString(16)
+                    .padStart(2, "0")}`,
+            }}
+        >
+            {cardBackTheme.overlayImageUrl ? (
+                <Image
+                    loader={passthroughImageLoader}
+                    unoptimized
+                    src={cardBackTheme.overlayImageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    fill
+                    className="object-cover pointer-events-none"
+                    style={{ opacity: cardBackTheme.overlayOpacity }}
+                />
+            ) : null}
+            {cardBackPatternStyle ? (
+                <div
+                    className={`absolute inset-0 pointer-events-none ${cardBackMotionClass}`}
+                    aria-hidden="true"
+                    style={{ ...cardBackPatternStyle, ...cardBackMotionStyle }}
+                />
+            ) : null}
+            <div
+                className="absolute inset-0 pointer-events-none"
+                aria-hidden="true"
+                style={{
+                    background: `radial-gradient(circle at top left, ${cardBackTheme.accentColor}33, transparent 35%), radial-gradient(circle at bottom right, ${cardBackTheme.borderColor}33, transparent 38%)`,
+                }}
+            />
+            <div className="relative z-10 flex min-h-[474px] flex-col items-center justify-center px-8 py-10 text-center sm:min-h-[500px]">
+                <div className="space-y-3">
+                    <h3
+                        className="text-3xl font-black uppercase tracking-[0.18em]"
+                        style={{ color: cardBackTheme.titleColor }}
+                    >
+                        {GUESS_PROMPT_TITLE}
+                    </h3>
+                </div>
+            </div>
+            <div
+                className="h-4 border-t dark:border-slate-700"
+                style={{ backgroundColor: cardBackTheme.secondaryColor }}
+            />
         </div>
     );
 }

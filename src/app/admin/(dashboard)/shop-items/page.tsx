@@ -48,6 +48,7 @@ interface ShopItem {
     name: string;
     rarity: Rarity;
     renderMode: RenderMode;
+    renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
     templateKey: string | null;
@@ -75,6 +76,7 @@ interface ShopItemFormState {
     name: string;
     rarity: Rarity;
     renderMode: RenderMode;
+    renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
     templateKey: string;
@@ -141,6 +143,7 @@ const emptyItem: ShopItemFormState = {
     name: "",
     rarity: "common",
     renderMode: "image",
+    renderSpecVersion: 1,
     priceCoin: 100,
     imageUrl: "",
     templateKey: "",
@@ -520,6 +523,7 @@ export default function ShopItemsPage() {
             name: item.name,
             rarity: item.rarity,
             renderMode: item.renderMode,
+            renderSpecVersion: item.renderSpecVersion,
             priceCoin: item.priceCoin,
             imageUrl: item.imageUrl,
             templateKey: item.templateKey || "",
@@ -544,6 +548,7 @@ export default function ShopItemsPage() {
                 name: form.name.trim(),
                 rarity: form.rarity,
                 renderMode: form.renderMode,
+                renderSpecVersion: form.renderSpecVersion,
                 priceCoin: form.priceCoin,
                 imageUrl: form.imageUrl.trim(),
                 templateKey: form.templateKey.trim() || null,
@@ -698,13 +703,14 @@ export default function ShopItemsPage() {
         name: form.name,
         rarity: form.rarity,
         renderMode: form.renderMode,
+        renderSpecVersion: form.renderSpecVersion,
         imageUrl: form.imageUrl.trim(),
         templateKey: form.templateKey.trim() || null,
         templateConfig: previewTemplateResult.config,
         badgeText: form.badgeText.trim() || null,
         isFeatured: form.isFeatured,
         priceCoin: form.priceCoin,
-    }), [form.badgeText, form.imageUrl, form.isFeatured, form.name, form.priceCoin, form.rarity, form.renderMode, form.templateKey, form.type, previewTemplateResult.config]);
+    }), [form.badgeText, form.imageUrl, form.isFeatured, form.name, form.priceCoin, form.rarity, form.renderMode, form.renderSpecVersion, form.templateKey, form.type, previewTemplateResult.config]);
 
     return (
         <div className="space-y-6">
@@ -1088,10 +1094,14 @@ export default function ShopItemsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Fiyat (Coin)</label>
                                         <input type="number" min={0} value={form.priceCoin} onChange={(event) => setForm((current) => ({ ...current, priceCoin: Number.parseInt(event.target.value, 10) || 0 }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Render Spec Versiyon</label>
+                                        <input type="number" min={1} max={999} value={form.renderSpecVersion} onChange={(event) => setForm((current) => ({ ...current, renderSpecVersion: Math.max(1, Number.parseInt(event.target.value, 10) || 1) }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Sıralama</label>

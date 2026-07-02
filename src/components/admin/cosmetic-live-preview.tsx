@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
-import { Sparkles, Stars } from "lucide-react";
+import { Flame, Sparkles, Stars, Target } from "lucide-react";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { resolveCardBackTheme } from "@/lib/cosmetics/card-back";
 import { resolveCardFaceTheme } from "@/lib/cosmetics/card-face";
@@ -18,6 +18,7 @@ export interface CosmeticPreviewDraft {
     name: string;
     rarity: StoreItemRarity;
     renderMode: StoreItemRenderMode;
+    renderSpecVersion: number;
     imageUrl: string;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
@@ -97,6 +98,11 @@ export function CosmeticLivePreview({
                         {draft.isFeatured ? "Spotlight" : "Standard"}
                     </div>
                 </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-700/70 bg-slate-900/70 px-3 py-3 text-slate-200">
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-70">Render Spec</div>
+                <div className="mt-2 text-sm font-black">v{draft.renderSpecVersion}</div>
             </div>
 
             <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_58%)] p-4">
@@ -263,6 +269,7 @@ function CardFacePreview({ draft }: { draft: CosmeticPreviewDraft }) {
     });
     const motionClass = getCosmeticMotionClass(theme.motionPreset);
     const motionStyle = getCosmeticMotionStyle(theme.motionSpeedMs);
+    const DifficultyIcon = draft.rarity === "legendary" ? Flame : draft.rarity === "epic" ? Target : Sparkles;
 
     return (
         <div className="flex min-h-[280px] items-center justify-center rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.18),_transparent_55%),linear-gradient(160deg,rgba(15,23,42,0.92),rgba(30,41,59,0.96))] p-6">
@@ -283,14 +290,20 @@ function CardFacePreview({ draft }: { draft: CosmeticPreviewDraft }) {
                 <div className="relative z-10 flex h-full flex-col">
                     <div className="relative overflow-hidden px-4 pb-4 pt-5" style={{ backgroundColor: theme.accentColor }}>
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_42%)]" />
+                        <div className="absolute right-4 top-4">
+                            <DifficultyIcon className="h-4 w-4 text-white/90" />
+                        </div>
                         <div className="text-center text-[28px] font-black uppercase tracking-[0.18em]" style={{ color: theme.wordColor }}>
-                            TABU
+                            HUSHLE
                         </div>
                         <div className="mx-auto mt-3 h-1.5 w-16 rounded-full" style={{ backgroundColor: theme.borderColor }} />
                     </div>
                     <div className="flex-1 px-5 py-5">
+                        <div className="text-center text-lg font-black uppercase tracking-[0.16em]" style={{ color: theme.wordColor }}>
+                            SAHNE
+                        </div>
                         <div className="space-y-3">
-                            {["Yasakli", "Kelime", "Ipuclari"].map((word) => (
+                            {["MIKROFON", "SEYIRCI", "ALKIS", "SPOT", "PERDE"].map((word) => (
                                 <div key={word} className="flex items-center gap-2">
                                     <span className="text-sm font-black" style={{ color: theme.tabooColor }}>X</span>
                                     <span className="text-sm font-bold uppercase tracking-wide" style={{ color: `${theme.wordColor}E0` }}>
