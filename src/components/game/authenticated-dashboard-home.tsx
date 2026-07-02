@@ -54,15 +54,42 @@ export function AuthenticatedDashboardHome({
 
   const sessionUsername = session.user.name || "";
 
+  async function getServerActiveRoomCode(): Promise<string | null> {
+    try {
+      const response = await fetch("/api/user/active-room", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as { roomCode?: string | null };
+      return typeof payload.roomCode === "string" && payload.roomCode.length > 0
+        ? payload.roomCode
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
   const handleJoinOrCreate = async (isCreate: boolean) => {
     const currentUsername = (
       window.localStorage.getItem("tabu_username") || sessionUsername
     ).trim();
     const currentPath = window.location.pathname;
     const activeRoomPresenceKey = session.user.id ? `tabu_active_room_presence:${session.user.id}` : null;
+    const serverActiveRoomCode = await getServerActiveRoomCode();
 
     if (!currentPath.startsWith("/room")) {
       window.sessionStorage.removeItem("tabu_activeRoomCode");
+    }
+
+    if (serverActiveRoomCode) {
+      setError(`Zaten ${serverActiveRoomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
+      return;
     }
 
     if (activeRoomPresenceKey) {
