@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { invalidateCategoryCache } from "@/lib/socket/category-service";
+import {
+    assertCategoryCanBeDeleted,
+    validateAdminCategoryInput,
+} from "@/lib/categories/admin-category-policy";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -11,7 +15,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// PUT - Update a category
 const updateCategorySchema = z.object({
     name: z.string().min(1).max(255).optional(),
     parentId: z.number().nullable().optional(),
@@ -44,11 +47,13 @@ export async function PUT(
 
     try {
         const { id } = await params;
+        const categoryId = parseInt(id, 10);
         const body = await request.json();
-        const data = updateCategorySchema.parse(body);
+        const parsed = updateCategorySchema.parse(body);
+        const data = await validateAdminCategoryInput(parsed, categoryId);
 
         const category = await prisma.category.update({
-            where: { id: parseInt(id) },
+            where: { id: categoryId },
             data,
         });
 
@@ -57,19 +62,24 @@ export async function PUT(
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(
-                { error: "Geçersiz veri." },
+                { error: "Gecersiz veri." },
+                { status: 400 }
+            );
+        }
+        if (error instanceof Error) {
+            return NextResponse.json(
+                { error: error.message },
                 { status: 400 }
             );
         }
         console.error("Failed to update category:", error);
         return NextResponse.json(
-            { error: "Kategori güncellenemedi." },
+            { error: "Kategori guncellenemedi." },
             { status: 500 }
         );
     }
 }
 
-// DELETE - Delete a category
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -94,10 +104,18 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        await prisma.category.delete({ where: { id: parseInt(id) } });
+        const categoryId = parseInt(id, 10);
+        await assertCategoryCanBeDeleted(categoryId);
+        await prisma.category.delete({ where: { id: categoryId } });
         invalidateCategoryCache();
         return NextResponse.json({ success: true }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
+        if (error instanceof Error) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: 400 }
+            );
+        }
         console.error("Failed to delete category:", error);
         return NextResponse.json(
             { error: "Kategori silinemedi." },
