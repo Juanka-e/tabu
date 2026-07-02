@@ -56,6 +56,33 @@ Hangi state hemen tasinmamali:
 - aktif oyun dongusunu tek adimda distributed hale getirmek
 - test edilmeden reconnect mantigini instance'lar arasina yaymak
 
+Redis'e tasinmasi uygun state:
+
+- request rate limit sayaclari
+- `userId -> roomCode` aktif oda membership kaydi
+- pending admin handoff metadata'si
+- ileride gerekiyorsa invalidation anahtarlari ve kisa omurlu coordination lock'lari
+
+Redis'e tasinmamasi gereken state:
+
+- tam `RoomData` nesnesi
+- socket'e bagli gecici UI state
+- aktif turun anlik kart, sayaç ve takim ici mikro gecis state'leri
+- sadece tek process icinde anlamli olan `socket.id -> roomCode` index'i
+
+Sartli tasinabilecek state:
+
+- match finalize oncesi reward coordination verisi
+- room-level presence ozeti
+- event replay veya reconnect snapshot verisi
+
+Sart:
+
+- once veri semasi kucuk ve TTL tabanli olmali
+- tek writer / coklu reader davranisi net tanimlanmali
+- stale veri temizligi garanti edilmeli
+- smoke test ve fallback davranisi hazir olmadan production koordinasyon state'i buyutulmemeli
+
 Bir sonraki teknik hedef:
 
 - reconnect ve host handoff akislarini instance bagimsiz ele almak
