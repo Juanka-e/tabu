@@ -1,4 +1,5 @@
 import { getRedisClient, isRedisConfigured } from "@/lib/redis";
+export { getRequestIp, shouldTrustProxyHeaders } from "@/lib/security/client-ip";
 
 interface RateLimitEntry {
     count: number;
@@ -22,37 +23,6 @@ export interface RequestRateLimitResult {
 
 const rateLimitBuckets = new Map<string, Map<string, RateLimitEntry>>();
 
-function isTruthyEnv(value: string | undefined): boolean {
-    if (!value) {
-        return false;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
-}
-
-export function shouldTrustProxyHeaders(): boolean {
-    return isTruthyEnv(process.env.TRUST_PROXY);
-}
-
-function getTrustedForwardedIp(request: Request): string | null {
-    if (!shouldTrustProxyHeaders()) {
-        return null;
-    }
-
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
-    }
-
-    const realIp = request.headers.get("x-real-ip");
-    if (realIp) {
-        return realIp.trim();
-    }
-
-    return null;
-}
-
 function getBucketStore(bucket: string): Map<string, RateLimitEntry> {
     let store = rateLimitBuckets.get(bucket);
     if (!store) {
@@ -61,10 +31,6 @@ function getBucketStore(bucket: string): Map<string, RateLimitEntry> {
     }
 
     return store;
-}
-
-export function getRequestIp(request: Request): string {
-    return getTrustedForwardedIp(request) ?? "unknown";
 }
 
 export function consumeRequestRateLimit(

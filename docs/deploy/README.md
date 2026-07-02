@@ -9,3 +9,4 @@ Baslangic okuma sirasi:
 3. [mysql-backups.md](./mysql-backups.md)
 4. [cloudflare-admin.md](./cloudflare-admin.md)
 5. [subdomain-and-cors.md](./subdomain-and-cors.md)
+6. [redis-rollout.md](./redis-rollout.md)

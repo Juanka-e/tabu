@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
 import { prisma } from "@/lib/prisma";
+import { getSocketClientIp } from "@/lib/security/client-ip";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { consumeDistributedRequestRateLimit } from "@/lib/security/request-rate-limit";
@@ -143,20 +144,8 @@ const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-function normalizeIp(rawIp: string | undefined): string {
-    if (!rawIp) return "unknown";
-    return rawIp.replace(/^::ffff:/, "");
-}
-
 function getClientIp(socket: Socket): string {
-    const headerIp = socket.handshake.headers?.["x-forwarded-for"];
-    if (headerIp) {
-        const ip = Array.isArray(headerIp) ? headerIp[0] : headerIp;
-        return normalizeIp(ip.split(",")[0].trim());
-    }
-    return normalizeIp(
-        socket.handshake.address || "unknown"
-    );
+    return getSocketClientIp(socket);
 }
 
 function createInitialGameState(): GameStateData {
