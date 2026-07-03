@@ -1183,7 +1183,7 @@ export default function ShopItemsPage() {
                                             <label className="block text-xs font-bold text-muted-foreground uppercase">Template Config (JSON)</label>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[11px] text-muted-foreground">
-                                                    Rehber: <code>docs/dashboard-ui/cosmetic-authoring-spec.md</code>
+                                                    Rehberler: <code>docs/dashboard-ui/cosmetic-authoring-spec.md</code> ve <code>docs/guides/card-design-guide.md</code>
                                                 </span>
                                                 <Button
                                                     type="button"

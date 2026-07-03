@@ -53,6 +53,7 @@ Açık kalanlar:
 - bildirim sheet ile toast çakışmasını gerçek cihazlarda son bir tur kontrol etmek
 - aktif oda korumasını çoklu sekme / reconnect senaryolarında son bir tur doğrulamak
 - process-local registered room index optimizasyonunu Redis/Valkey shared presence katmanına taşıma notunu korumak
+- kart kozmetik art direction konusu araştırma bekliyor; premium tasarım yönü netleşene kadar sistem tarafı not seviyesinde tutulacak
 
 Bilinçli olarak bu branch'te yapmıyoruz:
 - admin detaylı maç geçmişi yüzeyi
@@ -119,6 +120,7 @@ Bilinçli olarak bu branch'te yapmıyoruz:
 - non-triggered finalize kayıtları ileride daha hafif telemetry yoluna taşınabilir.
 - eski `game.match.finalize` kayıtları için retention / archive planı gerekli.
 - admin kullanıcı mesajlaşma sistemi ayrı bir operasyon branch'i olarak düşünülmeli.
+- kart kozmetikleri için profesyonel yön `image/hybrid first`, `template second` olarak korunmalı; görsel research tamamlanmadan render sistemi acele büyütülmemeli.
 
 ## Referans Rehberler
 - `docs/guides/economy-abuse-hardening-guide.md`

@@ -45,6 +45,7 @@ Bu branch'te açık kalan takip maddeleri:
 - aktif oda korumasını reconnect ve farklı browser senaryolarında son kez kontrol etme
 - bildirim sheet ve toast yerleşimini cihazlarda son kez kontrol etme
 - hızlı kuşan ve önerilenler oranlarını küçük bir polish turundan geçirme
+- kart tasarım sistemi teknik olarak ertelenebilir; premium art direction araştırması tamamlanana kadar bu konu not/backlog seviyesinde tutulacak
 
 Kapsam dışı bırakılanlar:
 - admin detaylı maç geçmişi yüzeyi

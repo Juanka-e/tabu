@@ -348,18 +348,25 @@ export function AuthenticatedDashboardHome({
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.14),transparent_30%),linear-gradient(135deg,#f8fafc,#eef2ff,#eff6ff)] dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_24%),linear-gradient(135deg,#020617,#0f172a,#111827)]">
       <header className="z-40 shrink-0 border-b border-white/30 bg-white/65 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
         <div className="flex items-center justify-between px-4 py-3 md:px-6">
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2">
             {branding.logoUrl ? (
-              <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-4 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
-                <Image
-                  src={branding.logoUrl}
-                  alt={`${branding.siteName} logo`}
-                  width={240}
-                  height={72}
-                  unoptimized
-                  className="h-10 w-auto max-w-[240px] object-contain"
-                />
-              </div>
+              <>
+                <div className="flex min-w-0 items-center overflow-hidden rounded-[20px] border border-white/60 bg-white/90 px-2.5 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:hidden">
+                  <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent">
+                    {branding.siteShortName.toUpperCase()}
+                  </span>
+                </div>
+                <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-4 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
+                  <Image
+                    src={branding.logoUrl}
+                    alt={`${branding.siteName} logo`}
+                    width={240}
+                    height={72}
+                    unoptimized
+                    className="h-10 w-auto max-w-[240px] object-contain"
+                  />
+                </div>
+              </>
             ) : (
               <div className="min-w-0 rounded-[22px] border border-white/50 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
                 <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.18em] text-transparent">

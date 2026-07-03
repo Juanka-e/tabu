@@ -839,10 +839,10 @@ export default function RoomPage() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
-                    <div className="relative z-[80] flex items-start justify-between gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
+                    <div className="relative z-[80] flex items-start justify-between gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
                         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
-                            <div className="flex min-w-0 items-center gap-3 rounded-[1.4rem] border border-white/60 bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:px-4">
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950">
+                            <div className="flex min-w-0 items-center gap-2 rounded-[1.3rem] border border-white/60 bg-white/90 px-2.5 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:gap-3 sm:px-4">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:h-11 sm:w-11">
                                     {branding.logoUrl ? (
                                         <Image
                                             src={branding.logoUrl}
@@ -850,22 +850,22 @@ export default function RoomPage() {
                                             width={44}
                                             height={44}
                                             unoptimized
-                                            className="h-8 w-8 object-contain"
+                                            className="h-7 w-7 object-contain sm:h-8 sm:w-8"
                                         />
                                     ) : (
-                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.22em] text-transparent">
+                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent sm:text-sm sm:tracking-[0.22em]">
                                             {brandShortLabel}
                                         </span>
                                     )}
                                 </div>
-                                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300/90 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:border-slate-600/80 dark:bg-slate-800/70 dark:text-slate-500 md:flex">
+                                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300/90 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:border-slate-600/80 dark:bg-slate-800/70 dark:text-slate-500 lg:flex">
                                     FX
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="truncate text-sm font-black tracking-[0.18em] text-slate-900 dark:text-white sm:text-base">
+                                    <div className="truncate text-[13px] font-black tracking-[0.14em] text-slate-900 dark:text-white sm:text-base sm:tracking-[0.18em]">
                                         {brandLabel}
                                     </div>
-                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 sm:gap-2 sm:text-[11px] sm:tracking-[0.18em]">
                                         <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
                                             {activeStageLabel}
                                         </span>
