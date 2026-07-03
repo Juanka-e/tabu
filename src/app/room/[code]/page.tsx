@@ -10,7 +10,7 @@ import { RulesModal } from "@/components/game/rules-modal";
 import { Lobby } from "@/components/game/lobby";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
-import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, Hash } from "lucide-react";
+import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, Hash, ArrowRight, LoaderCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useBranding } from "@/components/providers/branding-provider";
 import { clearActiveRoomPresenceTab, writeActiveRoomPresence } from "@/lib/client/active-room-presence";
@@ -40,6 +40,13 @@ import { UsernamePrompt } from "./_components/username-prompt";
 interface SocketIdentityPayload {
     playerId: string;
     guestToken: string | null;
+}
+
+interface ActiveRoomGuardState {
+    status: "checking" | "ready" | "blocked";
+    roomCode: string | null;
+    pendingAdminHandoff: PendingAdminHandoffState | null;
+    requiresHostReturn: boolean;
 }
 
 const ROOM_SWITCH_TEAM_EVENT = "takim_degistir";
@@ -131,8 +138,15 @@ export default function RoomPage() {
     const [identitySaving, setIdentitySaving] = useState(false);
     const [identityError, setIdentityError] = useState("");
     const [storedUsername, setStoredUsername] = useState<string | null>(null);
+    const [activeRoomGuard, setActiveRoomGuard] = useState<ActiveRoomGuardState>({
+        status: "checking",
+        roomCode: null,
+        pendingAdminHandoff: null,
+        requiresHostReturn: false,
+    });
     const isRoomClientReady = storedUsername !== null;
     const isAuthenticatedRoomUser = Boolean(session?.user?.id);
+    const normalizedRoomCode = roomCode.trim().toUpperCase();
     const showUsernamePrompt =
         isRoomClientReady &&
         !isAuthenticatedRoomUser &&
@@ -160,6 +174,93 @@ export default function RoomPage() {
                     : "Lobi";
     const brandLabel = branding.siteName.trim() || "Hushle";
     const brandShortLabel = branding.siteShortName.trim() || "H";
+    const isActiveRoomGuardReady = !isAuthenticatedRoomUser || activeRoomGuard.status === "ready";
+
+    useEffect(() => {
+        if (!isAuthenticatedRoomUser) {
+            setActiveRoomGuard({
+                status: "ready",
+                roomCode: null,
+                pendingAdminHandoff: null,
+                requiresHostReturn: false,
+            });
+            return;
+        }
+
+        let cancelled = false;
+        setActiveRoomGuard((current) => ({
+            ...current,
+            status: "checking",
+        }));
+
+        async function loadActiveRoomGuard() {
+            try {
+                const response = await fetch("/api/user/active-room", {
+                    method: "GET",
+                    cache: "no-store",
+                    credentials: "same-origin",
+                });
+
+                if (!response.ok) {
+                    if (!cancelled) {
+                        setActiveRoomGuard({
+                            status: "ready",
+                            roomCode: null,
+                            pendingAdminHandoff: null,
+                            requiresHostReturn: false,
+                        });
+                    }
+                    return;
+                }
+
+                const payload = (await response.json()) as {
+                    roomCode?: string | null;
+                    pendingAdminHandoff?: PendingAdminHandoffState | null;
+                    requiresHostReturn?: boolean;
+                };
+                const serverRoomCode =
+                    typeof payload.roomCode === "string" && payload.roomCode.length > 0
+                        ? payload.roomCode.toUpperCase()
+                        : null;
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (serverRoomCode && serverRoomCode !== normalizedRoomCode) {
+                    setActiveRoomGuard({
+                        status: "blocked",
+                        roomCode: serverRoomCode,
+                        pendingAdminHandoff: payload.pendingAdminHandoff ?? null,
+                        requiresHostReturn: payload.requiresHostReturn === true,
+                    });
+                    return;
+                }
+
+                setActiveRoomGuard({
+                    status: "ready",
+                    roomCode: serverRoomCode,
+                    pendingAdminHandoff: payload.pendingAdminHandoff ?? null,
+                    requiresHostReturn: payload.requiresHostReturn === true,
+                });
+            } catch {
+                if (!cancelled) {
+                    setActiveRoomGuard({
+                        status: "ready",
+                        roomCode: null,
+                        pendingAdminHandoff: null,
+                        requiresHostReturn: false,
+                    });
+                }
+            }
+        }
+
+        void loadActiveRoomGuard();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticatedRoomUser, normalizedRoomCode]);
 
     useEffect(() => {
         const syncStoredUsername = () => {
@@ -267,7 +368,7 @@ export default function RoomPage() {
 
     // Connect socket (only when username is set)
     useEffect(() => {
-        if (!isRoomClientReady || showUsernamePrompt) return;
+        if (!isRoomClientReady || showUsernamePrompt || !isActiveRoomGuardReady) return;
 
         let isMounted = true;
         let activeSocket: Socket | null = null;
@@ -482,7 +583,7 @@ export default function RoomPage() {
             isMounted = false;
             activeSocket?.disconnect();
         };
-    }, [isRoomClientReady, roomCode, router, session?.user?.id, session?.user?.name, showUsernamePrompt, storedUsername]);
+    }, [isActiveRoomGuardReady, isRoomClientReady, roomCode, router, session?.user?.id, session?.user?.name, showUsernamePrompt, storedUsername]);
 
     // Actions
 
@@ -766,6 +867,72 @@ export default function RoomPage() {
                     </div>
                     <div className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                         Oda bilgileri hazirlaniyor.
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    if (isAuthenticatedRoomUser && activeRoomGuard.status === "checking") {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 dark:bg-slate-900">
+                <div className="rounded-3xl border border-gray-200 bg-white px-8 py-6 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200">
+                        <LoaderCircle className="h-6 w-6 animate-spin" />
+                    </div>
+                    <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                        Aktif Oda Kontrolu
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Hangi odaya devam etmen gerektigini dogruluyoruz.
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    if (isAuthenticatedRoomUser && activeRoomGuard.status === "blocked" && activeRoomGuard.roomCode) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 dark:bg-slate-900">
+                <div className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-6 shadow-xl dark:border-amber-900/40 dark:bg-slate-900">
+                    <div className="flex items-start gap-4">
+                        <div className="rounded-2xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                            <ArrowRight className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
+                                Aktif Oda Bulundu
+                            </div>
+                            <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
+                                {activeRoomGuard.roomCode} odasina geri donmelisin.
+                            </div>
+                            <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                                Acmaya calistigin sayfa <span className="font-bold">{normalizedRoomCode}</span>. Hesabin ise su an{" "}
+                                <span className="font-bold">{activeRoomGuard.roomCode}</span> odasina bagli gorunuyor.
+                            </div>
+                            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                {activeRoomGuard.requiresHostReturn
+                                    ? "Bu odada yonetici geri donusu bekleniyor. Once kendi odana donup devir riskini kapatman gerekir."
+                                    : "Yanlis room URL'i veya eski sekme acik kalmis olabilir. Once mevcut odana don, sonra gerekirse yeni oda ac."}
+                            </div>
+                            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                                <button
+                                    type="button"
+                                    onClick={() => router.replace(`/room/${activeRoomGuard.roomCode}`)}
+                                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-400"
+                                >
+                                    <ArrowRight className="h-4 w-4" />
+                                    Aktif Odaya Don
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.replace("/dashboard")}
+                                    className="rounded-2xl border border-gray-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                >
+                                    Dashboard'a Git
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
