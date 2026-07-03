@@ -21,6 +21,10 @@ export function validateAdminCategoryReorderUpdates(
     }
 
     const categoryMap = new Map(categories.map((category) => [category.id, category]));
+    const rootCategoryIds = categories
+        .filter((category) => category.parentId === null)
+        .map((category) => category.id)
+        .sort((left, right) => left - right);
     const seenIds = new Set<number>();
 
     for (const update of updates) {
@@ -44,6 +48,17 @@ export function validateAdminCategoryReorderUpdates(
 
         if (category.parentId !== null) {
             throw new Error("Alt kategoriler bu akista suruklenemez. Yalnizca ana kategoriler siralanabilir.");
+        }
+    }
+
+    const sortedSeenIds = Array.from(seenIds).sort((left, right) => left - right);
+    if (sortedSeenIds.length !== rootCategoryIds.length) {
+        throw new Error("Siralama istegi tum ana kategorileri icermeli.");
+    }
+
+    for (let index = 0; index < rootCategoryIds.length; index += 1) {
+        if (sortedSeenIds[index] !== rootCategoryIds[index]) {
+            throw new Error("Siralama istegi tum ana kategorileri icermeli.");
         }
     }
 

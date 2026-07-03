@@ -30,6 +30,7 @@
     "test:room-membership": "tsx scripts/test-room-membership.ts",
     "test:active-room-presence": "tsx scripts/test-active-room-presence.ts",
     "test:gameplay-ui-http-smoke": "tsx scripts/test-gameplay-ui-http-smoke.ts",
+    "test:gameplay-ui-playwright": "playwright test tests/gameplay-ui-smoke.spec.ts",
     "test:room-admin-handoff": "tsx scripts/test-room-admin-handoff.ts",
     "test:distributed-coordination": "tsx scripts/test-distributed-coordination.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",

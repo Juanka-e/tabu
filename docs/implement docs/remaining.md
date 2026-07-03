@@ -47,10 +47,10 @@ Tamamlananlar:
 - room / lobby logosunun üst merkezde daha dengeli konumlanması
 
 Açık kalanlar:
-- admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama ve gerekiyorsa polish
+- admin kategoriler sürükle-bırak davranışını gerçek kullanımda son kez doğrulama
 - bildirim sheet, toast, header ve hızlı kuşan iyileştirmelerini gerçek cihazlarda son bir tur kontrol etmek
 - aktif oda korumasını çoklu sekme / reconnect senaryolarında son bir tur doğrulamak
-- `docs/guides/gameplay-ui-polish-smoke-checklist.md` uzerinden gercek cihaz veya Playwright smoke turu yapmak
+- `docs/guides/gameplay-ui-polish-smoke-checklist.md` uzerinden gercek cihaz smoke turu yapmak
 - process-local registered room index optimizasyonunu Redis/Valkey shared presence katmanına taşıma notunu korumak
 - kart kozmetik art direction konusu araştırma bekliyor; premium tasarım yönü netleşene kadar sistem tarafı not seviyesinde tutulacak
 

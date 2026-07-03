@@ -39,4 +39,22 @@ assert.throws(
     /Alt kategoriler/
 );
 
+assert.throws(
+    () =>
+        validateAdminCategoryReorderUpdates([{ id: 1, sortOrder: 0 }], categories),
+    /tum ana kategorileri/
+);
+
+assert.throws(
+    () =>
+        validateAdminCategoryReorderUpdates(
+            [
+                { id: 1, sortOrder: 0 },
+                { id: 999, sortOrder: 10 },
+            ],
+            categories
+        ),
+    /bulunamadi/
+);
+
 console.log("admin-category-reorder smoke test passed");

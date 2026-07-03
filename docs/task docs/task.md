@@ -40,10 +40,10 @@ Bu branch'te tamamlanan ana işler:
 - room / lobby logosunun üst merkezde yeniden dengelenmesi
 
 Bu branch'te açık kalan takip maddeleri:
-- admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama
+- admin kategoriler sürükle-bırak davranışını gerçek kullanımda son kez doğrulama
 - aktif oda korumasını reconnect ve farklı browser senaryolarında son kez kontrol etme
 - bildirim sheet, toast, header ve hizli kusan yerlesimini cihazlarda son kez kontrol etme
-- `docs/guides/gameplay-ui-polish-smoke-checklist.md` ile final smoke turu
+- `docs/guides/gameplay-ui-polish-smoke-checklist.md` ile gercek cihaz final smoke turu
 - kart tasarım sistemi teknik olarak ertelenebilir; premium art direction araştırması tamamlanana kadar bu konu not/backlog seviyesinde tutulacak
 
 Kapsam dışı bırakılanlar:

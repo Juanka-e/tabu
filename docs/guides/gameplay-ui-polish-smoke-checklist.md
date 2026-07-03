@@ -85,3 +85,4 @@ Not:
 - gercek socket/game flow'lari tam e2e'ye gecmeden once fixture ve test kullanicisi stratejisi netlestirilmeli
 - Redis'siz local gelistirme korunmali; smoke testler memory fallback ile de calisabilmeli
 - auth'siz temel route sagligi icin `SMOKE_BASE_URL=http://localhost:3100 npm run test:gameplay-ui-http-smoke` gibi hizli bir HTTP smoke kullanilabilir
+- auth'siz temel UI smoke icin `SMOKE_BASE_URL=http://localhost:3100 npm run test:gameplay-ui-playwright` komutu kullanilabilir
