@@ -28,6 +28,7 @@
     "test:request-security": "tsx scripts/test-request-security.ts",
     "test:client-ip-security": "tsx scripts/test-client-ip-security.ts",
     "test:room-membership": "tsx scripts/test-room-membership.ts",
+    "test:active-room-presence": "tsx scripts/test-active-room-presence.ts",
     "test:room-admin-handoff": "tsx scripts/test-room-admin-handoff.ts",
     "test:distributed-coordination": "tsx scripts/test-distributed-coordination.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",

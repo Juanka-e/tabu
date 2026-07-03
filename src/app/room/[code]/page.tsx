@@ -13,6 +13,7 @@ import { DashboardOverlay } from "@/components/game/dashboard-overlay";
 import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, Hash } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useBranding } from "@/components/providers/branding-provider";
+import { clearActiveRoomPresenceTab, writeActiveRoomPresence } from "@/lib/client/active-room-presence";
 import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import { ROOM_ROLE_GUESSER } from "@/lib/game/room-display";
@@ -196,30 +197,16 @@ export default function RoomPage() {
         window.sessionStorage.setItem("tabu_room_presence_tab_id", tabId);
 
         const writePresence = () => {
-            window.localStorage.setItem(
+            writeActiveRoomPresence(
                 activeRoomPresenceKey,
-                JSON.stringify({
-                    roomCode,
-                    tabId,
-                    updatedAt: Date.now(),
-                })
+                window.localStorage,
+                roomCode,
+                tabId
             );
         };
 
         const clearPresence = () => {
-            const raw = window.localStorage.getItem(activeRoomPresenceKey);
-            if (!raw) {
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(raw) as { tabId?: string };
-                if (parsed.tabId === tabId) {
-                    window.localStorage.removeItem(activeRoomPresenceKey);
-                }
-            } catch {
-                window.localStorage.removeItem(activeRoomPresenceKey);
-            }
+            clearActiveRoomPresenceTab(activeRoomPresenceKey, window.localStorage, tabId);
         };
 
         writePresence();

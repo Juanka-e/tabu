@@ -27,6 +27,7 @@ import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
 import { useBranding } from "@/components/providers/branding-provider";
+import { getFreshActiveRoomCodeFromPresence } from "@/lib/client/active-room-presence";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
 import type { PendingAdminHandoffState } from "@/types/game";
 
@@ -139,28 +140,13 @@ export function AuthenticatedDashboardHome({
     }
 
     if (activeRoomPresenceKey) {
-      const rawPresence = window.localStorage.getItem(activeRoomPresenceKey);
-      if (rawPresence) {
-        try {
-          const parsed = JSON.parse(rawPresence) as {
-            roomCode?: string;
-            updatedAt?: number;
-          };
-          const roomPresenceFresh =
-            typeof parsed.updatedAt === "number" &&
-            Date.now() - parsed.updatedAt < 15_000 &&
-            typeof parsed.roomCode === "string" &&
-            parsed.roomCode.length > 0;
-
-          if (roomPresenceFresh) {
-            setError(`Zaten ${parsed.roomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
-            return;
-          }
-
-          window.localStorage.removeItem(activeRoomPresenceKey);
-        } catch {
-          window.localStorage.removeItem(activeRoomPresenceKey);
-        }
+      const activeRoomCodeFromPresence = getFreshActiveRoomCodeFromPresence(
+        activeRoomPresenceKey,
+        window.localStorage
+      );
+      if (activeRoomCodeFromPresence) {
+        setError(`Zaten ${activeRoomCodeFromPresence} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
+        return;
       }
     }
 
