@@ -48,10 +48,9 @@ Tamamlananlar:
 
 Açık kalanlar:
 - admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama ve gerekiyorsa polish
-- room / lobby logo konumlandırmasını son bir responsive turdan geçirmek
-- in-game ve dashboard hızlı kuşan görsellerinde son oran / boşluk iyileştirmeleri
-- bildirim sheet ile toast çakışmasını gerçek cihazlarda son bir tur kontrol etmek
+- bildirim sheet, toast, header ve hızlı kuşan iyileştirmelerini gerçek cihazlarda son bir tur kontrol etmek
 - aktif oda korumasını çoklu sekme / reconnect senaryolarında son bir tur doğrulamak
+- `docs/guides/gameplay-ui-polish-smoke-checklist.md` uzerinden gercek cihaz veya Playwright smoke turu yapmak
 - process-local registered room index optimizasyonunu Redis/Valkey shared presence katmanına taşıma notunu korumak
 - kart kozmetik art direction konusu araştırma bekliyor; premium tasarım yönü netleşene kadar sistem tarafı not seviyesinde tutulacak
 

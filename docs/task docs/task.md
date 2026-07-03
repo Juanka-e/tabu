@@ -41,10 +41,9 @@ Bu branch'te tamamlanan ana işler:
 
 Bu branch'te açık kalan takip maddeleri:
 - admin kategoriler sürükle-bırak davranışını gerçek kullanımda doğrulama
-- gameplay header / logo responsive son turu
 - aktif oda korumasını reconnect ve farklı browser senaryolarında son kez kontrol etme
-- bildirim sheet ve toast yerleşimini cihazlarda son kez kontrol etme
-- hızlı kuşan ve önerilenler oranlarını küçük bir polish turundan geçirme
+- bildirim sheet, toast, header ve hizli kusan yerlesimini cihazlarda son kez kontrol etme
+- `docs/guides/gameplay-ui-polish-smoke-checklist.md` ile final smoke turu
 - kart tasarım sistemi teknik olarak ertelenebilir; premium art direction araştırması tamamlanana kadar bu konu not/backlog seviyesinde tutulacak
 
 Kapsam dışı bırakılanlar:
