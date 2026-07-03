@@ -54,6 +54,7 @@
     "test:health-guard": "tsx scripts/test-health-guard.ts",
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:word-category-selection-ui": "tsx scripts/test-word-category-selection-ui.ts",
+    "test:admin-category-reorder": "tsx scripts/test-admin-category-reorder.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "db:push": "npx prisma db push --skip-generate",
     "db:generate": "npx prisma generate",

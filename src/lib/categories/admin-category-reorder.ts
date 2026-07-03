@@ -1,0 +1,56 @@
+export interface CategoryReorderUpdate {
+    id: number;
+    sortOrder: number;
+}
+
+export interface CategoryReorderMeta {
+    id: number;
+    parentId: number | null;
+}
+
+export function validateAdminCategoryReorderUpdates(
+    updates: CategoryReorderUpdate[],
+    categories: CategoryReorderMeta[]
+): CategoryReorderUpdate[] {
+    if (!Array.isArray(updates) || updates.length === 0) {
+        throw new Error("Siralama listesi bos olamaz.");
+    }
+
+    if (updates.length > 100) {
+        throw new Error("Tek seferde cok fazla kategori sirasi guncellenemez.");
+    }
+
+    const categoryMap = new Map(categories.map((category) => [category.id, category]));
+    const seenIds = new Set<number>();
+
+    for (const update of updates) {
+        if (!Number.isInteger(update.id) || update.id <= 0) {
+            throw new Error("Siralama listesinde gecersiz kategori kimligi var.");
+        }
+
+        if (!Number.isInteger(update.sortOrder) || update.sortOrder < 0) {
+            throw new Error("Siralama listesinde gecersiz siralama degeri var.");
+        }
+
+        if (seenIds.has(update.id)) {
+            throw new Error("Ayni kategori siralama listesinde birden fazla kez gonderilemez.");
+        }
+        seenIds.add(update.id);
+
+        const category = categoryMap.get(update.id);
+        if (!category) {
+            throw new Error("Siralamaya calisilan kategorilerden biri bulunamadi.");
+        }
+
+        if (category.parentId !== null) {
+            throw new Error("Alt kategoriler bu akista suruklenemez. Yalnizca ana kategoriler siralanabilir.");
+        }
+    }
+
+    return updates
+        .map((update) => ({
+            id: update.id,
+            sortOrder: update.sortOrder,
+        }))
+        .sort((left, right) => left.sortOrder - right.sortOrder);
+}

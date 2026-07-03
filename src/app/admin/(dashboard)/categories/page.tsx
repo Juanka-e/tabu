@@ -245,6 +245,7 @@ export default function AdminCategoriesPage() {
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState("");
+    const [reorderSaving, setReorderSaving] = useState(false);
 
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<Category | null>(null);
@@ -387,7 +388,7 @@ export default function AdminCategoriesPage() {
 
     const handleDragEnd = useCallback(async (event: DragEndEvent) => {
         const { active, over } = event;
-        if (!over || active.id === over.id) {
+        if (reorderSaving || !over || active.id === over.id) {
             return;
         }
 
@@ -409,6 +410,7 @@ export default function AdminCategoriesPage() {
                 sortOrder: index * 10,
             }))
         );
+        setReorderSaving(true);
 
         try {
             const response = await fetch("/api/admin/categories/reorder", {
@@ -428,8 +430,10 @@ export default function AdminCategoriesPage() {
         } catch {
             setPageError("Kategori sirasi kaydedilirken ag hatasi olustu.");
             await fetchCategories();
+        } finally {
+            setReorderSaving(false);
         }
-    }, [categories, fetchCategories]);
+    }, [categories, fetchCategories, reorderSaving]);
 
     const handleSave = useCallback(async () => {
         if (!formName.trim()) {
@@ -556,6 +560,12 @@ export default function AdminCategoriesPage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                         Toplam {totalCategories} kategori. Ana kategoriler suruklenebilir, alt kategoriler kendi ana kategorisi altinda kalir.
                     </p>
+                    {reorderSaving ? (
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                            <Loader2 size={12} className="animate-spin" />
+                            Siralama kaydediliyor
+                        </div>
+                    ) : null}
                 </div>
                 <button
                     onClick={() => openCreate(null)}
@@ -577,6 +587,9 @@ export default function AdminCategoriesPage() {
                     </p>
                     <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
                         Su an taksonomi iki seviye: ana kategori ve alt kategori. Alt kategorinin altina yeni kategori acilamaz.
+                    </p>
+                    <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+                        Surukle-birak yalnizca ana kategoriler icindir. Alt kategoriler kendi ust kategorisinin altinda kalir.
                     </p>
                 </div>
 
