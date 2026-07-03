@@ -174,7 +174,7 @@ export function DashboardProfileSidebar({ onTabChange, mode = "sidebar" }: Profi
 
   if (mode === "inline") {
     return (
-      <div className="space-y-4 border-b border-slate-200/60 bg-white/72 px-4 py-4 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:hidden">
+      <div className="space-y-3 border-b border-slate-200/60 bg-white/72 px-4 py-3.5 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/35 xl:hidden">
         <QuickEquipPanel items={quickEquipItems} onOpenInventory={() => onTabChange("inventory")} compact />
       </div>
     );
@@ -244,16 +244,23 @@ function QuickEquipPanel({
   compact?: boolean;
 }) {
   return (
-    <div className="mb-8 w-full text-left">
-      <h3 className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+    <div className={`w-full text-left ${compact ? "" : "mb-8"}`}>
+      <div className={`flex items-center justify-between gap-3 ${compact ? "mb-3" : "mb-4"}`}>
+      <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
         Hızlı Kuşan
       </h3>
+      {compact ? (
+        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+          Envanterden aninda degistir
+        </span>
+      ) : null}
+      </div>
       <div className={compact ? "grid grid-cols-4 gap-2" : "grid grid-cols-4 gap-2.5"}>
         {items.map((item) => (
           <button
             key={item.inventoryItemId}
             onClick={onOpenInventory}
-            className={`ring-indigo-400 flex items-center justify-center overflow-hidden rounded-[22px] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.58),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(226,232,240,0.9))] p-1 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.1),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.88),rgba(15,23,42,0.95))] ${compact ? "h-16" : "h-[92px]"}`}
+            className={`ring-indigo-400 flex items-center justify-center overflow-hidden rounded-[22px] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.58),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(226,232,240,0.9))] p-1 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 hover:ring-2 dark:border-slate-700/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.1),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.88),rgba(15,23,42,0.95))] ${compact ? "aspect-square min-h-[68px]" : "h-[92px]"}`}
             title={`${item.name} • ${formatCosmeticTypeLabel(item.type)}`}
             type="button"
           >
@@ -262,7 +269,7 @@ function QuickEquipPanel({
         ))}
         <button
           onClick={onOpenInventory}
-          className={`flex items-center justify-center rounded-[22px] border-2 border-dashed border-slate-300 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 ${compact ? "h-16" : "h-[92px]"}`}
+          className={`flex items-center justify-center rounded-[22px] border-2 border-dashed border-slate-300 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 ${compact ? "aspect-square min-h-[68px]" : "h-[92px]"}`}
           type="button"
           aria-label="Envanteri aç"
         >

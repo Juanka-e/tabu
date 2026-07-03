@@ -333,16 +333,16 @@ export function AuthenticatedDashboardHome({
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.14),transparent_30%),linear-gradient(135deg,#f8fafc,#eef2ff,#eff6ff)] dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_24%),linear-gradient(135deg,#020617,#0f172a,#111827)]">
       <header className="z-40 shrink-0 border-b border-white/30 bg-white/65 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
-        <div className="flex items-center justify-between px-4 py-3 md:px-6">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {branding.logoUrl ? (
               <>
-                <div className="flex min-w-0 items-center overflow-hidden rounded-[20px] border border-white/60 bg-white/90 px-2.5 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:hidden">
+                <div className="flex min-w-0 items-center overflow-hidden rounded-[18px] border border-white/60 bg-white/90 px-2 py-1.5 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:hidden">
                   <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent">
                     {branding.siteShortName.toUpperCase()}
                   </span>
                 </div>
-                <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-4 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
+                <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-3 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
                   <Image
                     src={branding.logoUrl}
                     alt={`${branding.siteName} logo`}
@@ -361,15 +361,15 @@ export function AuthenticatedDashboardHome({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/75 px-2 py-1 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
-            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">
+          <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/60 bg-white/75 px-1.5 py-1 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
+            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full sm:h-8 sm:w-8">
               <Megaphone className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="h-8 w-8 rounded-full"
+              className="h-8 w-8 rounded-full sm:h-8 sm:w-8"
             >
               <span className="relative flex h-4 w-4 items-center justify-center">
                 <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -381,8 +381,8 @@ export function AuthenticatedDashboardHome({
                 <Settings className="h-4 w-4" />
               </Button>
             ) : null}
-            <Separator orientation="vertical" className="mx-1 h-5" />
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/80 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <Separator orientation="vertical" className="mx-0.5 hidden h-5 sm:block" />
+            <div className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/80 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:flex">
               {session.user.image ? (
                 <Image
                   src={session.user.image}

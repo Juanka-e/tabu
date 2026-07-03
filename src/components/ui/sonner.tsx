@@ -40,6 +40,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       expand={false}
       position="top-right"
       offset={notificationsSheetOpen ? { top: 72, right: 16 } : { top: 16, right: 16 }}
+      mobileOffset={notificationsSheetOpen ? { top: 88, left: 12, right: 12 } : { top: 12, left: 12, right: 12 }}
       toastOptions={{
         duration: 2800,
       }}

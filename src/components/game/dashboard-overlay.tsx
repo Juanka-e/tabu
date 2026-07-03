@@ -213,7 +213,8 @@ export function DashboardLayout({
                     <button
                         type="button"
                         onClick={() => setNotificationsOpen(true)}
-                        className="absolute bottom-20 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-sky-600 text-white shadow-xl transition hover:scale-105 md:hidden"
+                        className="absolute right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-sky-600 text-white shadow-xl transition hover:scale-105 md:hidden"
+                        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}
                     >
                         <Bell className="h-5 w-5" />
                         {notificationUnreadCount > 0 ? (
@@ -225,7 +226,8 @@ export function DashboardLayout({
                     <button
                         type="button"
                         onClick={() => setSupportOpen(true)}
-                        className="absolute bottom-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-105 dark:bg-amber-200 dark:text-slate-900 md:hidden"
+                        className="absolute right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl transition hover:scale-105 dark:bg-amber-200 dark:text-slate-900 md:hidden"
+                        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
                     >
                         <HelpCircle className="h-5 w-5" />
                     </button>

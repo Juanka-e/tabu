@@ -995,8 +995,8 @@ export default function RoomPage() {
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
                     <div className="relative z-[80] flex items-start justify-between gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
                         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
-                            <div className="flex min-w-0 items-center gap-2 rounded-[1.3rem] border border-white/60 bg-white/90 px-2.5 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:gap-3 sm:px-4">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:h-11 sm:w-11">
+                            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[1.2rem] border border-white/60 bg-white/90 px-2 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:flex-none sm:gap-3 sm:px-4">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:h-11 sm:w-11">
                                     {branding.logoUrl ? (
                                         <Image
                                             src={branding.logoUrl}
@@ -1004,7 +1004,7 @@ export default function RoomPage() {
                                             width={44}
                                             height={44}
                                             unoptimized
-                                            className="h-7 w-7 object-contain sm:h-8 sm:w-8"
+                                            className="h-6 w-6 object-contain sm:h-8 sm:w-8"
                                         />
                                     ) : (
                                         <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent sm:text-sm sm:tracking-[0.22em]">
@@ -1016,14 +1016,14 @@ export default function RoomPage() {
                                     FX
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="truncate text-[13px] font-black tracking-[0.14em] text-slate-900 dark:text-white sm:text-base sm:tracking-[0.18em]">
+                                    <div className="truncate text-[12px] font-black tracking-[0.12em] text-slate-900 dark:text-white sm:text-base sm:tracking-[0.18em]">
                                         {brandLabel}
                                     </div>
-                                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 sm:gap-2 sm:text-[11px] sm:tracking-[0.18em]">
+                                    <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 sm:gap-2 sm:text-[11px] sm:tracking-[0.18em]">
                                         <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
                                             {activeStageLabel}
                                         </span>
-                                        <span className="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800 sm:inline-flex">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
                                             <Hash size={11} />
                                             {roomCode}
                                         </span>
@@ -1087,21 +1087,21 @@ export default function RoomPage() {
                                     {canEditIdentity ? <Pencil size={14} /> : <Lock size={14} />}
                                 </button>
                             ) : (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                     {session?.user ? (
                                         <button
                                             onClick={() => setShowDashboard(true)}
-                                            className="rounded-xl border border-gray-100 bg-white p-2.5 text-gray-600 shadow-lg transition-all hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-indigo-400"
+                                            className="rounded-xl border border-gray-100 bg-white p-2 text-gray-600 shadow-lg transition-all hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-indigo-400 sm:p-2.5"
                                         >
-                                            <LayoutDashboard size={20} />
+                                            <LayoutDashboard size={18} />
                                         </button>
                                     ) : null}
                                     <button
                                         type="button"
                                         onClick={() => setShowUtilityMenu((current) => !current)}
-                                        className="rounded-xl border border-gray-100 bg-white p-2.5 text-gray-600 shadow-lg transition-all hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-white"
+                                        className="rounded-xl border border-gray-100 bg-white p-2 text-gray-600 shadow-lg transition-all hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-white sm:p-2.5"
                                     >
-                                        <Menu size={20} />
+                                        <Menu size={18} />
                                     </button>
                                 </div>
                             )}
