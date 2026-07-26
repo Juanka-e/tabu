@@ -21,6 +21,8 @@ import {
     resetRoomActionLockState,
 } from "../src/lib/socket/room-action-lock";
 import {
+    getRedisHealth,
+    getRedisKey,
     resetRedisTestClient,
     setRedisTestClient,
     type RedisLikeClient,
@@ -33,6 +35,10 @@ type StoredValue = {
 
 class FakeRedisClient implements RedisLikeClient {
     private readonly store = new Map<string, StoredValue>();
+
+    async ping(): Promise<string> {
+        return "PONG";
+    }
 
     private cleanup(key: string): void {
         const entry = this.store.get(key);
@@ -114,13 +120,24 @@ class FakeRedisClient implements RedisLikeClient {
 }
 
 const originalRedisUrl = process.env.REDIS_URL;
+const originalRedisKeyPrefix = process.env.REDIS_KEY_PREFIX;
 
 async function run(): Promise<void> {
     process.env.REDIS_URL = "redis://fake-test";
+    process.env.REDIS_KEY_PREFIX = "hushle:test";
     setRedisTestClient(new FakeRedisClient());
     resetRequestRateLimitBuckets();
     resetRoomMembershipState();
     resetRoomAdminHandoffState();
+
+    assert.equal(
+        getRedisKey("room-membership", "user", 42),
+        "hushle:test:room-membership:user:42"
+    );
+    const redisHealth = await getRedisHealth();
+    assert.equal(redisHealth.configured, true);
+    assert.equal(redisHealth.available, true);
+    assert.equal(typeof redisHealth.latencyMs, "number");
 
     const firstRate = await consumeDistributedRequestRateLimit({
         bucket: "distributed-test",
@@ -200,5 +217,11 @@ run()
             delete process.env.REDIS_URL;
         } else {
             process.env.REDIS_URL = originalRedisUrl;
+        }
+
+        if (originalRedisKeyPrefix === undefined) {
+            delete process.env.REDIS_KEY_PREFIX;
+        } else {
+            process.env.REDIS_KEY_PREFIX = originalRedisKeyPrefix;
         }
     });

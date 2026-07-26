@@ -6,6 +6,8 @@ Hushle is the Next.js game and admin panel project in this repository. It includ
 
 ```bash
 npm install
+npm run infra:up
+npm run db:sync
 npm run dev
 ```
 
@@ -19,11 +21,30 @@ npm run build
 npm run db:sync
 ```
 
+Infra helpers:
+
+```bash
+npm run infra:up
+npm run infra:down
+npm run infra:logs
+npm run infra:status
+npm run test:redis
+```
+
 Infra-only local development:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 ```
+
+Notes:
+
+- Development and production stacks use named Docker volumes for MySQL and Redis.
+- Container restart or `docker compose down` does **not** wipe data.
+- Data is removed only if you explicitly remove volumes, for example with `docker compose down -v` or manual volume deletion.
+- Local MySQL listens on `127.0.0.1:3307` by default; `.env.example` matches the Docker credentials.
+- Local Redis listens on `127.0.0.1:6381` by default through Docker; `REDIS_PORT` can override the host port and the app reads it from `REDIS_URL`.
+- Redis uses AOF persistence, but MySQL remains the business source of truth.
 
 ## Production Shape
 
@@ -66,5 +87,6 @@ The compose stack includes:
 
 - In Docker, the app must bind `HOST=0.0.0.0`. It is still private because no app port is published.
 - Outside Docker, a host-level reverse proxy setup can bind the app to `127.0.0.1`.
+- MySQL is the current source-of-truth database. Do not switch to PostgreSQL during the `apps/` modularization phase; keep schema and operational flow stable first.
 - See `docs/guides/deployment-security-guide.md` for the security topology and Cloudflare/Nginx notes.
 - See `docs/guides/deployment-ops-runbook.md` for Ubuntu 24.04, GitHub Actions deploy, local-dev split, and MySQL backup flow.

@@ -7,6 +7,7 @@ type RedisSetOptions = {
 };
 
 export interface RedisLikeClient {
+    ping(): Promise<string>;
     get(key: string): Promise<string | null>;
     set(key: string, value: string, options?: RedisSetOptions): Promise<string | null>;
     del(key: string): Promise<number>;
@@ -15,9 +16,15 @@ export interface RedisLikeClient {
     pTTL(key: string): Promise<number>;
 }
 
+export interface RedisHealth {
+    configured: boolean;
+    available: boolean;
+    latencyMs: number | null;
+}
+
 let redisClient: AppRedisClient | null = null;
 let redisConnectPromise: Promise<AppRedisClient | null> | null = null;
-let redisDisabled = false;
+let redisRetryAfter = 0;
 let redisTestClient: RedisLikeClient | null = null;
 
 function getRedisUrl(): string | null {
@@ -25,12 +32,22 @@ function getRedisUrl(): string | null {
     return url ? url : null;
 }
 
+export function getRedisKey(...segments: Array<string | number>): string {
+    const prefix = process.env.REDIS_KEY_PREFIX?.trim() || "hushle";
+    return [prefix, ...segments].join(":");
+}
+
+function getPositiveIntegerSetting(name: string, fallback: number): number {
+    const parsed = Number.parseInt(process.env[name] ?? "", 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export function isRedisConfigured(): boolean {
     if (redisTestClient) {
         return true;
     }
 
-    return Boolean(getRedisUrl()) && !redisDisabled;
+    return Boolean(getRedisUrl());
 }
 
 export async function getRedisClient(): Promise<RedisLikeClient | null> {
@@ -38,7 +55,7 @@ export async function getRedisClient(): Promise<RedisLikeClient | null> {
         return redisTestClient;
     }
 
-    if (redisDisabled) {
+    if (Date.now() < redisRetryAfter) {
         return null;
     }
 
@@ -58,6 +75,10 @@ export async function getRedisClient(): Promise<RedisLikeClient | null> {
     const client = createClient({
         url: redisUrl,
         socket: {
+            connectTimeout: getPositiveIntegerSetting(
+                "REDIS_CONNECT_TIMEOUT_MS",
+                3_000
+            ),
             reconnectStrategy(retries) {
                 return retries > 5 ? false : Math.min(retries * 200, 2_000);
             },
@@ -72,11 +93,14 @@ export async function getRedisClient(): Promise<RedisLikeClient | null> {
         .connect()
         .then(() => {
             redisClient = client;
+            redisRetryAfter = 0;
             return client;
         })
         .catch((error) => {
             console.error("Redis connect failed, falling back to in-memory mode:", error);
-            redisDisabled = true;
+            redisRetryAfter =
+                Date.now() +
+                getPositiveIntegerSetting("REDIS_RETRY_COOLDOWN_MS", 30_000);
             return null;
         })
         .finally(() => {
@@ -86,12 +110,58 @@ export async function getRedisClient(): Promise<RedisLikeClient | null> {
     return redisConnectPromise;
 }
 
+export async function getRedisHealth(): Promise<RedisHealth> {
+    if (!isRedisConfigured()) {
+        return {
+            configured: false,
+            available: false,
+            latencyMs: null,
+        };
+    }
+
+    const startedAt = Date.now();
+    const client = await getRedisClient();
+    if (!client) {
+        return {
+            configured: true,
+            available: false,
+            latencyMs: null,
+        };
+    }
+
+    try {
+        const response = await client.ping();
+        return {
+            configured: true,
+            available: response === "PONG",
+            latencyMs: Date.now() - startedAt,
+        };
+    } catch {
+        return {
+            configured: true,
+            available: false,
+            latencyMs: null,
+        };
+    }
+}
+
+export async function closeRedisClient(): Promise<void> {
+    const client = redisClient;
+    redisClient = null;
+    redisConnectPromise = null;
+    redisRetryAfter = 0;
+
+    if (client?.isOpen) {
+        await client.quit();
+    }
+}
+
 export function setRedisTestClient(client: RedisLikeClient): void {
     redisTestClient = client;
-    redisDisabled = false;
+    redisRetryAfter = 0;
 }
 
 export function resetRedisTestClient(): void {
     redisTestClient = null;
-    redisDisabled = false;
+    redisRetryAfter = 0;
 }

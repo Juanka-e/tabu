@@ -28,6 +28,9 @@ Asama 2 mevcut durum:
 - dashboard aktif oda baglamini room code + pending handoff bilgisiyle okuyup kullaniciya dogrudan "odana don" aksiyonu sunuyor
 - Redis varsa TTL yenilenen dagitik kayit kullaniliyor
 - Redis yoksa local memory fallback ile gelistirme akisi korunuyor
+- Redis baglantisi gecici kesilirse cooldown sonrasinda process restart gerekmeden yeniden deneniyor
+- ortam bazli key prefix ile development ve production anahtarlari ayriliyor
+- `/api/health` Redis erisilebilirligini ve gecikmesini raporluyor
 - join tamamlanamazsa membership claim temizleniyor
 - socket disconnect sonrasinda kayit kontrollu sekilde serbest birakiliyor
 - pending admin handoff metadata'si TTL ile takip ediliyor ve reconnect / manuel devir / timeout sonrasinda temizleniyor
@@ -68,7 +71,7 @@ Redis'e tasinmamasi gereken state:
 
 - tam `RoomData` nesnesi
 - socket'e bagli gecici UI state
-- aktif turun anlik kart, sayaç ve takim ici mikro gecis state'leri
+- aktif turun anlik kart, sayac ve takim ici mikro gecis state'leri
 - sadece tek process icinde anlamli olan `socket.id -> roomCode` index'i
 
 Sartli tasinabilecek state:

@@ -1,4 +1,4 @@
-import { getRedisClient, isRedisConfigured } from "@/lib/redis";
+import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
 
 interface LocalAdminHandoffEntry {
     adminPlayerId: string;
@@ -15,7 +15,7 @@ export interface PendingRoomAdminHandoff {
 const localAdminHandoffs = new Map<string, LocalAdminHandoffEntry>();
 
 function getRoomAdminHandoffKey(roomCode: string): string {
-    return `room-admin-handoff:${roomCode}`;
+    return getRedisKey("room-admin-handoff", roomCode);
 }
 
 function clearLocalAdminHandoffTimeout(roomCode: string): void {

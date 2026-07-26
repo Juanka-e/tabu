@@ -36,7 +36,8 @@ Local `.env.local` ornegi:
 
 ```env
 DATABASE_URL=mysql://hushle:hushle@127.0.0.1:3307/hushle_dev
-REDIS_URL=redis://127.0.0.1:6380
+REDIS_URL=redis://127.0.0.1:6381
+REDIS_KEY_PREFIX=hushle:development
 NEXTAUTH_URL=http://localhost:3000
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 AUTH_SECRET=local_dev_secret_change_me

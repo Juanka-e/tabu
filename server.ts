@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { getToken } from "next-auth/jwt";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
+import { closeRedisClient, getRedisHealth } from "./src/lib/redis";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "127.0.0.1");
@@ -13,7 +14,41 @@ const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
 app.prepare().then(() => {
-    const httpServer = createServer(handler);
+    const httpServer = createServer(async (req, res) => {
+        if (req.url !== "/api/health" || req.method !== "GET") {
+            await handler(req, res);
+            return;
+        }
+
+        const requestHeaders = new Headers();
+        for (const [key, value] of Object.entries(req.headers)) {
+            if (typeof value === "string") {
+                requestHeaders.set(key, value);
+            } else if (Array.isArray(value)) {
+                requestHeaders.set(key, value.join(", "));
+            }
+        }
+
+        if (!isHealthEndpointAllowed(requestHeaders, dev)) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Not found" }));
+            return;
+        }
+
+        const metrics = getRoomMetrics();
+        const redis = await getRedisHealth();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+            JSON.stringify({
+                status: "ok",
+                uptime: process.uptime(),
+                dependencies: {
+                    redis,
+                },
+                ...metrics,
+            })
+        );
+    });
 
     const io = new Server(httpServer, {
         path: "/api/socketio",
@@ -46,42 +81,14 @@ app.prepare().then(() => {
 
     setupGameSocket(io);
 
-    httpServer.on("request", (req, res) => {
-        if (req.url === "/api/health" && req.method === "GET") {
-            const requestHeaders = new Headers();
-            for (const [key, value] of Object.entries(req.headers)) {
-                if (typeof value === "string") {
-                    requestHeaders.set(key, value);
-                } else if (Array.isArray(value)) {
-                    requestHeaders.set(key, value.join(", "));
-                }
-            }
-
-            if (!isHealthEndpointAllowed(requestHeaders, dev)) {
-                res.writeHead(404, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Not found" }));
-                return;
-            }
-
-            const metrics = getRoomMetrics();
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(
-                JSON.stringify({
-                    status: "ok",
-                    uptime: process.uptime(),
-                    ...metrics,
-                })
-            );
-        }
-    });
-
     httpServer.listen(port, hostname, () => {
         console.log(`> Ready on http://${hostname}:${port}`);
     });
 
-    const shutdown = () => {
+    const shutdown = async () => {
         console.log("Shutting down...");
         io.close();
+        await closeRedisClient();
         httpServer.close(() => {
             process.exit(0);
         });

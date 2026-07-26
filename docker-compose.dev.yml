@@ -4,7 +4,6 @@ services:
     container_name: hushle-dev-mysql
     restart: unless-stopped
     command:
-      - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     environment:
@@ -13,7 +12,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-hushle}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hushle}
     ports:
-      - "3307:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     volumes:
       - mysql-dev-data:/var/lib/mysql
     healthcheck:
@@ -26,9 +25,14 @@ services:
     image: redis:7-alpine
     container_name: hushle-dev-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
     ports:
-      - "6380:6379"
+      - "127.0.0.1:${REDIS_PORT:-6381}:6379"
     volumes:
       - redis-dev-data:/data
     healthcheck:

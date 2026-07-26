@@ -1,4 +1,4 @@
-import { getRedisClient, isRedisConfigured } from "@/lib/redis";
+import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
 export { getRequestIp, shouldTrustProxyHeaders } from "@/lib/security/client-ip";
 
 interface RateLimitEntry {
@@ -94,7 +94,7 @@ export async function consumeDistributedRequestRateLimit(
     }
 
     const { bucket, key, windowMs, maxRequests } = options;
-    const counterKey = `rate-limit:${bucket}:${key}`;
+    const counterKey = getRedisKey("rate-limit", bucket, key);
     const count = await client.incr(counterKey);
 
     if (count === 1) {

@@ -2,11 +2,20 @@
   "name": "newnextjs",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "tsx server.ts",
     "dev:next": "next dev",
     "build": "next build",
     "start": "tsx server.ts",
+    "infra:up": "docker compose -f docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f docker-compose.dev.yml down",
+    "infra:logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "infra:status": "docker compose -f docker-compose.dev.yml ps",
+    "test:redis": "tsx scripts/test-redis-connection.ts",
     "lint": "eslint",
     "seed:catalog": "tsx scripts/seed-store-catalog.ts",
     "test:catalog": "tsx scripts/test-mock-catalog.ts",

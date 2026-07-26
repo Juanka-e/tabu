@@ -1,9 +1,9 @@
-import { getRedisClient, isRedisConfigured } from "@/lib/redis";
+import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
 
 const localLocks = new Map<string, ReturnType<typeof setTimeout>>();
 
 function getRoomActionLockKey(roomCode: string, action: string): string {
-    return `room-action-lock:${roomCode}:${action}`;
+    return getRedisKey("room-action-lock", roomCode, action);
 }
 
 function claimLocalLock(key: string, ttlMs: number): boolean {

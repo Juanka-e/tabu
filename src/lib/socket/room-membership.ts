@@ -1,4 +1,4 @@
-import { getRedisClient, isRedisConfigured } from "@/lib/redis";
+import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
 
 interface LocalMembershipEntry {
     roomCode: string;
@@ -18,7 +18,7 @@ const ROOM_MEMBERSHIP_TTL_MS = Math.max(
 const localMembershipByUser = new Map<number, LocalMembershipEntry>();
 
 function getRoomMembershipKey(userId: number): string {
-    return `room-membership:user:${userId}`;
+    return getRedisKey("room-membership", "user", userId);
 }
 
 function clearLocalMembershipTimeout(userId: number): void {
