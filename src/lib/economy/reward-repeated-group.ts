@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@hushle/platform-db";
 import { getRepeatedGroupGuardState } from "@/lib/system-settings/economy";
 import type { SystemSettings } from "@/types/system-settings";
 

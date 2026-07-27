@@ -3,6 +3,24 @@
 ## Overview
 The real-time game logic is handled by a custom Socket.IO server integrated with Next.js. The core logic resides in `src/lib/socket/game-socket.ts`.
 
+## Repo Direction
+
+The current production code still runs as one Next.js + Socket.IO runtime.
+
+The accepted medium-term direction is a modular monolith with explicit workspace targets:
+
+- `apps/web`
+- `apps/api`
+- `apps/jobs`
+
+Physical runtime splitting is intentionally deferred until shared domain and platform code is extracted behind `packages/` boundaries.
+
+See:
+
+- `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
+- `docs/architecture/adr-002-platform-package-boundaries.md`
+- `docs/architecture/apps-migration-plan.md`
+
 ## Key Components
 
 ### 1. GameSocket (`src/lib/socket/game-socket.ts`)

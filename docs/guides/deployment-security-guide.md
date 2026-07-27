@@ -35,6 +35,11 @@ Production hedefi:
 - MySQL: `127.0.0.1:3306` veya private interface
 - Redis/Valkey: `127.0.0.1` veya private interface
 
+Docker istisnasi:
+- app ayri container icindeyse `HOST=0.0.0.0` olmali
+- bu tek basina public exposure anlamina gelmez
+- guvenlik kosulu, app portunun host'a publish edilmemesi ve sadece private Docker network uzerinden Nginx tarafindan erisilmesidir
+
 ## 3. Neden Backend Portu Public Olmamali?
 
 Node/Next portu dogrudan disariya acik olursa:
@@ -159,6 +164,29 @@ Minimum beklenti:
 - `Host` gecmeli
 - `X-Forwarded-Proto` gecmeli
 - websocket upgrade header'lari gecmeli
+
+## 6.2 Cloudflare Origin Certificate Akisi
+
+Cloudflare kullanilacaksa pratik model:
+
+1. DNS Cloudflare uzerinden yonetilir
+2. sunucuda public giris yine Nginx olur
+3. Cloudflare Origin Certificate uretilir
+4. cert ve key repo'ya commit edilmez
+5. Nginx container'ina read-only mount edilir
+
+Bu repo icindeki beklenen yol:
+
+- `nginx/ssl/origin-cert.pem`
+- `nginx/ssl/origin-key.pem`
+
+Cloudflare SSL/TLS modu:
+- `Full (strict)`
+
+Onemli:
+- `.pem` dosyalarini uygulama koduna koyma
+- sadece Nginx katmanina mount et
+- app container SSL terminate etmesin
 
 ## 6.1 `TRUST_PROXY` Karari
 

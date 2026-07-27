@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     FolderTree,
     Plus,
@@ -22,7 +22,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
-    DragEndEvent,
+    type DragEndEvent,
 } from "@dnd-kit/core";
 import {
     arrayMove,
@@ -32,8 +32,6 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-/* ─── Types ──────────────────────────────────────────────────── */
 
 interface Category {
     id: number;
@@ -46,26 +44,32 @@ interface Category {
     _count?: { wordCategories: number };
 }
 
-/* ─── Sortable Item Component ─────────────────────────────────── */
+interface DeleteCandidate {
+    id: number;
+    name: string;
+    parentId: number | null;
+    childCount: number;
+    wordCount: number;
+}
 
 interface SortableCategoryProps {
     category: Category;
-    isChild?: boolean;
-    onToggleVisibility: (cat: Category) => void;
-    onEdit: (cat: Category) => void;
-    onDelete: (id: number) => void;
-    onToggleExpand: (id: number) => void;
     expanded: Set<number>;
+    onCreateChild: (parentId: number) => void;
+    onDelete: (category: DeleteCandidate) => void;
+    onEdit: (category: Category) => void;
+    onToggleExpand: (id: number) => void;
+    onToggleVisibility: (category: Category) => void;
 }
 
 function SortableCategory({
     category,
-    isChild = false,
-    onToggleVisibility,
-    onEdit,
-    onDelete,
-    onToggleExpand,
     expanded,
+    onCreateChild,
+    onDelete,
+    onEdit,
+    onToggleExpand,
+    onToggleVisibility,
 }: SortableCategoryProps) {
     const {
         attributes,
@@ -74,10 +78,7 @@ function SortableCategory({
         transform,
         transition,
         isDragging,
-    } = useSortable({
-        id: category.id,
-        disabled: isChild, // Sadece ana kategorileri sırala
-    });
+    } = useSortable({ id: category.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -85,173 +86,167 @@ function SortableCategory({
         opacity: isDragging ? 0.5 : 1,
     };
 
-    const hasChildren = category.children && category.children.length > 0;
+    const hasChildren = category.children.length > 0;
     const isExpanded = expanded.has(category.id);
-    const wordCount = category._count?.wordCategories ?? 0;
 
     return (
         <div ref={setNodeRef} style={style} className="relative">
             <div
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50/60 dark:hover:bg-slate-700/30 ${
                     !category.isVisible ? "opacity-50" : ""
-                } ${isChild ? "pl-12" : ""}`}
+                }`}
             >
-                {/* Drag Handle - Sadece ana kategoriler için */}
-                {!isChild && (
-                    <button
-                        {...attributes}
-                        {...listeners}
-                        className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing"
-                    >
-                        <GripVertical size={16} />
-                    </button>
-                )}
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab rounded p-1 text-gray-400 active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Sirayi degistir"
+                >
+                    <GripVertical size={16} />
+                </button>
 
-                {/* Color dot */}
                 <div
-                    className="w-4 h-4 rounded-full border-2 border-white dark:border-slate-700 shadow-sm shrink-0"
+                    className="h-4 w-4 shrink-0 rounded-full border-2 border-white shadow-sm dark:border-slate-700"
                     style={{ backgroundColor: category.color || "#94a3b8" }}
                 />
 
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                    <span
-                        className={`text-sm ${
-                            isChild
-                                ? "text-gray-600 dark:text-gray-300"
-                                : "font-bold text-slate-800 dark:text-white"
-                        }`}
-                    >
-                        {category.name}
-                    </span>
-                    {wordCount > 0 && (
-                        <span className="ml-2 text-xs text-gray-400">
-                            ({wordCount} kelime)
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-bold text-slate-800 dark:text-white">
+                            {category.name}
                         </span>
-                    )}
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                            Ana kategori
+                        </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                        <span>{category._count?.wordCategories ?? 0} kelime</span>
+                        <span>{category.children.length} alt kategori</span>
+                    </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => onToggleVisibility(category)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                        title={category.isVisible ? "Gizle" : "Görünür Yap"}
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20"
+                        title={category.isVisible ? "Gizle" : "Gorunur yap"}
                     >
-                        {category.isVisible ? (
-                            <Eye size={15} />
-                        ) : (
-                            <EyeOff size={15} />
-                        )}
+                        {category.isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
                     </button>
-                    {!isChild && hasChildren && (
-                        <button
-                            onClick={() => onToggleExpand(category.id)}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        >
-                            {isExpanded ? (
-                                <ChevronDown size={16} />
-                            ) : (
-                                <ChevronRight size={16} />
-                            )}
-                        </button>
-                    )}
-                    {!isChild && (
-                        <button
-                            onClick={() => onEdit(category)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                            title="Düzenle"
-                        >
-                            <Pencil size={15} />
-                        </button>
-                    )}
                     <button
-                        onClick={() => onDelete(category.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        onClick={() => onCreateChild(category.id)}
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
+                        title="Alt kategori ekle"
+                    >
+                        <Plus size={15} />
+                    </button>
+                    <button
+                        onClick={() => onEdit(category)}
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                        title="Duzenle"
+                    >
+                        <Pencil size={15} />
+                    </button>
+                    <button
+                        onClick={() =>
+                            onDelete({
+                                id: category.id,
+                                name: category.name,
+                                parentId: category.parentId,
+                                childCount: category.children.length,
+                                wordCount: category._count?.wordCategories ?? 0,
+                            })
+                        }
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                         title="Sil"
                     >
                         <Trash2 size={15} />
                     </button>
+                    {hasChildren ? (
+                        <button
+                            onClick={() => onToggleExpand(category.id)}
+                            className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                            title={isExpanded ? "Daralt" : "Genislet"}
+                        >
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </button>
+                    ) : null}
                 </div>
             </div>
 
-            {/* Children - Not sortable */}
-            {hasChildren && isExpanded && (
-                <div className="border-l-2 border-gray-100 dark:border-slate-700 ml-7">
+            {hasChildren && isExpanded ? (
+                <div className="ml-7 border-l-2 border-gray-100 dark:border-slate-700">
                     {category.children.map((child) => (
-                        <div key={child.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/30">
-                            <div className="flex items-center gap-3 px-4 py-3">
-                                {/* Spacer for drag handle */}
-                                <div className="w-6" />
-
-                                <div
-                                    className="w-4 h-4 rounded-full border-2 border-white dark:border-slate-700 shadow-sm shrink-0"
-                                    style={{
-                                        backgroundColor:
-                                            child.color || "#94a3b8",
-                                    }}
-                                />
-
-                                <div className="flex-1 min-w-0">
-                                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                        <div
+                            key={child.id}
+                            className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-slate-700/30 ${
+                                !child.isVisible ? "opacity-50" : ""
+                            }`}
+                        >
+                            <div className="w-6" />
+                            <div
+                                className="h-4 w-4 shrink-0 rounded-full border-2 border-white shadow-sm dark:border-slate-700"
+                                style={{ backgroundColor: child.color || "#94a3b8" }}
+                            />
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="truncate text-sm text-gray-700 dark:text-gray-300">
                                         {child.name}
                                     </span>
-                                    {child._count?.wordCategories && (
-                                        <span className="ml-2 text-xs text-gray-400">
-                                            ({child._count.wordCategories} kelime)
-                                        </span>
-                                    )}
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                        Alt kategori
+                                    </span>
                                 </div>
-
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() =>
-                                            onToggleVisibility(child)
-                                        }
-                                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                                        title={
-                                            child.isVisible
-                                                ? "Gizle"
-                                                : "Görünür Yap"
-                                        }
-                                    >
-                                        {child.isVisible ? (
-                                            <Eye size={15} />
-                                        ) : (
-                                            <EyeOff size={15} />
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={() => onEdit(child)}
-                                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                                        title="Düzenle"
-                                    >
-                                        <Pencil size={15} />
-                                    </button>
-                                    <button
-                                        onClick={() => onDelete(child.id)}
-                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                        title="Sil"
-                                    >
-                                        <Trash2 size={15} />
-                                    </button>
+                                <div className="mt-1 text-xs text-slate-400">
+                                    {child._count?.wordCategories ?? 0} kelime
                                 </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => onToggleVisibility(child)}
+                                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20"
+                                    title={child.isVisible ? "Gizle" : "Gorunur yap"}
+                                >
+                                    {child.isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+                                </button>
+                                <button
+                                    onClick={() => onEdit(child)}
+                                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                                    title="Duzenle"
+                                >
+                                    <Pencil size={15} />
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        onDelete({
+                                            id: child.id,
+                                            name: child.name,
+                                            parentId: child.parentId,
+                                            childCount: 0,
+                                            wordCount: child._count?.wordCategories ?? 0,
+                                        })
+                                    }
+                                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                    title="Sil"
+                                >
+                                    <Trash2 size={15} />
+                                </button>
                             </div>
                         </div>
                     ))}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }
 
-/* ─── Page ───────────────────────────────────────────────────── */
-
 export default function AdminCategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
+    const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
+    const [pageError, setPageError] = useState("");
+    const [reorderSaving, setReorderSaving] = useState(false);
 
-    // Form state
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<Category | null>(null);
     const [formName, setFormName] = useState("");
@@ -260,223 +255,378 @@ export default function AdminCategoriesPage() {
     const [formVisible, setFormVisible] = useState(true);
     const [formSaving, setFormSaving] = useState(false);
     const [formError, setFormError] = useState("");
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState<DeleteCandidate | null>(null);
+    const [deleteTargetId, setDeleteTargetId] = useState("");
+    const [deleteError, setDeleteError] = useState("");
+    const [deleteSaving, setDeleteSaving] = useState(false);
 
-    // Expanded groups
-    const [expanded, setExpanded] = useState<Set<number>>(new Set());
-
-    // DnD sensors
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
 
-    /* ─── Fetch ──────────────────────────────────────────────── */
-
     const fetchCategories = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/admin/categories");
-            const data = await res.json();
-            setCategories(data);
-            // Auto-expand all
-            const ids = new Set<number>();
-            data.forEach((c: Category) => ids.add(c.id));
-            setExpanded(ids);
+            const response = await fetch("/api/admin/categories", { cache: "no-store" });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                setPageError((payload as { error?: string } | null)?.error ?? "Kategori listesi yuklenemedi.");
+                return;
+            }
+
+            const nextCategories = (payload ?? []) as Category[];
+            setCategories(nextCategories);
+            setExpanded(new Set(nextCategories.map((category) => category.id)));
+            setPageError("");
         } catch {
-            /* ignore */
+            setPageError("Kategori listesi yuklenirken ag hatasi olustu.");
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchCategories();
+        void fetchCategories();
     }, [fetchCategories]);
 
-    /* ─── Drag & Drop Handler ─────────────────────────────────── */
+    const rootCategoryOptions = useMemo(
+        () => categories.map((category) => ({ id: category.id, name: category.name })),
+        [categories]
+    );
 
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            const oldIndex = categories.findIndex((c) => c.id === active.id);
-            const newIndex = categories.findIndex((c) => c.id === over.id);
-
-            const newCategories = arrayMove(categories, oldIndex, newIndex);
-
-            // Update sortOrder values based on new order
-            const updates = newCategories.map((cat, index) => ({
-                id: cat.id,
-                sortOrder: index * 10, // 10, 20, 30...
-            }));
-
-            // Update local state immediately for responsiveness
-            setCategories(
-                newCategories.map((cat, index) => ({
-                    ...cat,
-                    sortOrder: index * 10,
-                }))
-            );
-
-            // Save to backend
-            try {
-                await fetch("/api/admin/categories/reorder", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ updates }),
-                });
-            } catch (error) {
-                console.error("Failed to reorder categories:", error);
-                fetchCategories(); // Revert on error
-            }
+    const currentParentLabel = useMemo(() => {
+        if (formParentId === null) {
+            return null;
         }
-    };
 
-    /* ─── Form Handlers ──────────────────────────────────────── */
+        return categories.find((category) => category.id === formParentId)?.name ?? null;
+    }, [categories, formParentId]);
 
-    const openCreate = (parentId: number | null = null) => {
+    const totalCategories = useMemo(
+        () => categories.reduce((sum, category) => sum + 1 + category.children.length, 0),
+        [categories]
+    );
+
+    const totalSubcategories = useMemo(
+        () => categories.reduce((sum, category) => sum + category.children.length, 0),
+        [categories]
+    );
+
+    const flatCategoryOptions = useMemo(
+        () =>
+            categories.flatMap((category) => {
+                const rootOption = {
+                    id: category.id,
+                    name: category.name,
+                    parentId: category.parentId,
+                    label: `${category.name} (Ana kategori)`,
+                };
+
+                const childOptions = category.children.map((child) => ({
+                    id: child.id,
+                    name: child.name,
+                    parentId: child.parentId,
+                    label: `${category.name} / ${child.name}`,
+                }));
+
+                return [rootOption, ...childOptions];
+            }),
+        [categories]
+    );
+
+    const deleteTargetOptions = useMemo(() => {
+        if (!deleteCandidate) {
+            return [];
+        }
+
+        return flatCategoryOptions.filter((category) => {
+            if (category.id === deleteCandidate.id) {
+                return false;
+            }
+
+            if (deleteCandidate.parentId === null) {
+                return category.parentId === null;
+            }
+
+            return true;
+        });
+    }, [deleteCandidate, flatCategoryOptions]);
+
+    const deleteRequiresMove = Boolean(
+        deleteCandidate && (deleteCandidate.wordCount > 0 || deleteCandidate.childCount > 0)
+    );
+
+    const openCreate = useCallback((parentId: number | null = null) => {
         setEditing(null);
         setFormName("");
         setFormColor("#6366f1");
         setFormParentId(parentId);
         setFormVisible(true);
         setFormError("");
+        setPageError("");
         setFormOpen(true);
-    };
+    }, []);
 
-    const openEdit = (cat: Category) => {
-        setEditing(cat);
-        setFormName(cat.name);
-        setFormColor(cat.color || "#6366f1");
-        setFormParentId(cat.parentId);
-        setFormVisible(cat.isVisible);
+    const openEdit = useCallback((category: Category) => {
+        setEditing(category);
+        setFormName(category.name);
+        setFormColor(category.color || "#6366f1");
+        setFormParentId(category.parentId);
+        setFormVisible(category.isVisible);
         setFormError("");
+        setPageError("");
         setFormOpen(true);
-    };
+    }, []);
 
-    const handleSave = async () => {
+    const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (reorderSaving || !over || active.id === over.id) {
+            return;
+        }
+
+        const oldIndex = categories.findIndex((category) => category.id === active.id);
+        const newIndex = categories.findIndex((category) => category.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) {
+            return;
+        }
+
+        const nextCategories = arrayMove(categories, oldIndex, newIndex);
+        const updates = nextCategories.map((category, index) => ({
+            id: category.id,
+            sortOrder: index * 10,
+        }));
+
+        setCategories(
+            nextCategories.map((category, index) => ({
+                ...category,
+                sortOrder: index * 10,
+            }))
+        );
+        setReorderSaving(true);
+
+        try {
+            const response = await fetch("/api/admin/categories/reorder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates }),
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => null) as { error?: string } | null;
+                setPageError(payload?.error ?? "Kategori sirasi kaydedilemedi.");
+                await fetchCategories();
+                return;
+            }
+
+            setPageError("");
+        } catch {
+            setPageError("Kategori sirasi kaydedilirken ag hatasi olustu.");
+            await fetchCategories();
+        } finally {
+            setReorderSaving(false);
+        }
+    }, [categories, fetchCategories, reorderSaving]);
+
+    const handleSave = useCallback(async () => {
         if (!formName.trim()) {
-            setFormError("Kategori adı boş olamaz.");
+            setFormError("Kategori adi bos olamaz.");
             return;
         }
 
         setFormSaving(true);
         setFormError("");
 
-        const body = {
-            name: formName.trim(),
-            color: formColor,
-            parentId: formParentId,
-            isVisible: formVisible,
-        };
-
         try {
-            const url = editing
-                ? `/api/admin/categories/${editing.id}`
-                : "/api/admin/categories";
-            const method = editing ? "PUT" : "POST";
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
+            const response = await fetch(
+                editing ? `/api/admin/categories/${editing.id}` : "/api/admin/categories",
+                {
+                    method: editing ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: formName.trim(),
+                        color: formColor.trim() || null,
+                        parentId: formParentId,
+                        isVisible: formVisible,
+                    }),
+                }
+            );
 
-            if (!res.ok) {
-                const err = await res.json();
-                setFormError(err.error || "Bir hata oluştu.");
+            const payload = await response.json().catch(() => null) as { error?: string } | null;
+            if (!response.ok) {
+                setFormError(payload?.error ?? "Kategori kaydedilemedi.");
                 return;
             }
 
             setFormOpen(false);
-            fetchCategories();
+            setPageError("");
+            await fetchCategories();
         } catch {
-            setFormError("Ağ hatası.");
+            setFormError("Kategori kaydi sirasinda ag hatasi olustu.");
         } finally {
             setFormSaving(false);
         }
-    };
+    }, [editing, fetchCategories, formColor, formName, formParentId, formVisible]);
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) return;
-        try {
-            await fetch(`/api/admin/categories/${id}`, {
-                method: "DELETE",
-            });
-            fetchCategories();
-        } catch {
-            /* ignore */
+    const handleDelete = useCallback(async () => {
+        if (!deleteCandidate) {
+            return;
         }
-    };
 
-    const toggleVisibility = async (cat: Category) => {
+        setDeleteSaving(true);
+        setDeleteError("");
         try {
-            await fetch(`/api/admin/categories/${cat.id}`, {
+            const response = deleteRequiresMove
+                ? await fetch(`/api/admin/categories/${deleteCandidate.id}/move-delete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ targetCategoryId: Number.parseInt(deleteTargetId, 10) }),
+                })
+                : await fetch(`/api/admin/categories/${deleteCandidate.id}`, {
+                    method: "DELETE",
+                });
+            const payload = await response.json().catch(() => null) as { error?: string } | null;
+
+            if (!response.ok) {
+                const message = payload?.error ?? "Kategori silinemedi.";
+                setDeleteError(message);
+                setPageError(message);
+                return;
+            }
+
+            setDeleteOpen(false);
+            setDeleteCandidate(null);
+            setDeleteTargetId("");
+            setDeleteError("");
+            setPageError("");
+            await fetchCategories();
+        } catch {
+            const message = "Kategori silinirken ag hatasi olustu.";
+            setDeleteError(message);
+            setPageError(message);
+        } finally {
+            setDeleteSaving(false);
+        }
+    }, [deleteCandidate, deleteRequiresMove, deleteTargetId, fetchCategories]);
+
+    const toggleVisibility = useCallback(async (category: Category) => {
+        try {
+            const response = await fetch(`/api/admin/categories/${category.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isVisible: !cat.isVisible }),
+                body: JSON.stringify({ isVisible: !category.isVisible }),
             });
-            fetchCategories();
-        } catch {
-            /* ignore */
-        }
-    };
+            const payload = await response.json().catch(() => null) as { error?: string } | null;
 
-    const toggleExpand = (id: number) => {
-        setExpanded((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+            if (!response.ok) {
+                setPageError(payload?.error ?? "Gorunurluk guncellenemedi.");
+                return;
+            }
+
+            setPageError("");
+            await fetchCategories();
+        } catch {
+            setPageError("Gorunurluk guncellenirken ag hatasi olustu.");
+        }
+    }, [fetchCategories]);
+
+    const toggleExpand = useCallback((categoryId: number) => {
+        setExpanded((current) => {
+            const next = new Set(current);
+            if (next.has(categoryId)) {
+                next.delete(categoryId);
+            } else {
+                next.add(categoryId);
+            }
             return next;
         });
-    };
-
-    /* ─── Render ─────────────────────────────────────────────── */
-
-    const totalCategories = categories.reduce(
-        (sum, cat) => sum + 1 + (cat.children?.length || 0),
-        0
-    );
+    }, []);
 
     return (
         <div className="space-y-5">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
                         <FolderTree className="h-6 w-6 text-amber-500" />
-                        Kategori Yönetimi
+                        Kategori Yonetimi
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Toplam {totalCategories} kategori • Sıralamayı değiştirmek için sürükleyin
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Toplam {totalCategories} kategori. Ana kategoriler suruklenebilir, alt kategoriler kendi ana kategorisi altinda kalir.
                     </p>
+                    {reorderSaving ? (
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                            <Loader2 size={12} className="animate-spin" />
+                            Siralama kaydediliyor
+                        </div>
+                    ) : null}
                 </div>
                 <button
                     onClick={() => openCreate(null)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-md transition-colors active:scale-95"
+                    className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-amber-600"
                 >
                     <Plus size={18} />
                     Yeni Kategori
                 </button>
             </div>
 
-            {/* Category Tree - Draggable */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)]">
+                <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 px-5 py-4 text-sm text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                    <p className="font-semibold">Kategori politikasi</p>
+                    <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+                        Ana kategori isterse genel kelime havuzu tasiyabilir. Daha spesifik havuzlar icin alt kategori ac.
+                    </p>
+                    <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+                        Ayni kelimeyi hem ana kategoriye hem de onun alt kategorisine birlikte baglamiyoruz. Kelime tarafinda bu kural zaten zorunlu.
+                    </p>
+                    <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+                        Su an taksonomi iki seviye: ana kategori ve alt kategori. Alt kategorinin altina yeni kategori acilamaz.
+                    </p>
+                    <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+                        Surukle-birak yalnizca ana kategoriler icindir. Alt kategoriler kendi ust kategorisinin altinda kalir.
+                    </p>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <p className="font-semibold text-slate-900 dark:text-white">Agac ozeti</p>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                        <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-900">
+                            <div className="text-xl font-bold text-slate-900 dark:text-white">{totalCategories}</div>
+                            <div className="mt-1 text-xs text-slate-500">toplam</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-900">
+                            <div className="text-xl font-bold text-slate-900 dark:text-white">{categories.length}</div>
+                            <div className="mt-1 text-xs text-slate-500">ana</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-900">
+                            <div className="text-xl font-bold text-slate-900 dark:text-white">{totalSubcategories}</div>
+                            <div className="mt-1 text-xs text-slate-500">alt</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {pageError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                    {pageError}
+                </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
                 {loading ? (
                     <div className="flex items-center justify-center py-16">
-                        <Loader2
-                            size={24}
-                            className="animate-spin text-amber-500"
-                        />
+                        <Loader2 size={24} className="animate-spin text-amber-500" />
                     </div>
                 ) : categories.length === 0 ? (
-                    <div className="text-center py-16 text-gray-400">
-                        <FolderTree
-                            size={32}
-                            className="mx-auto mb-3 opacity-30"
-                        />
-                        <p>Henüz kategori yok.</p>
+                    <div className="py-16 text-center text-gray-400">
+                        <FolderTree size={32} className="mx-auto mb-3 opacity-30" />
+                        <p>Henuz kategori yok.</p>
                     </div>
                 ) : (
                     <DndContext
@@ -485,19 +635,25 @@ export default function AdminCategoriesPage() {
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={categories.map((c) => c.id)}
+                            items={categories.map((category) => category.id)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="divide-y divide-gray-50 dark:divide-slate-800">
-                                {categories.map((cat) => (
+                                {categories.map((category) => (
                                     <SortableCategory
-                                        key={cat.id}
-                                        category={cat}
-                                        onToggleVisibility={toggleVisibility}
-                                        onEdit={openEdit}
-                                        onDelete={handleDelete}
-                                        onToggleExpand={toggleExpand}
+                                        key={category.id}
+                                        category={category}
                                         expanded={expanded}
+                                        onCreateChild={openCreate}
+                                        onDelete={(selectedCategory) => {
+                                            setDeleteCandidate(selectedCategory);
+                                            setDeleteTargetId("");
+                                            setDeleteError("");
+                                            setDeleteOpen(true);
+                                        }}
+                                        onEdit={openEdit}
+                                        onToggleExpand={toggleExpand}
+                                        onToggleVisibility={toggleVisibility}
                                     />
                                 ))}
                             </div>
@@ -506,52 +662,49 @@ export default function AdminCategoriesPage() {
                 )}
             </div>
 
-            {/* ─── Create / Edit Modal ───────────────────────── */}
-            {formOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700">
-                        {/* Header */}
-                        <div className="p-5 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+            {formOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                                {editing
-                                    ? "Kategoriyi Düzenle"
-                                    : formParentId
-                                        ? "Alt Kategori Ekle"
-                                        : "Yeni Kategori"}
+                                {editing ? "Kategoriyi Duzenle" : formParentId ? "Alt Kategori Ekle" : "Yeni Kategori"}
                             </h3>
                             <button
                                 onClick={() => setFormOpen(false)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 transition-colors"
+                                className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        {/* Body */}
-                        <div className="p-5 space-y-4">
-                            {formError && (
-                                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium">
+                        <div className="space-y-4 p-5">
+                            {formError ? (
+                                <div className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
                                     {formError}
                                 </div>
-                            )}
+                            ) : null}
 
-                            {/* Name */}
+                            {currentParentLabel ? (
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                    Bu kayit <span className="font-semibold">{currentParentLabel}</span> alt kategorisi olarak olusacak.
+                                </div>
+                            ) : null}
+
                             <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
-                                    Kategori Adı
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                    Kategori Adi
                                 </label>
                                 <input
                                     type="text"
                                     value={formName}
-                                    onChange={(e) => setFormName(e.target.value)}
-                                    placeholder="Kategori adı..."
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                                    onChange={(event) => setFormName(event.target.value)}
+                                    placeholder="Kategori adi..."
+                                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                 />
                             </div>
 
-                            {/* Color */}
                             <div>
-                                <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                                <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
                                     <Palette size={14} />
                                     Renk
                                 </label>
@@ -559,89 +712,178 @@ export default function AdminCategoriesPage() {
                                     <input
                                         type="color"
                                         value={formColor}
-                                        onChange={(e) =>
-                                            setFormColor(e.target.value)
-                                        }
-                                        className="w-10 h-10 rounded-xl border-2 border-gray-200 dark:border-slate-600 cursor-pointer"
+                                        onChange={(event) => setFormColor(event.target.value)}
+                                        className="h-10 w-10 cursor-pointer rounded-xl border-2 border-gray-200 dark:border-slate-600"
                                     />
                                     <input
                                         type="text"
                                         value={formColor}
-                                        onChange={(e) =>
-                                            setFormColor(e.target.value)
-                                        }
-                                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none"
+                                        onChange={(event) => setFormColor(event.target.value)}
+                                        className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                     />
                                 </div>
                             </div>
 
-                            {/* Parent (for top-level only, disabled for children) */}
-                            {!editing?.parentId && !formParentId && (
+                            {!editing?.parentId && !formParentId ? (
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">
-                                        Üst Kategori (Opsiyonel)
+                                    <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                        Ust Kategori (Opsiyonel)
                                     </label>
                                     <select
                                         value={formParentId ?? ""}
-                                        onChange={(e) =>
-                                            setFormParentId(
-                                                e.target.value
-                                                    ? parseInt(e.target.value)
-                                                    : null
-                                            )
+                                        onChange={(event) =>
+                                            setFormParentId(event.target.value ? Number.parseInt(event.target.value, 10) : null)
                                         }
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                     >
-                                        <option value="">
-                                            Ana Kategori (Kök)
-                                        </option>
-                                        {categories.map((c) => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.name}
+                                        <option value="">Ana kategori (kok)</option>
+                                        {rootCategoryOptions.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.name}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
-                            )}
+                            ) : null}
 
-                            {/* Visibility */}
-                            <label className="flex items-center gap-3 cursor-pointer">
+                            {!editing && formParentId === null ? (
+                                <p className="text-xs leading-5 text-muted-foreground">
+                                    Ana kategoriye dogrudan kelime eklemek genel havuz anlamina gelir. Daha spesifik bir havuz gerekiyorsa alt kategori ac.
+                                </p>
+                            ) : null}
+
+                            <label className="flex cursor-pointer items-center gap-3">
                                 <input
                                     type="checkbox"
                                     checked={formVisible}
-                                    onChange={(e) =>
-                                        setFormVisible(e.target.checked)
-                                    }
+                                    onChange={(event) => setFormVisible(event.target.checked)}
                                     className="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                                 />
                                 <span className="text-sm text-gray-600 dark:text-gray-300">
-                                    Oyuncular tarafından görünür
+                                    Oyuncular tarafindan gorunur
                                 </span>
                             </label>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-5 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
+                        <div className="flex justify-end gap-3 border-t border-gray-100 p-5 dark:border-slate-700">
                             <button
                                 onClick={() => setFormOpen(false)}
-                                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
                             >
-                                İptal
+                                Iptal
                             </button>
                             <button
-                                onClick={handleSave}
+                                onClick={() => void handleSave()}
                                 disabled={formSaving}
-                                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-md transition-colors active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                className="flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-amber-600 disabled:opacity-50"
                             >
-                                {formSaving && (
-                                    <Loader2 size={16} className="animate-spin" />
-                                )}
-                                {editing ? "Güncelle" : "Kaydet"}
+                                {formSaving ? <Loader2 size={16} className="animate-spin" /> : null}
+                                {editing ? "Guncelle" : "Kaydet"}
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
+
+            {deleteOpen && deleteCandidate ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-slate-700">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kategoriyi Sil</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {deleteCandidate.name}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setDeleteOpen(false);
+                                    setDeleteCandidate(null);
+                                    setDeleteTargetId("");
+                                    setDeleteError("");
+                                }}
+                                className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                                    <div className="text-xs text-slate-500">Bagli kelime</div>
+                                    <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                                        {deleteCandidate.wordCount}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                                    <div className="text-xs text-slate-500">Alt kategori</div>
+                                    <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                                        {deleteCandidate.childCount}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {deleteRequiresMove ? (
+                                <div className="space-y-3">
+                                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                                        Bu kategori bos degil. Silmeden once bagli kelimeler ve varsa alt kategoriler baska bir kategoriye tasinacak.
+                                    </div>
+                                    <div>
+                                        <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                            Hedef kategori
+                                        </label>
+                                        <select
+                                            value={deleteTargetId}
+                                            onChange={(event) => setDeleteTargetId(event.target.value)}
+                                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+                                        >
+                                            <option value="">Hedef kategori sec</option>
+                                            {deleteTargetOptions.map((category) => (
+                                                <option key={category.id} value={String(category.id)}>
+                                                    {category.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                                    Bu kategori bos. Direkt silinecek.
+                                </div>
+                            )}
+
+                            {deleteError ? (
+                                <div className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                                    {deleteError}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="flex justify-end gap-3 border-t border-gray-100 p-5 dark:border-slate-700">
+                            <button
+                                onClick={() => {
+                                    setDeleteOpen(false);
+                                    setDeleteCandidate(null);
+                                    setDeleteTargetId("");
+                                    setDeleteError("");
+                                }}
+                                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
+                            >
+                                Vazgec
+                            </button>
+                            <button
+                                onClick={() => void handleDelete()}
+                                disabled={deleteSaving || (deleteRequiresMove && !deleteTargetId)}
+                                className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {deleteSaving ? <Loader2 size={16} className="animate-spin" /> : null}
+                                {deleteRequiresMove ? "Tasiyip Sil" : "Sil"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

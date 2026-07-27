@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -17,6 +17,9 @@ import {
   Megaphone,
   LogOut,
   Settings,
+  UserRound,
+  ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
@@ -24,7 +27,9 @@ import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
 import { useBranding } from "@/components/providers/branding-provider";
+import { getFreshActiveRoomCodeFromPresence } from "@/lib/client/active-room-presence";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import type { PendingAdminHandoffState } from "@/types/game";
 
 interface SocketIdentityPayload {
   playerId: string;
@@ -35,6 +40,12 @@ interface AuthenticatedDashboardHomeProps {
   defaultTab?: DashboardTab;
 }
 
+interface ActiveRoomContext {
+  roomCode: string | null;
+  pendingAdminHandoff: PendingAdminHandoffState | null;
+  requiresHostReturn: boolean;
+}
+
 export function AuthenticatedDashboardHome({
   defaultTab = "dash",
 }: AuthenticatedDashboardHomeProps) {
@@ -42,19 +53,102 @@ export function AuthenticatedDashboardHome({
   const [error, setError] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [activeRoomContext, setActiveRoomContext] = useState<ActiveRoomContext | null>(null);
+  const [activeRoomLoading, setActiveRoomLoading] = useState(true);
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
   const branding = useBranding();
+  const sessionUsername = session?.user?.name || "";
+
+  async function getServerActiveRoomContext(): Promise<ActiveRoomContext | null> {
+    try {
+      const response = await fetch("/api/user/active-room", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as {
+        roomCode?: string | null;
+        pendingAdminHandoff?: PendingAdminHandoffState | null;
+        requiresHostReturn?: boolean;
+      };
+
+      return {
+        roomCode:
+          typeof payload.roomCode === "string" && payload.roomCode.length > 0
+            ? payload.roomCode
+            : null,
+        pendingAdminHandoff: payload.pendingAdminHandoff ?? null,
+        requiresHostReturn: payload.requiresHostReturn === true,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    if (!session?.user) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadActiveRoomContext() {
+      setActiveRoomLoading(true);
+      const nextContext = await getServerActiveRoomContext();
+      if (cancelled) {
+        return;
+      }
+
+      setActiveRoomContext(nextContext);
+      setActiveRoomLoading(false);
+    }
+
+    void loadActiveRoomContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user]);
 
   if (!session?.user) {
     return null;
   }
 
-  const sessionUsername = session.user.name || "";
-
   const handleJoinOrCreate = async (isCreate: boolean) => {
-    const currentUsername = sessionUsername.trim();
+    const currentUsername = (
+      window.localStorage.getItem("tabu_username") || sessionUsername
+    ).trim();
+    const currentPath = window.location.pathname;
+    const activeRoomPresenceKey = session.user.id ? `tabu_active_room_presence:${session.user.id}` : null;
+    const serverActiveRoomContext = await getServerActiveRoomContext();
+    const serverActiveRoomCode = serverActiveRoomContext?.roomCode ?? null;
+
+    if (!currentPath.startsWith("/room")) {
+      window.sessionStorage.removeItem("tabu_activeRoomCode");
+    }
+
+    if (serverActiveRoomCode) {
+      setError(`Zaten ${serverActiveRoomCode} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
+      return;
+    }
+
+    if (activeRoomPresenceKey) {
+      const activeRoomCodeFromPresence = getFreshActiveRoomCodeFromPresence(
+        activeRoomPresenceKey,
+        window.localStorage
+      );
+      if (activeRoomCodeFromPresence) {
+        setError(`Zaten ${activeRoomCodeFromPresence} odasindasin. Yeni oda acmadan once mevcut odana geri don.`);
+        return;
+      }
+    }
 
     if (!currentUsername) {
       setError("Lutfen bir kullanici adi girin.");
@@ -121,6 +215,45 @@ export function AuthenticatedDashboardHome({
   const playContent = (
     <div className="flex h-full items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-md space-y-8">
+        {activeRoomContext?.roomCode ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/95 p-4 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                {activeRoomContext.requiresHostReturn ? (
+                  <ShieldAlert className="h-4 w-4" />
+                ) : (
+                  <Gamepad2 className="h-4 w-4" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
+                  Aktif Odan Var
+                </div>
+                <div className="mt-1 text-sm font-semibold">
+                  {activeRoomContext.roomCode} odasina geri donebilirsin.
+                </div>
+                <div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+                  {activeRoomContext.requiresHostReturn
+                    ? "Bu odada yonetici geri donusu bekleniyor. Giris yapman devir riskini azaltir."
+                    : "Yeni oda acmadan once mevcut odana geri donmen bekleniyor."}
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => router.push(`/room/${activeRoomContext.roomCode}`)}
+                  className="mt-3 h-10 rounded-xl bg-amber-600 px-4 font-bold text-white hover:bg-amber-700"
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Odaya Don
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : activeRoomLoading ? (
+          <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/40 dark:text-slate-300">
+            Aktif oda durumu kontrol ediliyor...
+          </div>
+        ) : null}
+
         <div className="space-y-3 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-lg shadow-purple-500/20">
             <Gamepad2 className="h-8 w-8 text-white" />
@@ -200,19 +333,26 @@ export function AuthenticatedDashboardHome({
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.14),transparent_30%),linear-gradient(135deg,#f8fafc,#eef2ff,#eff6ff)] dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_24%),linear-gradient(135deg,#020617,#0f172a,#111827)]">
       <header className="z-40 shrink-0 border-b border-white/30 bg-white/65 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/45">
-        <div className="flex items-center justify-between px-4 py-3 md:px-6">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {branding.logoUrl ? (
-              <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-4 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
-                <Image
-                  src={branding.logoUrl}
-                  alt={`${branding.siteName} logo`}
-                  width={240}
-                  height={72}
-                  unoptimized
-                  className="h-10 w-auto max-w-[240px] object-contain"
-                />
-              </div>
+              <>
+                <div className="flex min-w-0 items-center overflow-hidden rounded-[18px] border border-white/60 bg-white/90 px-2 py-1.5 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:hidden">
+                  <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent">
+                    {branding.siteShortName.toUpperCase()}
+                  </span>
+                </div>
+                <div className="hidden min-w-0 items-center overflow-hidden rounded-[24px] border border-white/60 bg-white/90 px-3 py-2 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/75 sm:flex">
+                  <Image
+                    src={branding.logoUrl}
+                    alt={`${branding.siteName} logo`}
+                    width={240}
+                    height={72}
+                    unoptimized
+                    className="h-10 w-auto max-w-[240px] object-contain"
+                  />
+                </div>
+              </>
             ) : (
               <div className="min-w-0 rounded-[22px] border border-white/50 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
                 <div className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.18em] text-transparent">
@@ -221,15 +361,15 @@ export function AuthenticatedDashboardHome({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/75 px-2 py-1 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
-            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full">
+          <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/60 bg-white/75 px-1.5 py-1 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
+            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} className="h-8 w-8 rounded-full sm:h-8 sm:w-8">
               <Megaphone className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="h-8 w-8 rounded-full"
+              className="h-8 w-8 rounded-full sm:h-8 sm:w-8"
             >
               <span className="relative flex h-4 w-4 items-center justify-center">
                 <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -241,8 +381,21 @@ export function AuthenticatedDashboardHome({
                 <Settings className="h-4 w-4" />
               </Button>
             ) : null}
-            <Separator orientation="vertical" className="mx-1 h-5" />
-            <span className="hidden text-xs font-bold uppercase tracking-[0.14em] text-foreground sm:inline">{sessionUsername}</span>
+            <Separator orientation="vertical" className="mx-0.5 hidden h-5 sm:block" />
+            <div className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/80 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:flex">
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt=""
+                  width={32}
+                  height={32}
+                  unoptimized
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-4 w-4" />
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"

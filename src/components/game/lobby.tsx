@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useMemo } from "react";
 import {
     Settings,
@@ -19,8 +18,9 @@ import {
     Square,
     CheckSquare,
     Play,
+    ShieldAlert,
 } from "lucide-react";
-import type { Player, CategoryItem } from "@/types/game";
+import type { Player, CategoryItem, PendingAdminHandoffState } from "@/types/game";
 
 interface LobbyProps {
     roomCode: string;
@@ -32,6 +32,7 @@ interface LobbyProps {
     creatorId: string;
     currentSocketId: string;
     isHost: boolean;
+    pendingAdminHandoff: PendingAdminHandoffState | null;
     onUpdateSettings: (settings: {
         sure: number;
         mod: "tur" | "skor";
@@ -61,6 +62,7 @@ export function Lobby({
     selectedDifficulties,
     categories,
     isHost,
+    pendingAdminHandoff,
     onUpdateSettings,
     onUpdateCategories,
     onUpdateDifficulties,
@@ -77,6 +79,7 @@ export function Lobby({
     const [tempSelectedCategories, setTempSelectedCategories] = useState<number[]>(selectedCategories);
     const [tempSelectedDifficulties, setTempSelectedDifficulties] = useState<number[]>(selectedDifficulties);
     const [mounted, setMounted] = useState(false);
+    const [handoffRemainingSeconds, setHandoffRemainingSeconds] = useState<number | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -87,7 +90,7 @@ export function Lobby({
 
         try {
             window.sessionStorage.setItem("tabu_activeRoomCode", roomCode);
-            const stored = window.sessionStorage.getItem(`tabu_room_hide_url:${roomCode}`) === "true";
+            const stored = window.localStorage.getItem(`tabu_room_hide_url:${roomCode}`) === "true";
             setHideUrl(stored);
         } finally {
             setHideUrlReady(true);
@@ -102,8 +105,27 @@ export function Lobby({
             window.history.replaceState(window.history.state, "", nextPath);
         }
 
-        window.sessionStorage.setItem(`tabu_room_hide_url:${roomCode}`, hideUrl ? "true" : "false");
+        window.localStorage.setItem(`tabu_room_hide_url:${roomCode}`, hideUrl ? "true" : "false");
     }, [hideUrl, hideUrlReady, mounted, roomCode]);
+
+    useEffect(() => {
+        if (!pendingAdminHandoff) {
+            setHandoffRemainingSeconds(null);
+            return;
+        }
+
+        const updateRemaining = () => {
+            const seconds = Math.max(
+                0,
+                Math.ceil((pendingAdminHandoff.deadlineAt - Date.now()) / 1000)
+            );
+            setHandoffRemainingSeconds(seconds);
+        };
+
+        updateRemaining();
+        const intervalId = window.setInterval(updateRemaining, 1000);
+        return () => window.clearInterval(intervalId);
+    }, [pendingAdminHandoff]);
 
     const copyRoomLink = () => {
         const link = `${window.location.origin}/room/${roomCode}`;
@@ -126,6 +148,18 @@ export function Lobby({
             }
         }
         return result;
+    }, [categories]);
+
+    const categoryPathLabelById = useMemo(() => {
+        const entries = new Map<number, string>();
+        for (const cat of categories) {
+            const children = (cat as { children?: CategoryItem[] }).children || [];
+            entries.set(cat.id, cat.name);
+            for (const child of children) {
+                entries.set(child.id, `${cat.name} / ${child.name}`);
+            }
+        }
+        return entries;
     }, [categories]);
 
     // Initialize categories and difficulties when first loaded (run once)
@@ -214,21 +248,13 @@ export function Lobby({
     const getSelectedText = () => {
         if (selectedCategories.length === 0) return "Henüz kategori seçilmedi";
         if (flatCategories.length > 0 && selectedCategories.length === flatCategories.length) return "Tüm Kategoriler";
-        const first = flatCategories.find((c) => c.id === selectedCategories[0]);
-        if (selectedCategories.length === 1) return first?.name || "1 kategori";
-        return `${first?.name || "?"} +${selectedCategories.length - 1} diğer`;
+        const firstLabel = categoryPathLabelById.get(selectedCategories[0]) || "1 kategori";
+        if (selectedCategories.length === 1) return firstLabel;
+        return `${firstLabel} +${selectedCategories.length - 1} diğer`;
     };
 
     return (
         <div className="flex flex-col items-center w-full max-w-xl mx-auto p-4 sm:p-6 animate-fade-in">
-            {/* Logo */}
-            <div className="mb-6 sm:mb-8">
-                <h1 className="font-black text-5xl sm:text-6xl">
-                    <span className="text-red-500">TA</span>
-                    <span className="text-blue-500">BU</span>
-                </h1>
-            </div>
-
             <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
                 {/* Header — URL Style Room Code */}
                 <div className="bg-gray-50 dark:bg-slate-900 p-6 border-b border-gray-100 dark:border-slate-700 transition-all duration-300">
@@ -350,6 +376,27 @@ export function Lobby({
                     </div>
 
                     <div className="h-px bg-gray-100 dark:bg-slate-700" />
+
+                    {pendingAdminHandoff && handoffRemainingSeconds !== null ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                                    <ShieldAlert size={18} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
+                                        Yonetici Devri Bekleniyor
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold">
+                                        Mevcut yonetici geri donmezse otomatik devir {handoffRemainingSeconds} saniye icinde tamamlanacak.
+                                    </div>
+                                    <div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+                                        Bu sure dolarsa sistem odadaki bir sonraki cevrimici oyuncuyu yonetici yapar.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
 
                     {/* Game Settings */}
                     <div>
@@ -555,7 +602,7 @@ export function Lobby({
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {isHost
-                                        ? "Ana kategoriyi seçerek tümünü ekleyebilirsin."
+                                        ? "Soldaki grup kutusu ana kategori ile alt kategorilerini birlikte seçer. Kart listesindeki ana kategori satiri ise yalnizca ana kategoriye bagli kelimeleri ekler."
                                         : "Bu liste yalnızca görüntüleme amaçlıdır. Kategori ve zorlukları sadece oda yöneticisi değiştirebilir."}
                                 </p>
 
@@ -626,10 +673,7 @@ export function Lobby({
                                             children?: CategoryItem[];
                                         }
                                     ).children || [];
-                                    const allItems =
-                                        children.length > 0
-                                            ? children
-                                            : [mainCat];
+                                    const allItems = [mainCat, ...children];
                                     const allSubSelected = allItems.every((c) =>
                                         tempSelectedCategories.includes(c.id)
                                     );
@@ -752,6 +796,7 @@ export function Lobby({
                                                             tempSelectedCategories.includes(
                                                                 subCat.id
                                                             );
+                                                        const isParentRow = subCat.id === mainCat.id;
                                                         return (
                                                             <button
                                                                 key={subCat.id}
@@ -767,11 +812,20 @@ export function Lobby({
                                                                         : "border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                                                                     }`}
                                                             >
-                                                                <span className="text-xs sm:text-sm font-medium truncate">
-                                                                    {
-                                                                        subCat.name
-                                                                    }
-                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <span className="block truncate text-xs sm:text-sm font-medium">
+                                                                        {subCat.name}
+                                                                    </span>
+                                                                    {isParentRow ? (
+                                                                        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">
+                                                                            Sadece ana kategori kelimeleri
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-gray-400">
+                                                                            {mainCat.name} alt kategorisi
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 {isSelected && (
                                                                     <Check
                                                                         size={

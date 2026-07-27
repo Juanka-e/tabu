@@ -31,6 +31,17 @@ export type CosmeticFrameStyle = "solid" | "double" | "ornate";
 export type PromotionTargetType = (typeof PROMOTION_TARGET_TYPES)[number];
 export type PromotionDiscountType = (typeof PROMOTION_DISCOUNT_TYPES)[number];
 
+export interface CosmeticRenderSnapshot {
+    type: StoreItemType;
+    rarity: StoreItemRarity;
+    renderMode: StoreItemRenderMode;
+    renderSpecVersion: number;
+    imageUrl: string;
+    templateKey: string | null;
+    templateConfig: TemplateConfig | null;
+    badgeText: string | null;
+}
+
 export interface EquippedSlots {
     avatarItemId: number | null;
     frameItemId: number | null;
@@ -45,6 +56,7 @@ export interface StoreItemView {
     type: StoreItemType;
     rarity: StoreItemRarity;
     renderMode: StoreItemRenderMode;
+    renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
     templateKey: string | null;
@@ -93,6 +105,7 @@ export interface InventoryItemView {
     type: StoreItemType;
     rarity: StoreItemRarity;
     renderMode: StoreItemRenderMode;
+    renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
     templateKey: string | null;

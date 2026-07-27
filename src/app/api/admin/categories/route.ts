@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { invalidateCategoryCache } from "@/lib/socket/category-service";
+import { validateAdminCategoryInput } from "@/lib/categories/admin-category-policy";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -11,7 +12,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// GET - List categories
 export async function GET(request: NextRequest) {
     const adminSession = await requireAdminSession();
     if (adminSession instanceof NextResponse) {
@@ -38,7 +38,12 @@ export async function GET(request: NextRequest) {
     const categories = await prisma.category.findMany({
         orderBy: { sortOrder: "asc" },
         include: {
-            children: { orderBy: { sortOrder: "asc" } },
+            children: {
+                orderBy: { sortOrder: "asc" },
+                include: {
+                    _count: { select: { wordCategories: true } },
+                },
+            },
             _count: { select: { wordCategories: true } },
         },
         where: { parentId: null },
@@ -49,7 +54,6 @@ export async function GET(request: NextRequest) {
     });
 }
 
-// POST - Create a category
 const createCategorySchema = z.object({
     name: z.string().min(1).max(255),
     parentId: z.number().nullable().optional(),
@@ -79,11 +83,12 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const data = createCategorySchema.parse(body);
+        const parsed = createCategorySchema.parse(body);
+        const data = await validateAdminCategoryInput(parsed);
 
         const category = await prisma.category.create({
             data: {
-                name: data.name,
+                name: data.name!,
                 parentId: data.parentId ?? null,
                 color: data.color ?? null,
                 sortOrder: data.sortOrder ?? 0,
@@ -99,13 +104,19 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json(
-                { error: "Geçersiz veri.", details: error.issues },
+                { error: "Gecersiz veri.", details: error.issues },
+                { status: 400 }
+            );
+        }
+        if (error instanceof Error) {
+            return NextResponse.json(
+                { error: error.message },
                 { status: 400 }
             );
         }
         console.error("Failed to create category:", error);
         return NextResponse.json(
-            { error: "Kategori oluşturulamadı." },
+            { error: "Kategori olusturulamadi." },
             { status: 500 }
         );
     }

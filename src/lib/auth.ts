@@ -22,7 +22,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 captchaAction: { label: "Captcha Action", type: "text" },
             },
             async authorize(credentials, request) {
-                if (!credentials?.username || !credentials?.password) {
+                const username =
+                    typeof credentials?.username === "string"
+                        ? credentials.username.trim()
+                        : "";
+                const password =
+                    typeof credentials?.password === "string"
+                        ? credentials.password
+                        : "";
+                const portal =
+                    typeof credentials?.portal === "string"
+                        ? credentials.portal
+                        : "user";
+
+                if (!username || !password) {
                     return null;
                 }
 
@@ -38,7 +51,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const user = await prisma.user.findUnique({
-                    where: { username: credentials.username as string },
+                    where: { username },
                     select: {
                         id: true,
                         username: true,
@@ -48,7 +61,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         suspendedUntil: true,
                     },
                 });
-                if (!user) return null;
+                if (!user) {
+                    return null;
+                }
 
                 await clearExpiredSuspensions();
                 if (isSuspensionActive(user)) {
@@ -56,12 +71,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const isValid = await bcryptjs.compare(
-                    credentials.password as string,
+                    password,
                     user.password
                 );
-                if (!isValid) return null;
+                if (!isValid) {
+                    return null;
+                }
 
-                const portal = String(credentials.portal || "user");
                 if (portal === "admin" && user.role !== "admin") {
                     return null;
                 }

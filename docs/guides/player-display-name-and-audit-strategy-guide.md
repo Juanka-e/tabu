@@ -48,6 +48,7 @@ Sonraki branch planinda su model kabul edilmistir:
 - tiklaninca hizli kimlik paneli acilir
 - kayitli oyuncu burada gorunen adini guncelleyebilir
 - bu alan ayri "oda bazli nickname" sistemi degil, `displayName` hizli erisim yuzeyi olarak davranir
+- mobilde kompakt ve tek oyunculuk bir panel olarak davranir
 
 3. kilitleme kurali
 - lobby durumunda degistirilebilir
@@ -55,6 +56,24 @@ Sonraki branch planinda su model kabul edilmistir:
 - mac sonuna kadar sabit kalir
 
 Bu model oyuncu acisindan kullanisli, audit acisindan ise savunulabilirdir.
+
+## Uygulanan V1 Dilimi
+
+`feature/gameplay-ui-polish` icinde ilk kimlik akisi su seviyeye getirildi:
+
+- kayitli oyuncu room join olurken gorunen ad server tarafinda cozulur
+- oncelik:
+  - `displayName`
+  - yoksa `username`
+- `Settings` ekraninda `Gorunen Ad` bos birakilirsa profil kaydi `null` olur
+- bu durumda istemci tekrar `username` fallback'i ile devam eder
+- guest oyuncu session / lobby bazli ad akisini korur
+
+Bu karar onemlidir cunku:
+
+- oyuncu "gorunen adimi silmek istiyorum" diyebilir
+- ama sistem bos isimle kalmaz
+- kayitli oyuncu yeniden hesap adina duser
 
 ## Neden Oda Bazli Serbest Nickname Simdi Gelmiyor
 
@@ -78,7 +97,7 @@ Guest oyuncu icin kalici hesap kimligi yoktur.
 Dogru model:
 
 1. guest giriste bir isim yazar
-2. lobby durumunda isterse degistirebilir
+2. lobby durumunda yalniz kendi panelinden isterse degistirebilir
 3. oyun basladiktan sonra isim kilitlenir
 4. bu isim yalniz o guest oturumu / room akisi icin gecerlidir
 5. audit'e `displayNameSnapshot` olarak duser
@@ -148,6 +167,23 @@ Bu sayede:
 - displayName sonradan degisse bile eski audit bozulmaz
 - support / moderation / economy review tek veri modeliyle ilerler
 
+## Uygulanan Audit Kimlik Gorunumu
+
+Ekonomi audit kayitlarinda lineup artik yalniz duz metin olarak degil, kimlik kartlariyla gorunur:
+
+- `displayNameSnapshot`
+- `identityType`
+- kayitli oyuncuda `@username`
+- kayitli oyuncuda `userId`
+- guest oyuncuda `playerId`
+- takim bilgisi
+
+Bu sayede audit review sirasinda:
+
+- guest / kayitli ayrimi tek bakista anlasilir
+- gorunen ad ile hesap kimligi karismaz
+- koruma sistemlerinin `userId` / `playerId` bazli calistigi daha okunur hale gelir
+
 ## Branch Planlama Notu
 
 Bu rehberdeki tam audit kimlik ayrimi ve displayName snapshot isi:
@@ -159,6 +195,8 @@ Bu rehberdeki tam audit kimlik ayrimi ve displayName snapshot isi:
   - settings displayName yonetimi
   - guest / registered badge sistemi
   - audit kimlik snapshot'i
+  - lobby editable / oyun ici readonly akisi
+  - settings ve lobby icinde `username` / `displayName` ayrimini netlestirme
   alanlarini birlikte ele alacak
 
 Bu branch'te mevcut ekonomi review UI okunabilirligi ve finalize akis stabilitesi onceliklidir.

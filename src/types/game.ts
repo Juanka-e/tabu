@@ -64,6 +64,12 @@ export interface RoomData {
     };
 }
 
+export interface PendingAdminHandoffState {
+    roomCode: string;
+    adminPlayerId: string;
+    deadlineAt: number;
+}
+
 // ─── Card ──────────────────────────────────────────────────────
 
 export type Difficulty = 1 | 2 | 3;
@@ -113,6 +119,8 @@ export interface TransitionData {
     anlatici: { ad: string; takim: string };
     gozetmen: { ad: string; takim: string } | null;
     kalanSure: number;
+    oyunDurduruldu: boolean;
+    ilkGecis: boolean;
     creatorId: string;
     cardBackTheme: ResolvedCardBackTheme | null;
 }

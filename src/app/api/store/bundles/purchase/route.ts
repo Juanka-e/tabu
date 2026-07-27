@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import { purchaseStoreBundle } from "@/lib/economy";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const rateLimit = consumeRequestRateLimit({
+        const rateLimit = await consumeDistributedRequestRateLimit({
             bucket: "store-bundle-purchase",
             key: `user:${sessionUser.id}:${getRequestIp(req)}`,
             windowMs: 5 * 60_000,

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
+import { validateWordCategorySelection } from "@/lib/words/category-assignment-policy";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -85,6 +86,9 @@ export async function PUT(
         const wordId = parseInt(id);
         const body = await request.json();
         const data = updateWordSchema.parse(body);
+        const normalizedCategoryIds = data.categoryIds
+            ? (await validateWordCategorySelection(data.categoryIds)).normalizedCategoryIds
+            : undefined;
 
         // Update word and related data in a transaction
         const word = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -109,10 +113,10 @@ export async function PUT(
             }
 
             // Update categories if provided
-            if (data.categoryIds) {
+            if (normalizedCategoryIds) {
                 await tx.wordCategory.deleteMany({ where: { wordId } });
                 await tx.wordCategory.createMany({
-                    data: data.categoryIds.map((catId) => ({
+                    data: normalizedCategoryIds.map((catId) => ({
                         wordId,
                         categoryId: catId,
                     })),
@@ -135,6 +139,9 @@ export async function PUT(
                 { error: "Geçersiz veri.", details: error.issues },
                 { status: 400 }
             );
+        }
+        if (error instanceof Error) {
+            return NextResponse.json({ error: error.message }, { status: 400 });
         }
         console.error("Failed to update word:", error);
         return NextResponse.json(

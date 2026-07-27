@@ -17,7 +17,17 @@ import {
 } from "@/lib/users/email";
 
 const profileSchema = z.object({
-  displayName: z.string().trim().min(1).max(60).optional(),
+  displayName: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmedValue = value.trim();
+      return trimmedValue.length === 0 ? null : trimmedValue;
+    },
+    z.string().trim().min(1).max(60).nullable().optional()
+  ),
   bio: z.string().trim().max(300).optional(),
   email: z.preprocess(
     (value) => {
@@ -68,6 +78,12 @@ export async function PATCH(req: Request) {
       select: {
         email: true,
         normalizedEmail: true,
+        username: true,
+        profile: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
     if (!currentUser) {
@@ -86,6 +102,12 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: "Bu e-posta adresi zaten kullaniliyor." }, { status: 409 });
       }
     }
+
+    const requestedDisplayName =
+      parsed.displayName === undefined ? undefined : parsed.displayName?.trim() ?? null;
+    const currentDisplayName = currentUser.profile?.displayName?.trim() ?? null;
+    const displayNameChanged =
+      requestedDisplayName !== undefined && requestedDisplayName !== currentDisplayName;
 
     const updated = await prisma.$transaction(async (tx) => {
       if (normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)) {
@@ -128,6 +150,21 @@ export async function PATCH(req: Request) {
       },
       request: req,
     });
+
+    if (displayNameChanged) {
+      await writeAuditLog({
+        actor: sessionUser,
+        action: "user.profile.display_name_update",
+        resourceType: "user_profile",
+        resourceId: sessionUser.id,
+        summary: `Updated display name for user ${currentUser.username}`,
+        metadata: {
+          previousDisplayName: currentDisplayName,
+          nextDisplayName: updated.displayName,
+        },
+        request: req,
+      });
+    }
 
     return NextResponse.json({ profile: updated });
   } catch (error) {

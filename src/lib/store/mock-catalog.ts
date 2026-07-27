@@ -13,6 +13,7 @@ export interface MockShopItemSeed {
     name: string;
     rarity: StoreItemRarity;
     renderMode: StoreItemRenderMode;
+    renderSpecVersion?: number;
     priceCoin: number;
     imageUrl: string;
     templateKey: string | null;

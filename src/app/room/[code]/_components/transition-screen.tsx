@@ -1,138 +1,131 @@
-﻿"use client";
+"use client";
 
-import Image, { type ImageLoaderProps } from "next/image";
-import { Clock } from "lucide-react";
-import {
-    buildCosmeticPatternStyle,
-    getCosmeticMotionClass,
-    getCosmeticMotionStyle,
-} from "@/lib/cosmetics/effects";
-import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
+import { Clock3, Pause, Play } from "lucide-react";
 import type { TransitionData } from "@/types/game";
 
 interface TransitionScreenProps {
     transition: TransitionData;
-    cardBackTheme?: ResolvedCardBackTheme | null;
+    isHost?: boolean;
+    onPauseResume?: () => void;
 }
 
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
+function getTeamLabel(team: string) {
+    return team === "A" ? "Takım A" : "Takım B";
+}
 
-export function TransitionScreen({ transition, cardBackTheme }: TransitionScreenProps) {
-    const motionClass = cardBackTheme ? getCosmeticMotionClass(cardBackTheme.motionPreset) : "";
-    const motionStyle = cardBackTheme ? getCosmeticMotionStyle(cardBackTheme.motionSpeedMs) : undefined;
-    const patternStyle = cardBackTheme
-        ? buildCosmeticPatternStyle({
-            pattern: cardBackTheme.pattern,
-            primaryColor: cardBackTheme.borderColor,
-            secondaryColor: cardBackTheme.secondaryColor,
-            scale: cardBackTheme.patternScale,
-            opacity: cardBackTheme.patternOpacity,
-        })
-        : undefined;
+export function TransitionScreen({
+    transition,
+    isHost = false,
+    onPauseResume,
+}: TransitionScreenProps) {
+    const narratorTeamLabel = getTeamLabel(transition.anlatici.takim);
+    const inspectorTeamLabel = transition.gozetmen
+        ? getTeamLabel(transition.gozetmen.takim)
+        : "Rakip takımdan oyuncu bekleniyor";
+    const heading = transition.ilkGecis ? "Oyun başlıyor" : "Anlatıcı değişiyor";
+    const description = transition.ilkGecis
+        ? "Anlatıcı yerini alsın, oyuncular hazırlansın. Sayaç bittiğinde oyun başlayacak."
+        : "Yeni anlatıcı yerini alsın, oyuncular hazırlansın. Sayaç bittiğinde tur başlayacak.";
 
     return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 animate-in fade-in zoom-in-95">
-            {cardBackTheme && (
-                <div className="relative w-full max-w-[250px] sm:max-w-[280px] aspect-[3/4]">
-                    <div
-                        className="relative h-full overflow-hidden rounded-[2rem] border-4 shadow-2xl"
-                        style={{
-                            backgroundColor: cardBackTheme.surfaceColor,
-                            borderColor: cardBackTheme.borderColor,
-                            boxShadow: `0 20px 50px -25px ${cardBackTheme.accentColor}, 0 0 ${cardBackTheme.glowBlur}px -12px ${cardBackTheme.glowColor}${Math.round(cardBackTheme.glowOpacity * 255)
-                                .toString(16)
-                                .padStart(2, "0")}`,
-                        }}
-                    >
-                        {cardBackTheme.overlayImageUrl && (
-                            <Image
-                                loader={passthroughImageLoader}
-                                unoptimized
-                                src={cardBackTheme.overlayImageUrl}
-                                alt=""
-                                aria-hidden="true"
-                                fill
-                                className="object-cover pointer-events-none"
-                                style={{ opacity: cardBackTheme.overlayOpacity }}
-                            />
-                        )}
-                        {patternStyle && (
-                            <div
-                                className={`absolute inset-0 pointer-events-none ${motionClass}`}
-                                aria-hidden="true"
-                                style={{ ...patternStyle, ...motionStyle }}
-                            />
-                        )}
-                        <div
-                            className="absolute inset-0 pointer-events-none"
-                            aria-hidden="true"
-                            style={{
-                                background: `radial-gradient(circle at top left, ${cardBackTheme.accentColor}33, transparent 35%), radial-gradient(circle at bottom right, ${cardBackTheme.borderColor}33, transparent 38%)`,
-                            }}
-                        />
-                        <div className="relative z-10 flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
-                            <div
-                                className="rounded-full border px-4 py-1 text-[10px] font-black uppercase tracking-[0.35em]"
-                                style={{
-                                    color: cardBackTheme.titleColor,
-                                    borderColor: `${cardBackTheme.detailColor}66`,
-                                    backgroundColor: `${cardBackTheme.accentColor}1F`,
-                                }}
-                            >
-                                Tabu
-                            </div>
-                            <div className="space-y-3">
-                                <p
-                                    className="text-3xl font-black uppercase tracking-[0.28em]"
-                                    style={{ color: cardBackTheme.titleColor }}
-                                >
-                                    Next
-                                </p>
-                                <p
-                                    className="text-xs font-semibold uppercase tracking-[0.3em]"
-                                    style={{ color: cardBackTheme.detailColor }}
-                                >
-                                    Card Back
-                                </p>
-                            </div>
-                            <div
-                                className="h-24 w-24 rounded-full border-2"
-                                style={{
-                                    borderColor: `${cardBackTheme.accentColor}99`,
-                                    boxShadow: `0 0 0 8px ${cardBackTheme.accentColor}1A inset`,
-                                }}
-                            />
+        <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
+            <div className="w-full max-w-3xl rounded-[2rem] border border-white/70 bg-white/88 p-5 shadow-[0_35px_100px_-55px_rgba(15,23,42,0.7)] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/78 sm:p-7">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="space-y-3">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500 dark:border-slate-800 dark:bg-slate-900/75 dark:text-slate-400">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            Hazırlık
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                                {heading}
+                            </h2>
+                            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                {description}
+                            </p>
                         </div>
                     </div>
                 </div>
-            )}
 
-            <div className="text-center space-y-3">
-                <h2 className="text-2xl font-bold text-foreground">Sıradaki Tur</h2>
-                <div className="space-y-1">
-                    <p className="text-lg">
-                        <span className="text-muted-foreground">Anlatıcı:</span>{" "}
-                        <span className="font-semibold text-foreground">{transition.anlatici.ad}</span>
-                        <span
-                            className={`ml-2 rounded px-2 py-0.5 text-xs ${transition.anlatici.takim === "A"
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-blue-500/20 text-blue-400"
-                                }`}
-                        >
-                            {transition.anlatici.takim === "A" ? "Takım A" : "Takım B"}
-                        </span>
-                    </p>
-                    {transition.gozetmen && (
-                        <p className="text-base text-muted-foreground">Gözetmen: {transition.gozetmen.ad}</p>
-                    )}
+                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                    <section className="rounded-[1.6rem] border border-slate-200/75 bg-slate-50/85 p-5 dark:border-slate-800/80 dark:bg-slate-900/72">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+                            <Clock3 className="h-4 w-4" />
+                            Geri Sayım
+                        </div>
+
+                        <div className="mt-6 flex items-end gap-3">
+                            <div className="text-6xl font-black tabular-nums leading-none text-slate-900 dark:text-white sm:text-7xl">
+                                {transition.kalanSure}
+                            </div>
+                            <div className="pb-2 text-sm font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                                saniye
+                            </div>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white/85 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
+                            {transition.oyunDurduruldu ? (
+                                <div className="space-y-1">
+                                    <div className="font-bold text-slate-900 dark:text-white">Hazırlık bekletildi</div>
+                                    <div>Yönetici devam ettirdiğinde sayaç kaldığı yerden devam edecek.</div>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <div className="font-bold text-slate-900 dark:text-white">Son kontrol aşaması</div>
+                                    <div>Oyuncular yerini alsın. Sayaç sonunda ekran otomatik olarak oyuna geçecek.</div>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="grid gap-3">
+                        <div className="rounded-[1.4rem] border border-red-200/70 bg-red-50/80 p-4 dark:border-red-900/40 dark:bg-red-950/20">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-500 dark:text-red-300">
+                                        Anlatıcı
+                                    </div>
+                                    <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
+                                        {transition.anlatici.ad}
+                                    </div>
+                                </div>
+                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                    {narratorTeamLabel}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="rounded-[1.4rem] border border-blue-200/70 bg-blue-50/80 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500 dark:text-blue-300">
+                                        Gözetmen
+                                    </div>
+                                    <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
+                                        {transition.gozetmen?.ad ?? "Bekleniyor"}
+                                    </div>
+                                </div>
+                                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                                    {inspectorTeamLabel}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
+
+                {isHost && onPauseResume ? (
+                    <div className="mt-5 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={onPauseResume}
+                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition hover:bg-white hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-gray-200 dark:hover:bg-slate-800 dark:hover:text-blue-300"
+                        >
+                            {transition.oyunDurduruldu ? <Play size={16} /> : <Pause size={16} />}
+                            {transition.oyunDurduruldu ? "Devam Ettir" : "Durdur"}
+                        </button>
+                    </div>
+                ) : null}
             </div>
-            <div className="flex items-center gap-2 text-4xl font-mono font-bold text-primary">
-                <Clock className="h-8 w-8" />
-                {transition.kalanSure}
-            </div>
-            <p className="text-sm text-muted-foreground">Tura hazırlanın...</p>
         </div>
     );
 }
-

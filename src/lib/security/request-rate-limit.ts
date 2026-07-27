@@ -1,10 +1,17 @@
+import {
+    getRedisClient,
+    getRedisKey,
+    isRedisConfigured,
+} from "@hushle/platform-cache";
+export { getRequestIp, shouldTrustProxyHeaders } from "@/lib/security/client-ip";
+
 interface RateLimitEntry {
     count: number;
     resetAt: number;
     timeout: ReturnType<typeof setTimeout>;
 }
 
-interface ConsumeRequestRateLimitOptions {
+export interface ConsumeRequestRateLimitOptions {
     bucket: string;
     key: string;
     windowMs: number;
@@ -20,37 +27,6 @@ export interface RequestRateLimitResult {
 
 const rateLimitBuckets = new Map<string, Map<string, RateLimitEntry>>();
 
-function isTruthyEnv(value: string | undefined): boolean {
-    if (!value) {
-        return false;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
-}
-
-export function shouldTrustProxyHeaders(): boolean {
-    return isTruthyEnv(process.env.TRUST_PROXY);
-}
-
-function getTrustedForwardedIp(request: Request): string | null {
-    if (!shouldTrustProxyHeaders()) {
-        return null;
-    }
-
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
-    }
-
-    const realIp = request.headers.get("x-real-ip");
-    if (realIp) {
-        return realIp.trim();
-    }
-
-    return null;
-}
-
 function getBucketStore(bucket: string): Map<string, RateLimitEntry> {
     let store = rateLimitBuckets.get(bucket);
     if (!store) {
@@ -59,10 +35,6 @@ function getBucketStore(bucket: string): Map<string, RateLimitEntry> {
     }
 
     return store;
-}
-
-export function getRequestIp(request: Request): string {
-    return getTrustedForwardedIp(request) ?? "unknown";
 }
 
 export function consumeRequestRateLimit(
@@ -110,6 +82,46 @@ export function consumeRequestRateLimit(
         limit: maxRequests,
         remaining: Math.max(0, maxRequests - entry.count),
         retryAfterSeconds: Math.max(0, Math.ceil((entry.resetAt - now) / 1000)),
+    };
+}
+
+export async function consumeDistributedRequestRateLimit(
+    options: ConsumeRequestRateLimitOptions
+): Promise<RequestRateLimitResult> {
+    if (!isRedisConfigured()) {
+        return consumeRequestRateLimit(options);
+    }
+
+    const client = await getRedisClient();
+    if (!client) {
+        return consumeRequestRateLimit(options);
+    }
+
+    const { bucket, key, windowMs, maxRequests } = options;
+    const counterKey = getRedisKey("rate-limit", bucket, key);
+    const count = await client.incr(counterKey);
+
+    if (count === 1) {
+        await client.pExpire(counterKey, windowMs);
+    }
+
+    const ttlMs = await client.pTTL(counterKey);
+    const retryAfterSeconds = Math.max(0, Math.ceil(Math.max(ttlMs, 0) / 1000));
+
+    if (count > maxRequests) {
+        return {
+            allowed: false,
+            limit: maxRequests,
+            remaining: 0,
+            retryAfterSeconds: Math.max(1, retryAfterSeconds),
+        };
+    }
+
+    return {
+        allowed: true,
+        limit: maxRequests,
+        remaining: Math.max(0, maxRequests - count),
+        retryAfterSeconds,
     };
 }
 

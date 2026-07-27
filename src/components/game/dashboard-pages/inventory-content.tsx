@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -135,7 +135,7 @@ export function InventoryContent() {
   );
 
   const handleEquip = async (item: InventoryItemView) => {
-    if (equipBusyId !== null || item.equipped) {
+    if (equipBusyId !== null) {
       return;
     }
 
@@ -144,7 +144,10 @@ export function InventoryContent() {
       const response = await fetch("/api/store/equip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopItemId: item.shopItemId }),
+        body: JSON.stringify({
+          shopItemId: item.equipped ? null : item.shopItemId,
+          itemType: item.type,
+        }),
       });
 
       if (!response.ok) {
@@ -235,15 +238,19 @@ export function InventoryContent() {
                       <div className="mt-4 flex gap-2">
                         <button
                           onClick={() => void handleEquip(item)}
-                          disabled={item.equipped || equipBusyId !== null}
+                          disabled={equipBusyId !== null}
                           className={`flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
                             item.equipped
-                              ? "bg-blue-500 text-white"
+                              ? "bg-blue-500 text-white hover:bg-blue-600"
                               : "bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-blue-600"
                           }`}
                           type="button"
                         >
-                          {item.equipped ? "Kullanılıyor" : equipBusyId === item.shopItemId ? "Giydiriliyor..." : "Kullan"}
+                          {equipBusyId === item.shopItemId
+                            ? (item.equipped ? "C\u0131kar\u0131l\u0131yor..." : "Ku\u015fan\u0131l\u0131yor...")
+                            : item.equipped
+                              ? "Kullan\u0131mda"
+                              : "Ku\u015fan"}
                         </button>
                       </div>
                     </div>
@@ -299,7 +306,7 @@ function InventoryPreviewCard({
             </div>
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Durum</div>
-              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{selectedItem.equipped ? "Şu anda kuşanılmış" : "Envanterde hazır"}</div>
+              <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{selectedItem.equipped ? "Şu anda kullanımda" : "Envanterde hazır"}</div>
             </div>
           </div>
         </div>
@@ -332,3 +339,5 @@ function InventoryPreviewModal({
     </div>
   );
 }
+
+

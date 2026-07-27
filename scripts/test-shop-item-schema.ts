@@ -3,7 +3,7 @@ import {
     CosmeticRenderMode,
     ItemRarity,
     ShopItemType,
-} from "@prisma/client";
+} from "@hushle/platform-db";
 import {
     shopItemUpdateSchema,
     shopItemWriteSchema,

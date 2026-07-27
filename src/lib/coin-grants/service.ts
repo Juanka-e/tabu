@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import type {

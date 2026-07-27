@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@hushle/platform-cache", "@hushle/platform-db"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

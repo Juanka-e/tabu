@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -30,7 +30,7 @@ export async function POST(
         return NextResponse.json({ error: "Gecersiz destek talebi." }, { status: 422 });
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "support-ticket-reply",
         key: `user:${sessionUser.id}:${getRequestIp(request)}`,
         windowMs: 60 * 60 * 1000,

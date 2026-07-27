@@ -11,6 +11,10 @@ Bu dokumanin amaci iki seyi standart hale getirmektir:
 
 Bu spec hem gorsel asset tabanli urunler hem de `template + JSON` ile render edilen urunler icin referanstir.
 
+Operasyon akisi, AI promptablonlari ve Hushle kart sabit slot prensibi icin ek rehber:
+
+- `docs/guides/card-design-guide.md`
+
 ## Kozmetik Turleri
 
 ### 1. Avatar

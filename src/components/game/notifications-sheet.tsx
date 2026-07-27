@@ -51,6 +51,26 @@ export function NotificationsSheet({
     const [busyNotificationIds, setBusyNotificationIds] = useState<number[]>([]);
     const [filter, setFilter] = useState<"all" | "unread">("all");
 
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent("tabu:notifications-sheet-state", {
+                detail: {
+                    open: isOpen,
+                },
+            })
+        );
+
+        return () => {
+            window.dispatchEvent(
+                new CustomEvent("tabu:notifications-sheet-state", {
+                    detail: {
+                        open: false,
+                    },
+                })
+            );
+        };
+    }, [isOpen]);
+
     const loadNotifications = useCallback(
         async (options?: { silent?: boolean }) => {
             if (!options?.silent) {
@@ -204,9 +224,7 @@ export function NotificationsSheet({
                     return;
                 }
 
-                setNotifications((current) =>
-                    current.filter((entry) => entry.id !== notification.id)
-                );
+                setNotifications((current) => current.filter((entry) => entry.id !== notification.id));
                 if (!notification.isRead) {
                     onUnreadCountChange((current) => Math.max(0, current - 1));
                 }
@@ -271,23 +289,35 @@ export function NotificationsSheet({
     return (
         <div className="fixed inset-0 z-[125] flex items-center justify-end bg-slate-950/45 backdrop-blur-sm">
             <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-sky-300/20 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.92))] shadow-2xl dark:border-sky-900/20 dark:bg-[linear-gradient(180deg,rgba(9,12,18,0.96),rgba(12,15,23,0.94))]">
-                <div className="flex items-center justify-between border-b border-sky-200/60 px-5 py-4 dark:border-sky-900/20">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 shadow-sm dark:bg-sky-950/40 dark:text-sky-200">
-                            <Bell className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">
-                                Bildirim Merkezi
+                <div className="border-b border-sky-200/60 px-5 py-4 dark:border-sky-900/20">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 shadow-sm dark:bg-sky-950/40 dark:text-sky-200">
+                                <Bell className="h-5 w-5" />
                             </div>
-                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                                Bildirimler
-                            </h2>
+                            <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">
+                                    Bildirim merkezi
+                                </div>
+                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                    Bildirimler
+                                </h2>
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {unreadCount > 0 ? `${unreadCount} okunmamış bildirim var.` : "Yeni bildirim yok."}
+                                </p>
+                            </div>
                         </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onClose}
+                            className="h-10 w-10 shrink-0 rounded-full border border-slate-200/70 bg-white/80 text-slate-500 hover:bg-white hover:text-slate-900 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                            aria-label="Bildirimleri kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={onClose}>
-                        <X className="h-4 w-4" />
-                    </Button>
                 </div>
 
                 <div className="border-b border-sky-200/60 px-5 py-4 dark:border-sky-900/20">
@@ -317,35 +347,37 @@ export function NotificationsSheet({
                             </button>
                         </div>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void markAllRead()}
-                            disabled={saving || unreadCount === 0}
-                            className="gap-2"
-                        >
-                            <CheckCheck className="h-4 w-4" />
-                            Tümünü oku
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void archiveAll()}
-                            disabled={saving || notifications.length === 0}
-                            className="gap-2"
-                        >
-                            <Archive className="h-4 w-4" />
-                            Tümünü temizle
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void markAllRead()}
+                                disabled={saving || unreadCount === 0}
+                                className="gap-2"
+                            >
+                                <CheckCheck className="h-4 w-4" />
+                                Tümünü oku
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void archiveAll()}
+                                disabled={saving || notifications.length === 0}
+                                className="gap-2"
+                            >
+                                <Archive className="h-4 w-4" />
+                                Tümünü temizle
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-5 py-5">
                     {loading ? (
                         <div className="rounded-3xl border border-dashed border-sky-200/60 bg-white/60 p-6 text-sm text-slate-500 dark:border-sky-900/20 dark:bg-black/10 dark:text-slate-400">
-                            Bildirimler yukleniyor...
+                            Bildirimler yükleniyor...
                         </div>
                     ) : visibleNotifications.length === 0 ? (
                         <div className="rounded-3xl border border-dashed border-sky-200/60 bg-white/60 p-6 text-sm text-slate-500 dark:border-sky-900/20 dark:bg-black/10 dark:text-slate-400">
@@ -404,7 +436,7 @@ export function NotificationsSheet({
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             {!notification.isRead ? (
                                                 <Button
                                                     type="button"

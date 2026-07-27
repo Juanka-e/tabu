@@ -4,7 +4,7 @@ import bcryptjs from "bcryptjs";
 import { z } from "zod";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { getSystemSettings } from "@/lib/system-settings/service";
@@ -29,7 +29,7 @@ const registerSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        const rateLimit = consumeRequestRateLimit({
+        const rateLimit = await consumeDistributedRequestRateLimit({
             bucket: "auth-register",
             key: `ip:${getRequestIp(req)}`,
             windowMs: 10 * 60_000,

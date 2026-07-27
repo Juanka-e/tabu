@@ -17,6 +17,7 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
             matchStartedAt: null,
             sureSeconds: null,
             lineupPlayers: [],
+            lineupIdentities: [],
         };
     }
 
@@ -36,6 +37,14 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
 
             return player.ad;
         }),
+        lineupIdentities: room.oyuncular.map((player) => ({
+            playerId: player.playerId,
+            userId: player.userId,
+            identityType: player.identityType,
+            usernameSnapshot: player.usernameSnapshot,
+            displayNameSnapshot: player.ad,
+            team: player.takim,
+        })),
     };
 }
 

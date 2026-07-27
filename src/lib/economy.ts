@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
@@ -18,6 +18,7 @@ import type { SystemSettings } from "@/types/system-settings";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
+    CosmeticRenderSnapshot,
     CouponCatalogPreviewResponse,
     CouponPreviewResponse,
     DashboardDataResponse,
@@ -34,6 +35,8 @@ import type {
 
 type AppearanceProfileRecord = {
     userId: number;
+    avatarItemId?: number | null;
+    frameItemId?: number | null;
     avatarItem: {
         imageUrl: string;
     } | null;
@@ -50,11 +53,14 @@ type EquippedCardThemeItemRecord = {
     imageUrl: string;
     rarity: "common" | "rare" | "epic" | "legendary";
     renderMode: "image" | "template";
+    renderSpecVersion: number;
     templateKey: string | null;
     templateConfig: Prisma.JsonValue | null;
 };
 
 type CardCosmeticsProfileRecord = {
+    cardBackItemId?: number | null;
+    cardFaceItemId?: number | null;
     cardBackItem: EquippedCardThemeItemRecord | null;
     cardFaceItem: EquippedCardThemeItemRecord | null;
 };
@@ -128,7 +134,9 @@ export async function getProfileData(userId: number) {
 
     const inventory = await prisma.inventoryItem.findMany({
         where: { userId },
-        include: { shopItem: true },
+        include: {
+            shopItem: true,
+        },
         orderBy: { acquiredAt: "desc" },
     });
 
@@ -140,7 +148,10 @@ export async function getPlayerAppearanceSnapshot(userId: number): Promise<Playe
 
     const profile = await prisma.userProfile.findUnique({
         where: { userId },
-        include: {
+        select: {
+            userId: true,
+            avatarItemId: true,
+            frameItemId: true,
             avatarItem: {
                 select: {
                     imageUrl: true,
@@ -151,6 +162,7 @@ export async function getPlayerAppearanceSnapshot(userId: number): Promise<Playe
                     imageUrl: true,
                     rarity: true,
                     renderMode: true,
+                    renderSpecVersion: true,
                     templateKey: true,
                     templateConfig: true,
                 },
@@ -158,7 +170,33 @@ export async function getPlayerAppearanceSnapshot(userId: number): Promise<Playe
         },
     });
 
-    return profile ? mapPlayerAppearanceSnapshot(profile) : createEmptyAppearanceSnapshot();
+    if (!profile) {
+        return createEmptyAppearanceSnapshot();
+    }
+
+    const inventoryEntries = await prisma.inventoryItem.findMany({
+        where: {
+            userId,
+            shopItemId: {
+                in: [profile.avatarItemId, profile.frameItemId].filter(
+                    (itemId): itemId is number => typeof itemId === "number"
+                ),
+            },
+        },
+        select: {
+            shopItemId: true,
+            renderSnapshot: true,
+        },
+        orderBy: { acquiredAt: "desc" },
+    });
+
+    const snapshotMap = resolveInventoryRenderSnapshot(inventoryEntries);
+    const avatarSnapshot =
+        typeof profile.avatarItemId === "number" ? snapshotMap.get(profile.avatarItemId) ?? null : null;
+    const frameSnapshot =
+        typeof profile.frameItemId === "number" ? snapshotMap.get(profile.frameItemId) ?? null : null;
+
+    return mapPlayerAppearanceSnapshot(profile, frameSnapshot ?? null, avatarSnapshot ?? null);
 }
 
 export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<Map<number, PlayerAppearanceSnapshot>> {
@@ -175,7 +213,10 @@ export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<M
                 in: uniqueUserIds,
             },
         },
-        include: {
+        select: {
+            userId: true,
+            avatarItemId: true,
+            frameItemId: true,
             avatarItem: {
                 select: {
                     imageUrl: true,
@@ -186,6 +227,7 @@ export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<M
                     imageUrl: true,
                     rarity: true,
                     renderMode: true,
+                    renderSpecVersion: true,
                     templateKey: true,
                     templateConfig: true,
                 },
@@ -193,9 +235,38 @@ export async function getPlayerAppearanceSnapshots(userIds: number[]): Promise<M
         },
     });
 
+    const inventoryEntries = await prisma.inventoryItem.findMany({
+        where: {
+            userId: {
+                in: uniqueUserIds,
+            },
+        },
+        select: {
+            userId: true,
+            shopItemId: true,
+            renderSnapshot: true,
+        },
+        orderBy: { acquiredAt: "desc" },
+    });
+
+    const inventoryByUser = new Map<number, Array<{ shopItemId: number; renderSnapshot: Prisma.JsonValue | null }>>();
+    for (const entry of inventoryEntries) {
+        const current = inventoryByUser.get(entry.userId) ?? [];
+        current.push({
+            shopItemId: entry.shopItemId,
+            renderSnapshot: entry.renderSnapshot,
+        });
+        inventoryByUser.set(entry.userId, current);
+    }
+
     const profileMap = new Map<number, PlayerAppearanceSnapshot>();
     for (const profile of profiles) {
-        profileMap.set(profile.userId, mapPlayerAppearanceSnapshot(profile));
+        const userSnapshots = resolveInventoryRenderSnapshot(inventoryByUser.get(profile.userId) ?? []);
+        const avatarSnapshot =
+            typeof profile.avatarItemId === "number" ? userSnapshots.get(profile.avatarItemId) ?? null : null;
+        const frameSnapshot =
+            typeof profile.frameItemId === "number" ? userSnapshots.get(profile.frameItemId) ?? null : null;
+        profileMap.set(profile.userId, mapPlayerAppearanceSnapshot(profile, frameSnapshot ?? null, avatarSnapshot ?? null));
     }
 
     return profileMap;
@@ -207,11 +278,14 @@ export async function getPlayerCardCosmeticsSnapshot(userId: number): Promise<Ro
     const profile = await prisma.userProfile.findUnique({
         where: { userId },
         select: {
+            cardBackItemId: true,
+            cardFaceItemId: true,
             cardBackItem: {
                 select: {
                     imageUrl: true,
                     rarity: true,
                     renderMode: true,
+                    renderSpecVersion: true,
                     templateKey: true,
                     templateConfig: true,
                 },
@@ -221,6 +295,7 @@ export async function getPlayerCardCosmeticsSnapshot(userId: number): Promise<Ro
                     imageUrl: true,
                     rarity: true,
                     renderMode: true,
+                    renderSpecVersion: true,
                     templateKey: true,
                     templateConfig: true,
                 },
@@ -228,7 +303,27 @@ export async function getPlayerCardCosmeticsSnapshot(userId: number): Promise<Ro
         },
     });
 
-    return profile ? mapPlayerCardCosmeticsSnapshot(profile) : createEmptyPlayerCardCosmeticsSnapshot();
+    if (!profile) {
+        return createEmptyPlayerCardCosmeticsSnapshot();
+    }
+
+    const inventoryEntries = await prisma.inventoryItem.findMany({
+        where: {
+            userId,
+            shopItemId: {
+                in: [profile.cardBackItemId, profile.cardFaceItemId].filter(
+                    (itemId): itemId is number => typeof itemId === "number"
+                ),
+            },
+        },
+        select: {
+            shopItemId: true,
+            renderSnapshot: true,
+        },
+        orderBy: { acquiredAt: "desc" },
+    });
+
+    return mapPlayerCardCosmeticsSnapshot(profile, resolveInventoryRenderSnapshot(inventoryEntries));
 }
 
 function getEquippedSlots(profile: {
@@ -279,19 +374,23 @@ function createEmptyPlayerCardCosmeticsSnapshot(): RoomCardCosmeticsSnapshot {
     };
 }
 
-function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAppearanceSnapshot {
+function mapPlayerAppearanceSnapshot(
+    profile: AppearanceProfileRecord,
+    frameSnapshot?: CosmeticRenderSnapshot | null,
+    avatarSnapshot?: CosmeticRenderSnapshot | null
+): PlayerAppearanceSnapshot {
     const frameTheme = profile.frameItem
         ? resolveFrameTheme({
-            renderMode: profile.frameItem.renderMode,
-            imageUrl: profile.frameItem.imageUrl,
-            templateKey: profile.frameItem.templateKey,
-            templateConfig: normalizeTemplateConfig(profile.frameItem.templateConfig),
-            rarity: profile.frameItem.rarity,
+            renderMode: frameSnapshot?.renderMode ?? profile.frameItem.renderMode,
+            imageUrl: frameSnapshot?.imageUrl ?? profile.frameItem.imageUrl,
+            templateKey: frameSnapshot?.templateKey ?? profile.frameItem.templateKey,
+            templateConfig: frameSnapshot?.templateConfig ?? normalizeTemplateConfig(profile.frameItem.templateConfig),
+            rarity: frameSnapshot?.rarity ?? profile.frameItem.rarity,
         })
         : null;
 
     return {
-        avatarImageUrl: profile.avatarItem?.imageUrl ?? null,
+        avatarImageUrl: avatarSnapshot?.imageUrl ?? profile.avatarItem?.imageUrl ?? null,
         frameImageUrl: frameTheme?.imageUrl ?? null,
         frameAccentColor: frameTheme?.accentColor ?? null,
         frameSecondaryColor: frameTheme?.secondaryColor ?? null,
@@ -309,24 +408,32 @@ function mapPlayerAppearanceSnapshot(profile: AppearanceProfileRecord): PlayerAp
     };
 }
 
-function mapPlayerCardCosmeticsSnapshot(profile: CardCosmeticsProfileRecord): RoomCardCosmeticsSnapshot {
+function mapPlayerCardCosmeticsSnapshot(
+    profile: CardCosmeticsProfileRecord,
+    inventorySnapshots?: Map<number, CosmeticRenderSnapshot>
+): RoomCardCosmeticsSnapshot {
+    const cardFaceSnapshot =
+        typeof profile.cardFaceItemId === "number" ? inventorySnapshots?.get(profile.cardFaceItemId) ?? null : null;
+    const cardBackSnapshot =
+        typeof profile.cardBackItemId === "number" ? inventorySnapshots?.get(profile.cardBackItemId) ?? null : null;
+
     return {
         cardFace: profile.cardFaceItem
             ? {
-                renderMode: profile.cardFaceItem.renderMode,
-                imageUrl: profile.cardFaceItem.imageUrl,
-                templateKey: profile.cardFaceItem.templateKey,
-                templateConfig: normalizeTemplateConfig(profile.cardFaceItem.templateConfig),
-                rarity: profile.cardFaceItem.rarity,
+                renderMode: cardFaceSnapshot?.renderMode ?? profile.cardFaceItem.renderMode,
+                imageUrl: cardFaceSnapshot?.imageUrl ?? profile.cardFaceItem.imageUrl,
+                templateKey: cardFaceSnapshot?.templateKey ?? profile.cardFaceItem.templateKey,
+                templateConfig: cardFaceSnapshot?.templateConfig ?? normalizeTemplateConfig(profile.cardFaceItem.templateConfig),
+                rarity: cardFaceSnapshot?.rarity ?? profile.cardFaceItem.rarity,
             }
             : null,
         cardBack: profile.cardBackItem
             ? {
-                renderMode: profile.cardBackItem.renderMode,
-                imageUrl: profile.cardBackItem.imageUrl,
-                templateKey: profile.cardBackItem.templateKey,
-                templateConfig: normalizeTemplateConfig(profile.cardBackItem.templateConfig),
-                rarity: profile.cardBackItem.rarity,
+                renderMode: cardBackSnapshot?.renderMode ?? profile.cardBackItem.renderMode,
+                imageUrl: cardBackSnapshot?.imageUrl ?? profile.cardBackItem.imageUrl,
+                templateKey: cardBackSnapshot?.templateKey ?? profile.cardBackItem.templateKey,
+                templateConfig: cardBackSnapshot?.templateConfig ?? normalizeTemplateConfig(profile.cardBackItem.templateConfig),
+                rarity: cardBackSnapshot?.rarity ?? profile.cardBackItem.rarity,
             }
             : null,
     };
@@ -352,27 +459,32 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
 
     const equippedSlots = getEquippedSlots(profile);
 
-    const items: InventoryItemView[] = inventory.map((entry) => ({
-        inventoryItemId: entry.id,
-        shopItemId: entry.shopItemId,
-        code: entry.shopItem.code,
-        name: entry.shopItem.name,
-        type: entry.shopItem.type,
-        rarity: entry.shopItem.rarity,
-        renderMode: entry.shopItem.renderMode,
-        priceCoin: entry.shopItem.priceCoin,
-        imageUrl: entry.shopItem.imageUrl,
-        templateKey: entry.shopItem.templateKey,
-        templateConfig: normalizeTemplateConfig(entry.shopItem.templateConfig),
-        badgeText: entry.shopItem.badgeText,
-        availabilityMode: entry.shopItem.availabilityMode,
-        startsAt: entry.shopItem.startsAt?.toISOString() ?? null,
-        endsAt: entry.shopItem.endsAt?.toISOString() ?? null,
-        isFeatured: entry.shopItem.isFeatured,
-        source: entry.source,
-        acquiredAt: entry.acquiredAt.toISOString(),
-        equipped: isEquipped(entry.shopItemId, entry.shopItem.type, equippedSlots),
-    }));
+    const items: InventoryItemView[] = inventory.map((entry) => {
+        const renderSnapshot = readCosmeticRenderSnapshot(entry.renderSnapshot);
+
+        return {
+            inventoryItemId: entry.id,
+            shopItemId: entry.shopItemId,
+            code: entry.shopItem.code,
+            name: entry.shopItem.name,
+            type: renderSnapshot?.type ?? entry.shopItem.type,
+            rarity: renderSnapshot?.rarity ?? entry.shopItem.rarity,
+            renderMode: renderSnapshot?.renderMode ?? entry.shopItem.renderMode,
+            renderSpecVersion: renderSnapshot?.renderSpecVersion ?? normalizeRenderSpecVersion(entry.shopItem.renderSpecVersion),
+            priceCoin: entry.shopItem.priceCoin,
+            imageUrl: renderSnapshot?.imageUrl ?? entry.shopItem.imageUrl,
+            templateKey: renderSnapshot?.templateKey ?? entry.shopItem.templateKey,
+            templateConfig: renderSnapshot?.templateConfig ?? normalizeTemplateConfig(entry.shopItem.templateConfig),
+            badgeText: renderSnapshot?.badgeText ?? entry.shopItem.badgeText,
+            availabilityMode: entry.shopItem.availabilityMode,
+            startsAt: entry.shopItem.startsAt?.toISOString() ?? null,
+            endsAt: entry.shopItem.endsAt?.toISOString() ?? null,
+            isFeatured: entry.shopItem.isFeatured,
+            source: entry.source,
+            acquiredAt: entry.acquiredAt.toISOString(),
+            equipped: isEquipped(entry.shopItemId, entry.shopItem.type, equippedSlots),
+        };
+    });
 
     const normalizedProfile: UserInventoryProfile = {
         displayName: profile?.displayName ?? null,
@@ -405,6 +517,7 @@ type StoreCatalogItemRecord = Prisma.ShopItemGetPayload<{
         type: true;
         rarity: true;
         renderMode: true;
+        renderSpecVersion: true;
         priceCoin: true;
         imageUrl: true;
         templateKey: true;
@@ -520,6 +633,7 @@ function mapStoreItemView(
         type: item.type,
         rarity: item.rarity,
         renderMode: item.renderMode,
+        renderSpecVersion: normalizeRenderSpecVersion(item.renderSpecVersion),
         priceCoin: effectivePriceCoin,
         imageUrl: item.imageUrl,
         templateKey: item.templateKey,
@@ -623,6 +737,7 @@ async function loadStoreContext(settings: SystemSettings, userId?: number) {
                 type: true,
                 rarity: true,
                 renderMode: true,
+                renderSpecVersion: true,
                 priceCoin: true,
                 imageUrl: true,
                 templateKey: true,
@@ -976,6 +1091,86 @@ export async function previewCouponForTarget(
     };
 }
 
+function normalizeRenderSpecVersion(value: number | null | undefined): number {
+    return Number.isInteger(value) && Number(value) > 0 ? Number(value) : 1;
+}
+
+function buildCosmeticRenderSnapshot(input: {
+    type: StoreItemType;
+    rarity: "common" | "rare" | "epic" | "legendary";
+    renderMode: "image" | "template";
+    renderSpecVersion: number;
+    imageUrl: string;
+    templateKey: string | null;
+    templateConfig: Prisma.JsonValue | null;
+    badgeText?: string | null;
+}): Prisma.InputJsonObject & CosmeticRenderSnapshot {
+    return {
+        type: input.type,
+        rarity: input.rarity,
+        renderMode: input.renderMode,
+        renderSpecVersion: normalizeRenderSpecVersion(input.renderSpecVersion),
+        imageUrl: input.imageUrl,
+        templateKey: input.templateKey,
+        templateConfig: normalizeTemplateConfig(input.templateConfig),
+        badgeText: input.badgeText ?? null,
+    } as Prisma.InputJsonObject & CosmeticRenderSnapshot;
+}
+
+function readCosmeticRenderSnapshot(snapshot: Prisma.JsonValue | null): CosmeticRenderSnapshot | null {
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+        return null;
+    }
+
+    const candidate = snapshot as Record<string, unknown>;
+    const type = candidate.type;
+    const rarity = candidate.rarity;
+    const renderMode = candidate.renderMode;
+    const imageUrl = candidate.imageUrl;
+    const templateKey = candidate.templateKey;
+    const badgeText = candidate.badgeText;
+
+    if (
+        (type !== "avatar" && type !== "frame" && type !== "card_back" && type !== "card_face") ||
+        (rarity !== "common" && rarity !== "rare" && rarity !== "epic" && rarity !== "legendary") ||
+        (renderMode !== "image" && renderMode !== "template") ||
+        typeof imageUrl !== "string"
+    ) {
+        return null;
+    }
+
+    return {
+        type,
+        rarity,
+        renderMode,
+        renderSpecVersion: normalizeRenderSpecVersion(
+            typeof candidate.renderSpecVersion === "number" ? candidate.renderSpecVersion : null
+        ),
+        imageUrl,
+        templateKey: typeof templateKey === "string" ? templateKey : null,
+        templateConfig: normalizeTemplateConfig((candidate.templateConfig as Prisma.JsonValue | null | undefined) ?? null),
+        badgeText: typeof badgeText === "string" ? badgeText : null,
+    };
+}
+
+function resolveInventoryRenderSnapshot(
+    inventoryEntries: Array<{
+        shopItemId: number;
+        renderSnapshot: Prisma.JsonValue | null;
+    }>
+): Map<number, CosmeticRenderSnapshot> {
+    const snapshotMap = new Map<number, CosmeticRenderSnapshot>();
+
+    for (const entry of inventoryEntries) {
+        const snapshot = readCosmeticRenderSnapshot(entry.renderSnapshot);
+        if (snapshot) {
+            snapshotMap.set(entry.shopItemId, snapshot);
+        }
+    }
+
+    return snapshotMap;
+}
+
 function isShopItemDirectlyAvailable(
     item: Pick<StoreCatalogItemRecord, "availabilityMode" | "startsAt" | "endsAt" | "isActive">,
     now: Date
@@ -1180,6 +1375,7 @@ export async function purchaseStoreItem(
                     type: true,
                     rarity: true,
                     renderMode: true,
+                    renderSpecVersion: true,
                     priceCoin: true,
                     imageUrl: true,
                     templateKey: true,
@@ -1284,6 +1480,16 @@ export async function purchaseStoreItem(
                 userId,
                 shopItemId,
                 source: "purchase",
+                renderSnapshot: buildCosmeticRenderSnapshot({
+                    type: item.type,
+                    rarity: item.rarity,
+                    renderMode: item.renderMode,
+                    renderSpecVersion: item.renderSpecVersion,
+                    imageUrl: item.imageUrl,
+                    templateKey: item.templateKey,
+                    templateConfig: item.templateConfig,
+                    badgeText: item.badgeText,
+                }),
             },
         });
 
@@ -1363,6 +1569,7 @@ export async function purchaseStoreBundle(
                                     type: true,
                                     rarity: true,
                                     renderMode: true,
+                                    renderSpecVersion: true,
                                     priceCoin: true,
                                     imageUrl: true,
                                     templateKey: true,
@@ -1481,6 +1688,16 @@ export async function purchaseStoreBundle(
                 userId,
                 shopItemId: entry.shopItemId,
                 source: "purchase",
+                renderSnapshot: buildCosmeticRenderSnapshot({
+                    type: entry.shopItem.type,
+                    rarity: entry.shopItem.rarity,
+                    renderMode: entry.shopItem.renderMode,
+                    renderSpecVersion: entry.shopItem.renderSpecVersion,
+                    imageUrl: entry.shopItem.imageUrl,
+                    templateKey: entry.shopItem.templateKey,
+                    templateConfig: entry.shopItem.templateConfig,
+                    badgeText: entry.shopItem.badgeText,
+                }),
             })),
         });
 
@@ -1524,23 +1741,32 @@ export async function purchaseStoreBundle(
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
 
-export async function equipStoreItem(userId: number, shopItemId: number) {
+export async function equipStoreItem(userId: number, itemType: StoreItemType, shopItemId: number | null) {
     await ensureUserCore(userId);
-    const [item, owned] = await Promise.all([
-        prisma.shopItem.findUnique({ where: { id: shopItemId } }),
-        prisma.inventoryItem.findUnique({
-            where: { userId_shopItemId: { userId, shopItemId } },
-        }),
-    ]);
 
-    if (!item) return { ok: false as const, code: "not_found" as const };
-    if (!owned) return { ok: false as const, code: "not_owned" as const };
+    const data: Record<string, number | null> = {};
+    if (itemType === "avatar") data.avatarItemId = null;
+    if (itemType === "frame") data.frameItemId = null;
+    if (itemType === "card_back") data.cardBackItemId = null;
+    if (itemType === "card_face") data.cardFaceItemId = null;
 
-    const data: Record<string, number> = {};
-    if (item.type === "avatar") data.avatarItemId = item.id;
-    if (item.type === "frame") data.frameItemId = item.id;
-    if (item.type === "card_back") data.cardBackItemId = item.id;
-    if (item.type === "card_face") data.cardFaceItemId = item.id;
+    if (shopItemId !== null) {
+        const [item, owned] = await Promise.all([
+            prisma.shopItem.findUnique({ where: { id: shopItemId } }),
+            prisma.inventoryItem.findUnique({
+                where: { userId_shopItemId: { userId, shopItemId } },
+            }),
+        ]);
+
+        if (!item) return { ok: false as const, code: "not_found" as const };
+        if (!owned) return { ok: false as const, code: "not_owned" as const };
+        if (item.type !== itemType) return { ok: false as const, code: "type_mismatch" as const };
+
+        if (item.type === "avatar") data.avatarItemId = item.id;
+        if (item.type === "frame") data.frameItemId = item.id;
+        if (item.type === "card_back") data.cardBackItemId = item.id;
+        if (item.type === "card_face") data.cardFaceItemId = item.id;
+    }
 
     const profile = await prisma.userProfile.update({
         where: { userId },

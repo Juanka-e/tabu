@@ -1,117 +1,197 @@
 # Kalan Isler
 
-> Son guncelleme: 31 March 2026
+> Son guncelleme: 26 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/economy-abuse-hardening`
-2. `feature/post-launch-economy-observability-review`
-3. `feature/cache-and-rate-limit-foundation`
-4. `feature/admin-promotions-ux`
-5. `feature/cosmetic-render-upgrade`
-6. `feature/admin-cosmetic-authoring`
-7. `feature/gameplay-ui-polish`
-8. `feature/analytics-event-foundation`
-9. `feature/word-analytics-liveops`
-10. `feature/post-launch-xp-level-foundation`
-11. `feature/post-launch-missions-foundation`
-12. `feature/post-launch-night-market-foundation`
-13. `feature/release-ops-docs`
-14. `docs/encoding-cleanup`
-15. `feature/wallet-ledger-foundation`
+1. `feature/packages-extraction-foundation`
+2. `chore/dependency-security-refresh`
+3. `feature/admin-match-history-review`
+4. `feature/admin-categories-dnd-polish`
+5. `feature/room-rules-and-capacity-controls`
+6. `feature/post-launch-economy-observability-review`
+7. `feature/cache-and-rate-limit-foundation`
+8. `feature/audit-retention-and-telemetry-foundation`
+9. `feature/jobs-runtime-foundation`
+10. `feature/admin-promotions-ux`
+11. `feature/cosmetic-render-upgrade`
+12. `feature/admin-cosmetic-authoring`
+13. `feature/analytics-event-foundation`
+14. `feature/word-analytics-liveops`
+15. `feature/post-launch-xp-level-foundation`
+16. `feature/post-launch-missions-foundation`
+17. `feature/post-launch-night-market-foundation`
+18. `feature/mobile-api-foundation`
+19. `feature/release-ops-docs`
+20. `docs/encoding-cleanup`
+21. `feature/wallet-ledger-foundation`
 
-## En Kritik Acik Isler
+## Aktif Branch
 
-### 1. Economy / Abuse Hardening
-- guest coin yok kurali ustune hesapli kullanicilar icin reward eligibility
-- gunluk ve saatlik coin cap
-- ayni oyuncu gruplarinda kademeli coin verim dusurme
-- IP/subnet'i tek basina ceza nedeni degil, yumusak suphe sinyali olarak kullanma
-- ceiling reset mantigi rolling window olacak
-- ilk surumde 0 coin blok yerine once yuzdesel dusus tercih edilecek
-- admin panel ayarlari gelirse bounded ve aciklamali UX ile gelecek- audit buyurse sonraki olcek onlemleri:
-  - Redis / Valkey counters for rolling reward windows
-  - repeated-group keyed counters outside primary DB counts
-  - audit retention / archive for old game.match.finalize records
-  - lighter telemetry path for non-triggered finalize events
-- planning referanslari:
-  - `docs/guides/economy-abuse-hardening-guide.md`
-  - `docs/guides/economy-abuse-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+### `feature/packages-extraction-foundation`
 
-### 2. Night Market / Missions Planning
-- night market acele implemente edilmeyecek
-- once economy guardrail ve admin observability yeterli seviyeye gelmeli
-- gorev sistemi, rozetler, banner ve geri donus motivasyonu birlikte dusunulmeli
-- XP ekrani, gorev ekrani ve event claim akisi acilis oncesi implement edilmeyecek
-- bu alanlar urun canliya acildiktan sonra gercek veriyle tekrar kararlandirilacak
-- planning rehberi:
-  - `docs/guides/night-market-and-missions-strategy-guide.md`
-  - `docs/guides/economy-progression-and-pricing-guide.md`
+Tamamlananlar:
+- `@hushle/platform-db` workspace paketi
+- `@hushle/platform-cache` workspace paketi
+- Prisma type/enum importlarinin platform paketine alinmasi
+- Redis kullanan runtime ve testlerin platform paketine alinmasi
+- legacy `src/lib/prisma.ts` ve `src/lib/redis.ts` compatibility re-export'lari
+- Next.js transpile ve Docker workspace install destegi
+- package boundary smoke testi ve package typecheck scriptleri
 
-### 3. Cache / Rate Limit Foundation
-- Redis/Valkey abstraction
-- development memory fallback
-- production shared cache and rate limit store
-- room/lobi multi-instance mimarisine hazirlik
-- PM2 multi-instance ve websocket koordinasyon notlari:
-  - `docs/cache-and-storage-strategy.md`
+Acik kalanlar:
+- domain paketlerinin sirali extraction planini netlestirmek
+- `platform-auth` icin bagimlilik haritasini cikarmak
+- compatibility re-export'larinin kaldirilacagi fazi belirlemek
 
-## Aclis Sonrasi Onerilen Implementasyon Sirasi
+## Onceki Branch Kaydi
+### `feature/gameplay-ui-polish`
+Tamamlananlar:
+- kayitli kullanici icin `displayName -> username` fallback akisi
+- settings ve lobby quick edit arasinda canli isim senkronu
+- bos `displayName` temizlendiginde kayitli kullanicida hesap adina donus
+- guest isim akisinin lobby bazli kalmasi
+- oyun basladiktan sonra isim duzenlemeyi kilitleme
+- audit lineup identity snapshot yapisi
+- audit tarafinda guest / kayitli kimlik ayrimi
+- room ust bari ve mobil yardimci menu sadelestirmesi
+- pause sirasinda sag ust modallari erisilebilir kilma
+- lobby branding logosunu system settings ile dinamik kullanma
+- hazirlik ekraninin sadelestirilmesi ve ilk gecis mesajlarinin duzeltilmesi
+- dashboard profil alaninda avatar + frame gorunumunun toparlanmasi
+- stale `tabu_activeRoomCode` yuzunden olusan yanlis `lobidesin` blokajinin kaldirilmasi
+- bildirim sheet basliginin ve close aksiyonunun yeniden duzenlenmesi
+- hizli kusan alaninin tekrar tek satira cekilmesi
+- kayitli kullanici icin server-side aktif oda kontrolu
+- process-local `userId -> roomCode` room index optimizasyonu
+- envanterde kusanilan kozmetigi dogrudan cikarabilme
+- room / lobby logosunun ust merkezde daha dengeli konumlanmasi
+- `apps/` yonelimi, Docker veri kaliciligi ve modularizasyon plani dokumantasyonu
+- npm workspace sinirlarinin `apps/*` ve `packages/*` icin acilmasi
+- Redis retry, health, graceful shutdown ve ortam bazli key prefix altyapisi
+- Redis destekli rate limit, room membership, action lock ve admin handoff koordinasyonu
+- MySQL 8.4 ve izole local Redis portlariyla kalici Docker gelistirme altyapisi
 
-1. `feature/economy-abuse-hardening`
-- reward eligibility
-- reward source ayrimi
-- audit metadata
-- safety ceiling
-- repeated-group diminishing returns
-- manual validation checklist
-- smoke + edge-case guardrail test coverage
+Acik kalanlar:
+- admin kategoriler surukle-birak davranisini gercek kullanimda son kez dogrulama
+- bildirim sheet, toast, header ve hizli kusan iyilestirmelerini gercek cihazlarda son bir tur kontrol etmek
+- aktif oda korumasini coklu sekme / reconnect senaryolarinda son bir tur dogrulamak
+- `docs/guides/gameplay-ui-polish-smoke-checklist.md` uzerinden gercek cihaz smoke turu yapmak
+- Socket.IO event fan-out icin Redis adapter ihtiyacini multi-instance asamasinda ele almak
+- kart kozmetik art direction konusu arastirma bekliyor; premium tasarim yonu netlesene kadar sistem tarafi not seviyesinde tutulacak
 
-2. `feature/post-launch-economy-observability-review`
-- gercek coin kazanimi
-- store satin alma hizi
-- retention ve pacing gozlemi
-- ilk ekonomi tuning kararlari
+Bilincli olarak bu branch'te yapmiyoruz:
+- admin detayli mac gecmisi yuzeyi
+- room sifre sistemi
+- oda kapasitesi ve oyuncu sirasi kural paneli
+- XP / gorev / event runtime
+- fiziksel `apps/web` veya `apps/api` kod tasimasi
 
-3. `feature/cache-and-rate-limit-foundation`
-- shared runtime guardrail ve cache temeli
+## Yakin Sonraki Branch'ler
 
-4. `feature/gameplay-ui-polish`
-- room / lobby oyuncu kimligi UX'i
-- displayName gosterim karari
-- audit lineup kimlik snapshot'i
-- guest / registered badge ayrimi
-- oyun ici ust bar / profil tetikleyici polish'i
-- lobby quick edit ile `displayName` guncelleme
-- settings icinde kalici `displayName` yonetimi
-- oyun basladiktan sonra isim kilitleme kurali
-- guest oyuncu icin session bazli gorunen isim akisi
+### `feature/apps-workspace-foundation`
+- Phase 0 mevcut branch'te tamamlandi
+- `apps/web`, `apps/api`, `apps/jobs` hedefleri dokuman ve config seviyesinde sabitlendi
+- tasima oncesi path / tsconfig / script etkilerini olcmek
+- referans: `docs/architecture/apps-migration-plan.md`
 
-5. `feature/post-launch-xp-level-foundation`
-- yalniz veri bunu gerektirirse
-- coin'den ayri ilerleme katmani
+### `feature/packages-extraction-foundation`
+- `packages/` sinirlarini acmak
+- ilk tasinacak adaylari ayirmak:
+  - `platform-db`
+  - `platform-cache`
+  - `platform-auth`
+  - `domain-game`
+  - `domain-economy`
+  - `domain-player`
+- runtime tasimasindan once import bagimliliklarini sadelestirmek
 
-6. `feature/post-launch-missions-foundation`
-- retention ihtiyaci gercekten varsa
-- source-aware reward modeli uzerinde
+### `feature/docker-local-dev-foundation`
+- local gelistirme akisini `infra:up + dev` uzerinden standartlastirmak
+- named volume davranisini env/docs/script seviyesinde netlestirmek
+- resetlerde DB kaybi yasatmayan varsayilan akisi korumak
+- full compose ve infra-only compose rollerini acik ayirmak
 
-7. `feature/post-launch-night-market-foundation`
-- ancak store ve retention verisi bunu gerekliyse
+### `chore/dependency-security-refresh`
+- `npm audit --omit=dev` bulgularini paket bazinda incelemek
+- Auth.js, Next.js, DOMPurify, Multer, Socket.IO transitive paketleri ve diger production advisory'lerini guvenli patch/minor surumlere tasimak
+- otomatik `npm audit fix` yerine changelog + regression test kontrollu upgrade yapmak
+- login, custom server, upload, rich text ve websocket akislarini upgrade sonrasinda tekrar test etmek
 
-## Son Tamamlanan Dilim
-### `feature/admin-user-observability`
-- kullanici listesi ve operasyon yuzeyine trusted access sinyalleri eklendi
-- support / inventory / audit derin linkleri kuruldu
-- support ve inventory detail panelleri daha zengin baglam bloklariyla guclendirildi
-- auth local-dev host trust kirilmasi kapatildi
+### `feature/admin-match-history-review`
+- admin kullanici inceleme akisina mac gecmisi yuzeyi
+- mac suresi, skor tipi, takim dagilimi, anlatici rotasyonu ve ekonomi etkisi gorunurlugu
+- audit ile mac detayi arasinda daha adil moderasyon gecisi
 
-## Cikarilan Eski Icerik
-Bu dosyadan sunlar temizlendi:
-- artik tarihsel degeri olmayan ilk migration notlari
-- tamamlanmis ve tekrar kullanilmayan test checklist'leri
-- bozuk encoding ile kalan eski maddeler
-- yeni karar almaya yardim etmeyen brainstorming tekrarlar
+### `feature/admin-categories-dnd-polish`
+- kategori surukle-birak akisini dogrulama
+- reorder sonrasi geri bildirim / hata durumlari
+- kategoriler sayfasindaki UTF-8 ve copy temizligi
+- mobil / dusuk hassasiyetli pointer davranisini iyilestirme
 
+### `feature/room-rules-and-capacity-controls`
+- oda kapasitesi icin net ust sinir karari
+- dengesiz takim senaryolari icin yonetici davranisi
+- gerekirse bounded oyuncu sirasi / anlatici sirasi kontrolu
+- oda sifresi eklenirse ayri, sade bir akisla ele alma
+
+### `feature/cache-and-rate-limit-foundation`
+- mevcut Redis abstraction'i uzerinde atomik counter/lock sertlestirmesi
+- development memory fallback davranisini fault testlerle genisletme
+- production shared cache ve rate limit store gozlemlenebilirligi
+- dashboard summary short TTL cache
+- store catalog cache
+- notification unread counter
+- economy guard rolling counters
+- repeated-group keyed counters
+- Socket.IO Redis adapter ile multi-instance event fan-out
+- Redis destekli registered `userId -> roomCode` shared presence index'i load test etme
+- referans: `docs/cache-and-storage-strategy.md`
+
+### `feature/audit-retention-and-telemetry-foundation`
+- hot audit ve archive audit ayrimi
+- scheduled retention / archive job
+- signal-first audit siniflandirmasi
+- non-triggered high-volume event'leri telemetry hattina tasima
+- economy finalize audit hacmini kontrollu hale getirme
+- admin review icin archive read path veya archive arama yuzeyi
+
+### `feature/jobs-runtime-foundation`
+- retention, archive ve telemetry islerini ayri runtime'a hazirlamak
+- web request runtime disina alinabilecek batch isleri ayirmak
+- ileride `apps/jobs` icine tasinacak is kontratlarini netlestirmek
+
+### `feature/mobile-api-foundation`
+- ancak mobil backlog'u gercek implementasyona girdiginde acilacak
+- `apps/api` icin ilk API kontratlari
+- auth, profile, inventory ve progression gibi mobil dostu read/write surface'ler
+
+### `feature/cosmetic-render-upgrade`
+- magaza grid'inde thumbnail-first preview stratejisi
+- buyuk preview ile grid preview'ini ayirma
+- gerekirse `previewImageUrl` / `thumbnailUrl` alanlarini kataloga ekleme
+- kart / cerceve / avatar mini preview maliyetini dusurme
+- lazy loading, pagination veya virtualization ihtiyacini veri hacmine gore uygulama
+
+### `feature/post-launch-economy-observability-review`
+- canlidan sonra gercek coin kazanimi gozlemi
+- magaza satin alma hizi
+- retention ve pacing ayarlari
+- economy guard tetiklerinin saha verisiyle yeniden tuning edilmesi
+
+## Uzun Vadeli Notlar
+- modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
+- detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
+- Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.
+- bugunku registered room index tek-instance icin process-local yeterlidir; multi-instance asamasinda shared presence katmanina tasinmalidir.
+- non-triggered finalize kayitlari ileride daha hafif telemetry yoluna tasinabilir.
+- eski `game.match.finalize` kayitlari icin retention / archive plani gerekli.
+- admin kullanici mesajlasma sistemi ayri bir operasyon branch'i olarak dusunulmeli.
+- kart kozmetikleri icin profesyonel yon `image/hybrid first`, `template second` olarak korunmali; gorsel research tamamlanmadan render sistemi acele buyutulmemeli.
+
+## Referans Rehberler
+- `docs/guides/economy-abuse-hardening-guide.md`
+- `docs/guides/economy-progression-and-pricing-guide.md`
+- `docs/guides/player-display-name-and-audit-strategy-guide.md`
+- `docs/cache-and-storage-strategy.md`
+- `docs/architecture/apps-migration-plan.md`

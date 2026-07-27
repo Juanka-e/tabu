@@ -36,6 +36,15 @@ export const REWARD_REVIEW_FLAGS = [
 
 export type RewardReviewFlag = (typeof REWARD_REVIEW_FLAGS)[number];
 
+export interface RewardLineupIdentity {
+    playerId: string;
+    userId: number | null;
+    identityType: "registered" | "guest";
+    usernameSnapshot: string | null;
+    displayNameSnapshot: string;
+    team: "A" | "B" | null;
+}
+
 export interface RewardRoomMetrics {
     totalPlayers: number;
     authenticatedPlayers: number;
@@ -43,6 +52,7 @@ export interface RewardRoomMetrics {
     matchStartedAt: string | null;
     sureSeconds: number | null;
     lineupPlayers: string[];
+    lineupIdentities: RewardLineupIdentity[];
 }
 
 export interface RewardModifierSummary {

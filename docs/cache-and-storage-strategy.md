@@ -1,7 +1,7 @@
 # Cache And Storage Strategy
 
 > Status: working architecture note
-> Last updated: 24 March 2026
+> Last updated: 18 April 2026
 
 ## Goal
 - Keep MySQL as the source of truth.
@@ -47,6 +47,58 @@ Redis/Valkey must never become the only place where the business truth exists.
 - cache invalidation fan-out
 - future websocket adapter state
 - future room presence / ephemeral coordination state
+
+## Current Pre-Redis Optimizations Already In Place
+
+Redis gelmeden once de bazi yukleri dusurecek process-local optimizasyonlar alinabilir.
+
+Bugun aktif olan mantik:
+
+1. in-memory registered room index
+- registered kullanici icin `userId -> roomCode` process-local index tutulur
+- bu sayede "zaten odada misin?" kontrolu tum odalari taramadan O(1) lookup ile yapilir
+- bu, tek instance veya local development icin yeterli ve ucuzdur
+
+2. same-browser cross-tab presence heartbeat
+- ayni browser'da room acik sekme kisa aralikli `localStorage` heartbeat yazar
+- dashboard sekmesi yeni oda acmadan once bunu okuyup aninda bloklayabilir
+- network, DB veya server maliyeti yoktur
+
+3. server-side room state fallback
+- farkli browser veya cihaz senaryosunda `localStorage` paylasilmaz
+- bu durumda socket room state icindeki registered user index devreye girer
+
+Bu model bugunku tek-instance yapida yeterlidir.
+Multi-instance veya Redis adapter asamasinda bu index process-local olmaktan cikarilip shared coordination katmanina tasinmalidir.
+
+## Application-Side Optimization Notes
+
+Redis/Valkey tek basina yeterli degildir. Uygulama tarafinda da gereksiz tekrar fetch'i azaltmak gerekir.
+
+Erken uygulanabilecek kurallar:
+
+1. event-driven local sync
+- kullanici `displayName`, coin, unread count gibi kucuk state degisikliklerinde paneli yeniden fetch etmeden local state guncellenmeli
+- ayni tab icinde `storage` yetmedigi icin custom event veya state store kullanilabilir
+
+2. panel-on-open fetch
+- dashboard / support / notifications gibi ikincil paneller her render'da degil, panel acildiginda veya ilgili event tetiklenince fetch etmeli
+
+3. short-lived client cache
+- cok hizli arka arkaya acilan paneller icin 15-30 saniyelik istemci cache veya SWR dedup mantigi uygulanabilir
+- bu ozellikle `user/dashboard`, `user/me`, `notifications/unread-count`, `store/catalog` icin uygundur
+
+4. targeted invalidation
+- genel "her seyi yeniden cek" modeli yerine:
+  - wallet degisti -> wallet summary invalidate
+  - inventory degisti -> inventory ve cosmetic preview invalidate
+  - displayName degisti -> identity surfaces local update
+
+5. loading UX ayirma
+- her kisa fetch icin tam sayfa yenileniyormus hissi vermemek gerekir
+- local optimistic update + background revalidate tercih edilmelidir
+
+Bu kurallar Redis gelmeden once bile faydalidir. Redis geldiginde de cache verimi bu sayede artar.
 
 ## What Must Not Move Out Of MySQL
 - wallet source of truth
@@ -167,6 +219,32 @@ That breaks:
 - Production should move to Redis/Valkey-backed cache when multi-instance deployment starts.
 - Cache invalidation should happen on admin update.
 
+## Dashboard And Player Surface Strategy
+
+Bugunku yapida dashboard, inventory, shop ve notifications panelleri istemci fetch ile guncellenir.
+
+Erken buyume icin bu kabul edilebilir.
+Ama oyuncu sayisi ve panel kullanim yogunlugu artarsa su model uygulanmalidir:
+
+### App-side
+- `tabu:display-name-updated` benzeri custom event'lerle same-tab sync
+- local optimistic profile update
+- panel bazli fetch yerine hedefli refetch
+
+### Backend-side
+- `user/dashboard` kisa TTL cache
+- `store/catalog` kisa TTL cache
+- `notifications/unread-count` Redis counter
+- support queue / unread summary counter
+
+### Invalidation
+- profile update -> identity cache bust
+- wallet change -> dashboard summary bust
+- store publish / catalog update -> catalog cache bust
+- notification write/read -> unread counter refresh
+
+Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuzeyleri daha ucuz hale getirir.
+
 ## Rate Limit Strategy
 - Development can use memory-backed rate limiting.
 - Production should use Redis/Valkey-backed counters so limits are shared across all instances.
@@ -194,11 +272,98 @@ That breaks:
 - add notification/support counters
 - add short TTL coordination helpers
 - prepare websocket adapter integration
+- add dashboard summary cache abstraction
+- add store catalog cache abstraction
+- add identity/profile mini-summary cache where it creates measurable savings
 
 ### Phase 4
 - if PM2 multi-instance realtime becomes standard:
   - add Socket.IO Redis adapter
   - add room/lobby ephemeral coordination strategy
+
+### Phase 5
+- move economy guard rolling counters behind Redis/Valkey
+- move repeated-group keyed counters out of primary DB counts where operationally justified
+- keep MySQL audit and settlement truth unchanged
+
+## Concrete Future Redis/Valkey Candidates
+
+### Economy
+- rolling `match_reward` earned-in-window counters
+- repeated-group lineup counters
+- short TTL reward guard decision helpers
+
+### Dashboard / Player UX
+- notification unread count
+- dashboard summary snapshot
+- store catalog snapshot
+- support inbox summary counters
+
+### Security / Abuse
+- shared request rate limits
+- captcha / gateway temporary abuse counters
+- idempotency keys
+- short TTL locks around sensitive mutation bursts
+
+### Realtime / Multi-instance
+- Socket.IO adapter pub/sub
+- room presence coordination
+- reconnect grace-period helpers
+- cross-instance room transfer signals
+- registered `userId -> roomCode` shared presence index
+
+## What Still Stays In MySQL Even After Redis
+
+- final wallet balances
+- match results
+- audit logs
+- support history
+- notifications source records
+- profile source data
+- system settings source data
+
+Redis/Valkey burada hizlandirici katmandir, hakikat katmani degildir.
+
+## Audit Retention And Telemetry Strategy
+
+Audit icin kalici cozum "butun olaylari sonsuza kadar ayni sicak tabloda tutmak" olmamalidir.
+
+Onerilen model:
+
+1. hot audit
+- admin'in gunluk inceledigi son 30-90 gunluk kritik olaylar
+- hizli sorgu ve filtreleme burada kalir
+
+2. archive audit
+- daha eski audit kayitlari sicak tablodan ayrilir
+- ayri archive tablo seti veya daha ucuz storage/read path kullanilir
+
+3. signal-first audit
+- admin mutation
+- wallet adjustment
+- moderation / support action
+- reward guard tetikleyen economy olaylari
+- guvenlik acisindan anlamli hata / red event'leri
+tam audit olarak tutulur
+
+4. non-triggered telemetry
+- review degeri dusuk, hacmi yuksek kullanici olaylari tam audit yerine hafif event/telemetry hattina tasinabilir
+- ornek: guard tetiklenmeyen siradan `game.match.finalize` olaylari
+
+Temel retention kurali:
+- hot audit -> otomatik retention
+- eski kayitlar -> archive
+- dusuk degerli event'ler -> daha kisa retention veya telemetry-only
+
+Bu is manuel DB temizligi olarak dusunulmemelidir.
+Scheduled retention/archive job ile policy-driven calismalidir.
+
+Redis/Valkey burada sunlari hizlandirabilir:
+- archive job coordination lock'lari
+- telemetry counter / aggregation
+- unread / review queue counter'lari
+
+Ama audit truth ve admin inceleme izi yine MySQL/kalici storage tarafinda kalmalidir.
 
 ## Integration With Future Features
 New features should not connect to Redis/Valkey by default.

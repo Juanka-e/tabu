@@ -13,7 +13,7 @@ export default function HiddenRoomPage() {
     const hidden =
         typeof window !== "undefined" &&
         roomCode.length > 0 &&
-        window.sessionStorage.getItem(`tabu_room_hide_url:${roomCode}`) === "true";
+        window.localStorage.getItem(`tabu_room_hide_url:${roomCode}`) === "true";
 
     useEffect(() => {
         if (roomCode && !hidden) {
@@ -50,7 +50,7 @@ export default function HiddenRoomPage() {
                 <button
                     type="button"
                     onClick={() => {
-                        window.sessionStorage.setItem(`tabu_room_hide_url:${roomCode}`, "false");
+                        window.localStorage.setItem(`tabu_room_hide_url:${roomCode}`, "false");
                         router.replace(`/room/${roomCode}`);
                     }}
                     className="mt-6 inline-flex rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-950"

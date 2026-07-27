@@ -112,6 +112,18 @@ Ama buyume halinde asagidaki optimizasyonlar backlog''da tutulmalidir:
 - koruma tetiklenmeyen finalize olaylari tam audit yerine daha hafif telemetry/event akisina tasinabilir
 - audit tablosu admin review icin daha degerli ve daha kompakt kalir
 
+4. Dashboard / player surface cache
+- economy ile ilgili ikincil yuzeyler (dashboard summary, unread count, store catalog) Redis/Valkey ile kisa TTL cache'e alinabilir
+- bu, oyun loop'unu etkilemeden oyuncu panellerindeki tekrar fetch yukunu azaltir
+
+5. Reward guard counters
+- rolling reward window toplamlari ve repeated-group tekrar sayaçlari buyume halinde DB aggregate/count yerine Redis/Valkey counter ile hesaplanabilir
+- MySQL yine audit ve match_result truth kaynagi olarak kalir
+
+6. Registered room presence coordination
+- bugunku tek-instance yapida registered kullanici icin process-local `userId -> roomCode` index yeterlidir
+- multi-instance veya Redis adapter asamasinda bu koordinasyon Redis/Valkey-backed presence/index katmanina tasinmalidir
+- bu, farkli process'lerde ayni hesabin ikinci oda acma denemelerini de dogru bloklamayi saglar
 Bu maddeler bugun zorunlu degil, ama buyume halinde ilk alinacak olcek onlemleridir.
 
 ## Uygulama Sirasi
@@ -593,6 +605,14 @@ Bu durumda sonraki adim:
 - non-triggered finalize kayitlarini daha hafif telemetry akimina tasima
 - `feature/cache-and-rate-limit-foundation` sonrasinda Redis/Valkey destekli hafif counter yardimi
 
+Oyuncu paneli tarafinda da:
+
+- dashboard summary local event sync
+- unread count shared counter
+- catalog / profile mini-summary cache
+
+gibi katmanlar eklenirse, oyun disi fetch yukleri DB uzerinde daha hafif kalir.
+
 ## Bu Branch'te Bilincli Olarak Hala Yapilmayanlar
 
 - XP / level runtime'i
@@ -625,4 +645,6 @@ Bu durumda sonraki adim:
 - `docs/guides/night-market-and-missions-strategy-guide.md`
 - `docs/guides/admin-user-observability-guide.md`
 - `docs/guides/player-display-name-and-audit-strategy-guide.md`
+
+
 

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import { getMatchRewardGuardState } from "@/lib/system-settings/economy";
 import type { SystemSettings } from "@/types/system-settings";
 

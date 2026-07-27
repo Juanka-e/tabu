@@ -7,11 +7,30 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const [notificationsSheetOpen, setNotificationsSheetOpen] = useState(false)
+
+  useEffect(() => {
+    const handleNotificationsSheetState = (event: Event) => {
+      const open =
+        event instanceof CustomEvent &&
+        typeof event.detail?.open === "boolean"
+          ? event.detail.open
+          : false
+
+      setNotificationsSheetOpen(open)
+    }
+
+    window.addEventListener("tabu:notifications-sheet-state", handleNotificationsSheetState)
+    return () => {
+      window.removeEventListener("tabu:notifications-sheet-state", handleNotificationsSheetState)
+    }
+  }, [])
 
   return (
     <Sonner
@@ -20,6 +39,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       visibleToasts={1}
       expand={false}
       position="top-right"
+      offset={notificationsSheetOpen ? { top: 72, right: 16 } : { top: 16, right: 16 }}
+      mobileOffset={notificationsSheetOpen ? { top: 88, left: 12, right: 12 } : { top: 12, left: 12, right: 12 }}
       toastOptions={{
         duration: 2800,
       }}

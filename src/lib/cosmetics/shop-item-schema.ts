@@ -3,7 +3,7 @@ import {
     ItemRarity as PrismaItemRarity,
     Prisma,
     ShopItemType as PrismaShopItemType,
-} from "@prisma/client";
+} from "@hushle/platform-db";
 import { z } from "zod";
 import {
     SHOP_ITEM_AVAILABILITY_MODES,
@@ -108,6 +108,7 @@ const shopItemBaseSchema = z.object({
     name: z.string().trim().min(1).max(120),
     rarity: z.enum(STORE_ITEM_RARITIES).default("common"),
     renderMode: z.enum(STORE_ITEM_RENDER_MODES).default("image"),
+    renderSpecVersion: z.number().int().min(1).max(999).default(1),
     priceCoin: z.number().int().min(0).max(1_000_000),
     imageUrl: safeImageUrlSchema.default(""),
     templateKey: z.string().trim().max(80).optional().nullable(),
@@ -252,6 +253,7 @@ export function toPrismaShopItemCreateData(input: ShopItemWriteInput): Prisma.Sh
         name: input.name,
         rarity: PRISMA_ITEM_RARITY_MAP[input.rarity],
         renderMode: PRISMA_RENDER_MODE_MAP[input.renderMode],
+        renderSpecVersion: input.renderSpecVersion,
         priceCoin: input.priceCoin,
         imageUrl: input.imageUrl,
         templateKey: input.templateKey ?? null,
@@ -273,6 +275,7 @@ export function toPrismaShopItemUpdateData(input: ShopItemUpdateInput): Prisma.S
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.rarity !== undefined ? { rarity: PRISMA_ITEM_RARITY_MAP[input.rarity] } : {}),
         ...(input.renderMode !== undefined ? { renderMode: PRISMA_RENDER_MODE_MAP[input.renderMode] } : {}),
+        ...(input.renderSpecVersion !== undefined ? { renderSpecVersion: input.renderSpecVersion } : {}),
         ...(input.priceCoin !== undefined ? { priceCoin: input.priceCoin } : {}),
         ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
         ...(input.templateKey !== undefined ? { templateKey: input.templateKey ?? null } : {}),
