@@ -319,9 +319,12 @@ Onerilen implementasyon sirasi:
 - gelecekteki web/admin hostlari icin exact Socket.IO origin allowlist
 - harici font/style/connect kaynaklari icin direktif bazli CSP yapilandirmasi
 
-7. `feature/jobs-runtime-foundation`
-- audit retention/archive
-- telemetry jobs
+7. `feature/jobs-runtime-foundation` - tamamlandi
+- `apps/jobs` one-shot runner ve job registry temeli
+- dry-run varsayilan, iki asamali acilan audit retention/archive isi
+- Redis lease ile multi-instance koordinasyonu
+- archive kopyasi dogrulanmadan hot audit silmeme garantisi
+- telemetry rollup ve archive read path sonraki dar branch'lerde
 
 8. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde

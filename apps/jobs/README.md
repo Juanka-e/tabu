@@ -1,21 +1,24 @@
-# apps/jobs
+# Jobs
 
-Arka plan isleri ve zamanlanmis operasyonlar icin ayrilan hedef runtime.
+One-shot operational jobs that are invoked by cron, a container scheduler, or an
+operator. The runtime does not run inside the web request process.
 
-## Beklenen Sorumluluklar
+Audit retention is dry-run by default:
 
-- audit retention / archive job'lari
-- notification fan-out veya cleanup isleri
-- economy telemetry aggregation
-- cache invalidation worker'lari
-- gelecekteki word/liveops batch isleri
+```bash
+npm run jobs:audit-retention
+```
 
-## Neden Ayrilacak
+Execution requires both an explicit flag and environment gate:
 
-Bu tur islerin web request runtime'i icinde kalmasi:
+```bash
+JOBS_ENABLED=true npm run jobs:run -- audit-retention execute
+```
 
-- timeout riski yaratir
-- deploy yuzeyini kirletir
-- yatay olceklemede gereksiz bagimlilik kurar
+Live mutation also requires Redis so only one runtime can own the job lease.
+The jobs container uses a separate, low database connection limit so one-shot
+maintenance cannot consume the web process pool.
 
-Bu yuzden jobs runtime'i ayri app olarak planlanir.
+Do not schedule audit retention in production until the admin archive read path
+is available and accepted. Execution is safe and reversible at the storage
+level, but archived rows leave the current hot-audit admin view.

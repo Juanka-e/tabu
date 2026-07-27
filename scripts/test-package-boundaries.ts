@@ -43,6 +43,7 @@ assert.match(
 );
 
 const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
+assert.match(dockerfile, /apps\/jobs\/package\.json/);
 assert.match(dockerfile, /packages\/domain-game\/package\.json/);
 assert.match(dockerfile, /packages\/platform-cache\/package\.json/);
 assert.match(dockerfile, /packages\/platform-db\/package\.json/);
@@ -55,6 +56,10 @@ assert.match(
 assert.match(
     readFileSync(join(root, "apps/web/package.json"), "utf8"),
     /"@hushle\/domain-game": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/jobs/package.json"), "utf8"),
+    /"@hushle\/platform-db": "0\.1\.0"/
 );
 
 console.log("package boundary smoke test passed");

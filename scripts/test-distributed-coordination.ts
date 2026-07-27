@@ -117,6 +117,18 @@ class FakeRedisClient implements RedisLikeClient {
 
         return Math.max(0, current.expiresAt - Date.now());
     }
+
+    async eval(
+        _script: string,
+        options: { keys: string[]; arguments: string[] }
+    ): Promise<number> {
+        const key = options.keys[0];
+        const expectedValue = options.arguments[0];
+        if (!key || !expectedValue) return 0;
+        this.cleanup(key);
+        if (this.store.get(key)?.value !== expectedValue) return 0;
+        return this.store.delete(key) ? 1 : 0;
+    }
 }
 
 const originalRedisUrl = process.env.REDIS_URL;

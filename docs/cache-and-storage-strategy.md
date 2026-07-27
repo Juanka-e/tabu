@@ -358,6 +358,35 @@ Temel retention kurali:
 Bu is manuel DB temizligi olarak dusunulmemelidir.
 Scheduled retention/archive job ile policy-driven calismalidir.
 
+Mevcut implementasyon:
+
+- `apps/jobs` web request runtime'indan ayri one-shot job runner'idir
+- `audit-retention` varsayilan olarak dry-run calisir
+- gercek calisma hem explicit execute mode hem `JOBS_ENABLED=true` gerektirir
+- Redis yoksa mutating job fail-closed olur; local memory lock'a dusmez
+- hot audit varsayilani 90 gundur ve ayarlanabilir
+- islem batch sinirli ve idempotent archive anahtariyla calisir
+- archive satiri transaction icinde dogrulanmadan hot satir silinmez
+- archive kayitlari bu fazda otomatik silinmez
+- admin archive arama yuzeyi ve archive purge politikasi ayri bir sonraki fazdir
+- admin archive read path kabul edilmeden production schedule acilmamalidir;
+  arsivlenen satirlar mevcut hot-audit ekraninda gorunmez
+- jobs process varsayilan olarak ayri ve dusuk bir DB pool (`3`) kullanir;
+  `JOBS_DATABASE_CONNECTION_LIMIT` ile ayarlanabilir
+
+Komutlar:
+
+```bash
+npm run jobs:audit-retention
+JOBS_ENABLED=true npm run jobs:run -- audit-retention execute
+```
+
+Production container tek seferlik olarak su profille cagrilabilir:
+
+```bash
+docker compose --profile jobs run --rm jobs
+```
+
 Redis/Valkey burada sunlari hizlandirabilir:
 - archive job coordination lock'lari
 - telemetry counter / aggregation

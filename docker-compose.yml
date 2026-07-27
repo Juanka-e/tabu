@@ -1,4 +1,30 @@
 services:
+  jobs:
+    profiles: ["jobs"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["npm", "run", "jobs:run", "--", "audit-retention", "execute"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_CONNECTION_LIMIT: ${JOBS_DATABASE_CONNECTION_LIMIT:-3}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-hushle:production}
+      JOBS_ENABLED: ${JOBS_ENABLED:-false}
+      AUDIT_HOT_RETENTION_DAYS: ${AUDIT_HOT_RETENTION_DAYS:-90}
+      AUDIT_ARCHIVE_BATCH_SIZE: ${AUDIT_ARCHIVE_BATCH_SIZE:-500}
+      AUDIT_ARCHIVE_MAX_BATCHES: ${AUDIT_ARCHIVE_MAX_BATCHES:-10}
+      AUDIT_ARCHIVE_LEASE_TTL_MS: ${AUDIT_ARCHIVE_LEASE_TTL_MS:-900000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hushle-net
+
   app:
     build:
       context: .
@@ -10,6 +36,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
+      DATABASE_CONNECTION_LIMIT: ${DATABASE_CONNECTION_LIMIT:-20}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
