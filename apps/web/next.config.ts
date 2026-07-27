@@ -6,7 +6,11 @@ const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
 loadEnvConfig(workspaceRoot, process.env.NODE_ENV !== "production");
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@hushle/platform-cache", "@hushle/platform-db"],
+  transpilePackages: [
+    "@hushle/domain-game",
+    "@hushle/platform-cache",
+    "@hushle/platform-db",
+  ],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
