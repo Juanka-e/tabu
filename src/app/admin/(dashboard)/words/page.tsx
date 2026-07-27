@@ -355,6 +355,7 @@ export default function AdminWordsPage() {
             setFormSaving(false);
         }
     }, [
+        categorySelectionWarning,
         editingWord,
         fetchWords,
         formCategoryIds,

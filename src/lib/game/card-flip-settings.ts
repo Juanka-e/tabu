@@ -7,6 +7,7 @@ export const defaultCardFlipSettings: CardFlipSettingsState = {
 };
 
 const CARD_FLIP_SETTINGS_STORAGE_KEY = "hushle_card_flip_settings_v1";
+const CARD_FLIP_SETTINGS_CHANGE_EVENT = "hushle:card-flip-settings-change";
 
 export function parseCardFlipSettings(raw: string | null): CardFlipSettingsState {
     if (!raw) {
@@ -47,4 +48,27 @@ export function writeCardFlipSettings(
         CARD_FLIP_SETTINGS_STORAGE_KEY,
         JSON.stringify(settings)
     );
+    window.dispatchEvent(new Event(CARD_FLIP_SETTINGS_CHANGE_EVENT));
+}
+
+export function subscribeCardFlipSettings(
+    listener: () => void
+): () => void {
+    if (typeof window === "undefined") {
+        return () => undefined;
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+        if (event.key === CARD_FLIP_SETTINGS_STORAGE_KEY) {
+            listener();
+        }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(CARD_FLIP_SETTINGS_CHANGE_EVENT, listener);
+
+    return () => {
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener(CARD_FLIP_SETTINGS_CHANGE_EVENT, listener);
+    };
 }

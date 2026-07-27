@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { ArrowRight, Check, Pause, Play, RotateCcw, Sparkles, X } from "lucide-react";
 import { GameCard } from "@/components/game/game-card";
@@ -12,7 +12,9 @@ import {
     getCosmeticMotionStyle,
 } from "@/lib/cosmetics/effects";
 import {
+    defaultCardFlipSettings,
     readCardFlipSettings,
+    subscribeCardFlipSettings,
     writeCardFlipSettings,
 } from "@/lib/game/card-flip-settings";
 import {
@@ -288,27 +290,21 @@ export function ViewerCardPreview({
     cardFaceTheme: ResolvedCardFaceTheme | null;
     cardBackTheme: ResolvedCardBackTheme | null;
 }) {
-    const [isFlipEnabled, setIsFlipEnabled] = useState(false);
-    const [isFlipped, setIsFlipped] = useState(false);
+    const isFlipEnabled = useSyncExternalStore(
+        subscribeCardFlipSettings,
+        () => readCardFlipSettings().enabled,
+        () => defaultCardFlipSettings.enabled
+    );
+    const [flippedCardId, setFlippedCardId] = useState<CardData["id"] | null>(null);
+    const isFlipped = flippedCardId === card.id;
     const canFlip = isFlipEnabled && Boolean(cardBackTheme);
 
-    useEffect(() => {
-        setIsFlipEnabled(readCardFlipSettings().enabled);
-    }, []);
-
-    useEffect(() => {
-        setIsFlipped(false);
-    }, [card.id]);
-
     const handleFlipToggle = () => {
-        setIsFlipEnabled((current) => {
-            const next = !current;
-            writeCardFlipSettings({ enabled: next });
-            if (!next) {
-                setIsFlipped(false);
-            }
-            return next;
-        });
+        const next = !isFlipEnabled;
+        writeCardFlipSettings({ enabled: next });
+        if (!next) {
+            setFlippedCardId(null);
+        }
     };
 
     return (
@@ -342,7 +338,9 @@ export function ViewerCardPreview({
                     type="button"
                     onClick={() => {
                         if (canFlip) {
-                            setIsFlipped((current) => !current);
+                            setFlippedCardId((current) =>
+                                current === card.id ? null : card.id
+                            );
                         }
                     }}
                     data-testid="viewer-card-preview"

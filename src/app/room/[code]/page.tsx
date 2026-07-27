@@ -929,7 +929,7 @@ export default function RoomPage() {
                                     onClick={() => router.replace("/dashboard")}
                                     className="rounded-2xl border border-gray-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                                 >
-                                    Dashboard'a Git
+                                    Dashboard&apos;a Git
                                 </button>
                             </div>
                         </div>
