@@ -4,30 +4,47 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/gameplay-ui-polish`
-2. `feature/packages-extraction-foundation`
-3. `chore/dependency-security-refresh`
-4. `feature/admin-match-history-review`
-5. `feature/admin-categories-dnd-polish`
-6. `feature/room-rules-and-capacity-controls`
-7. `feature/post-launch-economy-observability-review`
-8. `feature/cache-and-rate-limit-foundation`
-9. `feature/audit-retention-and-telemetry-foundation`
-10. `feature/jobs-runtime-foundation`
-11. `feature/admin-promotions-ux`
-12. `feature/cosmetic-render-upgrade`
-13. `feature/admin-cosmetic-authoring`
-14. `feature/analytics-event-foundation`
-15. `feature/word-analytics-liveops`
-16. `feature/post-launch-xp-level-foundation`
-17. `feature/post-launch-missions-foundation`
-18. `feature/post-launch-night-market-foundation`
-19. `feature/mobile-api-foundation`
-20. `feature/release-ops-docs`
-21. `docs/encoding-cleanup`
-22. `feature/wallet-ledger-foundation`
+1. `feature/packages-extraction-foundation`
+2. `chore/dependency-security-refresh`
+3. `feature/admin-match-history-review`
+4. `feature/admin-categories-dnd-polish`
+5. `feature/room-rules-and-capacity-controls`
+6. `feature/post-launch-economy-observability-review`
+7. `feature/cache-and-rate-limit-foundation`
+8. `feature/audit-retention-and-telemetry-foundation`
+9. `feature/jobs-runtime-foundation`
+10. `feature/admin-promotions-ux`
+11. `feature/cosmetic-render-upgrade`
+12. `feature/admin-cosmetic-authoring`
+13. `feature/analytics-event-foundation`
+14. `feature/word-analytics-liveops`
+15. `feature/post-launch-xp-level-foundation`
+16. `feature/post-launch-missions-foundation`
+17. `feature/post-launch-night-market-foundation`
+18. `feature/mobile-api-foundation`
+19. `feature/release-ops-docs`
+20. `docs/encoding-cleanup`
+21. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
+
+### `feature/packages-extraction-foundation`
+
+Tamamlananlar:
+- `@hushle/platform-db` workspace paketi
+- `@hushle/platform-cache` workspace paketi
+- Prisma type/enum importlarinin platform paketine alinmasi
+- Redis kullanan runtime ve testlerin platform paketine alinmasi
+- legacy `src/lib/prisma.ts` ve `src/lib/redis.ts` compatibility re-export'lari
+- Next.js transpile ve Docker workspace install destegi
+- package boundary smoke testi ve package typecheck scriptleri
+
+Acik kalanlar:
+- domain paketlerinin sirali extraction planini netlestirmek
+- `platform-auth` icin bagimlilik haritasini cikarmak
+- compatibility re-export'larinin kaldirilacagi fazi belirlemek
+
+## Onceki Branch Kaydi
 ### `feature/gameplay-ui-polish`
 Tamamlananlar:
 - kayitli kullanici icin `displayName -> username` fallback akisi

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {
     PromotionDiscountType,
     PromotionTargetType,
-} from "@prisma/client";
+} from "@hushle/platform-db";
 import {
     bundleWriteSchema,
     couponCodeWriteSchema,

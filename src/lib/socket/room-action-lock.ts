@@ -1,4 +1,8 @@
-import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
+import {
+    getRedisClient,
+    getRedisKey,
+    isRedisConfigured,
+} from "@hushle/platform-cache";
 
 const localLocks = new Map<string, ReturnType<typeof setTimeout>>();
 

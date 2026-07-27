@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";

@@ -18,6 +18,7 @@ Physical runtime splitting is intentionally deferred until shared domain and pla
 See:
 
 - `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
+- `docs/architecture/adr-002-platform-package-boundaries.md`
 - `docs/architecture/apps-migration-plan.md`
 
 ## Key Components

@@ -2,7 +2,7 @@ import {
     Prisma,
     PromotionDiscountType as PrismaPromotionDiscountType,
     PromotionTargetType as PrismaPromotionTargetType,
-} from "@prisma/client";
+} from "@hushle/platform-db";
 import { z } from "zod";
 import {
     PROMOTION_DISCOUNT_TYPES,

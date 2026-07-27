@@ -90,6 +90,15 @@ Bu fazda fiziksel runtime ayrimi yoktur.
 
 ### Phase 1 - Package Boundaries
 
+Durum: devam ediyor.
+
+Tamamlanan platform sinirlari:
+
+- `packages/platform-db`
+- `packages/platform-cache`
+- Next.js transpile ve Docker `npm ci` workspace destegi
+- direct infrastructure importlarini engelleyen boundary smoke testi
+
 Ilk teknik ayirma kod tasimasi degil, sorumluluk ayirmasidir.
 
 Oncelikli adaylar:

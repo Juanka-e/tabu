@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";

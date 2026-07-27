@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@hushle/platform-db";
 import type { AdminAuditListQuery } from "@/lib/admin-audit/schema";
 import type { AdminAuditListResponse, AdminAuditLogView } from "@/types/admin-audit";
 

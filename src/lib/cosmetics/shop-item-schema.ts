@@ -3,7 +3,7 @@ import {
     ItemRarity as PrismaItemRarity,
     Prisma,
     ShopItemType as PrismaShopItemType,
-} from "@prisma/client";
+} from "@hushle/platform-db";
 import { z } from "zod";
 import {
     SHOP_ITEM_AVAILABILITY_MODES,

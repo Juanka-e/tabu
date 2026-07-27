@@ -7,8 +7,8 @@ before the Next.js runtime is physically moved into `apps/web`.
 
 Planned first boundaries:
 
-- `platform-db`
-- `platform-cache`
+- `platform-db` (implemented)
+- `platform-cache` (implemented)
 - `platform-auth`
 - `domain-game`
 - `domain-economy`
@@ -16,3 +16,6 @@ Planned first boundaries:
 
 Redis remains a disposable cache, counter, lock, and coordination layer. MySQL
 remains the source of truth.
+
+See `docs/architecture/adr-002-platform-package-boundaries.md` for the import and
+ownership rules.

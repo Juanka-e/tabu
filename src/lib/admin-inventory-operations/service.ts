@@ -1,4 +1,4 @@
-﻿import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@hushle/platform-db";
 import { getInventoryData } from "@/lib/economy";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { prisma } from "@/lib/prisma";

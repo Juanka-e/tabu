@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import { validateWordCategorySelection } from "@/lib/words/category-assignment-policy";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {

@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@hushle/platform-db";
 import { prisma } from "@/lib/prisma";
 import { getRequestIp } from "@/lib/security/request-rate-limit";
 

@@ -1,5 +1,5 @@
-﻿import { z } from "zod";
-import type { Prisma } from "@prisma/client";
+import { z } from "zod";
+import type { Prisma } from "@hushle/platform-db";
 import { sanitizeAnnouncementContent } from "@/lib/security/announcements";
 
 export const ANNOUNCEMENT_BLOCK_TYPES = [

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { closeRedisClient, getRedisHealth } from "../src/lib/redis";
+import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
 
 const originalRedisUrl = process.env.REDIS_URL;
 

@@ -1,4 +1,8 @@
-import { getRedisClient, getRedisKey, isRedisConfigured } from "@/lib/redis";
+import {
+    getRedisClient,
+    getRedisKey,
+    isRedisConfigured,
+} from "@hushle/platform-cache";
 
 interface LocalAdminHandoffEntry {
     adminPlayerId: string;

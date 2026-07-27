@@ -26,7 +26,7 @@ import {
     resetRedisTestClient,
     setRedisTestClient,
     type RedisLikeClient,
-} from "../src/lib/redis";
+} from "@hushle/platform-cache";
 
 type StoredValue = {
     value: string;

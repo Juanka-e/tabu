@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { PromotionDiscountType, PromotionTargetType } from "@prisma/client";
+import { PromotionDiscountType, PromotionTargetType } from "@hushle/platform-db";
 import { resolveCatalogPricing, resolveCouponPricing } from "../src/lib/store/pricing";
 
 const now = new Date("2026-03-09T12:00:00.000Z");

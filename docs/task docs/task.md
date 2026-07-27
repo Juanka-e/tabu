@@ -13,6 +13,27 @@
 - `feature/economy-abuse-hardening`
 
 ## Aktif Branch
+
+### `feature/packages-extraction-foundation`
+
+Hedef:
+- web runtime'ina ait olmayan Prisma ve Redis altyapisini workspace paketlerine cikarmak
+- mevcut uygulamayi kirmadan compatibility katmani birakmak
+- package sinirlarini test ve Docker build ile enforce etmek
+
+Tamamlananlar:
+- `@hushle/platform-db`
+- `@hushle/platform-cache`
+- package typecheck ve boundary testleri
+- Next.js ve Docker workspace resolution
+- Prisma type/enum ve Redis consumer import migration'i
+
+Siradaki kontrollu adimlar:
+- `platform-auth` adaylarini incelemek
+- domain package extraction sirasini import graph'e gore belirlemek
+- fiziksel `apps/web` tasimasindan once compatibility shim kullanimini azaltmak
+
+## Onceki Branch Kaydi
 ### `feature/gameplay-ui-polish`
 Hedef:
 - room, lobby ve dashboard arasinda oyuncu kimligi UX'ini sadelestirmek
@@ -59,15 +80,14 @@ Kapsam disi birakilanlar:
 - fiziksel `apps/web` / `apps/api` tasimasi
 
 ## Sonraki Branch Adaylari
-1. `feature/packages-extraction-foundation`
-2. `chore/dependency-security-refresh`
-3. `feature/admin-match-history-review`
-4. `feature/admin-categories-dnd-polish`
-5. `feature/room-rules-and-capacity-controls`
-6. `feature/cache-and-rate-limit-foundation`
-7. `feature/jobs-runtime-foundation`
-8. `feature/post-launch-economy-observability-review`
-9. `feature/admin-player-messaging`
+1. `chore/dependency-security-refresh`
+2. `feature/admin-match-history-review`
+3. `feature/admin-categories-dnd-polish`
+4. `feature/room-rules-and-capacity-controls`
+5. `feature/cache-and-rate-limit-foundation`
+6. `feature/jobs-runtime-foundation`
+7. `feature/post-launch-economy-observability-review`
+8. `feature/admin-player-messaging`
 
 ## Referanslar
 - `docs/guides/economy-abuse-hardening-guide.md`

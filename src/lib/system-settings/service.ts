@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@hushle/platform-db";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";

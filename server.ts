@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import { getToken } from "next-auth/jwt";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
-import { closeRedisClient, getRedisHealth } from "./src/lib/redis";
+import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "127.0.0.1");
