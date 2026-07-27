@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateAdminCategoryReorderUpdates } from "../src/lib/categories/admin-category-reorder";
+import { validateAdminCategoryReorderUpdates } from "../apps/web/src/lib/categories/admin-category-reorder";
 
 const categories = [
     { id: 1, parentId: null },

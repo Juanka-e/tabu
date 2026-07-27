@@ -300,7 +300,7 @@ Pratik strateji:
 
 Kod tarafinda ilk adimda su dosya mantigi yeterli:
 
-- `src/lib/cosmetics/card-template-registry.ts`
+- `apps/web/src/lib/cosmetics/card-template-registry.ts`
 
 Icinde:
 

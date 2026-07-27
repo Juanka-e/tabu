@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import { loadEnvConfig } from "@next/env";
+import { fileURLToPath } from "node:url";
+
+const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
+loadEnvConfig(workspaceRoot, process.env.NODE_ENV !== "production");
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@hushle/platform-cache", "@hushle/platform-db"],

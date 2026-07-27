@@ -1,5 +1,5 @@
-import { prisma } from "../src/lib/prisma";
-import { processBulkWordUpload } from "../src/lib/admin-words-bulk-upload/service";
+import { prisma } from "../apps/web/src/lib/prisma";
+import { processBulkWordUpload } from "../apps/web/src/lib/admin-words-bulk-upload/service";
 
 async function main() {
     const rootName = `Test Bulk Kategori ${Date.now()}`;

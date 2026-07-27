@@ -6,7 +6,7 @@ import {
     mockCouponCodes,
     mockDiscountCampaigns,
     mockShopItems,
-} from "../src/lib/store/mock-catalog";
+} from "../apps/web/src/lib/store/mock-catalog";
 
 const itemCodes = new Set<string>();
 const itemSortOrders = new Set<number>();

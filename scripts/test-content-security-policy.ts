@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildContentSecurityPolicy } from "../src/lib/security/content-security-policy";
+import { buildContentSecurityPolicy } from "../apps/web/src/lib/security/content-security-policy";
 
 const prodPolicy = buildContentSecurityPolicy({
     nonce: "test-nonce",

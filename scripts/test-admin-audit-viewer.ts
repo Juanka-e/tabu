@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { adminAuditListQuerySchema } from "../src/lib/admin-audit/schema";
-import { summarizeAuditMetadata } from "../src/lib/admin-audit/service";
+import { adminAuditListQuerySchema } from "../apps/web/src/lib/admin-audit/schema";
+import { summarizeAuditMetadata } from "../apps/web/src/lib/admin-audit/service";
 
 const parsedQuery = adminAuditListQuerySchema.parse({
     page: "2",

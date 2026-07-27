@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveRoomCardThemes } from "../src/lib/cosmetics/room-card-themes";
+import { resolveRoomCardThemes } from "../apps/web/src/lib/cosmetics/room-card-themes";
 
 const emptyThemes = resolveRoomCardThemes(null);
 

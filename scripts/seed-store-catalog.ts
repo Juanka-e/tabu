@@ -6,7 +6,7 @@ import {
     mockCouponCodes,
     mockDiscountCampaigns,
     mockShopItems,
-} from "../src/lib/store/mock-catalog";
+} from "../apps/web/src/lib/store/mock-catalog";
 
 function sqlString(value: string | null): string {
     if (value === null) {

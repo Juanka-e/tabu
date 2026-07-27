@@ -61,7 +61,7 @@ Admin panel ve admin API yuzeyinde:
 
 ### Ilk somut bulgu
 - admin write route'lar icin ilk korku CSRF/fail-open idi
-- ama mevcut `src/proxy.ts` state-changing `/api/*` isteklerinde origin/fetch-site kontrolu uyguluyor
+- ama mevcut `apps/web/src/proxy.ts` state-changing `/api/*` isteklerinde origin/fetch-site kontrolu uyguluyor
 - yani ilk pratik acik write-origin degil, admin route'larda tutarsiz rate limit kapsami ve IP guven varsayimiydi
 
 ### Bu branch'te kapatilan temel riskler

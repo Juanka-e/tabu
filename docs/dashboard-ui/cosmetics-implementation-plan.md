@@ -291,8 +291,8 @@ Mock veri sadece ekrani doldurmak icin yazilmayacak; gelecekteki API ile ayni se
 
 Template tabanli urunlerde ise:
 
-- `src/lib/cosmetics/templates/*`
-- `src/components/game/cosmetics/*`
+- `apps/web/src/lib/cosmetics/templates/*`
+- `apps/web/src/components/game/cosmetics/*`
 
 ### Mock catalog
 
@@ -440,38 +440,38 @@ Teslim sonucu:
 
 - `prisma/schema.prisma`
 - `prisma/seed.ts` veya `scripts/seed-cosmetics.ts`
-- `src/lib/economy.ts`
+- `apps/web/src/lib/economy.ts`
 
 ### User API
 
-- `src/app/api/user/dashboard/route.ts`
-- `src/app/api/user/me/route.ts`
-- `src/app/api/user/profile/route.ts`
-- `src/app/api/user/inventory/route.ts`
+- `apps/web/src/app/api/user/dashboard/route.ts`
+- `apps/web/src/app/api/user/me/route.ts`
+- `apps/web/src/app/api/user/profile/route.ts`
+- `apps/web/src/app/api/user/inventory/route.ts`
 
 ### Store API
 
-- `src/app/api/store/items/route.ts`
-- `src/app/api/store/purchase/route.ts`
-- `src/app/api/store/equip/route.ts`
-- `src/app/api/store/offers/route.ts`
-- `src/app/api/store/coupon/*`
+- `apps/web/src/app/api/store/items/route.ts`
+- `apps/web/src/app/api/store/purchase/route.ts`
+- `apps/web/src/app/api/store/equip/route.ts`
+- `apps/web/src/app/api/store/offers/route.ts`
+- `apps/web/src/app/api/store/coupon/*`
 
 ### Admin API
 
-- `src/app/api/admin/shop-items/*`
-- `src/app/api/admin/discount-campaigns/*`
-- `src/app/api/admin/coupons/*`
+- `apps/web/src/app/api/admin/shop-items/*`
+- `apps/web/src/app/api/admin/discount-campaigns/*`
+- `apps/web/src/app/api/admin/coupons/*`
 
 ### Render katmani
 
-- `src/lib/cosmetics/*`
-- `src/components/game/cosmetics/*`
-- `src/components/game/game-card.tsx`
-- `src/components/game/sidebar.tsx`
-- `src/components/game/dashboard-profile-sidebar.tsx`
-- `src/components/game/dashboard-pages/inventory-content.tsx`
-- `src/components/game/dashboard-pages/shop-content.tsx`
+- `apps/web/src/lib/cosmetics/*`
+- `apps/web/src/components/game/cosmetics/*`
+- `apps/web/src/components/game/game-card.tsx`
+- `apps/web/src/components/game/sidebar.tsx`
+- `apps/web/src/components/game/dashboard-profile-sidebar.tsx`
+- `apps/web/src/components/game/dashboard-pages/inventory-content.tsx`
+- `apps/web/src/components/game/dashboard-pages/shop-content.tsx`
 
 ## Teknik Riskler
 

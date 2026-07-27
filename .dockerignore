@@ -1,6 +1,7 @@
 .git
 .github
 .next
+apps/*/.next
 node_modules
 docs
 dev.log

@@ -5,7 +5,7 @@ import {
     refreshOnlineRoomMembership,
     releaseOnlineRoomMembership,
     resetRoomMembershipState,
-} from "../src/lib/socket/room-membership";
+} from "../apps/web/src/lib/socket/room-membership";
 
 const originalRedisUrl = process.env.REDIS_URL;
 

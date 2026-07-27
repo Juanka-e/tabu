@@ -3,7 +3,7 @@ import {
     getRequestIp,
     getSocketClientIp,
     shouldTrustProxyHeaders,
-} from "../src/lib/security/client-ip";
+} from "../apps/web/src/lib/security/client-ip";
 
 function restoreTrustProxy(value: string | undefined): void {
     if (value === undefined) {

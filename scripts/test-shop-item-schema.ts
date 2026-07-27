@@ -8,7 +8,7 @@ import {
     shopItemUpdateSchema,
     shopItemWriteSchema,
     toPrismaShopItemCreateData,
-} from "../src/lib/cosmetics/shop-item-schema";
+} from "../apps/web/src/lib/cosmetics/shop-item-schema";
 
 const imageItem = shopItemWriteSchema.safeParse({
     code: "pulse_fox",

@@ -4,7 +4,7 @@ import {
     announcementBlocksToHtml,
     announcementBlocksToPreview,
     normalizeAnnouncementBlocks,
-} from "../src/lib/announcements/content";
+} from "../apps/web/src/lib/announcements/content";
 
 const sampleBlocks = announcementBlocksSchema.parse([
     { type: "heading", text: "Sistem guncellemesi", level: 2 },

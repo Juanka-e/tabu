@@ -54,14 +54,14 @@ Bu ayrim kritik. Cunku Hushle oyun mantigi metin okunurlugune bagli; kartin kend
 
 Bugun oyun karti bu sabit iskeletle render ediliyor:
 
-- `src/components/game/game-card.tsx`
+- `apps/web/src/components/game/game-card.tsx`
   - ust header
   - sag ust zorluk ikonu
   - ortada `card.word`
   - altta `card.taboo`
-- `src/lib/cosmetics/card-face.ts`
+- `apps/web/src/lib/cosmetics/card-face.ts`
   - kart on yuz theme resolver
-- `src/lib/cosmetics/card-back.ts`
+- `apps/web/src/lib/cosmetics/card-back.ts`
   - kart arka yuz theme resolver
 
 Yani AI veya admin panel yeni bir kart cikardiginda aslinda su anki sistem "layout degistirmiyor", "tema enjekte ediyor".

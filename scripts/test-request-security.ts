@@ -3,8 +3,8 @@ import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
     resetRequestRateLimitBuckets,
-} from "../src/lib/security/request-rate-limit";
-import { isTrustedStateChangeRequest } from "../src/lib/security/request-origin";
+} from "../apps/web/src/lib/security/request-rate-limit";
+import { isTrustedStateChangeRequest } from "../apps/web/src/lib/security/request-origin";
 
 const sameOriginRequest = {
     headers: new Headers({

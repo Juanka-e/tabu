@@ -1,16 +1,23 @@
 import { createServer } from "http";
+import { loadEnvConfig } from "@next/env";
 import next from "next";
 import { Server } from "socket.io";
 import { getToken } from "next-auth/jwt";
+import { fileURLToPath } from "node:url";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
 import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
+
+const appDirectory = fileURLToPath(new URL(".", import.meta.url));
+const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
+loadEnvConfig(workspaceRoot, process.env.NODE_ENV !== "production");
+process.chdir(appDirectory);
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "127.0.0.1");
 const port = parseInt(process.env.PORT || "3000", 10);
 
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname, port, dir: appDirectory });
 const handler = app.getRequestHandler();
 
 app.prepare().then(() => {

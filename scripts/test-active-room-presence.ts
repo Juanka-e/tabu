@@ -4,7 +4,7 @@ import {
   getFreshActiveRoomCodeFromPresence,
   readActiveRoomPresence,
   writeActiveRoomPresence,
-} from "../src/lib/client/active-room-presence";
+} from "../apps/web/src/lib/client/active-room-presence";
 
 class MemoryStorage {
   private readonly store = new Map<string, string>();

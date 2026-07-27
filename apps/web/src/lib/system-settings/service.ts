@@ -145,6 +145,10 @@ function logSystemSettingsFallback(error: Error): void {
 export async function getSystemSettings(options?: {
     forceRefresh?: boolean;
 }): Promise<SystemSettings> {
+    if (process.env.SKIP_DATABASE_DURING_BUILD === "true") {
+        return normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
+    }
+
     const forceRefresh = options?.forceRefresh ?? false;
     if (shouldUseCachedSettings(forceRefresh)) {
         return cachedSystemSettings as SystemSettings;

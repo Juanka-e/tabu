@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {
     sanitizeAnnouncementContent,
     sanitizeAnnouncementMedia,
-} from "../src/lib/security/announcements";
+} from "../apps/web/src/lib/security/announcements";
 
 const maliciousHtml = `
     <p onclick="alert(1)">Safe text</p>

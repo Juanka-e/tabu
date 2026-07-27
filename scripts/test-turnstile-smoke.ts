@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { normalizeSystemSettings } from "../src/lib/system-settings/schema";
-import { verifyCaptchaForAction } from "../src/lib/security/captcha";
+import { normalizeSystemSettings } from "../apps/web/src/lib/system-settings/schema";
+import { verifyCaptchaForAction } from "../apps/web/src/lib/security/captcha";
 
 const TURNSTILE_INVISIBLE_PASS_SITE_KEY = "1x00000000000000000000BB";
 const TURNSTILE_PASS_SECRET_KEY = "1x0000000000000000000000000000000AA";

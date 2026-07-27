@@ -2,24 +2,24 @@ import assert from "node:assert/strict";
 import {
     consumeDistributedRequestRateLimit,
     resetRequestRateLimitBuckets,
-} from "../src/lib/security/request-rate-limit";
+} from "../apps/web/src/lib/security/request-rate-limit";
 import {
     claimOnlineRoomMembership,
     getOnlineRoomMembership,
     releaseOnlineRoomMembership,
     resetRoomMembershipState,
-} from "../src/lib/socket/room-membership";
+} from "../apps/web/src/lib/socket/room-membership";
 import {
     clearPendingRoomAdminHandoff,
     getPendingRoomAdminHandoff,
     resetRoomAdminHandoffState,
     setPendingRoomAdminHandoff,
-} from "../src/lib/socket/room-admin-handoff";
+} from "../apps/web/src/lib/socket/room-admin-handoff";
 import {
     acquireRoomActionLock,
     releaseRoomActionLock,
     resetRoomActionLockState,
-} from "../src/lib/socket/room-action-lock";
+} from "../apps/web/src/lib/socket/room-action-lock";
 import {
     getRedisHealth,
     getRedisKey,

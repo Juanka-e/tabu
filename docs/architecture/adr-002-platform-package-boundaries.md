@@ -8,7 +8,7 @@ Accepted
 
 The application needs reusable database and Redis infrastructure before web,
 API, and jobs runtimes can be separated. Keeping those implementations under
-`src/lib` would make every future runtime depend on the current Next.js app.
+`apps/web/src/lib` would make every future runtime depend on the current Next.js app.
 
 The project still benefits from direct Prisma usage and does not yet need a
 repository layer.
@@ -24,7 +24,7 @@ Create two private npm workspace packages:
 types and enums. `platform-cache` owns Redis connectivity, retry, health, key
 construction, and test-client contracts.
 
-Existing `src/lib/prisma.ts` and `src/lib/redis.ts` files remain temporary
+Existing `apps/web/src/lib/prisma.ts` and `apps/web/src/lib/redis.ts` files remain temporary
 compatibility re-exports. New code must import platform dependencies through the
 workspace packages.
 
