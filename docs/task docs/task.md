@@ -1,6 +1,6 @@
 # Gorev Kaydi
 
-> Son guncelleme: 26 July 2026
+> Son guncelleme: 27 July 2026
 > Durum: aktif execution log
 
 ## Cekirdek Kurallar
@@ -11,27 +11,29 @@
 ## Yakin Zamanda Tamamlanan Branch'ler
 - `feature/admin-user-observability`
 - `feature/economy-abuse-hardening`
+- `feature/gameplay-ui-polish`
+- `feature/packages-extraction-foundation`
 
 ## Aktif Branch
 
-### `feature/packages-extraction-foundation`
+### `chore/dependency-security-refresh`
 
 Hedef:
-- web runtime'ina ait olmayan Prisma ve Redis altyapisini workspace paketlerine cikarmak
-- mevcut uygulamayi kirmadan compatibility katmani birakmak
-- package sinirlarini test ve Docker build ile enforce etmek
+- kritik ve yuksek production dependency advisory'lerini major migration yapmadan azaltmak
+- kullanilmayan runtime paketlerini kaldirarak saldiri yuzeyini kucultmek
+- residual riskleri audit sayisini gizlemeden kaydetmek
 
 Tamamlananlar:
-- `@hushle/platform-db`
-- `@hushle/platform-cache`
-- package typecheck ve boundary testleri
-- Next.js ve Docker workspace resolution
-- Prisma type/enum ve Redis consumer import migration'i
+- Auth.js `beta.32` ve Next.js `16.2.12`
+- PostCSS, Playwright, ESLint Next ve Socket.IO transitif patch'leri
+- kullanilmayan Multer ve DOMPurify/jsdom zincirinin kaldirilmasi
+- production kritik advisory sayisinin sifirlanmasi
+- production audit toplaminda `17 -> 4`
+- tam lint, typecheck, security smoke, Playwright ve build turu
 
 Siradaki kontrollu adimlar:
-- `platform-auth` adaylarini incelemek
-- domain package extraction sirasini import graph'e gore belirlemek
-- fiziksel `apps/web` tasimasindan once compatibility shim kullanimini azaltmak
+- upstream Next Sharp/PostCSS destegini izlemek
+- branch review ve PR kapanisi
 
 ## Onceki Branch Kaydi
 ### `feature/gameplay-ui-polish`
@@ -80,14 +82,13 @@ Kapsam disi birakilanlar:
 - fiziksel `apps/web` / `apps/api` tasimasi
 
 ## Sonraki Branch Adaylari
-1. `chore/dependency-security-refresh`
-2. `feature/admin-match-history-review`
-3. `feature/admin-categories-dnd-polish`
-4. `feature/room-rules-and-capacity-controls`
-5. `feature/cache-and-rate-limit-foundation`
-6. `feature/jobs-runtime-foundation`
-7. `feature/post-launch-economy-observability-review`
-8. `feature/admin-player-messaging`
+1. `feature/admin-match-history-review`
+2. `feature/admin-categories-dnd-polish`
+3. `feature/room-rules-and-capacity-controls`
+4. `feature/cache-and-rate-limit-foundation`
+5. `feature/jobs-runtime-foundation`
+6. `feature/post-launch-economy-observability-review`
+7. `feature/admin-player-messaging`
 
 ## Referanslar
 - `docs/guides/economy-abuse-hardening-guide.md`
