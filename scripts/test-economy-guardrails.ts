@@ -29,6 +29,7 @@ async function testGuestRoomEligibility(): Promise<void> {
         now: new Date("2026-04-01T12:00:00.000Z"),
         room: {
             odaKodu: "ECO01",
+            gameMode: "tabu",
             oyunAktifMi: false,
             skor: { A: 5, B: 3 },
             matchStartedAt: "2026-04-01T12:00:00.000Z",

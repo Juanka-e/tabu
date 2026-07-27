@@ -10,6 +10,13 @@ export interface ContentSecurityPolicyExternalSources {
     connections?: readonly string[];
 }
 
+interface ContentSecurityPolicyEnvironment {
+    [key: string]: string | undefined;
+    CSP_STYLE_SOURCES?: string;
+    CSP_FONT_SOURCES?: string;
+    CSP_CONNECT_SOURCES?: string;
+}
+
 const YOUTUBE_FRAME_SOURCES = [
     "https://www.youtube.com",
     "https://www.youtube-nocookie.com",
@@ -61,7 +68,7 @@ function parseSourceList(
 
 export function getConfiguredCspSources(
     isDev: boolean,
-    env: NodeJS.ProcessEnv = process.env
+    env: ContentSecurityPolicyEnvironment = process.env
 ): ContentSecurityPolicyExternalSources {
     return {
         styles: parseSourceList(env.CSP_STYLE_SOURCES, isDev, "asset"),
