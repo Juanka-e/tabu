@@ -122,6 +122,7 @@ export async function POST(req: Request) {
           resourceId: roomCode.toUpperCase(),
           summary: `Denied match reward finalize for room ${roomCode.toUpperCase()}`,
           metadata: {
+            gameMode: room?.gameMode ?? null,
             rewardSource: evaluation.source,
             eligibilityDecision: evaluation.decision,
             eligibilityReasons: evaluation.reasonCodes,
@@ -280,6 +281,7 @@ export async function POST(req: Request) {
       resourceId: result.created.id,
       summary: `Finalized match reward for room ${room.odaKodu}`,
         metadata: {
+        gameMode: room.gameMode,
         rewardSource: evaluation.source,
         eligibilityDecision: evaluation.decision,
         eligibilityReasons: evaluation.reasonCodes,

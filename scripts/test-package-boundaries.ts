@@ -43,6 +43,7 @@ assert.match(
 );
 
 const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
+assert.match(dockerfile, /packages\/domain-game\/package\.json/);
 assert.match(dockerfile, /packages\/platform-cache\/package\.json/);
 assert.match(dockerfile, /packages\/platform-db\/package\.json/);
 assert.match(dockerfile, /apps\/web\/package\.json/);
@@ -50,6 +51,10 @@ assert.match(dockerfile, /SKIP_DATABASE_DURING_BUILD=true npm run build/);
 assert.match(
     readFileSync(join(root, "package.json"), "utf8"),
     /"prebuild": "npm run db:generate"/
+);
+assert.match(
+    readFileSync(join(root, "apps/web/package.json"), "utf8"),
+    /"@hushle\/domain-game": "0\.1\.0"/
 );
 
 console.log("package boundary smoke test passed");

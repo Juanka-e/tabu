@@ -1,6 +1,17 @@
 ﻿import { Server, Socket } from "socket.io";
 import { z } from "zod";
 import { getToken } from "next-auth/jwt";
+import {
+    TABU_DEFAULT_SETTINGS,
+    TABU_MODE_ID,
+    createInitialTabuState,
+    normalizeTabuRoomSettings,
+    resolveTabuFinish,
+    shouldFinishTabuAfterAction,
+    shouldFinishTabuBeforeRound,
+    type GameModeId,
+    type TabuRoomSettings,
+} from "@hushle/domain-game";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +19,11 @@ import { getSocketClientIp } from "@/lib/security/client-ip";
 import { resolveSocketPlayerIdentity } from "@/lib/security/player-identity";
 import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { consumeDistributedRequestRateLimit } from "@/lib/security/request-rate-limit";
+import {
+    allowOriginlessSocketClients,
+    isTrustedWebOrigin,
+    parseTrustedWebOrigins,
+} from "@/lib/security/web-origin-policy";
 import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
@@ -78,10 +94,11 @@ interface GameStateData {
 
 interface RoomData {
     odaKodu: string;
+    gameMode: GameModeId;
     creatorId: string;
     creatorPlayerId: string; // Persistent ID for admin
     oyuncular: PlayerData[];
-    ayarlar: { sure: number; mod: "tur" | "skor"; deger: number };
+    ayarlar: TabuRoomSettings;
     gecerliKategoriIdleri: number[];
     gecerliZorlukSeviyeleri: number[];
     seciliKategoriler?: number[];
@@ -93,6 +110,7 @@ interface RoomData {
 
 export interface RoomMatchSnapshot {
     odaKodu: string;
+    gameMode: GameModeId;
     oyunAktifMi: boolean;
     skor: { A: number; B: number };
     matchStartedAt: string | null;
@@ -193,23 +211,10 @@ function startSocketMembershipHeartbeat(
 
 function createInitialGameState(): GameStateData {
     return {
-        oyunAktifMi: false,
-        oyunDurduruldu: false,
-        gecisEkraninda: false,
-        mevcutTur: 0,
-        toplamTur: 0,
-        kalanZaman: 60,
-        kalanPasHakki: 3,
-        skor: { A: 0, B: 0 },
-        anlatacakTakim: "A",
-        takimA_anlaticiIndex: -1,
-        takimB_anlaticiIndex: -1,
+        ...createInitialTabuState(),
         anlatici: null,
         gozetmen: null,
         aktifKart: null,
-        altinSkorAktif: false,
-        basladiAt: null,
-        bittiAt: null,
     };
 }
 
@@ -218,22 +223,6 @@ function sanitizePlayerName(name: unknown): string {
         .trim()
         .slice(0, 50)
         .replace(/[<>]/g, "");
-}
-
-function normalizeRoomSettings(input: {
-    sure: string | number;
-    mod: string;
-    deger: string | number;
-}): { sure: number; mod: "tur" | "skor"; deger: number } {
-    const sure = Math.min(120, Math.max(30, Number.parseInt(String(input.sure), 10) || 60));
-    const mod = input.mod === "skor" ? "skor" : "tur";
-    const rawValue = Number.parseInt(String(input.deger), 10);
-    const deger =
-        mod === "skor"
-            ? Math.min(100, Math.max(10, rawValue || 10))
-            : Math.min(30, Math.max(2, rawValue || 2));
-
-    return { sure, mod, deger };
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -374,10 +363,12 @@ export function setupGameSocket(io: Server): void {
             !room.oyunDurumu.altinSkorAktif
         ) {
             room.oyunDurumu.mevcutTur += 1;
-            if (
-                room.ayarlar.mod === "tur" &&
-                room.oyunDurumu.mevcutTur > room.ayarlar.deger
-            ) {
+            if (shouldFinishTabuBeforeRound({
+                settings: room.ayarlar,
+                currentRound: room.oyunDurumu.mevcutTur,
+                speakingTeam: room.oyunDurumu.anlatacakTakim,
+                goldenScoreActive: room.oyunDurumu.altinSkorAktif,
+            })) {
                 finishGame(roomCode);
                 return;
             }
@@ -679,19 +670,15 @@ export function setupGameSocket(io: Server): void {
             creatorId: room.creatorId,
         });
 
-        // Golden score: finish immediately after correct or tabu
         if (
-            room.oyunDurumu.altinSkorAktif &&
-            (action === "dogru" || action === "tabu")
-        ) {
-            finishGame(room.odaKodu);
-            return;
-        }
-
-        // Score mode: finish if target reached
-        if (
-            room.ayarlar.mod === "skor" &&
-            room.oyunDurumu.skor[narrator.takim] >= room.ayarlar.deger
+            (action === "dogru" || action === "tabu" || action === "pas") &&
+            shouldFinishTabuAfterAction({
+                settings: room.ayarlar,
+                score: room.oyunDurumu.skor,
+                actingTeam: narrator.takim,
+                action,
+                goldenScoreActive: room.oyunDurumu.altinSkorAktif,
+            })
         ) {
             finishGame(room.odaKodu);
             return;
@@ -739,15 +726,17 @@ export function setupGameSocket(io: Server): void {
         const room = getRoom(roomCode);
         if (!room) return;
 
-        // Turn mode: check for golden score on tie
-        if (room.ayarlar.mod === "tur" && !room.oyunDurumu.altinSkorAktif) {
-            if (room.oyunDurumu.skor.A === room.oyunDurumu.skor.B) {
-                room.oyunDurumu.altinSkorAktif = true;
-                persistRoom(room);
-                io.to(room.odaKodu).emit("altinSkorBasladi");
-                startNewRound(roomCode);
-                return;
-            }
+        const finishDecision = resolveTabuFinish({
+            settings: room.ayarlar,
+            score: room.oyunDurumu.skor,
+            goldenScoreActive: room.oyunDurumu.altinSkorAktif,
+        });
+        if (finishDecision.kind === "golden-score") {
+            room.oyunDurumu.altinSkorAktif = true;
+            persistRoom(room);
+            io.to(room.odaKodu).emit("altinSkorBasladi");
+            startNewRound(roomCode);
+            return;
         }
 
         room.oyunDurumu.oyunAktifMi = false;
@@ -756,15 +745,8 @@ export function setupGameSocket(io: Server): void {
             clearInterval(room.zamanlayici);
         }
 
-        const kazananTakim =
-            room.oyunDurumu.skor.A === room.oyunDurumu.skor.B
-                ? "Berabere"
-                : room.oyunDurumu.skor.A > room.oyunDurumu.skor.B
-                    ? "A"
-                    : "B";
-
         io.to(room.odaKodu).emit("oyunBitti", {
-            kazananTakim,
+            kazananTakim: finishDecision.winner,
             skor: room.oyunDurumu.skor,
         });
     }
@@ -928,10 +910,11 @@ export function setupGameSocket(io: Server): void {
                         targetCode = generateRoomCode();
                         room = {
                             odaKodu: targetCode,
+                            gameMode: TABU_MODE_ID,
                             creatorId: socket.id,
                             creatorPlayerId: effectivePlayerId,
                             oyuncular: [],
-                            ayarlar: { sure: 60, mod: "tur", deger: 2 },
+                            ayarlar: { ...TABU_DEFAULT_SETTINGS },
                             gecerliKategoriIdleri: [],
                             gecerliZorlukSeviyeleri: [],
                             oyunDurumu: createInitialGameState(),
@@ -1270,7 +1253,7 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
-                    room.ayarlar = normalizeRoomSettings(ayarlar);
+                    room.ayarlar = normalizeTabuRoomSettings(ayarlar);
                     room.gecerliKategoriIdleri = seciliKategoriler;
                     room.gecerliZorlukSeviyeleri = seciliZorluklar;
 
@@ -1648,24 +1631,14 @@ function isSecureSocketHandshake(socket: Socket): boolean {
 
 function isTrustedSocketOrigin(socket: Socket): boolean {
     const origin = socket.handshake.headers.origin;
-    if (typeof origin !== "string") {
-        return process.env.NODE_ENV !== "production";
-    }
-
-    const hostHeader =
-        socket.handshake.headers["x-forwarded-host"] ??
-        socket.handshake.headers.host;
-    const normalizedHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
-    if (!normalizedHost) {
-        return process.env.NODE_ENV !== "production";
-    }
-
-    try {
-        const originUrl = new URL(origin);
-        return originUrl.host === normalizedHost;
-    } catch {
-        return false;
-    }
+    return isTrustedWebOrigin({
+        origin: typeof origin === "string" ? origin : undefined,
+        isDev: process.env.NODE_ENV !== "production",
+        trustedOrigins: parseTrustedWebOrigins(),
+        allowMissingOrigin: allowOriginlessSocketClients(
+            process.env.NODE_ENV !== "production"
+        ),
+    });
 }
 
 async function getSocketAuthState(socket: Socket): Promise<{
@@ -1805,6 +1778,7 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
             : null;
     return {
         odaKodu: room.odaKodu,
+        gameMode: room.gameMode ?? TABU_MODE_ID,
         oyunAktifMi: room.oyunDurumu.oyunAktifMi,
         skor: room.oyunDurumu.skor,
         matchStartedAt: startedAt !== null ? new Date(startedAt).toISOString() : null,

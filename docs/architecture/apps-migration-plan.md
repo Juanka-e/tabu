@@ -312,9 +312,12 @@ Onerilen implementasyon sirasi:
 - root orchestration uyarlamasi
 - Docker, test ve dokuman yolu uyarlamalari
 
-6. `feature/domain-game-foundation`
-- mevcut Tabu kurallarini transport/UI katmanindan ayirma
-- game mode registry ve server-side mode contract
+6. `feature/domain-game-foundation` - tamamlandi
+- mevcut Tabu ayar ve mac bitis kurallarini transport/UI katmanindan ayirma
+- `@hushle/domain-game` game mode registry ve server-owned `tabu` mode contract
+- match audit snapshot'ina mode kimligi ekleme
+- gelecekteki web/admin hostlari icin exact Socket.IO origin allowlist
+- harici font/style/connect kaynaklari icin direktif bazli CSP yapilandirmasi
 
 7. `feature/jobs-runtime-foundation`
 - audit retention/archive

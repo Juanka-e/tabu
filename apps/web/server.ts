@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url";
 import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
 import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
+import {
+    allowOriginlessSocketClients,
+    isTrustedWebOrigin,
+    parseTrustedWebOrigins,
+} from "./src/lib/security/web-origin-policy";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -16,6 +21,7 @@ process.chdir(appDirectory);
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "127.0.0.1");
 const port = parseInt(process.env.PORT || "3000", 10);
+const trustedWebOrigins = parseTrustedWebOrigins();
 
 const app = next({ dev, hostname, port, dir: appDirectory });
 const handler = app.getRequestHandler();
@@ -60,7 +66,15 @@ app.prepare().then(() => {
     const io = new Server(httpServer, {
         path: "/api/socketio",
         cors: {
-            origin: dev ? "*" : process.env.NEXT_PUBLIC_SITE_URL,
+            origin(origin, callback) {
+                const allowed = isTrustedWebOrigin({
+                    origin,
+                    isDev: dev,
+                    trustedOrigins: trustedWebOrigins,
+                    allowMissingOrigin: allowOriginlessSocketClients(dev),
+                });
+                callback(allowed ? null : new Error("Origin not allowed"), allowed);
+            },
             methods: ["GET", "POST"],
         },
         transports: ["websocket", "polling"],
