@@ -1,50 +1,54 @@
 # Kalan Isler
 
-> Son guncelleme: 26 July 2026
+> Son guncelleme: 27 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/packages-extraction-foundation`
-2. `chore/dependency-security-refresh`
-3. `feature/admin-match-history-review`
-4. `feature/admin-categories-dnd-polish`
-5. `feature/room-rules-and-capacity-controls`
-6. `feature/post-launch-economy-observability-review`
-7. `feature/cache-and-rate-limit-foundation`
-8. `feature/audit-retention-and-telemetry-foundation`
-9. `feature/jobs-runtime-foundation`
-10. `feature/admin-promotions-ux`
-11. `feature/cosmetic-render-upgrade`
-12. `feature/admin-cosmetic-authoring`
-13. `feature/analytics-event-foundation`
-14. `feature/word-analytics-liveops`
-15. `feature/post-launch-xp-level-foundation`
-16. `feature/post-launch-missions-foundation`
-17. `feature/post-launch-night-market-foundation`
-18. `feature/mobile-api-foundation`
-19. `feature/release-ops-docs`
-20. `docs/encoding-cleanup`
-21. `feature/wallet-ledger-foundation`
+1. `chore/dependency-security-refresh`
+2. `feature/admin-match-history-review`
+3. `feature/admin-categories-dnd-polish`
+4. `feature/room-rules-and-capacity-controls`
+5. `feature/post-launch-economy-observability-review`
+6. `feature/cache-and-rate-limit-foundation`
+7. `feature/audit-retention-and-telemetry-foundation`
+8. `feature/jobs-runtime-foundation`
+9. `feature/admin-promotions-ux`
+10. `feature/cosmetic-render-upgrade`
+11. `feature/admin-cosmetic-authoring`
+12. `feature/analytics-event-foundation`
+13. `feature/word-analytics-liveops`
+14. `feature/post-launch-xp-level-foundation`
+15. `feature/post-launch-missions-foundation`
+16. `feature/post-launch-night-market-foundation`
+17. `feature/mobile-api-foundation`
+18. `feature/release-ops-docs`
+19. `docs/encoding-cleanup`
+20. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
 
-### `feature/packages-extraction-foundation`
+### `chore/dependency-security-refresh`
 
 Tamamlananlar:
-- `@hushle/platform-db` workspace paketi
-- `@hushle/platform-cache` workspace paketi
-- Prisma type/enum importlarinin platform paketine alinmasi
-- Redis kullanan runtime ve testlerin platform paketine alinmasi
-- legacy `src/lib/prisma.ts` ve `src/lib/redis.ts` compatibility re-export'lari
-- Next.js transpile ve Docker workspace install destegi
-- package boundary smoke testi ve package typecheck scriptleri
+- Auth.js kritik advisory'lerinin guvenli beta patch ile kapatilmasi
+- Next.js, PostCSS, Playwright ve ESLint Next patch guncellemeleri
+- Socket.IO transitif engine / adapter / ws guvenlik patch'leri
+- kullanilmayan `multer`, `dompurify` ve `isomorphic-dompurify` paketlerinin kaldirilmasi
+- production audit sonucunun 17 bulgudan 4 bulguya dusurulmesi
+- auth, upload, sanitizer, websocket, Playwright ve production build regresyonlari
 
 Acik kalanlar:
-- domain paketlerinin sirali extraction planini netlestirmek
-- `platform-auth` icin bagimlilik haritasini cikarmak
-- compatibility re-export'larinin kaldirilacagi fazi belirlemek
+- Next'in bundled PostCSS ve destekledigi Sharp araligi icin upstream patch beklemek
+- yeni stabil Next surumlerinde residual advisory zincirini yeniden degerlendirmek
 
 ## Onceki Branch Kaydi
+### `feature/packages-extraction-foundation`
+Tamamlananlar:
+- `@hushle/platform-db` ve `@hushle/platform-cache`
+- compatibility re-export'lari
+- Next.js, Docker ve boundary test entegrasyonu
+- platform package ADR ve migration dokumantasyonu
+
 ### `feature/gameplay-ui-polish`
 Tamamlananlar:
 - kayitli kullanici icin `displayName -> username` fallback akisi
@@ -88,35 +92,6 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - fiziksel `apps/web` veya `apps/api` kod tasimasi
 
 ## Yakin Sonraki Branch'ler
-
-### `feature/apps-workspace-foundation`
-- Phase 0 mevcut branch'te tamamlandi
-- `apps/web`, `apps/api`, `apps/jobs` hedefleri dokuman ve config seviyesinde sabitlendi
-- tasima oncesi path / tsconfig / script etkilerini olcmek
-- referans: `docs/architecture/apps-migration-plan.md`
-
-### `feature/packages-extraction-foundation`
-- `packages/` sinirlarini acmak
-- ilk tasinacak adaylari ayirmak:
-  - `platform-db`
-  - `platform-cache`
-  - `platform-auth`
-  - `domain-game`
-  - `domain-economy`
-  - `domain-player`
-- runtime tasimasindan once import bagimliliklarini sadelestirmek
-
-### `feature/docker-local-dev-foundation`
-- local gelistirme akisini `infra:up + dev` uzerinden standartlastirmak
-- named volume davranisini env/docs/script seviyesinde netlestirmek
-- resetlerde DB kaybi yasatmayan varsayilan akisi korumak
-- full compose ve infra-only compose rollerini acik ayirmak
-
-### `chore/dependency-security-refresh`
-- `npm audit --omit=dev` bulgularini paket bazinda incelemek
-- Auth.js, Next.js, DOMPurify, Multer, Socket.IO transitive paketleri ve diger production advisory'lerini guvenli patch/minor surumlere tasimak
-- otomatik `npm audit fix` yerine changelog + regression test kontrollu upgrade yapmak
-- login, custom server, upload, rich text ve websocket akislarini upgrade sonrasinda tekrar test etmek
 
 ### `feature/admin-match-history-review`
 - admin kullanici inceleme akisina mac gecmisi yuzeyi
