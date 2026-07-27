@@ -19,6 +19,6 @@ Live mutation also requires Redis so only one runtime can own the job lease.
 The jobs container uses a separate, low database connection limit so one-shot
 maintenance cannot consume the web process pool.
 
-Do not schedule audit retention in production until the admin archive read path
-is available and accepted. Execution is safe and reversible at the storage
-level, but archived rows leave the current hot-audit admin view.
+The admin audit page has separate active and archive views. Production
+scheduling still remains an explicit operator decision after the retention
+window and archive view are accepted in the target environment.

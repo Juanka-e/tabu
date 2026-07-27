@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Activity, Search } from "lucide-react";
+import { Activity, Archive, Database, Search } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
 import { AdminPagination } from "@/components/admin/admin-pagination";
@@ -19,6 +19,7 @@ import {
 import type { AdminAuditListResponse, AdminAuditLogView } from "@/types/admin-audit";
 
 type EconomyGuardFilter = "" | "match_reward" | "triggered" | "ceiling" | "repeated_group";
+type AuditSource = "hot" | "archive";
 
 const economyGuardPresets: Array<{
     value: EconomyGuardFilter;
@@ -230,14 +231,17 @@ export default function AdminAuditPage() {
     const [pages, setPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [action, setAction] = useState("");
     const [resourceType, setResourceType] = useState("");
     const [actorRole, setActorRole] = useState("");
     const [economyGuard, setEconomyGuard] = useState<EconomyGuardFilter>("");
+    const [source, setSource] = useState<AuditSource>("hot");
     const [actionOptions, setActionOptions] = useState<string[]>([]);
     const [resourceTypeOptions, setResourceTypeOptions] = useState<string[]>([]);
     const [roleOptions, setRoleOptions] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
         setSearch((searchParams.get("search") ?? "").trim());
@@ -246,8 +250,16 @@ export default function AdminAuditPage() {
         setActorRole(searchParams.get("actorRole") ?? "");
         const nextEconomyGuard = (searchParams.get("economyGuard") ?? "") as EconomyGuardFilter;
         setEconomyGuard(nextEconomyGuard);
+        setSource(searchParams.get("source") === "archive" ? "archive" : "hot");
         setPage(Number(searchParams.get("page") ?? "1") || 1);
     }, [searchParams]);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => {
+            setDebouncedSearch(search.trim());
+        }, 350);
+        return () => window.clearTimeout(timeout);
+    }, [search]);
 
     useEffect(() => {
         const params = new URLSearchParams();
@@ -255,8 +267,8 @@ export default function AdminAuditPage() {
         if (page > 1) {
             params.set("page", String(page));
         }
-        if (search.trim()) {
-            params.set("search", search.trim());
+        if (debouncedSearch) {
+            params.set("search", debouncedSearch);
         }
         if (action) {
             params.set("action", action);
@@ -270,6 +282,9 @@ export default function AdminAuditPage() {
         if (economyGuard) {
             params.set("economyGuard", economyGuard);
         }
+        if (source === "archive") {
+            params.set("source", source);
+        }
 
         const next = params.toString();
         const current =
@@ -282,23 +297,36 @@ export default function AdminAuditPage() {
         if (next !== current) {
             router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
         }
-    }, [action, actorRole, economyGuard, page, pathname, resourceType, router, search]);
+    }, [
+        action,
+        actorRole,
+        debouncedSearch,
+        economyGuard,
+        page,
+        pathname,
+        resourceType,
+        router,
+        source,
+    ]);
 
-    const loadLogs = useCallback(async () => {
+    const loadLogs = useCallback(async (signal: AbortSignal) => {
         setLoading(true);
+        setLoadError(null);
         try {
             const params = new URLSearchParams({
                 page: String(page),
                 limit: "15",
             });
-            if (search.trim()) params.set("search", search.trim());
+            if (debouncedSearch) params.set("search", debouncedSearch);
             if (action) params.set("action", action);
             if (resourceType) params.set("resourceType", resourceType);
             if (actorRole) params.set("actorRole", actorRole);
             if (economyGuard) params.set("economyGuard", economyGuard);
+            params.set("source", source);
 
             const response = await fetch(`/api/admin/audit?${params.toString()}`, {
                 cache: "no-store",
+                signal,
             });
             if (!response.ok) {
                 return;
@@ -312,18 +340,33 @@ export default function AdminAuditPage() {
             setActionOptions(payload.actionOptions);
             setResourceTypeOptions(payload.resourceTypeOptions);
             setRoleOptions(payload.roleOptions);
+        } catch (error) {
+            if (!(error instanceof DOMException && error.name === "AbortError")) {
+                setLogs([]);
+                setTotal(0);
+                setLoadError("Audit kayıtları yüklenemedi. Lütfen tekrar deneyin.");
+            }
         } finally {
-            setLoading(false);
+            if (!signal.aborted) {
+                setLoading(false);
+            }
         }
-    }, [action, actorRole, economyGuard, page, resourceType, search]);
+    }, [action, actorRole, debouncedSearch, economyGuard, page, resourceType, source]);
 
     useEffect(() => {
-        void loadLogs();
+        const controller = new AbortController();
+        void loadLogs(controller.signal);
+        return () => controller.abort();
     }, [loadLogs]);
 
     useEffect(() => {
         setPage(1);
-    }, [search, action, resourceType, actorRole, economyGuard]);
+    }, [debouncedSearch, action, resourceType, actorRole, economyGuard, source]);
+
+    useEffect(() => {
+        setLogs([]);
+        setTotal(0);
+    }, [source]);
 
     const stats = useMemo(
         () => [
@@ -341,13 +384,39 @@ export default function AdminAuditPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Audit Kayitlari"
-                description="Admin ve sistem operasyonlarinin izini tek ekranda takip edin."
-                meta={`${total} kayit`}
+                description="Aktif ve arşivlenmiş operasyon kayıtlarını ayrı, güvenli görünümlerde inceleyin."
+                meta={`${source === "hot" ? "aktif" : "arşiv"} · ${total} kayıt`}
                 icon={<Activity className="h-5 w-5 text-emerald-500" />}
             />
 
             <AdminToolbar>
                 <div className="flex-1 space-y-3">
+                    <div className="inline-flex rounded-2xl border border-border/70 bg-muted/30 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setSource("hot")}
+                            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                                source === "hot"
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            <Database className="h-4 w-4" />
+                            Aktif kayıtlar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSource("archive")}
+                            className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                                source === "archive"
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            <Archive className="h-4 w-4" />
+                            Arşiv
+                        </button>
+                    </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div className="relative md:col-span-2 xl:col-span-1">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -434,9 +503,19 @@ export default function AdminAuditPage() {
                 <AdminToolbarStats stats={stats} />
             </AdminToolbar>
 
+            {loadError ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
+                    {loadError}
+                </div>
+            ) : null}
+
             <AdminTableShell
-                title="Audit Gecmisi"
-                description="En son operasyonlar tarih, actor, action, not ve koruma ozeti ile listelenir."
+                title={source === "hot" ? "Aktif Audit Geçmişi" : "Arşivlenmiş Audit Geçmişi"}
+                description={
+                    source === "hot"
+                        ? "Retention süresi içindeki güncel operasyonlar listelenir."
+                        : "Sıcak tablodan güvenle taşınmış eski operasyonlar listelenir."
+                }
                 loading={loading}
                 isEmpty={!loading && logs.length === 0}
                 emptyState={
@@ -463,14 +542,20 @@ export default function AdminAuditPage() {
                     </TableHeader>
                     <TableBody>
                         {logs.map((log) => (
-                            <TableRow key={log.id}>
+                            <TableRow key={`${log.source}:${log.id}`}>
                                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                                    {formatDateTime(log.createdAt)}
+                                    <div>{formatDateTime(log.createdAt)}</div>
+                                    {log.archivedAt ? (
+                                        <div className="mt-1 text-[10px]">
+                                            Arşiv: {formatDateTime(log.archivedAt)}
+                                        </div>
+                                    ) : null}
                                 </TableCell>
                                 <TableCell>
                                     <div className="space-y-1">
                                         <div className="font-medium text-foreground">
-                                            {log.actor?.username ?? "Sistem"}
+                                            {log.actor?.username ??
+                                                (log.actor?.id ? "Silinmiş hesap" : "Sistem")}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             {log.actor?.role ?? "system"}

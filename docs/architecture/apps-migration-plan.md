@@ -324,7 +324,8 @@ Onerilen implementasyon sirasi:
 - dry-run varsayilan, iki asamali acilan audit retention/archive isi
 - Redis lease ile multi-instance koordinasyonu
 - archive kopyasi dogrulanmadan hot audit silmeme garantisi
-- telemetry rollup ve archive read path sonraki dar branch'lerde
+- admin hot/archive read path tamamlandi
+- telemetry rollup sonraki dar branch'te
 
 8. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde

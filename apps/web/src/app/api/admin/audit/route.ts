@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         resourceType: searchParams.get("resourceType") ?? undefined,
         actorRole: searchParams.get("actorRole") ?? undefined,
         economyGuard: searchParams.get("economyGuard") ?? undefined,
+        source: searchParams.get("source") ?? undefined,
     });
 
     if (!parsedQuery.success) {

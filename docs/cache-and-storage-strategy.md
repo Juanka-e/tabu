@@ -369,8 +369,12 @@ Mevcut implementasyon:
 - archive satiri transaction icinde dogrulanmadan hot satir silinmez
 - archive kayitlari bu fazda otomatik silinmez
 - admin archive arama yuzeyi ve archive purge politikasi ayri bir sonraki fazdir
-- admin archive read path kabul edilmeden production schedule acilmamalidir;
-  arsivlenen satirlar mevcut hot-audit ekraninda gorunmez
+- admin audit ekraninda hot ve archive kaynaklari ayri, sayfalanmis
+  gorunumlerdir; iki tablo uygulama belleginde birlestirilmez
+- archive actor kimligi tasima anindaki username snapshot'i ve kalici user id
+  ile korunur
+- production schedule ancak hedef ortamdaki retention suresi ve archive
+  gorunumu operasyon ekibi tarafindan kabul edildikten sonra acilir
 - jobs process varsayilan olarak ayri ve dusuk bir DB pool (`3`) kullanir;
   `JOBS_DATABASE_CONNECTION_LIMIT` ile ayarlanabilir
 
