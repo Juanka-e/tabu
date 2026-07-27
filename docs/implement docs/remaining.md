@@ -131,10 +131,12 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - economy finalize audit hacmini kontrollu hale getirme
 - admin review icin archive read path veya archive arama yuzeyi
 
-### `feature/jobs-runtime-foundation`
-- retention, archive ve telemetry islerini ayri runtime'a hazirlamak
-- web request runtime disina alinabilecek batch isleri ayirmak
-- ileride `apps/jobs` icine tasinacak is kontratlarini netlestirmek
+### `feature/jobs-runtime-foundation` - tamamlandi
+- `apps/jobs` one-shot runtime ve audit archive job'u eklendi
+- mutating calisma explicit gate ve Redis lease gerektiriyor
+- archive purge, telemetry rollup ve admin archive read path ayri tutuldu
+- admin archive read path tamamlanmadan production retention schedule
+  etkinlestirilmeyecek
 
 ### `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde acilacak

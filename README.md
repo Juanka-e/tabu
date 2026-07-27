@@ -19,6 +19,7 @@ Useful commands:
 npm run lint
 npm run build
 npm run db:sync
+npm run jobs:audit-retention
 ```
 
 Infra helpers:
@@ -45,6 +46,12 @@ Notes:
 - Local MySQL listens on `127.0.0.1:3307` by default; `.env.example` matches the Docker credentials.
 - Local Redis listens on `127.0.0.1:6381` by default through Docker; `REDIS_PORT` can override the host port and the app reads it from `REDIS_URL`.
 - Redis uses AOF persistence, but MySQL remains the business source of truth.
+- Audit retention is dry-run by default. Live archival requires
+  `JOBS_ENABLED=true`, explicit execute mode, and an available Redis lease.
+- Keep production audit retention disabled until the admin archive read path is
+  available; archived rows are not shown by the current hot-audit view.
+- Web and jobs processes have separate database pool limits. Jobs default to
+  three connections through `JOBS_DATABASE_CONNECTION_LIMIT`.
 
 ## Production Shape
 

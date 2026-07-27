@@ -14,6 +14,10 @@ export interface RedisLikeClient {
     incr(key: string): Promise<number>;
     pExpire(key: string, milliseconds: number): Promise<number>;
     pTTL(key: string): Promise<number>;
+    eval(
+        script: string,
+        options: { keys: string[]; arguments: string[] }
+    ): Promise<unknown>;
 }
 
 export interface RedisHealth {

@@ -184,6 +184,28 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model AuditLogArchive {
+  id                 Int      @id @default(autoincrement())
+  originalAuditLogId Int      @unique @map("original_audit_log_id")
+  actorUserId        Int?     @map("actor_user_id")
+  actorRole          String   @map("actor_role") @db.VarChar(20)
+  action             String   @db.VarChar(80)
+  resourceType       String   @map("resource_type") @db.VarChar(80)
+  resourceId         String?  @map("resource_id") @db.VarChar(120)
+  ipAddress          String?  @map("ip_address") @db.VarChar(64)
+  userAgent          String?  @map("user_agent") @db.VarChar(255)
+  summary            String?  @db.VarChar(255)
+  metadata           Json?    @db.Json
+  originalCreatedAt  DateTime @map("original_created_at")
+  archivedAt         DateTime @default(now()) @map("archived_at")
+
+  @@index([actorUserId, originalCreatedAt])
+  @@index([action, originalCreatedAt])
+  @@index([resourceType, originalCreatedAt])
+  @@index([archivedAt])
+  @@map("audit_log_archives")
+}
+
 model SystemSetting {
   key             String   @id @db.VarChar(80)
   value           Json     @db.Json

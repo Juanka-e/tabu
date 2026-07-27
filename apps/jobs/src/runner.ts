@@ -1,0 +1,83 @@
+import { closeRedisClient } from "@hushle/platform-cache";
+import { prisma } from "@hushle/platform-db";
+import { areJobsEnabled } from "./config";
+import { acquireJobLease } from "./lease";
+import {
+    getJobDefinition,
+    isJobName,
+    type JobName,
+} from "./registry";
+
+interface RunnerArguments {
+    job: JobName;
+    execute: boolean;
+}
+
+function parseArguments(args: string[]): RunnerArguments {
+    let job: RunnerArguments["job"] | null = null;
+    let execute = false;
+
+    for (let index = 0; index < args.length; index += 1) {
+        const argument = args[index];
+        if (argument === "--job") {
+            const value = args[index + 1];
+            if (!value || !isJobName(value)) {
+                throw new Error("Unknown or missing --job value");
+            }
+            job = value;
+            index += 1;
+        } else if (isJobName(argument)) {
+            job = argument;
+        } else if (argument === "--execute" || argument === "execute") {
+            execute = true;
+        } else if (argument !== "--dry-run" && argument !== "dry-run") {
+            throw new Error(`Unknown argument: ${argument}`);
+        }
+    }
+
+    if (!job) {
+        throw new Error("A job name is required");
+    }
+    return { job, execute };
+}
+
+async function main(): Promise<void> {
+    const args = parseArguments(process.argv.slice(2));
+    const dryRun = !args.execute;
+    const definition = getJobDefinition(args.job);
+
+    if (!dryRun && !areJobsEnabled()) {
+        throw new Error(
+            "Mutating jobs require JOBS_ENABLED=true and execute mode"
+        );
+    }
+
+    const lease = dryRun
+        ? null
+        : await acquireJobLease(args.job, definition.leaseTtlMs);
+    if (!dryRun && !lease) {
+        console.log(JSON.stringify({ job: args.job, skipped: "lease-held" }));
+        return;
+    }
+
+    try {
+        const result = await definition.run({ dryRun });
+        console.log(JSON.stringify({ job: args.job, ...result }));
+    } finally {
+        await lease?.release();
+    }
+}
+
+main()
+    .catch((error) => {
+        console.error(
+            error instanceof Error ? error.message : "Unknown jobs runtime error"
+        );
+        process.exitCode = 1;
+    })
+    .finally(async () => {
+        await Promise.allSettled([
+            prisma.$disconnect(),
+            closeRedisClient(),
+        ]);
+    });
