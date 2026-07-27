@@ -6,6 +6,8 @@ export interface AdminAuditActorView {
 
 export interface AdminAuditLogView {
     id: number;
+    source: "hot" | "archive";
+    archivedAt: string | null;
     action: string;
     resourceType: string;
     resourceId: string | null;
@@ -42,6 +44,7 @@ export interface AdminAuditLogView {
 
 export interface AdminAuditListResponse {
     logs: AdminAuditLogView[];
+    source: "hot" | "archive";
     total: number;
     page: number;
     pages: number;

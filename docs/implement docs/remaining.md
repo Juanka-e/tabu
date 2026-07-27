@@ -4,42 +4,39 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `chore/dependency-security-refresh`
-2. `feature/admin-match-history-review`
-3. `feature/admin-categories-dnd-polish`
-4. `feature/room-rules-and-capacity-controls`
-5. `feature/post-launch-economy-observability-review`
-6. `feature/cache-and-rate-limit-foundation`
-7. `feature/audit-retention-and-telemetry-foundation`
-8. `feature/jobs-runtime-foundation`
-9. `feature/admin-promotions-ux`
-10. `feature/cosmetic-render-upgrade`
-11. `feature/admin-cosmetic-authoring`
-12. `feature/analytics-event-foundation`
-13. `feature/word-analytics-liveops`
-14. `feature/post-launch-xp-level-foundation`
-15. `feature/post-launch-missions-foundation`
-16. `feature/post-launch-night-market-foundation`
-17. `feature/mobile-api-foundation`
-18. `feature/release-ops-docs`
-19. `docs/encoding-cleanup`
-20. `feature/wallet-ledger-foundation`
+1. `feature/admin-match-history-review`
+2. `feature/admin-categories-dnd-polish`
+3. `feature/room-rules-and-capacity-controls`
+4. `feature/post-launch-economy-observability-review`
+5. `feature/cache-and-rate-limit-foundation`
+6. `feature/audit-retention-and-telemetry-foundation`
+7. `feature/admin-promotions-ux`
+8. `feature/cosmetic-render-upgrade`
+9. `feature/admin-cosmetic-authoring`
+10. `feature/analytics-event-foundation`
+11. `feature/word-analytics-liveops`
+12. `feature/post-launch-xp-level-foundation`
+13. `feature/post-launch-missions-foundation`
+14. `feature/post-launch-night-market-foundation`
+15. `feature/mobile-api-foundation`
+16. `feature/release-ops-docs`
+17. `docs/encoding-cleanup`
+18. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
 
-### `chore/dependency-security-refresh`
+### `feature/audit-archive-read-path`
 
 Tamamlananlar:
-- Auth.js kritik advisory'lerinin guvenli beta patch ile kapatilmasi
-- Next.js, PostCSS, Playwright ve ESLint Next patch guncellemeleri
-- Socket.IO transitif engine / adapter / ws guvenlik patch'leri
-- kullanilmayan `multer`, `dompurify` ve `isomorphic-dompurify` paketlerinin kaldirilmasi
-- production audit sonucunun 17 bulgudan 4 bulguya dusurulmesi
-- auth, upload, sanitizer, websocket, Playwright ve production build regresyonlari
+- hot ve archive audit icin ayri, sayfalanmis admin gorunumleri
+- retention aninda actor username snapshot'i
+- archive kaynaginda arama, action, resource, rol ve economy guard filtreleri
+- archive zamani ve kaynak ayrimi
+- gercek MySQL retention + archive read-path entegrasyon testi
 
 Acik kalanlar:
-- Next'in bundled PostCSS ve destekledigi Sharp araligi icin upstream patch beklemek
-- yeni stabil Next surumlerinde residual advisory zincirini yeniden degerlendirmek
+- production retention schedule icin operasyonel kabul ve zamanlama
+- telemetry siniflandirmasi ve archive purge politikasi ayri branch'lerdir
 
 ## Onceki Branch Kaydi
 ### `feature/packages-extraction-foundation`
@@ -129,14 +126,14 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - signal-first audit siniflandirmasi
 - non-triggered high-volume event'leri telemetry hattina tasima
 - economy finalize audit hacmini kontrollu hale getirme
-- admin review icin archive read path veya archive arama yuzeyi
+- admin review icin archive read path - tamamlandi
 
 ### `feature/jobs-runtime-foundation` - tamamlandi
 - `apps/jobs` one-shot runtime ve audit archive job'u eklendi
 - mutating calisma explicit gate ve Redis lease gerektiriyor
 - archive purge, telemetry rollup ve admin archive read path ayri tutuldu
-- admin archive read path tamamlanmadan production retention schedule
-  etkinlestirilmeyecek
+- admin archive read path sonraki dar branch'te tamamlandi
+- production retention schedule yine explicit operasyon karariyla acilacak
 
 ### `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde acilacak
@@ -162,7 +159,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.
 - bugunku registered room index tek-instance icin process-local yeterlidir; multi-instance asamasinda shared presence katmanina tasinmalidir.
 - non-triggered finalize kayitlari ileride daha hafif telemetry yoluna tasinabilir.
-- eski `game.match.finalize` kayitlari icin retention / archive plani gerekli.
+- siradan `game.match.finalize` kayitlarini signal-first telemetry hattina ayirma
+  isi retention'dan ayri ele alinmali.
 - admin kullanici mesajlasma sistemi ayri bir operasyon branch'i olarak dusunulmeli.
 - kart kozmetikleri icin profesyonel yon `image/hybrid first`, `template second` olarak korunmali; gorsel research tamamlanmadan render sistemi acele buyutulmemeli.
 

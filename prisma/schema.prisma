@@ -188,6 +188,7 @@ model AuditLogArchive {
   id                 Int      @id @default(autoincrement())
   originalAuditLogId Int      @unique @map("original_audit_log_id")
   actorUserId        Int?     @map("actor_user_id")
+  actorUsername      String?  @map("actor_username") @db.VarChar(50)
   actorRole          String   @map("actor_role") @db.VarChar(20)
   action             String   @db.VarChar(80)
   resourceType       String   @map("resource_type") @db.VarChar(80)
@@ -200,6 +201,7 @@ model AuditLogArchive {
   archivedAt         DateTime @default(now()) @map("archived_at")
 
   @@index([actorUserId, originalCreatedAt])
+  @@index([actorRole, originalCreatedAt])
   @@index([action, originalCreatedAt])
   @@index([resourceType, originalCreatedAt])
   @@index([archivedAt])

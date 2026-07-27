@@ -48,8 +48,8 @@ Notes:
 - Redis uses AOF persistence, but MySQL remains the business source of truth.
 - Audit retention is dry-run by default. Live archival requires
   `JOBS_ENABLED=true`, explicit execute mode, and an available Redis lease.
-- Keep production audit retention disabled until the admin archive read path is
-  available; archived rows are not shown by the current hot-audit view.
+- The admin audit page exposes separate active and archive views. Production
+  retention scheduling remains an explicit operator decision.
 - Web and jobs processes have separate database pool limits. Jobs default to
   three connections through `JOBS_DATABASE_CONNECTION_LIMIT`.
 

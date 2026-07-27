@@ -186,8 +186,8 @@ function mapAuditLog(log: {
     createdAt: Date;
     actorRole: string;
     metadata: Prisma.JsonValue | null;
-    actor: { id: number; username: string; role: string } | null;
-}): AdminAuditLogView {
+    actor: { id: number; username: string | null; role: string } | null;
+}, source: "hot" | "archive", archivedAt: Date | null = null): AdminAuditLogView {
     const metadataExcludedKeys =
         log.action === "game.match.finalize"
             ? [
@@ -209,6 +209,8 @@ function mapAuditLog(log: {
 
     return {
         id: log.id,
+        source,
+        archivedAt: archivedAt?.toISOString() ?? null,
         action: log.action,
         resourceType: log.resourceType,
         resourceId: log.resourceId,
@@ -236,9 +238,18 @@ function mapAuditLog(log: {
 export async function getAdminAuditLogs(
     input: AdminAuditListQuery
 ): Promise<AdminAuditListResponse> {
-    const { page, limit, search, action, resourceType, actorRole, economyGuard } = input;
+    const {
+        page,
+        limit,
+        search,
+        action,
+        resourceType,
+        actorRole,
+        economyGuard,
+        source,
+    } = input;
 
-    const economyGuardWhere: Prisma.AuditLogWhereInput =
+    const economyGuardWhere =
         economyGuard === "match_reward"
             ? {
                   action: "game.match.finalize",
@@ -279,8 +290,93 @@ export async function getAdminAuditLogs(
                     }
                   : {};
 
-    const where: Prisma.AuditLogWhereInput = {
+    const commonWhere = {
         ...economyGuardWhere,
+        ...(action ? { action } : {}),
+        ...(resourceType ? { resourceType } : {}),
+        ...(actorRole ? { actorRole } : {}),
+    };
+
+    if (source === "archive") {
+        const where: Prisma.AuditLogArchiveWhereInput = {
+            ...commonWhere,
+            ...(search
+                ? {
+                      OR: [
+                          { action: { contains: search } },
+                          { resourceType: { contains: search } },
+                          { resourceId: { contains: search } },
+                          { summary: { contains: search } },
+                          { actorUsername: { contains: search } },
+                      ],
+                  }
+                : {}),
+        };
+        const [logs, total, actionGroups, resourceGroups, roleGroups] =
+            await Promise.all([
+                prisma.auditLogArchive.findMany({
+                    where,
+                    orderBy: [
+                        { originalCreatedAt: "desc" },
+                        { originalAuditLogId: "desc" },
+                    ],
+                    skip: (page - 1) * limit,
+                    take: limit,
+                }),
+                prisma.auditLogArchive.count({ where }),
+                prisma.auditLogArchive.groupBy({
+                    by: ["action"],
+                    orderBy: { action: "asc" },
+                }),
+                prisma.auditLogArchive.groupBy({
+                    by: ["resourceType"],
+                    orderBy: { resourceType: "asc" },
+                }),
+                prisma.auditLogArchive.groupBy({
+                    by: ["actorRole"],
+                    orderBy: { actorRole: "asc" },
+                }),
+            ]);
+
+        return {
+            logs: logs.map((log) =>
+                mapAuditLog(
+                    {
+                        id: log.originalAuditLogId,
+                        action: log.action,
+                        resourceType: log.resourceType,
+                        resourceId: log.resourceId,
+                        summary: log.summary,
+                        ipAddress: log.ipAddress,
+                        userAgent: log.userAgent,
+                        createdAt: log.originalCreatedAt,
+                        actorRole: log.actorRole,
+                        metadata: log.metadata,
+                        actor:
+                            log.actorUserId !== null
+                                ? {
+                                      id: log.actorUserId,
+                                      username: log.actorUsername,
+                                      role: log.actorRole,
+                                  }
+                                : null,
+                    },
+                    "archive",
+                    log.archivedAt
+                )
+            ),
+            source,
+            total,
+            page,
+            pages: Math.max(1, Math.ceil(total / limit)),
+            actionOptions: actionGroups.map((entry) => entry.action),
+            resourceTypeOptions: resourceGroups.map((entry) => entry.resourceType),
+            roleOptions: roleGroups.map((entry) => entry.actorRole),
+        };
+    }
+
+    const where: Prisma.AuditLogWhereInput = {
+        ...commonWhere,
         ...(search
             ? {
                   OR: [
@@ -298,54 +394,52 @@ export async function getAdminAuditLogs(
                   ],
               }
             : {}),
-        ...(action ? { action } : {}),
-        ...(resourceType ? { resourceType } : {}),
-        ...(actorRole ? { actorRole } : {}),
     };
-
-    const [logs, total, actionGroups, resourceGroups, roleGroups] = await Promise.all([
-        prisma.auditLog.findMany({
-            where,
-            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            skip: (page - 1) * limit,
-            take: limit,
-            select: {
-                id: true,
-                action: true,
-                resourceType: true,
-                resourceId: true,
-                summary: true,
-                ipAddress: true,
-                userAgent: true,
-                createdAt: true,
-                actorRole: true,
-                metadata: true,
-                actor: {
-                    select: {
-                        id: true,
-                        username: true,
-                        role: true,
+    const [logs, total, actionGroups, resourceGroups, roleGroups] =
+        await Promise.all([
+            prisma.auditLog.findMany({
+                where,
+                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                skip: (page - 1) * limit,
+                take: limit,
+                select: {
+                    id: true,
+                    action: true,
+                    resourceType: true,
+                    resourceId: true,
+                    summary: true,
+                    ipAddress: true,
+                    userAgent: true,
+                    createdAt: true,
+                    actorRole: true,
+                    metadata: true,
+                    actor: {
+                        select: {
+                            id: true,
+                            username: true,
+                            role: true,
+                        },
                     },
                 },
-            },
-        }),
-        prisma.auditLog.count({ where }),
-        prisma.auditLog.groupBy({
-            by: ["action"],
-            orderBy: { action: "asc" },
-        }),
-        prisma.auditLog.groupBy({
-            by: ["resourceType"],
-            orderBy: { resourceType: "asc" },
-        }),
-        prisma.auditLog.groupBy({
-            by: ["actorRole"],
-            orderBy: { actorRole: "asc" },
-        }),
-    ]);
+            }),
+            prisma.auditLog.count({ where }),
+            prisma.auditLog.groupBy({
+                by: ["action"],
+                orderBy: { action: "asc" },
+            }),
+            prisma.auditLog.groupBy({
+                by: ["resourceType"],
+                orderBy: { resourceType: "asc" },
+            }),
+            prisma.auditLog.groupBy({
+                by: ["actorRole"],
+                orderBy: { actorRole: "asc" },
+            }),
+        ]);
 
     return {
-        logs: logs.map(mapAuditLog),
+        logs: logs.map((log) => mapAuditLog(log, "hot")),
+        source,
         total,
         page,
         pages: Math.max(1, Math.ceil(total / limit)),

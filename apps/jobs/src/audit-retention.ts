@@ -44,6 +44,7 @@ export const prismaAuditRetentionStore: AuditRetentionStore = {
                     INSERT INTO audit_log_archives (
                         original_audit_log_id,
                         actor_user_id,
+                        actor_username,
                         actor_role,
                         action,
                         resource_type,
@@ -56,21 +57,23 @@ export const prismaAuditRetentionStore: AuditRetentionStore = {
                         archived_at
                     )
                     SELECT
-                        id,
-                        actor_user_id,
-                        actor_role,
-                        action,
-                        resource_type,
-                        resource_id,
-                        ip_address,
-                        user_agent,
-                        summary,
-                        metadata,
-                        created_at,
+                        audit.id,
+                        audit.actor_user_id,
+                        actor.username,
+                        audit.actor_role,
+                        audit.action,
+                        audit.resource_type,
+                        audit.resource_id,
+                        audit.ip_address,
+                        audit.user_agent,
+                        audit.summary,
+                        audit.metadata,
+                        audit.created_at,
                         NOW()
-                    FROM audit_logs
-                    WHERE id IN (${Prisma.join(ids)})
-                      AND created_at < ${cutoff}
+                    FROM audit_logs AS audit
+                    LEFT JOIN users AS actor ON actor.id = audit.actor_user_id
+                    WHERE audit.id IN (${Prisma.join(ids)})
+                      AND audit.created_at < ${cutoff}
                     ON DUPLICATE KEY UPDATE
                         original_audit_log_id = VALUES(original_audit_log_id)
                 `
