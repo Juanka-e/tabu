@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import {
     DEFAULT_SYSTEM_SETTINGS,
     normalizeSystemSettings,
-} from "../src/lib/system-settings/schema";
+} from "../apps/web/src/lib/system-settings/schema";
 import {
     evaluateRoomRequestPolicy,
     getFeatureDisabledMessage,
     isRegistrationAvailable,
     isStoreAvailable,
-} from "../src/lib/system-settings/policies";
-import { getCaptchaProviderReadiness } from "../src/lib/system-settings/service";
+} from "../apps/web/src/lib/system-settings/policies";
+import { getCaptchaProviderReadiness } from "../apps/web/src/lib/system-settings/service";
 
 const defaults = normalizeSystemSettings({});
 assert.deepEqual(defaults, DEFAULT_SYSTEM_SETTINGS);

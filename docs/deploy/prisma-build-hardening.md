@@ -1,6 +1,9 @@
 # Prisma Build Hardening
 
-Bu not aktif bir production bug degil, ama build log'larini kirleten ve ileride gercek hatalari maskeleyebilecek bir hardening isidir.
+> Status: Docker build gürültüsü giderildi, build-safe branding snapshot karari gelecege acik.
+
+Bu not aktif bir production bug degil, build ve runtime DB davranisinin
+birbirinden nasil ayrildigini kaydeder.
 
 Semptom:
 
@@ -10,14 +13,14 @@ Semptom:
 
 Kaynak:
 
-- `src/lib/system-settings/service.ts` icindeki `getSystemSettings()`
+- `apps/web/src/lib/system-settings/service.ts` icindeki `getSystemSettings()`
 - build-time metadata veya layout cagrilari
 - ozellikle:
-  - `src/app/layout.tsx`
-  - `src/app/room/[code]/layout.tsx`
-  - `src/app/login/layout.tsx`
-  - `src/app/register/layout.tsx`
-  - `src/app/store/page.tsx`
+  - `apps/web/src/app/layout.tsx`
+  - `apps/web/src/app/room/[code]/layout.tsx`
+  - `apps/web/src/app/login/layout.tsx`
+  - `apps/web/src/app/register/layout.tsx`
+  - `apps/web/src/app/store/page.tsx`
 
 Muhtemel neden:
 
@@ -32,12 +35,20 @@ Neden ayri gorev:
 - burada alinacak karar SEO / metadata / build cache davranisini etkileyebilir
 - yanlis bir "hemen sustur" cozumuyla runtime hata gorunurlugu zarar gorebilir
 
-Onerilen cozum yollari:
+Uygulanan cozum:
+
+- Docker image buildi `SKIP_DATABASE_DURING_BUILD=true` ile calisir
+- `getSystemSettings()` bu explicit build kontratinda Prisma sorgusu yapmadan
+  normalize edilmis varsayilan ayarlari dondurur
+- normal local build, CI ve production runtime bu bayrak verilmedikce DB
+  gorunurlugunu ve mevcut fallback davranisini korur
+- bu bayrak kalici runtime environment degiskeni olarak verilmemelidir
+
+Gelecekte degerlendirilecek cozumler:
 
 1. build-time metadata icin DB bagimli branding okumayi azalt
-2. `getSystemSettings()` icinde build ortamina ozel kontrollu fallback stratejisi tanimla
-3. branding gibi nadir degisen ayarlari build-safe snapshot veya env tabanli kaynakla ayir
-4. log seviyesini dusurmeden, tanimli hata siniflari icin tek seferlik warning davranisi ekle
+2. branding gibi nadir degisen ayarlari build-safe snapshot veya env tabanli kaynakla ayir
+3. log seviyesini dusurmeden, tanimli hata siniflari icin tek seferlik warning davranisini koru
 
 Karar verilmesi gereken nokta:
 

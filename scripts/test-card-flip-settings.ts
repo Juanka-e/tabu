@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {
     defaultCardFlipSettings,
     parseCardFlipSettings,
-} from "../src/lib/game/card-flip-settings";
+} from "../apps/web/src/lib/game/card-flip-settings";
 
 assert.deepEqual(parseCardFlipSettings(null), defaultCardFlipSettings);
 assert.deepEqual(parseCardFlipSettings(""), defaultCardFlipSettings);

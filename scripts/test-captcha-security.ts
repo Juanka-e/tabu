@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { DEFAULT_SYSTEM_SETTINGS, normalizeSystemSettings } from "../src/lib/system-settings/schema";
+import { DEFAULT_SYSTEM_SETTINGS, normalizeSystemSettings } from "../apps/web/src/lib/system-settings/schema";
 import {
     getEffectiveCaptchaFailMode,
     getPublicCaptchaConfigForAction,
     isCaptchaRequiredForAction,
     verifyCaptchaForAction,
-} from "../src/lib/security/captcha";
+} from "../apps/web/src/lib/security/captcha";
 
 async function main(): Promise<void> {
     const defaults = normalizeSystemSettings({});

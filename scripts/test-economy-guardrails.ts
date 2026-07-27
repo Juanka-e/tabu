@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { normalizeSystemSettings } from "../src/lib/system-settings/schema";
-import { evaluateMatchRewardEligibility } from "../src/lib/economy/reward-eligibility";
-import { resolveRepeatedGroupReward } from "../src/lib/economy/reward-repeated-group";
-import { resolveMatchRewardSafetyCeiling } from "../src/lib/economy/reward-safety-ceiling";
+import { normalizeSystemSettings } from "../apps/web/src/lib/system-settings/schema";
+import { evaluateMatchRewardEligibility } from "../apps/web/src/lib/economy/reward-eligibility";
+import { resolveRepeatedGroupReward } from "../apps/web/src/lib/economy/reward-repeated-group";
+import { resolveMatchRewardSafetyCeiling } from "../apps/web/src/lib/economy/reward-safety-ceiling";
 
 function createMockTx(input: {
     count?: number;

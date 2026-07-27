@@ -1,7 +1,7 @@
 # Apps Migration Plan
 
-> Status: accepted planning note
-> Last updated: 26 July 2026
+> Status: active migration
+> Last updated: 27 July 2026
 
 ## Goal
 
@@ -18,7 +18,6 @@ Bu planin hedefi:
 
 Su anda yapmiyoruz:
 
-- hemen `src/` altindaki tum kodu tasimak
 - hemen ayri `apps/api` servisi yayina almak
 - DB motorunu MySQL'den PostgreSQL'e cevirmek
 - microservice, message broker veya distributed saga tasarimina gecmek
@@ -28,8 +27,8 @@ Su anda yapmiyoruz:
 Bugunku sistem:
 
 - tek repo
-- tek Next.js uygulamasi
-- custom Socket.IO server
+- `apps/web` altinda tek Next.js uygulamasi
+- `apps/web/server.ts` ile custom Socket.IO server
 - Prisma + MySQL source of truth
 - Redis client, fallback, rate limit ve oda coordination temeli hazir
 - economy counter, cache ve Socket.IO adapter katmanlari henuz sonraki fazlarda
@@ -90,7 +89,7 @@ Bu fazda fiziksel runtime ayrimi yoktur.
 
 ### Phase 1 - Package Boundaries
 
-Durum: devam ediyor.
+Durum: platform temeli tamamlandi, domain ayirimlari ihtiyaca gore devam edecek.
 
 Tamamlanan platform sinirlari:
 
@@ -137,13 +136,16 @@ Phase 1 kurali:
 
 ### Phase 2 - `apps/web` Move
 
-Bu fazda mevcut Next.js uygulamasi `apps/web` altina tasinabilir.
+Durum: tamamlandi.
 
-Ancak su sartlar tamamlanmadan baslanmamali:
+Tamamlananlar:
 
-- Prisma ve cache import'lari merkezi hale gelmis olmali
-- `server.ts` ve socket bootstrap akisi net karar altina alinmali
-- root-level script ve path bagimliliklari cikarilmis olmali
+- Next.js kaynaklari, public asset'ler ve web configleri `apps/web` altina tasindi
+- custom Next.js + Socket.IO runtime'i `apps/web/server.ts` altina tasindi
+- root npm komutlari `@hushle/web` workspace'ine delege edildi
+- root test/seed scriptleri yeni uygulama yoluna uyarlandi
+- Docker `npm ci` katmani web workspace manifestini kapsiyor
+- root `.env*` dosyalari local gelistirme uyumlulugu icin web runtime tarafindan yukleniyor
 
 Bu tasimadan sonra root repo:
 
@@ -153,6 +155,21 @@ Bu tasimadan sonra root repo:
 - packages
 
 rolune gelir.
+
+### New Game Modes
+
+Yeni oyun modlari ilk asamada yeni bir web uygulamasi olarak acilmaz.
+
+Her mod:
+
+- `packages/domain-game` altinda kendi kural/state/validation modulune sahip olur
+- ortak room, identity, economy ve audit kontratlarini kullanir
+- `apps/web` icinde yalniz route, Socket.IO adapter ve UI katmanini tutar
+- reward source ve eligibility kararlarini mod kimligiyle sunucu tarafinda uretir
+
+Bir mod ancak farkli deploy, farkli teknoloji veya bagimsiz olcekleme ihtiyaci
+dogurursa ayri bir `apps/*` runtime'ina ayrilir. Bu sayede yeni mod eklemek mevcut
+Tabu akisini kopyalamaz ve mobil API kontratini web UI'ya baglamaz.
 
 ### Phase 3 - `apps/jobs`
 
@@ -272,29 +289,38 @@ Bu siralama operasyon yukunu kontrollu buyutur.
 
 Onerilen implementasyon sirasi:
 
-1. `feature/apps-workspace-foundation`
+1. `feature/apps-workspace-foundation` - tamamlandi
 - workspace root duzenleri
 - `apps/` ve gerekirse `packages/` scaffolding
 - tsconfig/path planinin hazirlanmasi
 
-2. `feature/packages-extraction-foundation`
+2. `feature/packages-extraction-foundation` - platform temeli tamamlandi
 - platform ve domain paketlerinin ilk tasinmasi
 
-3. `feature/docker-local-dev-foundation`
+3. `feature/docker-local-dev-foundation` - tamamlandi
 - local compose/dev ergonomisi
 - volume/persistence docs
 - env orneklerinin sadelestirilmesi
 
-4. `feature/cache-and-rate-limit-foundation`
+4. `feature/cache-and-rate-limit-foundation` - temel tamamlandi
 - Redis abstraction
 - memory fallback
 - shared coordination hazirligi
 
-5. `feature/jobs-runtime-foundation`
+5. `refactor/apps-web-runtime-migration` - tamamlandi
+- Next.js/custom server fiziksel tasimasi
+- root orchestration uyarlamasi
+- Docker, test ve dokuman yolu uyarlamalari
+
+6. `feature/domain-game-foundation`
+- mevcut Tabu kurallarini transport/UI katmanindan ayirma
+- game mode registry ve server-side mode contract
+
+7. `feature/jobs-runtime-foundation`
 - audit retention/archive
 - telemetry jobs
 
-6. `feature/mobile-api-foundation`
+8. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails

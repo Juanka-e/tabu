@@ -3,7 +3,7 @@ import {
     describeBulkCategoryAssignment,
     resolveWordCategoryToggle,
     type CategorySelectionTreeNode,
-} from "../src/lib/words/category-selection-ui";
+} from "../apps/web/src/lib/words/category-selection-ui";
 
 const categories: CategorySelectionTreeNode[] = [
     {

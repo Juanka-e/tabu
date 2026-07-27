@@ -3,7 +3,7 @@ import {
     createGuestIdentityToken,
     resolveSocketPlayerIdentity,
     verifyGuestIdentityToken,
-} from "../src/lib/security/player-identity";
+} from "../apps/web/src/lib/security/player-identity";
 
 const issuedAt = Date.parse("2026-03-09T12:00:00.000Z");
 const guestToken = createGuestIdentityToken("guest-test-id", issuedAt);

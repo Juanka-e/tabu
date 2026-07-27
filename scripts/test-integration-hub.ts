@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { getIntegrationHubSnapshot } from "../src/lib/integrations/service";
-import { normalizeSystemSettings } from "../src/lib/system-settings/schema";
+import { getIntegrationHubSnapshot } from "../apps/web/src/lib/integrations/service";
+import { normalizeSystemSettings } from "../apps/web/src/lib/system-settings/schema";
 
 async function main(): Promise<void> {
     process.env.DATABASE_URL = "mysql://root:@localhost:3306/tabu2";

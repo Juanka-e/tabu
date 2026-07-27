@@ -4,7 +4,7 @@ import {
     getPendingRoomAdminHandoff,
     resetRoomAdminHandoffState,
     setPendingRoomAdminHandoff,
-} from "../src/lib/socket/room-admin-handoff";
+} from "../apps/web/src/lib/socket/room-admin-handoff";
 
 const originalRedisUrl = process.env.REDIS_URL;
 

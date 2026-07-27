@@ -1,6 +1,6 @@
 # apps/web
 
-Planlanan ana Next.js uygulamasi.
+Ana Next.js ve Socket.IO uygulamasi.
 
 Bu hedef runtime sunlari tasir:
 
@@ -9,18 +9,12 @@ Bu hedef runtime sunlari tasir:
 - auth akisi
 - UI'ya yakin BFF route'lari
 
-## Simdiki Durum
+## Runtime
 
-Kod halen repo kokunde:
+- `src/app`: oyuncu, admin ve BFF/API route'lari
+- `src/components`: paylasilan web arayuzu
+- `src/lib`: web runtime servisleri ve Socket.IO oyun akisi
+- `server.ts`: Next.js ile Socket.IO'yu ayni HTTP sunucusunda calistirir
 
-- `src/app`
-- `src/components`
-- `src/lib`
-
-## Tasima Kriteri
-
-`apps/web` tasimasi ancak su kosullar tamamlandiginda baslamali:
-
-1. `packages/` sinirlari tanimlanmis olmali
-2. Prisma/Redis/config import yollari merkezilesmis olmali
-3. custom server ve realtime akisi ayri karar altina alinmis olmali
+Kok `package.json` komutlari bu workspace'e delege edilir. Ortam degiskenleri
+geriye uyumluluk icin repository kokundeki `.env*` dosyalarindan yuklenir.

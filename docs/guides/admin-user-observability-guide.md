@@ -85,7 +85,7 @@ Bu branch tamamlandiginda:
 
 ## Beklenen Dosya Alanlari
 
-- `src/app/admin/(dashboard)/users/page.tsx`
-- `src/app/api/admin/users/route.ts`
+- `apps/web/src/app/admin/(dashboard)/users/page.tsx`
+- `apps/web/src/app/api/admin/users/route.ts`
 - ilgili admin user service / type dosyalari
 - gerekirse ortak security / request IP helper'lari

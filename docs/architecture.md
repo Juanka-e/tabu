@@ -1,7 +1,7 @@
 # Backend Socket Architecture
 
 ## Overview
-The real-time game logic is handled by a custom Socket.IO server integrated with Next.js. The core logic resides in `src/lib/socket/game-socket.ts`.
+The real-time game logic is handled by a custom Socket.IO server integrated with Next.js. The core logic resides in `apps/web/src/lib/socket/game-socket.ts`.
 
 ## Repo Direction
 
@@ -23,7 +23,7 @@ See:
 
 ## Key Components
 
-### 1. GameSocket (`src/lib/socket/game-socket.ts`)
+### 1. GameSocket (`apps/web/src/lib/socket/game-socket.ts`)
 This file exports `setupGameSocket(io: Server)`, which initializes the socket event listeners.
 
 *   **State Management:**

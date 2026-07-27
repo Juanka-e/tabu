@@ -4,7 +4,7 @@ Object.assign(process.env, {
   HOST: "127.0.0.1",
 });
 
-import("../server").catch((error) => {
+import("../apps/web/server").catch((error) => {
   console.error(error);
   process.exit(1);
 });

@@ -8,7 +8,7 @@ import {
     ROOM_ROLE_NARRATOR,
     ROOM_ROLE_SPECTATOR,
     shouldShowGuessPanel,
-} from "../src/lib/game/room-display";
+} from "../apps/web/src/lib/game/room-display";
 
 assert.equal(isCardViewerRole(ROOM_ROLE_NARRATOR), true);
 assert.equal(isCardViewerRole(ROOM_ROLE_INSPECTOR), true);

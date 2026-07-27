@@ -33,7 +33,7 @@ The following unused runtime dependencies were removed:
 - the stale `undici` override that existed only for the removed jsdom chain
 
 Uploads use Web `FormData`; announcement content uses the dedicated,
-regression-tested sanitizer under `src/lib/security/announcements.ts`.
+regression-tested sanitizer under `apps/web/src/lib/security/announcements.ts`.
 
 ## Result
 

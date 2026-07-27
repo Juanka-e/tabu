@@ -9,7 +9,7 @@ import {
     discountCampaignWriteSchema,
     toPrismaCouponCodeCreateData,
     toPrismaDiscountCampaignCreateData,
-} from "../src/lib/promotions/promotion-schema";
+} from "../apps/web/src/lib/promotions/promotion-schema";
 
 const bundleResult = bundleWriteSchema.safeParse({
     code: "launch_pack",

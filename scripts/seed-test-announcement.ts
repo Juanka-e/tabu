@@ -1,9 +1,9 @@
-import { prisma } from "../src/lib/prisma";
+import { prisma } from "../apps/web/src/lib/prisma";
 import {
     announcementBlocksSchema,
     announcementBlocksToHtml,
     toAnnouncementInputJson,
-} from "../src/lib/announcements/content";
+} from "../apps/web/src/lib/announcements/content";
 
 const defaultBlocks = announcementBlocksSchema.parse([
     {
