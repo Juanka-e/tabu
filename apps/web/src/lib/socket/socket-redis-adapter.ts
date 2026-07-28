@@ -12,6 +12,12 @@ export interface SocketRedisAdapterConfig {
     stickySessionsConfigured: boolean;
 }
 
+export interface SocketRedisAdapterEnvironment {
+    REDIS_URL?: string;
+    SOCKET_IO_REDIS_ADAPTER_ENABLED?: string;
+    SOCKET_IO_STICKY_SESSIONS_CONFIGURED?: string;
+}
+
 export interface SocketRedisAdapterStatus {
     enabled: boolean;
     available: boolean;
@@ -31,15 +37,22 @@ function readBoolean(value: string | undefined): boolean {
 }
 
 export function getSocketRedisAdapterConfig(
-    env: NodeJS.ProcessEnv = process.env
+    env?: SocketRedisAdapterEnvironment
 ): SocketRedisAdapterConfig {
-    const redisUrl = env.REDIS_URL?.trim() || null;
+    const runtimeEnv = env ?? {
+        REDIS_URL: process.env.REDIS_URL,
+        SOCKET_IO_REDIS_ADAPTER_ENABLED:
+            process.env.SOCKET_IO_REDIS_ADAPTER_ENABLED,
+        SOCKET_IO_STICKY_SESSIONS_CONFIGURED:
+            process.env.SOCKET_IO_STICKY_SESSIONS_CONFIGURED,
+    };
+    const redisUrl = runtimeEnv.REDIS_URL?.trim() || null;
     return {
-        enabled: readBoolean(env.SOCKET_IO_REDIS_ADAPTER_ENABLED),
+        enabled: readBoolean(runtimeEnv.SOCKET_IO_REDIS_ADAPTER_ENABLED),
         redisConfigured: redisUrl !== null,
         redisUrl,
         stickySessionsConfigured: readBoolean(
-            env.SOCKET_IO_STICKY_SESSIONS_CONFIGURED
+            runtimeEnv.SOCKET_IO_STICKY_SESSIONS_CONFIGURED
         ),
     };
 }
@@ -60,7 +73,7 @@ function buildStatus(
 
 export async function configureSocketRedisAdapter(
     io: Server,
-    env: NodeJS.ProcessEnv = process.env
+    env?: SocketRedisAdapterEnvironment
 ): Promise<SocketRedisAdapterHandle> {
     const config = getSocketRedisAdapterConfig(env);
     if (!config.enabled) {
