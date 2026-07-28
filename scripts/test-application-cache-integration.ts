@@ -8,6 +8,7 @@ import {
 import {
     APPLICATION_CACHE_KEYS,
     invalidateAdminDashboardStatsCache,
+    invalidateSystemSettingsCache,
 } from "../apps/web/src/lib/cache/application-cache";
 import {
     getVisibleCategories,
@@ -33,6 +34,7 @@ async function run(): Promise<void> {
             invalidateJsonCache(
                 APPLICATION_CACHE_KEYS.adminDashboardStaticStats
             ),
+            invalidateSystemSettingsCache(),
         ]);
 
         const parent = await prisma.category.create({
@@ -96,6 +98,21 @@ async function run(): Promise<void> {
         });
         assert.equal(refreshedDashboard.value.generation, 2);
 
+        let settingsLoads = 0;
+        const readSettingsGeneration = () =>
+            getOrSetJsonCache({
+                key: APPLICATION_CACHE_KEYS.systemSettings,
+                ttlMs: 15_000,
+                loader: async () => ({ generation: ++settingsLoads }),
+            });
+        await readSettingsGeneration();
+        const cachedSettings = await readSettingsGeneration();
+        assert.equal(cachedSettings.value.generation, 1);
+        assert.equal(settingsLoads, 1);
+        await invalidateSystemSettingsCache();
+        const refreshedSettings = await readSettingsGeneration();
+        assert.equal(refreshedSettings.value.generation, 2);
+
         console.log("application cache integration test passed");
     } finally {
         if (childId !== null) {
@@ -109,6 +126,7 @@ async function run(): Promise<void> {
             invalidateJsonCache(
                 APPLICATION_CACHE_KEYS.adminDashboardStaticStats
             ),
+            invalidateSystemSettingsCache(),
         ]);
         await prisma.$disconnect();
         await closeRedisClient();

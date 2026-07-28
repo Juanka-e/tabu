@@ -9,6 +9,11 @@ export const APPLICATION_CACHE_KEYS = {
         "admin-dashboard-static-stats",
         "v1"
     ),
+    systemSettings: getRedisKey(
+        "cache",
+        "system-settings",
+        "v1"
+    ),
     visibleCategories: getRedisKey(
         "cache",
         "visible-categories",
@@ -20,6 +25,10 @@ export async function invalidateAdminDashboardStatsCache(): Promise<void> {
     await invalidateJsonCache(
         APPLICATION_CACHE_KEYS.adminDashboardStaticStats
     );
+}
+
+export async function invalidateSystemSettingsCache(): Promise<void> {
+    await invalidateJsonCache(APPLICATION_CACHE_KEYS.systemSettings);
 }
 
 export async function invalidateVisibleCategoriesCache(): Promise<void> {
