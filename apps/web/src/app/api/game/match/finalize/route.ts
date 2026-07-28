@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { invalidateUserDashboardMatchSummaryCache } from "@/lib/cache/application-cache";
 import { z } from "zod";
 import { Prisma } from "@hushle/platform-db";
 import { getSessionUser } from "@/lib/session";
@@ -294,6 +295,7 @@ export async function POST(req: Request) {
       });
     }
 
+    await invalidateUserDashboardMatchSummaryCache(sessionUser.id);
     await safeWriteAuditLog({
       actor: sessionUser,
       action: "game.match.finalize",

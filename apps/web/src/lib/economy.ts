@@ -5,6 +5,7 @@ import { Prisma } from "@hushle/platform-db";
 import {
     APPLICATION_CACHE_KEYS,
     invalidateNotificationUnreadCountCache,
+    getUserDashboardMatchSummaryCacheKey,
 } from "@/lib/cache/application-cache";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
@@ -85,11 +86,12 @@ export async function ensureUserCore(userId: number) {
     ]);
 }
 
-export async function getDashboardData(userId: number) {
-    await ensureUserCore(userId);
+type DashboardMatchSummary = Omit<DashboardDataResponse, "coinBalance">;
 
-    const [wallet, matchStats, totalWins, recentMatches] = await Promise.all([
-        prisma.wallet.findUnique({ where: { userId } }),
+async function loadDashboardMatchSummary(
+    userId: number
+): Promise<DashboardMatchSummary> {
+    const [matchStats, totalWins, recentMatches] = await Promise.all([
         prisma.matchResult.aggregate({
             where: { userId },
             _count: { _all: true },
@@ -108,7 +110,6 @@ export async function getDashboardData(userId: number) {
     const totalMatches = matchStats._count._all;
 
     return {
-        coinBalance: wallet?.coinBalance ?? 0,
         totalMatches,
         totalWins,
         totalCoinEarned: matchStats._sum.coinEarned ?? 0,
@@ -122,7 +123,28 @@ export async function getDashboardData(userId: number) {
             coinEarned: match.coinEarned,
             createdAt: match.createdAt.toISOString(),
         })),
-    } satisfies DashboardDataResponse;
+    };
+}
+
+export async function getDashboardData(
+    userId: number
+): Promise<DashboardDataResponse> {
+    const [wallet, summaryResult] = await Promise.all([
+        prisma.wallet.findUnique({
+            where: { userId },
+            select: { coinBalance: true },
+        }),
+        getOrSetJsonCache<DashboardMatchSummary>({
+            key: getUserDashboardMatchSummaryCacheKey(userId),
+            ttlMs: 30_000,
+            loader: () => loadDashboardMatchSummary(userId),
+        }),
+    ]);
+
+    return {
+        coinBalance: wallet?.coinBalance ?? 0,
+        ...summaryResult.value,
+    };
 }
 
 export async function getProfileData(userId: number) {
