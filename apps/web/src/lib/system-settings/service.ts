@@ -1,6 +1,11 @@
 import { Prisma } from "@hushle/platform-db";
+import { getOrSetJsonCache } from "@hushle/platform-cache";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import {
+    APPLICATION_CACHE_KEYS,
+    invalidateSystemSettingsCache,
+} from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
 import {
     DEFAULT_SYSTEM_SETTINGS,
@@ -15,8 +20,6 @@ import type {
 const SYSTEM_SETTINGS_CACHE_TTL_MS = 15_000;
 
 interface SystemSettingsCacheState {
-    settings: SystemSettings | null;
-    cachedAt: number;
     warnedAboutFallback: boolean;
 }
 
@@ -27,8 +30,6 @@ type SystemSettingsGlobal = typeof globalThis & {
 function getSystemSettingsCacheState(): SystemSettingsCacheState {
     const globalState = globalThis as SystemSettingsGlobal;
     globalState.__hushleSystemSettingsCacheState ??= {
-        settings: null,
-        cachedAt: 0,
         warnedAboutFallback: false,
     };
     return globalState.__hushleSystemSettingsCacheState;
@@ -51,19 +52,8 @@ export function getCaptchaProviderReadiness(): CaptchaProviderReadiness {
     };
 }
 
-export function clearSystemSettingsCache(): void {
-    const cache = getSystemSettingsCacheState();
-    cache.settings = null;
-    cache.cachedAt = 0;
-}
-
-function shouldUseCachedSettings(forceRefresh: boolean): boolean {
-    const cache = getSystemSettingsCacheState();
-    if (forceRefresh || !cache.settings) {
-        return false;
-    }
-
-    return Date.now() - cache.cachedAt < SYSTEM_SETTINGS_CACHE_TTL_MS;
+export async function clearSystemSettingsCache(): Promise<void> {
+    await invalidateSystemSettingsCache();
 }
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -168,50 +158,49 @@ export async function getSystemSettings(options?: {
         return normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
     }
 
-    const forceRefresh = options?.forceRefresh ?? false;
-    if (shouldUseCachedSettings(forceRefresh)) {
-        return getSystemSettingsCacheState().settings as SystemSettings;
+    if (options?.forceRefresh) {
+        await clearSystemSettingsCache();
     }
 
-    try {
-        const rows = await prisma.systemSetting.findMany({
-            where: {
-                key: {
-                    in: [...SYSTEM_SETTINGS_NAMESPACES],
-                },
-            },
-            select: {
-                key: true,
-                value: true,
-            },
-        });
+    const result = await getOrSetJsonCache<SystemSettings>({
+        key: APPLICATION_CACHE_KEYS.systemSettings,
+        ttlMs: SYSTEM_SETTINGS_CACHE_TTL_MS,
+        loader: async () => {
+            try {
+                const rows = await prisma.systemSetting.findMany({
+                    where: {
+                        key: {
+                            in: [...SYSTEM_SETTINGS_NAMESPACES],
+                        },
+                    },
+                    select: {
+                        key: true,
+                        value: true,
+                    },
+                });
 
-        const settings = buildSettingsFromRows(rows);
-        const cache = getSystemSettingsCacheState();
-        cache.settings = settings;
-        cache.cachedAt = Date.now();
-        cache.warnedAboutFallback = false;
+                const settings = buildSettingsFromRows(rows);
+                getSystemSettingsCacheState().warnedAboutFallback = false;
+                return settings;
+            } catch (error) {
+                if (shouldFallbackToDefaultSettings(error)) {
+                    logSystemSettingsFallback(error as Error);
+                    return normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
+                }
 
-        return settings;
-    } catch (error) {
-        if (shouldFallbackToDefaultSettings(error)) {
-            logSystemSettingsFallback(error as Error);
-            const fallbackSettings = normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
-            const cache = getSystemSettingsCacheState();
-            cache.settings = fallbackSettings;
-            cache.cachedAt = Date.now();
-            return fallbackSettings;
-        }
+                throw error;
+            }
+        },
+    });
 
-        throw error;
-    }
+    return normalizeSystemSettings(result.value);
 }
 
 export async function updateSystemSettings(
     nextSettings: SystemSettings,
     updatedByUserId: number
 ): Promise<SystemSettings> {
-    const previousSettings = await getSystemSettings({ forceRefresh: true });
+    const previousSettings = await getSystemSettings();
     const normalizedSettings = normalizeSystemSettings(nextSettings);
 
     await prisma.$transaction(
@@ -231,11 +220,9 @@ export async function updateSystemSettings(
         )
     );
 
-    clearSystemSettingsCache();
+    await clearSystemSettingsCache();
+    await cleanupUnusedBrandingAssets(previousSettings, normalizedSettings);
 
-    const refreshedSettings = await getSystemSettings({ forceRefresh: true });
-    await cleanupUnusedBrandingAssets(previousSettings, refreshedSettings);
-
-    return refreshedSettings;
+    return normalizedSettings;
 }
 

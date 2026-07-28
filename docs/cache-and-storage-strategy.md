@@ -215,13 +215,12 @@ That breaks:
 
 ## System Settings Strategy
 - Persist settings in MySQL `system_settings`.
-- Read through a cache layer.
-- Development uses a process-global in-memory cache so Next route bundles and the
-  custom Socket.IO runtime share immediate invalidation in the same Node process.
-- Production should move to Redis/Valkey-backed cache when multi-instance deployment starts.
-- Cache invalidation should happen on admin update.
-- Multi-instance invalidation still requires Redis pub/sub or a shared version key;
-  `globalThis` only coordinates modules inside one process.
+- Read through the shared Redis/Valkey JSON cache with a `15s` TTL.
+- Admin updates commit to MySQL first and then await shared cache invalidation.
+- Redis/Valkey outages use the bounded process-memory fallback. Different instances
+  can temporarily disagree for at most the cache TTL while Redis is unavailable.
+- Redis flush or cache loss only causes a MySQL reload; MySQL remains the source of truth.
+- Provider secret keys stay in environment variables and are never stored in this cache.
 - The Socket.IO room metrics provider also uses a process-global registration so
   Next admin routes read the live local counters instead of a bundle-local zero
   fallback. Multi-instance aggregation remains Redis heartbeat based.
@@ -268,6 +267,7 @@ Current application consumers:
 
 - visible category tree, TTL `60s`
 - admin dashboard static word/category counters, TTL `10s`
+- system settings, TTL `15s`
 
 The admin dashboard keeps room and online-player metrics outside the cached static
 payload. Those values are read live on every request. Category and word mutations
@@ -306,7 +306,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 
 ### Phase 2
 - implemented: atomic distributed rate limit store with local fallback
-- move system settings cache behind shared adapter
+- implemented: system settings cache behind shared adapter
 - implemented: targeted JSON cache invalidation helpers
 
 ### Phase 3
