@@ -81,6 +81,7 @@
     "test:audit-log": "tsx scripts/test-audit-log.ts",
     "test:word-category-selection-ui": "tsx scripts/test-word-category-selection-ui.ts",
     "test:admin-category-reorder": "tsx scripts/test-admin-category-reorder.ts",
+    "test:admin-category-reorder-e2e": "playwright test tests/admin-categories-dnd.spec.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "test:web-origin-policy": "tsx scripts/test-web-origin-policy.ts",
     "db:push": "npx prisma db push --skip-generate",

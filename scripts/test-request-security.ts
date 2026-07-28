@@ -24,6 +24,43 @@ const crossOriginRequest = {
 
 assert.equal(isTrustedStateChangeRequest(sameOriginRequest), true);
 assert.equal(isTrustedStateChangeRequest(crossOriginRequest), false);
+assert.equal(
+    isTrustedStateChangeRequest({
+        headers: new Headers({
+            host: "127.0.0.1:3201",
+            origin: "http://127.0.0.1:3201",
+            "sec-fetch-site": "same-origin",
+        }),
+        method: "POST",
+        url: "http://localhost:3201/api/admin/categories/reorder",
+    }),
+    true
+);
+assert.equal(
+    isTrustedStateChangeRequest({
+        headers: new Headers({
+            host: "internal-web:3000",
+            origin: "https://admin.tabu.example.com",
+            "sec-fetch-site": "same-origin",
+            "x-forwarded-host": "admin.tabu.example.com",
+            "x-forwarded-proto": "https",
+        }),
+        method: "POST",
+        url: "http://internal-web:3000/api/admin/categories/reorder",
+    }),
+    true
+);
+assert.equal(
+    isTrustedStateChangeRequest({
+        headers: new Headers({
+            host: "127.0.0.1:3201",
+            origin: "https://attacker.example.com",
+        }),
+        method: "POST",
+        url: "http://localhost:3201/api/admin/categories/reorder",
+    }),
+    false
+);
 
 resetRequestRateLimitBuckets();
 

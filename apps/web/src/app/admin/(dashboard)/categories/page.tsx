@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     FolderTree,
     Plus,
@@ -11,6 +11,7 @@ import {
     X,
     Loader2,
     ChevronDown,
+    ChevronUp,
     ChevronRight,
     Palette,
     GripVertical,
@@ -19,7 +20,8 @@ import {
     DndContext,
     closestCenter,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     type DragEndEvent,
@@ -32,6 +34,7 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { toast } from "sonner";
 
 interface Category {
     id: number;
@@ -60,6 +63,10 @@ interface SortableCategoryProps {
     onEdit: (category: Category) => void;
     onToggleExpand: (id: number) => void;
     onToggleVisibility: (category: Category) => void;
+    onMove: (id: number, direction: "up" | "down") => void;
+    position: number;
+    total: number;
+    reorderSaving: boolean;
 }
 
 function SortableCategory({
@@ -70,6 +77,10 @@ function SortableCategory({
     onEdit,
     onToggleExpand,
     onToggleVisibility,
+    onMove,
+    position,
+    total,
+    reorderSaving,
 }: SortableCategoryProps) {
     const {
         attributes,
@@ -78,7 +89,7 @@ function SortableCategory({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: category.id });
+    } = useSortable({ id: category.id, disabled: reorderSaving });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -90,19 +101,25 @@ function SortableCategory({
     const isExpanded = expanded.has(category.id);
 
     return (
-        <div ref={setNodeRef} style={style} className="relative">
+        <div className="relative">
             <div
-                className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50/60 dark:hover:bg-slate-700/30 ${
+                ref={setNodeRef}
+                style={style}
+                data-testid={`category-row-${category.id}`}
+                className={`flex flex-wrap items-center gap-2 px-3 py-3 transition-colors hover:bg-gray-50/60 sm:flex-nowrap sm:gap-3 sm:px-4 dark:hover:bg-slate-700/30 ${
                     !category.isVisible ? "opacity-50" : ""
                 }`}
             >
                 <button
                     {...attributes}
                     {...listeners}
-                    className="cursor-grab rounded p-1 text-gray-400 active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-300"
-                    title="Sirayi degistir"
+                    disabled={reorderSaving}
+                    className="flex h-11 w-11 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl border border-transparent text-gray-400 transition active:cursor-grabbing hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                    title="Sürükleyerek sırayı değiştir"
+                    aria-label={`${category.name} kategorisini sürükleyerek sırala`}
+                    data-testid={`category-drag-${category.id}`}
                 >
-                    <GripVertical size={16} />
+                    <GripVertical size={18} />
                 </button>
 
                 <div
@@ -125,11 +142,33 @@ function SortableCategory({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="order-3 ml-[3.25rem] flex w-full flex-wrap items-center justify-end gap-1 sm:order-none sm:ml-0 sm:w-auto sm:flex-nowrap">
+                    <button
+                        type="button"
+                        onClick={() => onMove(category.id, "up")}
+                        disabled={reorderSaving || position === 0}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                        title="Yukarı taşı"
+                        aria-label={`${category.name} kategorisini yukarı taşı`}
+                        data-testid={`category-up-${category.id}`}
+                    >
+                        <ChevronUp size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onMove(category.id, "down")}
+                        disabled={reorderSaving || position === total - 1}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                        title="Aşağı taşı"
+                        aria-label={`${category.name} kategorisini aşağı taşı`}
+                        data-testid={`category-down-${category.id}`}
+                    >
+                        <ChevronDown size={16} />
+                    </button>
                     <button
                         onClick={() => onToggleVisibility(category)}
                         className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20"
-                        title={category.isVisible ? "Gizle" : "Gorunur yap"}
+                        title={category.isVisible ? "Gizle" : "Görünür yap"}
                     >
                         {category.isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
                     </button>
@@ -143,7 +182,7 @@ function SortableCategory({
                     <button
                         onClick={() => onEdit(category)}
                         className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"
-                        title="Duzenle"
+                        title="Düzenle"
                     >
                         <Pencil size={15} />
                     </button>
@@ -166,7 +205,7 @@ function SortableCategory({
                         <button
                             onClick={() => onToggleExpand(category.id)}
                             className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                            title={isExpanded ? "Daralt" : "Genislet"}
+                            title={isExpanded ? "Daralt" : "Genişlet"}
                         >
                             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </button>
@@ -179,7 +218,7 @@ function SortableCategory({
                     {category.children.map((child) => (
                         <div
                             key={child.id}
-                            className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-slate-700/30 ${
+                            className={`flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50/50 sm:flex-nowrap dark:hover:bg-slate-700/30 ${
                                 !child.isVisible ? "opacity-50" : ""
                             }`}
                         >
@@ -201,18 +240,18 @@ function SortableCategory({
                                     {child._count?.wordCategories ?? 0} kelime
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="ml-9 flex w-full items-center justify-end gap-1 sm:ml-0 sm:w-auto">
                                 <button
                                     onClick={() => onToggleVisibility(child)}
                                     className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20"
-                                    title={child.isVisible ? "Gizle" : "Gorunur yap"}
+                                    title={child.isVisible ? "Gizle" : "Görünür yap"}
                                 >
                                     {child.isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
                                 </button>
                                 <button
                                     onClick={() => onEdit(child)}
                                     className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"
-                                    title="Duzenle"
+                                    title="Düzenle"
                                 >
                                     <Pencil size={15} />
                                 </button>
@@ -260,11 +299,18 @@ export default function AdminCategoriesPage() {
     const [deleteTargetId, setDeleteTargetId] = useState("");
     const [deleteError, setDeleteError] = useState("");
     const [deleteSaving, setDeleteSaving] = useState(false);
+    const reorderInFlightRef = useRef(false);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 6,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 180,
+                tolerance: 8,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -272,13 +318,15 @@ export default function AdminCategoriesPage() {
         })
     );
 
-    const fetchCategories = useCallback(async () => {
-        setLoading(true);
+    const fetchCategories = useCallback(async (showLoading = true) => {
+        if (showLoading) {
+            setLoading(true);
+        }
         try {
             const response = await fetch("/api/admin/categories", { cache: "no-store" });
             const payload = await response.json().catch(() => null);
             if (!response.ok) {
-                setPageError((payload as { error?: string } | null)?.error ?? "Kategori listesi yuklenemedi.");
+                setPageError((payload as { error?: string } | null)?.error ?? "Kategori listesi yüklenemedi.");
                 return;
             }
 
@@ -287,9 +335,11 @@ export default function AdminCategoriesPage() {
             setExpanded(new Set(nextCategories.map((category) => category.id)));
             setPageError("");
         } catch {
-            setPageError("Kategori listesi yuklenirken ag hatasi olustu.");
+            setPageError("Kategori listesi yüklenirken ağ hatası oluştu.");
         } finally {
-            setLoading(false);
+            if (showLoading) {
+                setLoading(false);
+            }
         }
     }, []);
 
@@ -386,31 +436,27 @@ export default function AdminCategoriesPage() {
         setFormOpen(true);
     }, []);
 
-    const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (reorderSaving || !over || active.id === over.id) {
+    const persistRootOrder = useCallback(async (
+        previousCategories: Category[],
+        nextCategories: Category[]
+    ) => {
+        if (reorderInFlightRef.current) {
             return;
         }
 
-        const oldIndex = categories.findIndex((category) => category.id === active.id);
-        const newIndex = categories.findIndex((category) => category.id === over.id);
-        if (oldIndex === -1 || newIndex === -1) {
-            return;
-        }
-
-        const nextCategories = arrayMove(categories, oldIndex, newIndex);
-        const updates = nextCategories.map((category, index) => ({
-            id: category.id,
+        const normalizedCategories = nextCategories.map((category, index) => ({
+            ...category,
             sortOrder: index * 10,
         }));
+        const updates = normalizedCategories.map((category) => ({
+            id: category.id,
+            sortOrder: category.sortOrder,
+        }));
 
-        setCategories(
-            nextCategories.map((category, index) => ({
-                ...category,
-                sortOrder: index * 10,
-            }))
-        );
+        reorderInFlightRef.current = true;
+        setCategories(normalizedCategories);
         setReorderSaving(true);
+        setPageError("");
 
         try {
             const response = await fetch("/api/admin/categories/reorder", {
@@ -421,23 +467,77 @@ export default function AdminCategoriesPage() {
 
             if (!response.ok) {
                 const payload = await response.json().catch(() => null) as { error?: string } | null;
-                setPageError(payload?.error ?? "Kategori sirasi kaydedilemedi.");
-                await fetchCategories();
+                const message = payload?.error ?? "Kategori sırası kaydedilemedi.";
+                setCategories(previousCategories);
+                setPageError(message);
+                toast.error(message);
+                if (response.status === 422) {
+                    await fetchCategories(false);
+                }
                 return;
             }
 
             setPageError("");
+            toast.success("Kategori sırası kaydedildi.");
         } catch {
-            setPageError("Kategori sirasi kaydedilirken ag hatasi olustu.");
-            await fetchCategories();
+            const message = "Kategori sırası kaydedilirken ağ hatası oluştu.";
+            setCategories(previousCategories);
+            setPageError(message);
+            toast.error(message);
         } finally {
+            reorderInFlightRef.current = false;
             setReorderSaving(false);
         }
-    }, [categories, fetchCategories, reorderSaving]);
+    }, [fetchCategories]);
+
+    const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (
+            reorderInFlightRef.current ||
+            !over ||
+            active.id === over.id
+        ) {
+            return;
+        }
+
+        const oldIndex = categories.findIndex((category) => category.id === active.id);
+        const newIndex = categories.findIndex((category) => category.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) {
+            return;
+        }
+
+        await persistRootOrder(
+            categories,
+            arrayMove(categories, oldIndex, newIndex)
+        );
+    }, [categories, persistRootOrder]);
+
+    const moveRootCategory = useCallback(async (
+        categoryId: number,
+        direction: "up" | "down"
+    ) => {
+        if (reorderInFlightRef.current) return;
+        const currentIndex = categories.findIndex(
+            (category) => category.id === categoryId
+        );
+        const nextIndex =
+            direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        if (
+            currentIndex < 0 ||
+            nextIndex < 0 ||
+            nextIndex >= categories.length
+        ) {
+            return;
+        }
+        await persistRootOrder(
+            categories,
+            arrayMove(categories, currentIndex, nextIndex)
+        );
+    }, [categories, persistRootOrder]);
 
     const handleSave = useCallback(async () => {
         if (!formName.trim()) {
-            setFormError("Kategori adi bos olamaz.");
+            setFormError("Kategori adı boş olamaz.");
             return;
         }
 
@@ -469,7 +569,7 @@ export default function AdminCategoriesPage() {
             setPageError("");
             await fetchCategories();
         } catch {
-            setFormError("Kategori kaydi sirasinda ag hatasi olustu.");
+            setFormError("Kategori kaydı sırasında ağ hatası oluştu.");
         } finally {
             setFormSaving(false);
         }
@@ -508,7 +608,7 @@ export default function AdminCategoriesPage() {
             setPageError("");
             await fetchCategories();
         } catch {
-            const message = "Kategori silinirken ag hatasi olustu.";
+            const message = "Kategori silinirken ağ hatası oluştu.";
             setDeleteError(message);
             setPageError(message);
         } finally {
@@ -526,14 +626,14 @@ export default function AdminCategoriesPage() {
             const payload = await response.json().catch(() => null) as { error?: string } | null;
 
             if (!response.ok) {
-                setPageError(payload?.error ?? "Gorunurluk guncellenemedi.");
+                setPageError(payload?.error ?? "Görünürlük güncellenemedi.");
                 return;
             }
 
             setPageError("");
             await fetchCategories();
         } catch {
-            setPageError("Gorunurluk guncellenirken ag hatasi olustu.");
+            setPageError("Görünürlük güncellenirken ağ hatası oluştu.");
         }
     }, [fetchCategories]);
 
@@ -551,50 +651,54 @@ export default function AdminCategoriesPage() {
 
     return (
         <div className="space-y-5">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
                         <FolderTree className="h-6 w-6 text-amber-500" />
-                        Kategori Yonetimi
+                        Kategori Yönetimi
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Toplam {totalCategories} kategori. Ana kategoriler suruklenebilir, alt kategoriler kendi ana kategorisi altinda kalir.
+                        Toplam {totalCategories} kategori. Ana kategorileri sürükleyin veya oklarla taşıyın; alt kategoriler kendi ana kategorisi altında kalır.
                     </p>
                     {reorderSaving ? (
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                        >
                             <Loader2 size={12} className="animate-spin" />
-                            Siralama kaydediliyor
+                            Sıralama kaydediliyor
                         </div>
                     ) : null}
                 </div>
                 <button
                     onClick={() => openCreate(null)}
-                    className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-amber-600"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-amber-600 sm:w-auto"
                 >
                     <Plus size={18} />
-                    Yeni Kategori
+                    Yeni kategori
                 </button>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)]">
                 <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 px-5 py-4 text-sm text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
-                    <p className="font-semibold">Kategori politikasi</p>
+                    <p className="font-semibold">Kategori politikası</p>
                     <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
-                        Ana kategori isterse genel kelime havuzu tasiyabilir. Daha spesifik havuzlar icin alt kategori ac.
+                        Ana kategori isterse genel kelime havuzu taşıyabilir. Daha spesifik havuzlar için alt kategori aç.
                     </p>
                     <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
-                        Ayni kelimeyi hem ana kategoriye hem de onun alt kategorisine birlikte baglamiyoruz. Kelime tarafinda bu kural zaten zorunlu.
+                        Aynı kelimeyi hem ana kategoriye hem de onun alt kategorisine birlikte bağlamıyoruz. Kelime tarafında bu kural zaten zorunlu.
                     </p>
                     <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
-                        Su an taksonomi iki seviye: ana kategori ve alt kategori. Alt kategorinin altina yeni kategori acilamaz.
+                        Şu an taksonomi iki seviye: ana kategori ve alt kategori. Alt kategorinin altına yeni kategori açılamaz.
                     </p>
                     <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
-                        Surukle-birak yalnizca ana kategoriler icindir. Alt kategoriler kendi ust kategorisinin altinda kalir.
+                        Sürükle-bırak ve sıralama okları yalnızca ana kategoriler içindir. Alt kategoriler kendi üst kategorisinin altında kalır.
                     </p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                    <p className="font-semibold text-slate-900 dark:text-white">Agac ozeti</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">Ağaç özeti</p>
                     <div className="mt-3 grid grid-cols-3 gap-3 text-center">
                         <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-900">
                             <div className="text-xl font-bold text-slate-900 dark:text-white">{totalCategories}</div>
@@ -613,7 +717,10 @@ export default function AdminCategoriesPage() {
             </div>
 
             {pageError ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                <div
+                    role="alert"
+                    className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+                >
                     {pageError}
                 </div>
             ) : null}
@@ -626,7 +733,7 @@ export default function AdminCategoriesPage() {
                 ) : categories.length === 0 ? (
                     <div className="py-16 text-center text-gray-400">
                         <FolderTree size={32} className="mx-auto mb-3 opacity-30" />
-                        <p>Henuz kategori yok.</p>
+                        <p>Henüz kategori yok.</p>
                     </div>
                 ) : (
                     <DndContext
@@ -639,7 +746,7 @@ export default function AdminCategoriesPage() {
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="divide-y divide-gray-50 dark:divide-slate-800">
-                                {categories.map((category) => (
+                                {categories.map((category, index) => (
                                     <SortableCategory
                                         key={category.id}
                                         category={category}
@@ -654,6 +761,10 @@ export default function AdminCategoriesPage() {
                                         onEdit={openEdit}
                                         onToggleExpand={toggleExpand}
                                         onToggleVisibility={toggleVisibility}
+                                        onMove={moveRootCategory}
+                                        position={index}
+                                        total={categories.length}
+                                        reorderSaving={reorderSaving}
                                     />
                                 ))}
                             </div>
@@ -667,7 +778,7 @@ export default function AdminCategoriesPage() {
                     <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
                         <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                                {editing ? "Kategoriyi Duzenle" : formParentId ? "Alt Kategori Ekle" : "Yeni Kategori"}
+                                {editing ? "Kategoriyi Düzenle" : formParentId ? "Alt Kategori Ekle" : "Yeni Kategori"}
                             </h3>
                             <button
                                 onClick={() => setFormOpen(false)}
@@ -686,19 +797,19 @@ export default function AdminCategoriesPage() {
 
                             {currentParentLabel ? (
                                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                                    Bu kayit <span className="font-semibold">{currentParentLabel}</span> alt kategorisi olarak olusacak.
+                                    Bu kayıt <span className="font-semibold">{currentParentLabel}</span> alt kategorisi olarak oluşacak.
                                 </div>
                             ) : null}
 
                             <div>
                                 <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
-                                    Kategori Adi
+                                    Kategori Adı
                                 </label>
                                 <input
                                     type="text"
                                     value={formName}
                                     onChange={(event) => setFormName(event.target.value)}
-                                    placeholder="Kategori adi..."
+                                    placeholder="Kategori adı..."
                                     className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                 />
                             </div>
@@ -727,7 +838,7 @@ export default function AdminCategoriesPage() {
                             {!editing?.parentId && !formParentId ? (
                                 <div>
                                     <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
-                                        Ust Kategori (Opsiyonel)
+                                        Üst Kategori (Opsiyonel)
                                     </label>
                                     <select
                                         value={formParentId ?? ""}
@@ -736,7 +847,7 @@ export default function AdminCategoriesPage() {
                                         }
                                         className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                     >
-                                        <option value="">Ana kategori (kok)</option>
+                                        <option value="">Ana kategori (kök)</option>
                                         {rootCategoryOptions.map((category) => (
                                             <option key={category.id} value={category.id}>
                                                 {category.name}
@@ -748,7 +859,7 @@ export default function AdminCategoriesPage() {
 
                             {!editing && formParentId === null ? (
                                 <p className="text-xs leading-5 text-muted-foreground">
-                                    Ana kategoriye dogrudan kelime eklemek genel havuz anlamina gelir. Daha spesifik bir havuz gerekiyorsa alt kategori ac.
+                                    Ana kategoriye doğrudan kelime eklemek genel havuz anlamına gelir. Daha spesifik bir havuz gerekiyorsa alt kategori aç.
                                 </p>
                             ) : null}
 
@@ -760,7 +871,7 @@ export default function AdminCategoriesPage() {
                                     className="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                                 />
                                 <span className="text-sm text-gray-600 dark:text-gray-300">
-                                    Oyuncular tarafindan gorunur
+                                    Oyuncular tarafından görünür
                                 </span>
                             </label>
                         </div>
@@ -770,7 +881,7 @@ export default function AdminCategoriesPage() {
                                 onClick={() => setFormOpen(false)}
                                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
                             >
-                                Iptal
+                                İptal
                             </button>
                             <button
                                 onClick={() => void handleSave()}
@@ -778,7 +889,7 @@ export default function AdminCategoriesPage() {
                                 className="flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-amber-600 disabled:opacity-50"
                             >
                                 {formSaving ? <Loader2 size={16} className="animate-spin" /> : null}
-                                {editing ? "Guncelle" : "Kaydet"}
+                                {editing ? "Güncelle" : "Kaydet"}
                             </button>
                         </div>
                     </div>
@@ -811,7 +922,7 @@ export default function AdminCategoriesPage() {
                         <div className="space-y-4 p-5">
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
-                                    <div className="text-xs text-slate-500">Bagli kelime</div>
+                                    <div className="text-xs text-slate-500">Bağlı kelime</div>
                                     <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
                                         {deleteCandidate.wordCount}
                                     </div>
@@ -827,7 +938,7 @@ export default function AdminCategoriesPage() {
                             {deleteRequiresMove ? (
                                 <div className="space-y-3">
                                     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-                                        Bu kategori bos degil. Silmeden once bagli kelimeler ve varsa alt kategoriler baska bir kategoriye tasinacak.
+                                        Bu kategori boş değil. Silmeden önce bağlı kelimeler ve varsa alt kategoriler başka bir kategoriye taşınacak.
                                     </div>
                                     <div>
                                         <label className="mb-1.5 block text-sm font-semibold text-gray-600 dark:text-gray-300">
@@ -838,7 +949,7 @@ export default function AdminCategoriesPage() {
                                             onChange={(event) => setDeleteTargetId(event.target.value)}
                                             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
                                         >
-                                            <option value="">Hedef kategori sec</option>
+                                            <option value="">Hedef kategori seç</option>
                                             {deleteTargetOptions.map((category) => (
                                                 <option key={category.id} value={String(category.id)}>
                                                     {category.label}
@@ -849,7 +960,7 @@ export default function AdminCategoriesPage() {
                                 </div>
                             ) : (
                                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-                                    Bu kategori bos. Direkt silinecek.
+                                    Bu kategori boş. Doğrudan silinecek.
                                 </div>
                             )}
 
@@ -870,7 +981,7 @@ export default function AdminCategoriesPage() {
                                 }}
                                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-slate-700"
                             >
-                                Vazgec
+                                Vazgeç
                             </button>
                             <button
                                 onClick={() => void handleDelete()}
@@ -878,7 +989,7 @@ export default function AdminCategoriesPage() {
                                 className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors active:scale-95 hover:bg-red-700 disabled:opacity-50"
                             >
                                 {deleteSaving ? <Loader2 size={16} className="animate-spin" /> : null}
-                                {deleteRequiresMove ? "Tasiyip Sil" : "Sil"}
+                                {deleteRequiresMove ? "Taşıyıp Sil" : "Sil"}
                             </button>
                         </div>
                     </div>

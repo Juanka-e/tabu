@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
-import { validateAdminCategoryReorderUpdates } from "@/lib/categories/admin-category-reorder";
+import {
+    AdminCategoryReorderValidationError,
+    validateAdminCategoryReorderUpdates,
+} from "@/lib/categories/admin-category-reorder";
+import { invalidateCategoryCache } from "@/lib/socket/category-service";
+import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
@@ -36,9 +41,17 @@ export async function POST(request: NextRequest) {
             select: {
                 id: true,
                 parentId: true,
+                sortOrder: true,
             },
         });
         const normalizedUpdates = validateAdminCategoryReorderUpdates(updates, categories);
+        const previousOrder = categories
+            .filter((category) => category.parentId === null)
+            .sort(
+                (left, right) =>
+                    left.sortOrder - right.sortOrder || left.id - right.id
+            )
+            .map((category) => category.id);
 
         await prisma.$transaction(
             normalizedUpdates.map((item) =>
@@ -48,17 +61,55 @@ export async function POST(request: NextRequest) {
                 })
             )
         );
+        invalidateCategoryCache();
+
+        try {
+            await writeAuditLog({
+                actor: adminSession,
+                action: "admin.category.reorder",
+                resourceType: "category",
+                summary: "Ana kategori sırası güncellendi",
+                metadata: {
+                    previousOrder,
+                    nextOrder: normalizedUpdates.map((item) => item.id),
+                },
+                request,
+            });
+        } catch (auditError) {
+            console.error("Category reorder audit could not be written", auditError);
+        }
 
         return NextResponse.json(
-            { success: true },
+            {
+                success: true,
+                order: normalizedUpdates.map((item) => item.id),
+            },
             { headers: buildRateLimitHeaders(rateLimit) }
         );
     } catch (error) {
+        if (error instanceof AdminCategoryReorderValidationError) {
+            return NextResponse.json(
+                { error: error.message },
+                {
+                    status: 422,
+                    headers: buildRateLimitHeaders(rateLimit),
+                }
+            );
+        }
+        if (error instanceof SyntaxError) {
+            return NextResponse.json(
+                { error: "Geçersiz sıralama isteği." },
+                {
+                    status: 422,
+                    headers: buildRateLimitHeaders(rateLimit),
+                }
+            );
+        }
         console.error("Failed to reorder categories:", error);
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Siralama guncellenemedi." },
+            { error: "Kategori sırası güncellenemedi." },
             {
-                status: error instanceof Error ? 400 : 500,
+                status: 500,
                 headers: buildRateLimitHeaders(rateLimit),
             }
         );
