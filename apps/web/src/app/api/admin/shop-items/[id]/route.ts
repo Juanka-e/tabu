@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { invalidateStoreCatalogCache } from "@/lib/cache/application-cache";
 import { shopItemUpdateSchema, toPrismaShopItemUpdateData } from "@/lib/cosmetics/shop-item-schema";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
@@ -87,6 +88,7 @@ export async function PUT(
             where: { id: parseInt(id) },
             data,
         });
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: "admin.shop-item.update",
@@ -147,6 +149,7 @@ export async function DELETE(
             where: { id: itemId },
             data: { isActive: false },
         });
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: "admin.shop-item.delete",
