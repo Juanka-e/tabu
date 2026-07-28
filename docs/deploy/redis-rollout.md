@@ -34,6 +34,10 @@ Asama 2 mevcut durum:
 - join tamamlanamazsa membership claim temizleniyor
 - socket disconnect sonrasinda kayit kontrollu sekilde serbest birakiliyor
 - pending admin handoff metadata'si TTL ile takip ediliyor ve reconnect / manuel devir / timeout sonrasinda temizleniyor
+- realtime instance kapasitesi 10 saniyelik heartbeat ve 30 saniyelik TTL ile yayinlaniyor
+- cluster kapasite okumasi Redis `MGET`, stale registry temizligi ve local fallback kullaniyor
+- admin kapasite karti oda, oyuncu, mac, spectator, socket, memory ve event-loop ozetini gosteriyor
+- admission kontrolu reconnect'i koruyor; kritik yogunlukta yeni oda acmayi once kapatiyor
 
 Asama 3:
 
@@ -92,3 +96,5 @@ Bir sonraki teknik hedef:
 - reconnect ve host handoff akislarini instance bagimsiz ele almak
 - authenticated room presence bilgisini istemci localStorage ipucundan daha az bagimli hale getirmek
 - bunun uzerine coklu instance smoke testleri eklemek
+- Socket.IO Redis adapter oncesinde heartbeat admission'i load test etmek
+- ancak olculen overshoot gerekiyorsa atomik global seat reservation eklemek

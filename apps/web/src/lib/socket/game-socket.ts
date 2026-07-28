@@ -42,6 +42,19 @@ import {
 } from "./room-admin-handoff";
 import { runWithRoomActionLock } from "./room-action-lock";
 import type { PlayerCosmetics } from "@/types/game";
+import type { CapacitySettings } from "@/types/system-settings";
+import { registerMetricsProvider } from "./room-metrics";
+import {
+    canMoveToTeam,
+    chooseJoinTeam,
+    evaluateCapacityAdmission,
+    getEffectiveRoomMaxPlayers,
+    resolveRoomStartDecision,
+} from "./room-capacity-policy";
+import {
+    getCapacityClusterSnapshot,
+    publishCapacityHeartbeat,
+} from "./room-capacity";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -92,6 +105,16 @@ interface GameStateData {
     bittiAt?: number | null;
 }
 
+interface MatchParticipantSnapshot {
+    playerId: string;
+    userId: number | null;
+    identityType: "registered" | "guest";
+    usernameSnapshot: string | null;
+    displayNameSnapshot: string;
+    teamAtStart: "A" | "B";
+    roleAtStart: "Oyuncu" | "Anlatıcı" | "Gözetmen" | "Tahminci";
+}
+
 interface RoomData {
     odaKodu: string;
     gameMode: GameModeId;
@@ -104,6 +127,7 @@ interface RoomData {
     seciliKategoriler?: number[];
     seciliZorluklar?: number[];
     oyunDurumu: GameStateData;
+    matchParticipants: MatchParticipantSnapshot[];
     zamanlayici: ReturnType<typeof setInterval> | null;
     banList: BanList;
 }
@@ -125,6 +149,7 @@ export interface RoomMatchSnapshot {
         usernameSnapshot: string | null;
         ad: string;
         takim: "A" | "B" | null;
+        roleAtStart: string;
     }>;
 }
 
@@ -163,6 +188,7 @@ const socketToRoom = sharedGameSocketState.socketToRoom;
 const registeredUserRoomIndex = sharedGameSocketState.registeredUserRoomIndex;
 const roomRegisteredUsersIndex = sharedGameSocketState.roomRegisteredUsersIndex;
 const socketMembershipHeartbeats = sharedGameSocketState.socketMembershipHeartbeats;
+let connectedSocketCountGetter: () => number = () => 0;
 
 // Rate limit settings from .env (can be disabled for localhost/testing)
 const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== "false";
@@ -261,6 +287,17 @@ const OyunVerisiSchema = z.object({
 // ─── Setup ─────────────────────────────────────────────────────
 
 export function setupGameSocket(io: Server): void {
+    connectedSocketCountGetter = () => io.engine.clientsCount;
+    registerMetricsProvider(getRoomMetrics);
+
+    function publishCurrentCapacity(): void {
+        void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(
+            (error) => {
+                console.error("Capacity heartbeat could not be published", error);
+            }
+        );
+    }
+
     function generateRoomCode(): string {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
@@ -292,6 +329,7 @@ export function setupGameSocket(io: Server): void {
         rooms.delete(roomCode);
         clearWordPool(roomCode);
         void clearPendingRoomAdminHandoff(roomCode);
+        publishCurrentCapacity();
     }
 
     function syncRegisteredUserRoomIndex(room: RoomData): void {
@@ -318,19 +356,38 @@ export function setupGameSocket(io: Server): void {
     }
 
     function broadcastLobby(room: RoomData): void {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const sanitizedPlayers = room.oyuncular.map(({ ip, cosmetics, ...rest }) => ({
-            ...rest,
-            cosmetics: cosmetics ?? createEmptyPlayerCosmetics(),
+        const publicPlayers = room.oyuncular.map((player) => ({
+            id: player.id,
+            playerId: player.playerId,
+            ad: player.ad,
+            takim: player.takim,
+            online: player.online,
+            rol: player.rol,
+            cosmetics: player.cosmetics ?? createEmptyPlayerCosmetics(),
         }));
+        const startDecision = resolveRoomStartDecision(
+            room.oyuncular.map((player) => ({
+                identityType: player.identityType,
+                team: player.takim,
+                role: player.rol,
+                online: player.online,
+            }))
+        );
         io.to(room.odaKodu).emit("lobiGuncelle", {
             odaKodu: room.odaKodu,
             creatorId: room.creatorId,
             creatorPlayerId: room.creatorPlayerId,
-            oyuncular: sanitizedPlayers,
+            oyuncular: publicPlayers,
             ayarlar: room.ayarlar,
             seciliKategoriler: room.seciliKategoriler || [],
             seciliZorluklar: room.seciliZorluklar || [],
+            startReadiness: {
+                ready: startDecision.allowed,
+                activePlayers: startDecision.activePlayers,
+                minimumPlayers: startDecision.minimumPlayers,
+                teamAPlayers: startDecision.teamAPlayers,
+                teamBPlayers: startDecision.teamBPlayers,
+            },
         });
     }
 
@@ -533,6 +590,7 @@ export function setupGameSocket(io: Server): void {
             );
             currentRoom.oyunDurumu.oyunAktifMi = false;
             persistRoom(currentRoom);
+            publishCurrentCapacity();
         }
     }
 
@@ -747,6 +805,7 @@ export function setupGameSocket(io: Server): void {
         if (room.zamanlayici) {
             clearInterval(room.zamanlayici);
         }
+        publishCurrentCapacity();
 
         io.to(room.odaKodu).emit("oyunBitti", {
             kazananTakim: finishDecision.winner,
@@ -754,18 +813,35 @@ export function setupGameSocket(io: Server): void {
         });
     }
 
-    function resetGame(room: RoomData): void {
+    function resetGame(
+        room: RoomData,
+        capacitySettings: CapacitySettings
+    ): void {
         if (room.zamanlayici) {
             clearInterval(room.zamanlayici);
         }
         room.oyunDurumu = createInitialGameState();
         room.oyunDurumu.kalanZaman = room.ayarlar.sure || 60;
         room.oyunDurumu.toplamTur = room.ayarlar.deger || 0;
+        room.matchParticipants = [];
 
         room.oyuncular.forEach((player) => {
-            if (player.rol === "İzleyici") {
+            if (player.rol !== "İzleyici" || !player.online) {
+                return;
+            }
+
+            const assignedTeam = chooseJoinTeam(
+                room.oyuncular.map((entry) => ({
+                    identityType: entry.identityType,
+                    team: entry.takim,
+                    role: entry.rol,
+                    online: entry.online,
+                })),
+                capacitySettings
+            );
+            if (assignedTeam) {
                 player.rol = "Oyuncu";
-                player.takim = "A";
+                player.takim = assignedTeam;
             }
         });
 
@@ -882,6 +958,49 @@ export function setupGameSocket(io: Server): void {
                         return;
                     }
 
+                    if (!existingPlayer) {
+                        const localMetrics = getLocalRoomCapacityMetrics();
+                        const cluster = await getCapacityClusterSnapshot(
+                            localMetrics
+                        );
+                        const admission = evaluateCapacityAdmission(
+                            {
+                                activeRooms: cluster.activeRooms,
+                                onlinePlayers: cluster.onlinePlayers,
+                            },
+                            settings.capacity
+                        );
+                        const admissionAllowed = requestedCode
+                            ? admission.allowJoin
+                            : admission.allowCreate;
+
+                        if (!admissionAllowed) {
+                            const message =
+                                admission.message ||
+                                "Sunucu şu anda yoğun. Lütfen kısa süre sonra tekrar deneyin.";
+                            socket.emit("kapasiteEngeli", {
+                                level: admission.level,
+                                retryAfterSeconds: 30,
+                                message,
+                            });
+                            socket.emit("hata", message);
+                            return;
+                        }
+
+                        if (
+                            room &&
+                            room.oyuncular.filter((entry) => entry.online)
+                                .length >=
+                                getEffectiveRoomMaxPlayers(settings.capacity)
+                        ) {
+                            socket.emit(
+                                "hata",
+                                `Bu oda dolu. Oda kapasitesi ${getEffectiveRoomMaxPlayers(settings.capacity)} oyuncu.`
+                            );
+                            return;
+                        }
+                    }
+
                     const captchaAction = !requestedCode
                         ? "room_create"
                         : !effectiveAuthUserId
@@ -921,6 +1040,7 @@ export function setupGameSocket(io: Server): void {
                             gecerliKategoriIdleri: [],
                             gecerliZorlukSeviyeleri: [],
                             oyunDurumu: createInitialGameState(),
+                            matchParticipants: [],
                             zamanlayici: null,
                             banList: {
                                 playerIds: new Set(),
@@ -1006,6 +1126,24 @@ export function setupGameSocket(io: Server): void {
                         }
                     } else {
                         const isSpectator = room.oyunDurumu.oyunAktifMi;
+                        const assignedTeam = isSpectator
+                            ? null
+                            : chooseJoinTeam(
+                                room.oyuncular.map((entry) => ({
+                                    identityType: entry.identityType,
+                                    team: entry.takim,
+                                    role: entry.rol,
+                                    online: entry.online,
+                                })),
+                                settings.capacity
+                            );
+                        if (!isSpectator && assignedTeam === null) {
+                            socket.emit(
+                                "hata",
+                                "Her iki takım da dolu. Lütfen daha sonra tekrar deneyin."
+                            );
+                            return;
+                        }
                         const yeniOyuncu: PlayerData = {
                             id: socket.id,
                             playerId: effectivePlayerId,
@@ -1013,7 +1151,7 @@ export function setupGameSocket(io: Server): void {
                             identityType,
                             usernameSnapshot,
                             ad: effectiveDisplayName,
-                            takim: isSpectator ? null : "A",
+                            takim: assignedTeam,
                             online: true,
                             rol: isSpectator ? "İzleyici" : "Oyuncu",
                             ip,
@@ -1051,6 +1189,7 @@ export function setupGameSocket(io: Server): void {
                     }
 
                     broadcastLobby(room);
+                    publishCurrentCapacity();
                 } catch (error) {
                     console.error("odaİsteği failed", error);
                     socket.emit(
@@ -1079,10 +1218,25 @@ export function setupGameSocket(io: Server): void {
             const player = room.oyuncular.find((p) => p.id === socket.id);
             if (!player || player.playerId !== room.creatorPlayerId) return;
             const lock = await runWithRoomActionLock(room.odaKodu, "shuffle-teams", 2_500, async () => {
-                shuffleArray(room.oyuncular);
-                const half = Math.ceil(room.oyuncular.length / 2);
-                room.oyuncular.forEach((player, index) => {
-                    player.takim = index < half ? "A" : "B";
+                const settings = await getSystemSettings();
+                const activePlayers = room.oyuncular.filter(
+                    (entry) => entry.rol !== "İzleyici"
+                );
+                if (
+                    activePlayers.length >
+                    settings.capacity.teamMaxPlayers * 2
+                ) {
+                    socket.emit(
+                        "hata",
+                        "Takımlar mevcut kapasite ayarıyla dengelenemiyor."
+                    );
+                    return;
+                }
+
+                shuffleArray(activePlayers);
+                const half = Math.ceil(activePlayers.length / 2);
+                activePlayers.forEach((entry, index) => {
+                    entry.takim = index < half ? "A" : "B";
                 });
                 persistRoom(room);
                 broadcastLobby(room);
@@ -1241,18 +1395,16 @@ export function setupGameSocket(io: Server): void {
                 const player = room.oyuncular.find((p) => p.id === socket.id);
                 if (!player || player.playerId !== room.creatorPlayerId) return;
                 const lock = await runWithRoomActionLock(room.odaKodu, "start-game", 4_000, async () => {
-                    const teamA = room.oyuncular.filter(
-                        (player) => player.takim === "A" && player.online
+                    const startDecision = resolveRoomStartDecision(
+                        room.oyuncular.map((entry) => ({
+                            identityType: entry.identityType,
+                            team: entry.takim,
+                            role: entry.rol,
+                            online: entry.online,
+                        }))
                     );
-                    const teamB = room.oyuncular.filter(
-                        (player) => player.takim === "B" && player.online
-                    );
-
-                    if (teamA.length < 2 || teamB.length < 2) {
-                        socket.emit(
-                            "hata",
-                            "Oyunu başlatabilmek için her iki takımda da en az ikişer çevrimiçi oyuncu bulunmalı."
-                        );
+                    if (!startDecision.allowed) {
+                        socket.emit("hata", startDecision.message);
                         return;
                     }
 
@@ -1278,6 +1430,24 @@ export function setupGameSocket(io: Server): void {
                     const toplamTur =
                         room.ayarlar.mod === "tur" ? room.ayarlar.deger : 0;
 
+                    room.matchParticipants = room.oyuncular
+                        .filter(
+                            (entry) =>
+                                entry.online &&
+                                entry.rol !== "İzleyici" &&
+                                (entry.takim === "A" ||
+                                    entry.takim === "B")
+                        )
+                        .map((entry) => ({
+                            playerId: entry.playerId,
+                            userId: entry.userId,
+                            identityType: entry.identityType,
+                            usernameSnapshot: entry.usernameSnapshot,
+                            displayNameSnapshot: entry.ad,
+                            teamAtStart: entry.takim as "A" | "B",
+                            roleAtStart: entry.rol as MatchParticipantSnapshot["roleAtStart"],
+                        }));
+
                     room.oyunDurumu = {
                         ...room.oyunDurumu,
                         oyunAktifMi: true,
@@ -1293,6 +1463,7 @@ export function setupGameSocket(io: Server): void {
                     };
 
                     persistRoom(room);
+                    publishCurrentCapacity();
                     io.to(room.odaKodu).emit("oyunBasladi");
                     startNewRound(room.odaKodu);
                 });
@@ -1362,7 +1533,8 @@ export function setupGameSocket(io: Server): void {
             if (!player || player.playerId !== room.creatorPlayerId) return;
 
             const lock = await runWithRoomActionLock(room.odaKodu, "reset-game", 4_000, async () => {
-                resetGame(room);
+                const settings = await getSystemSettings();
+                resetGame(room, settings.capacity);
                 persistRoom(room);
             });
             if (!lock.acquired) {
@@ -1374,13 +1546,40 @@ export function setupGameSocket(io: Server): void {
         }
 
         // ── Switch Team ──
-        const switchTeamHandler = () => {
+        const switchTeamHandler = async () => {
             const room = getRoomBySocketId(socket.id);
             if (!room || room.oyunDurumu.oyunAktifMi) return;
 
             const player = room.oyuncular.find((p) => p.id === socket.id);
-            if (!player) return;
-            player.takim = player.takim === "A" ? "B" : "A";
+            if (
+                !player ||
+                player.rol === "İzleyici" ||
+                (player.takim !== "A" && player.takim !== "B")
+            ) {
+                return;
+            }
+
+            const targetTeam = player.takim === "A" ? "B" : "A";
+            const settings = await getSystemSettings();
+            const canMove = canMoveToTeam(
+                room.oyuncular.map((entry) => ({
+                    identityType: entry.identityType,
+                    team: entry.takim,
+                    role: entry.rol,
+                    online: entry.online,
+                })),
+                targetTeam,
+                settings.capacity
+            );
+            if (!canMove) {
+                socket.emit(
+                    "hata",
+                    `${targetTeam} takımı dolu. Takım başına en fazla ${settings.capacity.teamMaxPlayers} oyuncu olabilir.`
+                );
+                return;
+            }
+
+            player.takim = targetTeam;
             persistRoom(room);
             broadcastLobby(room);
         };
@@ -1481,6 +1680,7 @@ export function setupGameSocket(io: Server): void {
             if (!player) return;
 
             player.online = false;
+            publishCurrentCapacity();
             if (typeof player.userId === "number") {
                 const hasOtherOnlineSession = room.oyuncular.some(
                     (entry) =>
@@ -1588,17 +1788,42 @@ export function setupGameSocket(io: Server): void {
 export function getRoomMetrics(): {
     aktifLobiSayisi: number;
     onlineKullaniciSayisi: number;
+    aktifMacSayisi: number;
+    izleyiciSayisi: number;
+    bagliSocketSayisi: number;
 } {
     let onlineKullaniciSayisi = 0;
+    let aktifMacSayisi = 0;
+    let izleyiciSayisi = 0;
     rooms.forEach((room) => {
         onlineKullaniciSayisi += room.oyuncular.filter(
             (player) => player.online
         ).length;
+        izleyiciSayisi += room.oyuncular.filter(
+            (player) => player.online && player.rol === "İzleyici"
+        ).length;
+        if (room.oyunDurumu.oyunAktifMi) {
+            aktifMacSayisi += 1;
+        }
     });
 
     return {
         aktifLobiSayisi: rooms.size,
         onlineKullaniciSayisi,
+        aktifMacSayisi,
+        izleyiciSayisi,
+        bagliSocketSayisi: connectedSocketCountGetter(),
+    };
+}
+
+export function getLocalRoomCapacityMetrics() {
+    const metrics = getRoomMetrics();
+    return {
+        activeRooms: metrics.aktifLobiSayisi,
+        activeMatches: metrics.aktifMacSayisi,
+        onlinePlayers: metrics.onlineKullaniciSayisi,
+        spectators: metrics.izleyiciSayisi,
+        connectedSockets: metrics.bagliSocketSayisi,
     };
 }
 
@@ -1779,6 +2004,24 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
         startedAt !== null
             ? Math.max(0, Math.round(((endedAt ?? Date.now()) - startedAt) / 1000))
             : null;
+    const matchParticipants =
+        room.matchParticipants?.length > 0
+            ? room.matchParticipants
+            : room.oyuncular
+                .filter(
+                    (player) =>
+                        player.rol !== "İzleyici" &&
+                        (player.takim === "A" || player.takim === "B")
+                )
+                .map((player) => ({
+                    playerId: player.playerId,
+                    userId: player.userId,
+                    identityType: player.identityType,
+                    usernameSnapshot: player.usernameSnapshot,
+                    displayNameSnapshot: player.ad,
+                    teamAtStart: player.takim as "A" | "B",
+                    roleAtStart: player.rol as MatchParticipantSnapshot["roleAtStart"],
+                }));
     return {
         odaKodu: room.odaKodu,
         gameMode: room.gameMode ?? TABU_MODE_ID,
@@ -1789,13 +2032,14 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
         sureSeconds,
         matchFormat: room.ayarlar.mod,
         matchTarget: room.ayarlar.deger,
-        oyuncular: room.oyuncular.map((player) => ({
+        oyuncular: matchParticipants.map((player) => ({
             playerId: player.playerId,
             userId: player.userId ?? null,
             identityType: player.identityType,
             usernameSnapshot: player.usernameSnapshot,
-            ad: player.ad,
-            takim: player.takim,
+            ad: player.displayNameSnapshot,
+            takim: player.teamAtStart,
+            roleAtStart: player.roleAtStart,
         })),
     };
 }

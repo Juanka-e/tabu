@@ -19,7 +19,8 @@
 
 | Event Name | Payload | Description |
 | :--- | :--- | :--- |
-| `lobiGuncelle` | `RoomData` | Broadcasts full room state (players, settings) to all clients. |
+| `lobiGuncelle` | `PublicRoomData` | Broadcasts public player fields, settings, selections and server-computed `startReadiness`. Internal `userId`, identity type, username snapshot and IP are not included. |
+| `kapasiteEngeli` | `{ level, retryAfterSeconds, message }` | Tells the requesting client that new admission is temporarily blocked. Internal capacity totals and thresholds are not included. |
 | `oyunDurumuGuncelle` | `GameState` | Broadcasts active game state (scores, timer, current card masked). |
 | `oyunBasladi` | `void` | Signals that the game has started. Clients switch to game view. |
 | `turGecisDurumGuncelle` | `{ oyunDurduruldu: boolean, kalanSure: number }` | Updates state during turn transitions. |

@@ -44,6 +44,8 @@ Ubuntu 24.04 uzerinde hedef sade model:
 2. `npm run build`
 3. Kritik smoke testler:
    - `npm run test:distributed-coordination`
+   - `npm run test:room-capacity-controls`
+   - `npm run test:economy-guardrails`
    - `npm run test:word-category-selection-ui`
    - `npm run test:card-flip-settings`
 4. MySQL backup cron aktif mi kontrol et.
@@ -55,6 +57,8 @@ Ubuntu 24.04 uzerinde hedef sade model:
 3. Oda oluştur / odaya dön akışı kontrol et.
 4. Redis bağlantısı ve rate limit fallback loglarını izle.
 5. Nginx TLS zinciri ve Cloudflare origin handshake kontrol et.
+6. Admin kapasite kartında instance, oda, oyuncu ve event-loop verisini kontrol et.
+7. Admission `closed` iken mevcut oyuncunun reconnect olabildiğini kontrol et.
 
 ## Rollback yaklaşımı
 

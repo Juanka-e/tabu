@@ -93,6 +93,13 @@ export default function RoomPage() {
     const [players, setPlayers] = useState<Player[]>([]);
     const [creatorId, setCreatorId] = useState("");
     const [creatorPlayerId, setCreatorPlayerId] = useState("");
+    const [startReadiness, setStartReadiness] = useState({
+        ready: false,
+        activePlayers: 0,
+        minimumPlayers: 2,
+        teamAPlayers: 0,
+        teamBPlayers: 0,
+    });
     const [pendingAdminHandoff, setPendingAdminHandoff] = useState<PendingAdminHandoffState | null>(null);
 
     // Settings
@@ -424,6 +431,9 @@ export default function RoomPage() {
                     setCreatorId(data.creatorId);
                     setCreatorPlayerId(data.creatorPlayerId || "");
                     setSettings(data.ayarlar);
+                    if (data.startReadiness) {
+                        setStartReadiness(data.startReadiness);
+                    }
                     if (data.seciliKategoriler) setSelectedCategories(data.seciliKategoriler);
                     if (data.seciliZorluklar) setSelectedDifficulties(data.seciliZorluklar);
                 });
@@ -813,7 +823,6 @@ export default function RoomPage() {
         return (
             <Lobby
                 roomCode={roomCode}
-                players={players}
                 settings={settings}
                 selectedCategories={selectedCategories}
                 selectedDifficulties={selectedDifficulties}
@@ -821,6 +830,7 @@ export default function RoomPage() {
                 creatorId={creatorId}
                 currentSocketId={socketId}
                 isHost={isHost as boolean}
+                startReadiness={startReadiness}
                 pendingAdminHandoff={pendingAdminHandoff}
                 onUpdateSettings={setSettings}
                 onInitialSet={(cats, diffs) => {

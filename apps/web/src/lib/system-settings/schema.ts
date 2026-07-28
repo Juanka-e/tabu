@@ -3,6 +3,7 @@ import {
     CAPTCHA_FAIL_MODES,
     CAPTCHA_PROVIDERS,
     CAPTCHA_TURNSTILE_MODES,
+    CAPACITY_ADMISSION_MODES,
     ECONOMY_DAMPING_PROFILES,
     type SystemSettings,
 } from "@/types/system-settings";
@@ -78,6 +79,35 @@ const economySettingsSchema = z.object({
     repeatedGroupMinMultiplier: z.number().min(0).max(1).default(0.55),
 });
 
+const capacitySettingsSchema = z
+    .object({
+        roomMaxPlayers: z.number().int().min(2).max(20).default(12),
+        teamMaxPlayers: z.number().int().min(1).max(10).default(6),
+        maxActiveRooms: z.number().int().min(1).max(100_000).default(500),
+        maxOnlinePlayers: z.number().int().min(2).max(1_000_000).default(5_000),
+        warningThresholdPercent: z.number().int().min(10).max(95).default(75),
+        criticalThresholdPercent: z.number().int().min(20).max(100).default(90),
+        admissionMode: z.enum(CAPACITY_ADMISSION_MODES).default("automatic"),
+        capacityMessage: trimmedLongText.default(
+            "Sunucu su anda yogun. Devam eden oyunlari korumak icin yeni oda islemleri gecici olarak sinirlandirildi. Lutfen kisa sure sonra tekrar deneyin."
+        ),
+    })
+    .refine(
+        (settings) => settings.teamMaxPlayers * 2 >= settings.roomMaxPlayers,
+        {
+            message: "Takim kapasitesi toplam oda kapasitesini karsilamali.",
+            path: ["teamMaxPlayers"],
+        }
+    )
+    .refine(
+        (settings) =>
+            settings.warningThresholdPercent < settings.criticalThresholdPercent,
+        {
+            message: "Uyari esigi kritik esikten dusuk olmali.",
+            path: ["warningThresholdPercent"],
+        }
+    );
+
 const captchaSettingsSchema = z.object({
     enabled: z.boolean().default(false),
     provider: z.enum(CAPTCHA_PROVIDERS).default("turnstile"),
@@ -100,6 +130,7 @@ export const systemSettingsSchema = z.object({
     branding: brandingSettingsSchema.default(brandingSettingsSchema.parse({})),
     features: featureSettingsSchema.default(featureSettingsSchema.parse({})),
     economy: economySettingsSchema.default(economySettingsSchema.parse({})),
+    capacity: capacitySettingsSchema.default(capacitySettingsSchema.parse({})),
     security: securitySettingsSchema.default(securitySettingsSchema.parse({})),
 });
 
@@ -108,6 +139,7 @@ export const systemSettingsWriteSchema = z.object({
     branding: brandingSettingsSchema,
     features: featureSettingsSchema,
     economy: economySettingsSchema,
+    capacity: capacitySettingsSchema,
     security: securitySettingsSchema,
 });
 
@@ -118,6 +150,7 @@ export const SYSTEM_SETTINGS_NAMESPACES = [
     "branding",
     "features",
     "economy",
+    "capacity",
     "security",
 ] as const satisfies readonly SystemSettingsNamespace[];
 

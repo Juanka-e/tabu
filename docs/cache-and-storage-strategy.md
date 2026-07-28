@@ -47,6 +47,7 @@ Redis/Valkey must never become the only place where the business truth exists.
 - cache invalidation fan-out
 - future websocket adapter state
 - future room presence / ephemeral coordination state
+- realtime instance capacity heartbeat and load-shedding summaries
 
 ## Current Pre-Redis Optimizations Already In Place
 
@@ -311,6 +312,28 @@ Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuze
 - reconnect grace-period helpers
 - cross-instance room transfer signals
 - registered `userId -> roomCode` shared presence index
+- short-TTL instance capacity snapshots and stale-instance registry cleanup
+
+## Current Capacity Coordination
+
+The room runtime now publishes a Redis-backed capacity heartbeat:
+
+- heartbeat interval: 10 seconds
+- instance snapshot TTL: 30 seconds
+- registry: `<prefix>:capacity:instances`
+- snapshot: `<prefix>:capacity:instance:<INSTANCE_ID>`
+- cluster reads prefer `MGET`
+- the current process replaces its stored snapshot with fresh local counters
+- Redis failures fall back to process-local metrics
+
+This data is disposable operational state. MySQL remains the source of truth for
+capacity settings. The heartbeat is suitable for warning/critical load shedding but
+is not an atomic global seat reservation. Exact room/team limits are still enforced
+by the process that owns the room.
+
+If multi-instance traffic later requires strict global admission, add a short-TTL
+atomic reservation counter with rollback/reconciliation. Do not add it before load
+tests show heartbeat threshold headroom is insufficient.
 
 ## What Still Stays In MySQL Even After Redis
 

@@ -9,11 +9,15 @@ type RedisSetOptions = {
 export interface RedisLikeClient {
     ping(): Promise<string>;
     get(key: string): Promise<string | null>;
+    mGet?(keys: string[]): Promise<Array<string | null>>;
     set(key: string, value: string, options?: RedisSetOptions): Promise<string | null>;
     del(key: string): Promise<number>;
     incr(key: string): Promise<number>;
     pExpire(key: string, milliseconds: number): Promise<number>;
     pTTL(key: string): Promise<number>;
+    sAdd?(key: string, member: string): Promise<number>;
+    sRem?(key: string, member: string): Promise<number>;
+    sMembers?(key: string): Promise<string[]>;
     eval(
         script: string,
         options: { keys: string[]; arguments: string[] }

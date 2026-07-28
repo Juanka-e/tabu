@@ -45,6 +45,7 @@ async function testGuestRoomEligibility(): Promise<void> {
                     usernameSnapshot: "testuser",
                     ad: "TestUser",
                     takim: "A",
+                    roleAtStart: "Oyuncu",
                 },
                 {
                     playerId: "guest:a",
@@ -53,6 +54,7 @@ async function testGuestRoomEligibility(): Promise<void> {
                     usernameSnapshot: null,
                     ad: "Guest A",
                     takim: "A",
+                    roleAtStart: "Oyuncu",
                 },
                 {
                     playerId: "guest:b",
@@ -61,6 +63,7 @@ async function testGuestRoomEligibility(): Promise<void> {
                     usernameSnapshot: null,
                     ad: "Guest B",
                     takim: "B",
+                    roleAtStart: "Oyuncu",
                 },
                 {
                     playerId: "guest:c",
@@ -69,6 +72,7 @@ async function testGuestRoomEligibility(): Promise<void> {
                     usernameSnapshot: null,
                     ad: "Guest C",
                     takim: "B",
+                    roleAtStart: "Oyuncu",
                 },
             ],
         },
@@ -80,6 +84,64 @@ async function testGuestRoomEligibility(): Promise<void> {
     assert.ok(result.reviewFlags.includes("guest_majority_room"));
     assert.ok(result.lineupKey);
     assert.equal(result.finalRewardCoin > 0, true);
+}
+
+async function testSpectatorCannotClaimReward(): Promise<void> {
+    const result = evaluateMatchRewardEligibility({
+        userId: 99,
+        existingMatchResult: null,
+        settings: normalizeSystemSettings({}),
+        now: new Date("2026-04-01T12:03:00.000Z"),
+        room: {
+            odaKodu: "SPEC01",
+            gameMode: "tabu",
+            oyunAktifMi: false,
+            skor: { A: 5, B: 3 },
+            matchStartedAt: "2026-04-01T12:00:00.000Z",
+            matchEndedAt: "2026-04-01T12:03:00.000Z",
+            sureSeconds: 180,
+            matchFormat: "skor",
+            matchTarget: 10,
+            oyuncular: [
+                {
+                    playerId: "user:99",
+                    userId: 99,
+                    identityType: "registered",
+                    usernameSnapshot: "spectator",
+                    ad: "Spectator",
+                    takim: null,
+                    roleAtStart: "İzleyici",
+                },
+            ],
+        },
+    });
+
+    assert.equal(result.decision, "deny");
+    assert.deepEqual(result.reasonCodes, ["spectator_not_eligible"]);
+}
+
+async function testUnfinishedMatchCannotClaimReward(): Promise<void> {
+    const result = evaluateMatchRewardEligibility({
+        userId: 99,
+        existingMatchResult: null,
+        settings: normalizeSystemSettings({}),
+        now: new Date("2026-04-01T12:03:00.000Z"),
+        room: {
+            odaKodu: "OPEN01",
+            gameMode: "tabu",
+            oyunAktifMi: false,
+            skor: { A: 0, B: 0 },
+            matchStartedAt: "2026-04-01T12:00:00.000Z",
+            matchEndedAt: null,
+            sureSeconds: 1,
+            matchFormat: "skor",
+            matchTarget: 10,
+            oyuncular: [],
+        },
+    });
+
+    assert.equal(result.decision, "deny");
+    assert.deepEqual(result.reasonCodes, ["match_not_completed"]);
 }
 
 async function testRepeatedGroupDamping(): Promise<void> {
@@ -138,6 +200,8 @@ async function testSafetyCeiling(): Promise<void> {
 
 async function main(): Promise<void> {
     await testGuestRoomEligibility();
+    await testSpectatorCannotClaimReward();
+    await testUnfinishedMatchCannotClaimReward();
     await testRepeatedGroupDamping();
     await testSafetyCeiling();
     console.log("economy guardrails smoke test passed");

@@ -28,6 +28,7 @@ function toAuditLineupIdentities(
     usernameSnapshot: string | null;
     displayNameSnapshot: string;
     team: "A" | "B" | null;
+    roleAtStart: string;
   }[]
 ): Prisma.InputJsonValue {
   return lineupIdentities.map((entry) => ({
@@ -37,6 +38,7 @@ function toAuditLineupIdentities(
     usernameSnapshot: entry.usernameSnapshot,
     displayNameSnapshot: entry.displayNameSnapshot,
     team: entry.team,
+    roleAtStart: entry.roleAtStart,
   })) as Prisma.InputJsonValue;
 }
 
@@ -164,6 +166,13 @@ export async function POST(req: Request) {
 
       if (primaryReason === "participant_not_found") {
         return NextResponse.json({ error: "Oyuncu dogrulanamadi." }, { status: 403 });
+      }
+
+      if (primaryReason === "spectator_not_eligible") {
+        return NextResponse.json(
+          { error: "Izleyiciler mevcut mac icin coin odulu alamaz." },
+          { status: 403 }
+        );
       }
 
       return NextResponse.json({ error: "Mac odulu icin uygunluk saglanamadi." }, { status: 409 });

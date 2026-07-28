@@ -44,6 +44,7 @@ function buildRoomMetrics(room: RoomMatchSnapshot | null): RewardRoomMetrics {
             usernameSnapshot: player.usernameSnapshot,
             displayNameSnapshot: player.ad,
             team: player.takim,
+            roleAtStart: player.roleAtStart,
         })),
     };
 }
@@ -122,7 +123,11 @@ export function evaluateMatchRewardEligibility(input: {
         };
     }
 
-    if (room.oyunAktifMi) {
+    if (
+        room.oyunAktifMi ||
+        room.matchStartedAt === null ||
+        room.matchEndedAt === null
+    ) {
         return {
             source: "match_reward",
             decision: "deny",
@@ -138,6 +143,16 @@ export function evaluateMatchRewardEligibility(input: {
             source: "match_reward",
             decision: "deny",
             reasonCodes: ["participant_not_found"],
+            reviewFlags,
+            roomMetrics,
+        };
+    }
+
+    if (participant.roleAtStart === "İzleyici") {
+        return {
+            source: "match_reward",
+            decision: "deny",
+            reasonCodes: ["spectator_not_eligible"],
             reviewFlags,
             roomMetrics,
         };

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
     AlertTriangle,
     Coins,
+    Gauge,
     ImagePlus,
     Paintbrush2,
     RefreshCcw,
@@ -43,6 +44,12 @@ const sections = [
         label: "Ekonomi",
         description: "Coin, odul ve magaza carpani davranislari.",
         icon: Coins,
+    },
+    {
+        key: "capacity",
+        label: "Kapasite",
+        description: "Oda sınırları, yoğunluk eşikleri ve admission kontrolü.",
+        icon: Gauge,
     },
     {
         key: "security",
@@ -204,7 +211,9 @@ export default function SystemSettingsPage() {
     const [uploadingAsset, setUploadingAsset] = useState<"logo" | "favicon" | "og" | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [activeSection, setActiveSection] = useState<"platform" | "branding" | "economy" | "security">("branding");
+    const [activeSection, setActiveSection] = useState<
+        "platform" | "branding" | "economy" | "capacity" | "security"
+    >("branding");
     const [activeEconomyPanel, setActiveEconomyPanel] = useState<"base" | "guard" | "group">("base");
 
     const loadSettings = useCallback(async () => {
@@ -888,6 +897,188 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            ) : null}
+
+            {activeSection === "capacity" ? (
+                <div className="space-y-5">
+                    <Card className="border-border/70">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <Gauge className="h-5 w-5" />
+                                Oda ve Takım Kapasitesi
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                                <p className="font-semibold text-foreground">Kod seviyesi güvenlik sınırı</p>
+                                <p>
+                                    Bir oda en fazla 20, bir takım en fazla 10 oyuncu alabilir.
+                                    Buradaki değerleri düşürebilirsin; mevcut oyuncular atılmaz,
+                                    yalnız yeni giriş ve takım geçişleri yeni sınıra göre kontrol edilir.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Oda Başına Oyuncu"
+                                        helper="İzleyiciler dahil toplam çevrimiçi kapasite. Önerilen başlangıç: 12."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="2"
+                                        max="20"
+                                        value={payload.settings.capacity.roomMaxPlayers}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "roomMaxPlayers", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Takım Başına Oyuncu"
+                                        helper="Aktif takım oyuncuları için sınır. İki takımın toplam kapasitesi oda sınırını karşılamalı; izleyiciler takım sayısına dahil değildir."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        value={payload.settings.capacity.teamMaxPlayers}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "teamMaxPlayers", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                                <span className="font-semibold text-foreground">Başlangıç kuralı:</span>{" "}
+                                Tamamı misafir olan odalar 2 aktif oyuncuyla başlayabilir.
+                                En az bir kayıtlı hesap varsa minimum 4 aktif oyuncu gerekir.
+                                Her iki takımda en az bir oyuncu bulunmalı; izleyiciler sayılmaz.
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-border/70">
+                        <CardHeader>
+                            <CardTitle className="text-xl">Sunucu Admission Kontrolü</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Çalışma Modu"
+                                        helper="Automatic eşiklere göre, Open zorla açık, Closed yeni işlemlere kapalıdır."
+                                    />
+                                    <select
+                                        className={inputClassName}
+                                        value={payload.settings.capacity.admissionMode}
+                                        onChange={(event) =>
+                                            updatePayload(
+                                                "capacity",
+                                                "admissionMode",
+                                                event.target.value as SystemSettingsResponse["settings"]["capacity"]["admissionMode"]
+                                            )
+                                        }
+                                    >
+                                        <option value="automatic">Automatic</option>
+                                        <option value="open">Open</option>
+                                        <option value="closed">Closed</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Maksimum Aktif Oda"
+                                        helper="Tüm canlı instance'ların Redis üzerinden toplanan oda sınırı."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="1"
+                                        max="100000"
+                                        value={payload.settings.capacity.maxActiveRooms}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "maxActiveRooms", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Maksimum Online Oyuncu"
+                                        helper="Tüm instance'ların toplam çevrimiçi oyuncu sınırı."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="2"
+                                        max="1000000"
+                                        value={payload.settings.capacity.maxOnlinePlayers}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "maxOnlinePlayers", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Uyarı Eşiği (%)"
+                                        helper="Bu seviyede panel uyarı verir, create/join açık kalır."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="10"
+                                        max="95"
+                                        value={payload.settings.capacity.warningThresholdPercent}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "warningThresholdPercent", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <FieldLabel
+                                        label="Kritik Eşik (%)"
+                                        helper="Automatic modda yeni oda oluşturma kapanır; mevcut odaya katılım kapasite dolana kadar sürer."
+                                    />
+                                    <input
+                                        className={inputClassName}
+                                        type="number"
+                                        min="20"
+                                        max="100"
+                                        value={payload.settings.capacity.criticalThresholdPercent}
+                                        onChange={(event) =>
+                                            updatePayload("capacity", "criticalThresholdPercent", Number(event.target.value))
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <FieldLabel
+                                    label="Yoğunluk Mesajı"
+                                    helper="Yeni oda veya katılım geçici olarak engellendiğinde oyuncuya gösterilir."
+                                />
+                                <textarea
+                                    className={`${inputClassName} min-h-24 resize-y`}
+                                    value={payload.settings.capacity.capacityMessage}
+                                    onChange={(event) =>
+                                        updatePayload("capacity", "capacityMessage", event.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                                Reconnect istekleri admission durumundan bağımsız olarak önceliklidir.
+                                Devam eden oyunlar durdurulmaz ve içerideki oyuncular yoğunluk nedeniyle atılmaz.
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             ) : null}
 
             {activeSection === "security" ? (
