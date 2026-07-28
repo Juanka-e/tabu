@@ -374,7 +374,13 @@ Onerilen implementasyon sirasi:
 - coklu instance gecisi icin sticky session, owner forwarding, recovery ve
   failover kabul kapisi
 
-12. `feature/mobile-api-foundation`
+12. `feature/audit-telemetry-rollup-foundation` - tamamlandi
+- signal-first finalize audit siniflandirmasi
+- temiz finalize olaylari icin PII'siz Redis gunluk counter
+- Redis arizasinda odulu etkilemeden detayli audit fallback
+- health metrikleri ve gercek Redis Lua/TTL testi
+
+13. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails

@@ -543,6 +543,19 @@ Mevcut implementasyon:
   gorunumu operasyon ekibi tarafindan kabul edildikten sonra acilir
 - jobs process varsayilan olarak ayri ve dusuk bir DB pool (`3`) kullanir;
   `JOBS_DATABASE_CONNECTION_LIMIT` ile ayarlanabilir
+- non-triggered `game.match.finalize` olaylari production'da PII icermeyen
+  UTC gunluk Redis rollup'ina gider
+- review flag, repeated-group veya safety-ceiling sinyali olan finalize olaylari
+  lineup ve guard metadata'siyla tam audit olarak kalir
+- telemetry rollup yalniz toplam mac, coin, sure, oyuncu, kayitli/misafir ve
+  galibiyet sayaclarini tutar; user id, player id, IP, oda kodu ve lineup tutmaz
+- Redis kullanilamazsa finalize basarisiz olmaz ve olay mevcut detayli audit
+  yoluna geri duser
+- `match_results` her durumda kalici mac/odul truth'u olmaya devam eder
+- telemetry counter varsayilani 45 gun TTL'dir; bu operasyonel trend verisidir,
+  moderation veya finansal ledger degildir
+- health endpointi attempted, recorded, audit fallback ve son basari/hata
+  zamanlarini `telemetry.matchFinalize` altinda gosterir
 
 Komutlar:
 
@@ -559,7 +572,7 @@ docker compose --profile jobs run --rm jobs
 
 Redis/Valkey burada sunlari hizlandirabilir:
 - archive job coordination lock'lari
-- telemetry counter / aggregation
+- telemetry counter / aggregation - non-triggered finalize icin uygulandi
 - unread / review queue counter'lari
 
 Ama audit truth ve admin inceleme izi yine MySQL/kalici storage tarafinda kalmalidir.

@@ -41,21 +41,24 @@ Ubuntu 24.04 üzerinde hedef sade model:
 9. `INSTANCE_ID=hushle-app-1`
 10. `REALTIME_TOPOLOGY=single-writer`
 11. `REALTIME_REPLICA_COUNT=1`
+12. `MATCH_FINALIZE_TELEMETRY_ROLLUP_ENABLED=true`
+13. `TELEMETRY_ROLLUP_RETENTION_DAYS=45`
 
 ## Deploy Öncesi
 
 1. `main` branch temiz ve build alıyor mu kontrol et.
 2. `npm run build`
 3. `npm run test:realtime-topology`
-4. Kritik smoke testleri çalıştır:
+4. `npm run test:telemetry-rollup`
+5. Kritik smoke testleri çalıştır:
    - `npm run test:distributed-coordination`
    - `npm run test:room-capacity-controls`
    - `npm run test:economy-guardrails`
    - `npm run test:word-category-selection-ui`
    - `npm run test:card-flip-settings`
-5. Nginx upstream'inin yalnız `app:3000` içerdiğini doğrula.
-6. Compose tarafında tek `app` container çalıştığını doğrula.
-7. MySQL backup cron aktif mi kontrol et.
+6. Nginx upstream'inin yalnız `app:3000` içerdiğini doğrula.
+7. Compose tarafında tek `app` container çalıştığını doğrula.
+8. MySQL backup cron aktif mi kontrol et.
 
 ## Deploy Sonrası
 
@@ -69,6 +72,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 8. Nginx TLS zinciri ve Cloudflare origin handshake kontrolü yap.
 9. Admin kapasite kartında instance, oda, oyuncu ve event-loop verisini kontrol et.
 10. Admission `closed` iken mevcut oyuncunun reconnect olabildiğini kontrol et.
+11. `telemetry.matchFinalize` altında recorded ve audit fallback sayaçlarını izle.
+12. Audit fallback sürekli artıyorsa Redis erişimini kontrol et.
 
 ## Realtime Ölçekleme Engeli
 

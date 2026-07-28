@@ -33,6 +33,8 @@
     "test:room-ownership-redis": "tsx scripts/test-room-ownership-redis-integration.ts",
     "test:room-routing": "tsx scripts/test-room-routing.ts",
     "test:realtime-topology": "tsx scripts/test-realtime-topology.ts",
+    "test:telemetry-rollup": "tsx scripts/test-telemetry-rollup.ts",
+    "test:telemetry-rollup-redis": "tsx scripts/test-telemetry-rollup-redis-integration.ts",
     "test:admin-dashboard-cache": "tsx scripts/test-admin-dashboard-cache.ts",
     "typecheck:packages": "tsc -p packages/domain-game/tsconfig.json && tsc -p packages/platform-cache/tsconfig.json && tsc -p packages/platform-db/tsconfig.json && tsc -p apps/jobs/tsconfig.json",
     "test:package-boundaries": "tsx scripts/test-package-boundaries.ts",
