@@ -107,8 +107,9 @@ the room-owning process.
 
 Before multiple realtime writers own the same room:
 
-- add the Socket.IO Redis adapter for event fan-out
-- define single-writer room ownership or a versioned shared room-state protocol
+- Socket.IO Redis adapter event fan-out foundation is implemented, default off
+- create-only single-writer Redis lease foundation is implemented, default off
+- add owner-aware routing, command forwarding and restart recovery
 - add atomic global admission reservations only if production load proves necessary
 - load test reconnect, host handoff, duplicate join, and reward finalization
 
@@ -129,3 +130,5 @@ into Redis.
 Automated load and manual admin scenarios are maintained in:
 
 - `docs/guides/room-capacity-load-validation-checklist.md`
+- `npm run test:room-ownership`
+- `ROOM_OWNERSHIP_REDIS_TEST=true npm run test:room-ownership-redis`

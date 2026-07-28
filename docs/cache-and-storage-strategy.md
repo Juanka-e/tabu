@@ -217,6 +217,17 @@ Redis adapter foundation is implemented but disabled by default:
   declaration, room-state backend and `multiInstanceReady`.
 - The integration test starts two Socket.IO runtimes and verifies cross-instance
   room fan-out through Redis.
+- The room ownership lease foundation is also implemented but disabled by default.
+  When enabled, room creation claims a token-protected Redis lease before the room
+  becomes visible in process memory.
+- A single runtime heartbeat renews all locally tracked leases. Release and renew
+  use compare-by-token Lua scripts, so a stale process cannot modify a new owner's
+  lease.
+- Lease conflicts, lost leases, renew failures and current ownership counts are
+  reported under `/api/health`. Enabled-but-unavailable ownership reports
+  `status: degraded` without terminating active matches.
+- Once a runtime observes a different owner, its local lease stays terminally
+  `lost`; it cannot become a zombie owner by reclaiming the key later.
 
 This foundation does not make realtime multi-instance safe. Authoritative room
 maps, turn timers, host transfer and registered-user room indexes still live in
@@ -232,7 +243,8 @@ Before increasing realtime replicas:
 
 1. Define stable `roomCode -> owning instance` routing.
 2. Add sticky sessions for Socket.IO polling or intentionally remove polling.
-3. Store room ownership as a renewable Redis lease with stale-owner recovery.
+3. Implemented foundation: renewable room ownership lease and stale-owner
+   detection. It currently protects creation only.
 4. Route cross-instance room commands to the owner or move authoritative room
    state behind a concurrency-safe shared state machine.
 5. Define reconnect, owner restart, timer recovery and split-brain behavior.
@@ -388,7 +400,8 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 ### Phase 4
 - if PM2 multi-instance realtime becomes standard:
   - enable the tested Socket.IO Redis adapter foundation
-  - add room ownership and command-routing strategy
+  - enable the tested create-only room ownership lease foundation
+  - add owner-aware request routing and command forwarding
   - add sticky sessions or remove polling transport
   - add room/lobby authoritative shared coordination and recovery semantics
 
@@ -418,6 +431,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 
 ### Realtime / Multi-instance
 - implemented: Socket.IO adapter pub/sub foundation
+- implemented: create-only room ownership lease, renew and token-safe release
 - room presence coordination
 - reconnect grace-period helpers
 - cross-instance room transfer signals
