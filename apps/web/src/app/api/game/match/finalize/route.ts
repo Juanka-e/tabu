@@ -131,7 +131,10 @@ export async function POST(req: Request) {
             authenticatedPlayers: evaluation.roomMetrics.authenticatedPlayers,
             guestPlayers: evaluation.roomMetrics.guestPlayers,
             matchStartedAt: evaluation.roomMetrics.matchStartedAt,
+            matchEndedAt: room?.matchEndedAt ?? null,
             sureSeconds: evaluation.roomMetrics.sureSeconds,
+            matchFormat: room?.matchFormat ?? null,
+            matchTarget: room?.matchTarget ?? null,
             lineupPlayers: evaluation.roomMetrics.lineupPlayers,
             lineupIdentities: toAuditLineupIdentities(
               evaluation.roomMetrics.lineupIdentities
@@ -192,6 +195,10 @@ export async function POST(req: Request) {
         INSERT INTO match_results (
           room_code,
           match_started_at,
+          match_ended_at,
+          match_duration_seconds,
+          match_format,
+          match_target,
           game_type,
           user_id,
           player_id,
@@ -207,6 +214,10 @@ export async function POST(req: Request) {
         ) VALUES (
           ${room.odaKodu},
           ${matchStartedAt ?? new Date()},
+          ${room.matchEndedAt ? new Date(room.matchEndedAt) : null},
+          ${evaluation.roomMetrics.sureSeconds},
+          ${room.matchFormat},
+          ${room.matchTarget},
           ${"tabu"},
           ${sessionUser.id},
           ${evaluation.participantPlayerId},
@@ -290,7 +301,10 @@ export async function POST(req: Request) {
         authenticatedPlayers: evaluation.roomMetrics.authenticatedPlayers,
         guestPlayers: evaluation.roomMetrics.guestPlayers,
         matchStartedAt: evaluation.roomMetrics.matchStartedAt,
+        matchEndedAt: room.matchEndedAt,
         sureSeconds: evaluation.roomMetrics.sureSeconds,
+        matchFormat: room.matchFormat,
+        matchTarget: room.matchTarget,
         lineupPlayers: evaluation.roomMetrics.lineupPlayers,
         lineupIdentities: toAuditLineupIdentities(
           evaluation.roomMetrics.lineupIdentities

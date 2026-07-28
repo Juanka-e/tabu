@@ -18,18 +18,16 @@ apps/
   jobs/       -> scheduled jobs, retention, archive, background workflows
 ```
 
-## Simdiki Karar
+## Simdiki Durum
 
-Bu repo su anda halen tek uygulama olarak calisiyor.
+- `apps/web` gercek Next.js + Socket.IO runtime'idir
+- `apps/jobs` gercek one-shot retention/background runtime'idir
+- `apps/api` mobil/public API ihtiyaci dogana kadar bilincli scaffold'dur
+- root `package.json` workspace orchestration ve ortak komutlari yonetir
+- paylasilan platform/domain kodlari `packages/*` sinirinda buyur
 
-Root `package.json`, `apps/*` ve `packages/*` yollarini npm workspace siniri
-olarak ayirir. Mevcut uygulama extraction tamamlanana kadar repo kokunden
-calismaya devam eder.
-
-Bu klasorun eklenmesi:
-
-- hemen kod tasima baslatmak icin degil
-- kontrollu migration plani icin
+Bugun icin planlanan apps migration tamamlanmistir. `apps/api`yi ihtiyac
+olmadan calisan bos bir servise donusturmek hedef degildir.
 
 ## Migration Kurali
 

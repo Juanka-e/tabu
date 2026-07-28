@@ -114,7 +114,10 @@ export interface RoomMatchSnapshot {
     oyunAktifMi: boolean;
     skor: { A: number; B: number };
     matchStartedAt: string | null;
+    matchEndedAt: string | null;
     sureSeconds: number | null;
+    matchFormat: TabuRoomSettings["mod"];
+    matchTarget: number;
     oyuncular: Array<{
         playerId: string;
         userId: number | null;
@@ -1782,7 +1785,10 @@ export function getRoomMatchSnapshot(roomCode: string): RoomMatchSnapshot | null
         oyunAktifMi: room.oyunDurumu.oyunAktifMi,
         skor: room.oyunDurumu.skor,
         matchStartedAt: startedAt !== null ? new Date(startedAt).toISOString() : null,
+        matchEndedAt: endedAt !== null ? new Date(endedAt).toISOString() : null,
         sureSeconds,
+        matchFormat: room.ayarlar.mod,
+        matchTarget: room.ayarlar.deger,
         oyuncular: room.oyuncular.map((player) => ({
             playerId: player.playerId,
             userId: player.userId ?? null,

@@ -181,6 +181,7 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([action, createdAt])
   @@index([resourceType, createdAt])
+  @@index([resourceType, resourceId])
   @@map("audit_logs")
 }
 
@@ -204,6 +205,7 @@ model AuditLogArchive {
   @@index([actorRole, originalCreatedAt])
   @@index([action, originalCreatedAt])
   @@index([resourceType, originalCreatedAt])
+  @@index([resourceType, resourceId])
   @@index([archivedAt])
   @@map("audit_log_archives")
 }
@@ -583,6 +585,10 @@ model MatchResult {
   id                       Int      @id @default(autoincrement())
   roomCode                 String   @map("room_code") @db.VarChar(12)
   matchStartedAt           DateTime @default(now()) @map("match_started_at")
+  matchEndedAt             DateTime? @map("match_ended_at")
+  matchDurationSeconds     Int?     @map("match_duration_seconds")
+  matchFormat              String?  @map("match_format") @db.VarChar(20)
+  matchTarget              Int?     @map("match_target")
   gameType                 String   @default("tabu") @map("game_type") @db.VarChar(30)
   userId                   Int      @map("user_id")
   playerId                 String   @map("player_id") @db.VarChar(64)
