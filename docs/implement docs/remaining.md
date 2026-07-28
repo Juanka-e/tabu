@@ -4,9 +4,9 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `test/room-capacity-load-validation`
-2. `feature/post-launch-economy-observability-review`
-3. `feature/cache-and-rate-limit-foundation`
+1. `test/room-capacity-final-validation`
+2. `feature/cache-and-rate-limit-foundation`
+3. `feature/post-launch-economy-observability-review`
 4. `feature/audit-retention-and-telemetry-foundation`
 5. `feature/admin-promotions-ux`
 6. `feature/cosmetic-render-upgrade`
@@ -23,7 +23,7 @@
 
 ## Aktif Branch
 
-### `test/room-capacity-load-validation`
+### `test/room-capacity-final-validation`
 
 Tamamlananlar:
 - paralel join sirasinda ikinci atomik room-cap kontrolu
@@ -36,10 +36,13 @@ Tamamlananlar:
 - `closed` admission altinda create/join red ve mevcut guest reconnect testi
 - test sonrasi system settings, audit ve gecici kullanici DB restorasyonu
 - Next route ve Socket.IO runtime icin process-global settings cache invalidation
+- Next admin route ve Socket.IO runtime icin process-global canli room metrics provider
+- mevcut oyunculari atmadan room/team limit dusurme ve tekrar yukseltme testi
+- warning, critical ve closed admin capacity health API karar testi
+- gercek mac akisi ile late spectator finalize red, sifir coin ve denied audit testi
 
 Acik kalanlar:
-- limit dusurme ve late-spectator finalize manuel turu
-- admin health warning/critical gorunum turu
+- admin health kartinin masaustu ve mobilde son gorsel smoke turu
 
 Referans:
 - `docs/guides/room-rules-and-capacity-controls-guide.md`

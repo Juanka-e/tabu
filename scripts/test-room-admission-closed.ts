@@ -19,6 +19,7 @@ interface LobbyPayload {
         playerId: string;
         ad: string;
         online: boolean;
+        takim: "A" | "B" | null;
     }>;
     startReadiness: {
         activePlayers: number;
@@ -35,6 +36,22 @@ interface CapacityBlock {
     level: string;
     retryAfterSeconds: number;
     message: string;
+}
+
+interface CapacityHealth {
+    redis: {
+        available: boolean;
+    };
+    cluster: {
+        activeRooms: number;
+        onlinePlayers: number;
+        connectedSockets: number;
+    };
+    admission: {
+        level: "normal" | "warning" | "critical" | "closed";
+        allowCreate: boolean;
+        allowJoin: boolean;
+    };
 }
 
 function assertSafeMutationTarget(): void {
@@ -134,6 +151,17 @@ async function writeSettings(
     assert.equal(response.ok, true, payload.error);
     assert.ok(payload.settings);
     return payload.settings;
+}
+
+async function readCapacityHealth(cookie: string): Promise<CapacityHealth> {
+    const response = await fetch(`${serverUrl}/api/admin/capacity-health`, {
+        headers: { cookie },
+    });
+    const payload = (await response.json()) as CapacityHealth & {
+        error?: string;
+    };
+    assert.equal(response.ok, true, payload.error);
+    return payload;
 }
 
 function connectGuest(options: {
@@ -263,6 +291,46 @@ function waitForActivePlayers(
     });
 }
 
+function waitForSocketError(
+    socket: Socket,
+    action: () => void,
+    expected: RegExp
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            socket.off("hata", handleError);
+            reject(new Error(`Expected socket error ${expected} timed out`));
+        }, timeoutMs);
+        const handleError = (message: string) => {
+            if (!expected.test(String(message))) return;
+            clearTimeout(timeout);
+            socket.off("hata", handleError);
+            resolve(String(message));
+        };
+        socket.on("hata", handleError);
+        action();
+    });
+}
+
+async function waitForCapacityHealth(
+    cookie: string,
+    predicate: (health: CapacityHealth) => boolean,
+    label: string
+): Promise<CapacityHealth> {
+    const deadline = Date.now() + timeoutMs;
+    let latest: CapacityHealth | null = null;
+
+    while (Date.now() < deadline) {
+        latest = await readCapacityHealth(cookie);
+        if (predicate(latest)) return latest;
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+
+    throw new Error(
+        `${label} capacity health timed out: ${JSON.stringify(latest)}`
+    );
+}
+
 async function restoreRawSettingsRows(
     originalRows: Array<{
         key: string;
@@ -331,15 +399,145 @@ async function run(): Promise<void> {
         });
         sockets.push(host.socket, reconnectTarget.socket);
 
-        const closedSettings = await writeSettings(adminCookie, {
+        const third = await connectGuest({
+            name: "DynamicLimitThird",
+            roomCode: host.lobby.odaKodu,
+        });
+        const fourth = await connectGuest({
+            name: "DynamicLimitFourth",
+            roomCode: host.lobby.odaKodu,
+        });
+        sockets.push(third.socket, fourth.socket);
+
+        const warningSettings = await writeSettings(adminCookie, {
             ...originalSettings,
             capacity: {
                 ...originalSettings.capacity,
-                admissionMode: "closed",
+                admissionMode: "automatic",
+                maxActiveRooms: 2,
+                maxOnlinePlayers: 100,
+                warningThresholdPercent: 50,
+                criticalThresholdPercent: 75,
             },
         });
         settingsChanged = true;
+        assert.equal(warningSettings.capacity.admissionMode, "automatic");
+        const warningHealth = await waitForCapacityHealth(
+            adminCookie,
+            (health) => health.admission.level === "warning",
+            "warning"
+        );
+        assert.equal(warningHealth.redis.available, true);
+        assert.equal(warningHealth.admission.allowCreate, true);
+        assert.equal(warningHealth.admission.allowJoin, true);
+        assert.ok(warningHealth.cluster.activeRooms >= 1);
+        assert.ok(warningHealth.cluster.onlinePlayers >= 4);
+        assert.ok(warningHealth.cluster.connectedSockets >= 4);
+
+        await writeSettings(adminCookie, {
+            ...warningSettings,
+            capacity: {
+                ...warningSettings.capacity,
+                maxActiveRooms: 1,
+            },
+        });
+        const criticalHealth = await waitForCapacityHealth(
+            adminCookie,
+            (health) => health.admission.level === "critical",
+            "critical"
+        );
+        assert.equal(criticalHealth.admission.allowCreate, false);
+        assert.equal(criticalHealth.admission.allowJoin, true);
+        const criticalCreateBlock = await expectCapacityBlock({
+            name: "CriticalModeCreate",
+        });
+        assert.equal(criticalCreateBlock.level, "critical");
+
+        const criticalJoin = await connectGuest({
+            name: "CriticalModeJoin",
+            roomCode: host.lobby.odaKodu,
+        });
+        sockets.push(criticalJoin.socket);
+
+        const loweredSettings = await writeSettings(adminCookie, {
+            ...warningSettings,
+            capacity: {
+                ...warningSettings.capacity,
+                admissionMode: "open",
+                roomMaxPlayers: 2,
+                teamMaxPlayers: 1,
+                maxActiveRooms: 100,
+            },
+        });
+        const loweredHealth = await waitForCapacityHealth(
+            adminCookie,
+            (health) => health.admission.level === "normal",
+            "open mode"
+        );
+        assert.equal(loweredHealth.admission.allowCreate, true);
+        assert.equal(loweredHealth.admission.allowJoin, true);
+        assert.equal(
+            criticalJoin.lobby.oyuncular.filter((player) => player.online)
+                .length,
+            5
+        );
+
+        await assert.rejects(
+            connectGuest({
+                name: "LoweredRoomJoin",
+                roomCode: host.lobby.odaKodu,
+            }),
+            /oda dolu/i
+        );
+
+        const switchCandidate =
+            criticalJoin.lobby.oyuncular.find(
+                (player) => player.playerId === third.identity.playerId
+            ) ?? criticalJoin.lobby.oyuncular[0];
+        const switchSocket =
+            switchCandidate.playerId === third.identity.playerId
+                ? third.socket
+                : host.socket;
+        await waitForSocketError(
+            switchSocket,
+            () => switchSocket.emit("takim_degistir"),
+            /takımı dolu/i
+        );
+
+        const raisedSettings = await writeSettings(adminCookie, {
+            ...loweredSettings,
+            capacity: {
+                ...loweredSettings.capacity,
+                roomMaxPlayers: 6,
+                teamMaxPlayers: 3,
+            },
+        });
+        const resumedJoin = await connectGuest({
+            name: "RaisedLimitJoin",
+            roomCode: host.lobby.odaKodu,
+        });
+        sockets.push(resumedJoin.socket);
+        assert.equal(
+            resumedJoin.lobby.oyuncular.filter((player) => player.online)
+                .length,
+            6
+        );
+
+        const closedSettings = await writeSettings(adminCookie, {
+            ...raisedSettings,
+            capacity: {
+                ...raisedSettings.capacity,
+                admissionMode: "closed",
+            },
+        });
         assert.equal(closedSettings.capacity.admissionMode, "closed");
+        const closedHealth = await waitForCapacityHealth(
+            adminCookie,
+            (health) => health.admission.level === "closed",
+            "closed"
+        );
+        assert.equal(closedHealth.admission.allowCreate, false);
+        assert.equal(closedHealth.admission.allowJoin, false);
 
         const createBlock = await expectCapacityBlock({
             name: "ClosedModeCreate",
@@ -351,7 +549,7 @@ async function run(): Promise<void> {
         });
         assert.equal(joinBlock.level, "closed");
 
-        const offlinePromise = waitForActivePlayers(host.socket, 1);
+        const offlinePromise = waitForActivePlayers(host.socket, 5);
         reconnectTarget.socket.disconnect();
         await offlinePromise;
         const reconnected = await connectGuest({
@@ -364,8 +562,8 @@ async function run(): Promise<void> {
             reconnected.identity.playerId,
             reconnectTarget.identity.playerId
         );
-        assert.equal(reconnected.lobby.startReadiness.activePlayers, 2);
-        assert.equal(reconnected.lobby.oyuncular.length, 2);
+        assert.equal(reconnected.lobby.startReadiness.activePlayers, 6);
+        assert.equal(reconnected.lobby.oyuncular.length, 6);
 
         console.log(
             JSON.stringify({
@@ -373,6 +571,13 @@ async function run(): Promise<void> {
                 createBlocked: true,
                 joinBlocked: true,
                 reconnectAllowed: true,
+                loweredLimitsPreservedPlayers: true,
+                raisedLimitsResumedAdmission: true,
+                healthLevelsVerified: [
+                    "warning",
+                    "critical",
+                    "closed",
+                ],
             })
         );
     } finally {

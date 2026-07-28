@@ -9,19 +9,28 @@ export interface RoomMetrics {
     bagliSocketSayisi: number;
 }
 
-let metricsGetter: (() => RoomMetrics) | null = null;
+type RoomMetricsGetter = () => RoomMetrics;
+
+type RoomMetricsGlobal = typeof globalThis & {
+    __hushleRoomMetricsGetter?: RoomMetricsGetter;
+};
+
+function getMetricsGlobal(): RoomMetricsGlobal {
+    return globalThis as RoomMetricsGlobal;
+}
 
 /**
  * Register the metrics provider (called by game-socket.ts at startup).
  */
-export function registerMetricsProvider(getter: () => RoomMetrics): void {
-    metricsGetter = getter;
+export function registerMetricsProvider(getter: RoomMetricsGetter): void {
+    getMetricsGlobal().__hushleRoomMetricsGetter = getter;
 }
 
 /**
  * Get current room metrics (safe to call even if socket not initialized).
  */
 export function getRoomMetrics(): RoomMetrics {
+    const metricsGetter = getMetricsGlobal().__hushleRoomMetricsGetter;
     if (metricsGetter) {
         return metricsGetter();
     }

@@ -82,37 +82,35 @@ npm run test:room-admission-closed
 ```
 
 It verifies that `closed` blocks new create/join requests immediately while an
-existing guest reconnect keeps the same persistent player identity.
-
-## Manual Admin Scenarios
-
-### Lowering Limits
-
-1. Fill a room above the new intended lower limit.
-2. Lower room or team capacity in the admin panel.
-3. Confirm existing players are not removed or moved.
-4. Confirm new joins and team switches respect the new limit.
-5. Raise the limit again and confirm admission resumes.
+existing guest reconnect keeps the same persistent player identity. The same test
+also verifies live room/team limit lowering, admission resuming after limits are
+raised, Redis-backed capacity metrics, and `warning`, `critical`, and `closed`
+admin health decisions.
 
 ### Late Spectator Reward
 
-1. Start a match with eligible participants.
-2. Join from a new client while the match is active.
-3. Confirm the late join is a spectator.
-4. Finish the match.
-5. Attempt finalize from the spectator account.
-6. Confirm no wallet adjustment is created.
-7. Confirm original match participants can finalize normally.
+The test creates and removes a temporary registered user, category, word, denied
+audit record, and any unexpected reward records:
 
-### Admin Health States
+```powershell
+$env:SOCKET_TEST_URL="http://127.0.0.1:3101"
+$env:DATABASE_URL="mysql://hushle:hushle@127.0.0.1:3307/hushle_dev"
+$env:LATE_SPECTATOR_REWARD_TEST="true"
+npm run test:late-spectator-reward
+```
+
+It starts and finishes a real guest match, joins the registered user after the
+participant snapshot is frozen, and verifies `403`, no match result, no coin
+change, and a denied finalize audit.
+
+## Manual Admin Scenarios
+
+### Admin Health Visual State
 
 1. Confirm the capacity card reports Redis as available.
 2. Confirm room, player, match, spectator, socket, memory, and event-loop values update.
-3. Temporarily lower warning and critical thresholds in a controlled environment.
-4. Confirm warning keeps create/join open.
-5. Confirm critical blocks new room creation but keeps existing-room joins open.
-6. Confirm maximum online players blocks both create and join.
-7. Restore production-intended thresholds.
+3. Confirm normal, warning, critical, and closed states remain readable on desktop and mobile.
+4. Confirm long capacity messages do not overflow the card.
 
 ## Failure Rules
 
@@ -120,4 +118,5 @@ existing guest reconnect keeps the same persistent player identity.
 - Do not merge if reconnect creates a second persistent player.
 - Do not merge if an overflow socket receives lobby state after rejection.
 - Do not merge if spectator finalize writes coin.
+- Do not merge if the admin API replaces live Socket.IO metrics with zero values.
 - Do not tune production limits from local latency numbers alone.
