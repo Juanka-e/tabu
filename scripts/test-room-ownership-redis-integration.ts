@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { closeRedisClient } from "@hushle/platform-cache";
 import { createRoomOwnershipCoordinator } from "../apps/web/src/lib/socket/room-ownership";
+import { createRoomRouteResolver } from "../apps/web/src/lib/socket/room-routing";
 
 async function run(): Promise<void> {
     assert.equal(
@@ -23,6 +24,7 @@ async function run(): Promise<void> {
         instanceId: "redis-integration-b",
         env,
     });
+    const secondRouting = createRoomRouteResolver(second);
     const roomCode = `R${Date.now().toString(36).slice(-5)}`.toUpperCase();
 
     try {
@@ -31,11 +33,19 @@ async function run(): Promise<void> {
             acquired: false,
             ownerInstanceId: "redis-integration-a",
         });
+        assert.equal(
+            (await secondRouting.resolve(roomCode, false)).kind,
+            "remote-owner"
+        );
         await first.renewOwnedRooms();
         assert.equal(first.getStatus().ownedRooms, 1);
 
         await first.release(roomCode);
         assert.equal((await second.claim(roomCode)).acquired, true);
+        assert.equal(
+            (await secondRouting.resolve(roomCode, true)).kind,
+            "local"
+        );
         assert.equal(await first.getOwner(roomCode), "redis-integration-b");
 
         console.log("room ownership Redis integration test passed");

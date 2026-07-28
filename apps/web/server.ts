@@ -31,6 +31,10 @@ import {
     getRoomOwnershipConfig,
     type RoomOwnershipCoordinator,
 } from "./src/lib/socket/room-ownership";
+import {
+    createRoomRouteResolver,
+    type RoomRouteResolver,
+} from "./src/lib/socket/room-routing";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -48,6 +52,7 @@ const handler = app.getRequestHandler();
 app.prepare().then(async () => {
     let socketRedisAdapter: SocketRedisAdapterHandle | null = null;
     let roomOwnership: RoomOwnershipCoordinator | null = null;
+    let roomRouting: RoomRouteResolver | null = null;
     const socketRedisAdapterConfig = getSocketRedisAdapterConfig();
     const roomOwnershipConfig = getRoomOwnershipConfig();
     const httpServer = createServer(async (req, res) => {
@@ -98,11 +103,29 @@ app.prepare().then(async () => {
             lastRenewedAt: null,
             enforcement: "create-only" as const,
         };
+        const roomRoutingStatus = roomRouting?.getStatus() ?? {
+            enabled: roomOwnershipConfig.enabled,
+            available: false,
+            mode: "observe-and-reject" as const,
+            routingReady: false as const,
+            decisions: 0,
+            localDecisions: 0,
+            missingDecisions: 0,
+            remoteOwnerRequests: 0,
+            localStateMissing: 0,
+            ownershipMismatches: 0,
+            lookupFailures: 0,
+            lastDecisionAt: null,
+        };
         const realtimeDegraded =
             (socketRedisAdapterStatus.enabled &&
                 !socketRedisAdapterStatus.available) ||
             (roomOwnershipStatus.enabled && !roomOwnershipStatus.available) ||
-            roomOwnershipStatus.lostRooms > 0;
+            roomOwnershipStatus.lostRooms > 0 ||
+            (roomRoutingStatus.enabled && !roomRoutingStatus.available) ||
+            roomRoutingStatus.remoteOwnerRequests > 0 ||
+            roomRoutingStatus.localStateMissing > 0 ||
+            roomRoutingStatus.ownershipMismatches > 0;
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
             JSON.stringify({
@@ -114,6 +137,7 @@ app.prepare().then(async () => {
                 realtime: {
                     socketRedisAdapter: socketRedisAdapterStatus,
                     roomOwnership: roomOwnershipStatus,
+                    roomRouting: roomRoutingStatus,
                 },
                 ...metrics,
             })
@@ -150,6 +174,7 @@ app.prepare().then(async () => {
     roomOwnership = await createRoomOwnershipCoordinator({
         instanceId: getCapacityInstanceId(),
     });
+    roomRouting = createRoomRouteResolver(roomOwnership);
 
     // Resolve auth when present, but keep guest socket access open.
     io.use(async (socket, nextMiddleware) => {
@@ -171,7 +196,7 @@ app.prepare().then(async () => {
         }
     });
 
-    setupGameSocket(io, roomOwnership);
+    setupGameSocket(io, roomOwnership, roomRouting);
     const publishCurrentCapacity = () => {
         void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(
             (error) => {
