@@ -1,6 +1,7 @@
 import type { Prisma } from "@hushle/platform-db";
 import { getInventoryData } from "@/lib/economy";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
+import { invalidateNotificationUnreadCountCache } from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
 import type {
     AdminInventoryEquipSlot,
@@ -242,7 +243,7 @@ export async function grantAdminInventoryItem(input: {
                 reason: input.reason,
                 shopItemId: item.id,
             },
-        });
+        }, { deferCacheInvalidation: true });
 
         return {
             ok: true as const,
@@ -255,6 +256,9 @@ export async function grantAdminInventoryItem(input: {
         };
     });
 
+    if (result && result !== "already_owned") {
+        await invalidateNotificationUnreadCountCache(input.targetUserId);
+    }
     return result;
 }
 
@@ -340,7 +344,7 @@ export async function revokeAdminInventoryItem(input: {
                 source: inventoryItem.source,
                 overrideProtectedSource: Boolean(input.overrideProtectedSource),
             },
-        });
+        }, { deferCacheInvalidation: true });
 
         return {
             ok: true as const,
@@ -353,6 +357,9 @@ export async function revokeAdminInventoryItem(input: {
         };
     });
 
+    if (result && result !== "protected_source") {
+        await invalidateNotificationUnreadCountCache(input.targetUserId);
+    }
     return result;
 }
 

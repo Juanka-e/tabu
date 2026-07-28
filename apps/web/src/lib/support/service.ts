@@ -19,6 +19,7 @@ import {
     createUserNotificationWithClient,
     shouldCreateSupportStatusNotification,
 } from "@/lib/notifications/service";
+import { invalidateNotificationUnreadCountCache } from "@/lib/cache/application-cache";
 
 type SupportTicketRecord = {
     id: number;
@@ -574,7 +575,7 @@ export async function addSupportMessageByAdmin(
                 resourceType: "support_ticket",
                 resourceId: ticketId,
                 actionLabel: "Yardim merkezinde ac",
-            });
+            }, { deferCacheInvalidation: true });
         }
 
         return tx.supportTicket.findUniqueOrThrow({
@@ -610,5 +611,8 @@ export async function addSupportMessageByAdmin(
         });
     });
 
+    if (!input.isInternal) {
+        await invalidateNotificationUnreadCountCache(ticket.userId);
+    }
     return mapTicket(updated as SupportTicketRecord);
 }

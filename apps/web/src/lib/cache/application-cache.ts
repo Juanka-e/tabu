@@ -40,6 +40,21 @@ export async function invalidateStoreCatalogCache(): Promise<void> {
     await invalidateJsonCache(APPLICATION_CACHE_KEYS.storeCatalogShared);
 }
 
+export function getNotificationUnreadCountCacheKey(userId: number): string {
+    return getRedisKey(
+        "cache",
+        "notification-unread-count",
+        "v1",
+        userId
+    );
+}
+
+export async function invalidateNotificationUnreadCountCache(
+    userId: number
+): Promise<void> {
+    await invalidateJsonCache(getNotificationUnreadCountCacheKey(userId));
+}
+
 export async function invalidateVisibleCategoriesCache(): Promise<void> {
     await invalidateJsonCache(APPLICATION_CACHE_KEYS.visibleCategories);
 }

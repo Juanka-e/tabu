@@ -1,4 +1,9 @@
 import type { Prisma } from "@hushle/platform-db";
+import { getOrSetJsonCache } from "@hushle/platform-cache";
+import {
+    getNotificationUnreadCountCacheKey,
+    invalidateNotificationUnreadCountCache,
+} from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
 import type {
     NotificationListResponse,
@@ -95,7 +100,8 @@ function mapNotification(notification: NotificationRecord): NotificationView {
 
 export async function createUserNotificationWithClient(
     db: NotificationCreateClient,
-    input: CreateUserNotificationInput
+    input: CreateUserNotificationInput,
+    options?: { deferCacheInvalidation?: boolean }
 ): Promise<void> {
     await db.notification.create({
         data: {
@@ -113,6 +119,28 @@ export async function createUserNotificationWithClient(
             metadata: input.metadata ?? undefined,
         },
     });
+    if (!options?.deferCacheInvalidation) {
+        await invalidateNotificationUnreadCountCache(input.userId);
+    }
+}
+
+async function loadNotificationUnreadCount(userId: number): Promise<number> {
+    const notificationClient = prisma as unknown as NotificationQueryClient;
+    const result = await getOrSetJsonCache<{ unreadCount: number }>({
+        key: getNotificationUnreadCountCacheKey(userId),
+        ttlMs: 10_000,
+        loader: async () => ({
+            unreadCount: await notificationClient.notification.count({
+                where: {
+                    userId,
+                    isRead: false,
+                    archivedAt: null,
+                },
+            }),
+        }),
+    });
+
+    return result.value.unreadCount;
 }
 
 export async function listNotificationsForUser(
@@ -146,13 +174,7 @@ export async function listNotificationsForUser(
                 createdAt: true,
             },
         }),
-        notificationClient.notification.count({
-            where: {
-                userId,
-                isRead: false,
-                archivedAt: null,
-            },
-        }),
+        loadNotificationUnreadCount(userId),
     ]);
 
     return {
@@ -167,16 +189,7 @@ export async function listNotificationsForUser(
 export async function getNotificationUnreadCountForUser(
     userId: number
 ): Promise<NotificationUnreadCountResponse> {
-    const notificationClient = prisma as unknown as NotificationQueryClient;
-    const unreadCount = await notificationClient.notification.count({
-        where: {
-            userId,
-            isRead: false,
-            archivedAt: null,
-        },
-    });
-
-    return { unreadCount };
+    return { unreadCount: await loadNotificationUnreadCount(userId) };
 }
 
 export async function markNotificationReadForUser(
@@ -229,7 +242,11 @@ export async function markNotificationReadForUser(
         },
     });
 
-    return result.count === 1;
+    const updated = result.count === 1;
+    if (updated) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
+    return updated;
 }
 
 export async function markAllNotificationsReadForUser(userId: number): Promise<number> {
@@ -246,6 +263,9 @@ export async function markAllNotificationsReadForUser(userId: number): Promise<n
         },
     });
 
+    if (result.count > 0) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
     return result.count;
 }
 
@@ -295,8 +315,13 @@ export async function archiveNotificationForUser(
         },
     });
 
+    const updated = result.count === 1;
+    if (updated && !target.isRead) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
+
     return {
-        updated: result.count === 1,
+        updated,
         unreadArchived: !target.isRead,
     };
 }
@@ -325,6 +350,9 @@ export async function archiveAllNotificationsForUser(
         },
     });
 
+    if (unreadArchivedCount > 0) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
     return {
         archivedCount: result.count,
         unreadArchivedCount,
