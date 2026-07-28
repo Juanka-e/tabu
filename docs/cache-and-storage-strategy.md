@@ -216,9 +216,12 @@ That breaks:
 ## System Settings Strategy
 - Persist settings in MySQL `system_settings`.
 - Read through a cache layer.
-- Development can use in-process memory cache.
+- Development uses a process-global in-memory cache so Next route bundles and the
+  custom Socket.IO runtime share immediate invalidation in the same Node process.
 - Production should move to Redis/Valkey-backed cache when multi-instance deployment starts.
 - Cache invalidation should happen on admin update.
+- Multi-instance invalidation still requires Redis pub/sub or a shared version key;
+  `globalThis` only coordinates modules inside one process.
 
 ## Dashboard And Player Surface Strategy
 

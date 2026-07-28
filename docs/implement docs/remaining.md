@@ -4,7 +4,7 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/room-rules-and-capacity-controls`
+1. `test/room-capacity-load-validation`
 2. `feature/post-launch-economy-observability-review`
 3. `feature/cache-and-rate-limit-foundation`
 4. `feature/audit-retention-and-telemetry-foundation`
@@ -23,29 +23,27 @@
 
 ## Aktif Branch
 
-### `feature/room-rules-and-capacity-controls`
+### `test/room-capacity-load-validation`
 
 Tamamlananlar:
-- kod seviyesinde oda 20 ve takim 10 hard limit
-- admin panelden yonetilen varsayilan oda 12 ve takim 6 limitleri
-- misafir-only oda icin minimum 2, aktif kayitli hesap varsa minimum 4 baslangic kurali
-- iki takimda da en az bir aktif oyuncu zorunlulugu
-- izleyicilerin oda kapasitesine dahil, takim ve baslangic sayimina haric olmasi
-- mac basinda immutable participant snapshot ve late-spectator reward dislama
-- Redis TTL heartbeat ile cluster oda, oyuncu, mac, spectator, socket ve process health ozeti
-- automatic/open/closed admission modlari ve reconnect korumasi
-- admin dashboard'da 10 saniyelik hafif kapasite health poll'u
-- Redis `MGET`, stale instance temizligi, local freshness ve local fallback
-- kapasite/economy guard smoke testleri
+- paralel join sirasinda ikinci atomik room-cap kontrolu
+- takim secimi ile room state'e ekleme arasindaki await boslugunun kaldirilmasi
+- 24 adaydan 12 kabul / 12 red davranisini dogrulayan socket load scripti
+- full-room guest reconnect ve persistent `playerId` dogrulamasi
+- overflow sonrasi public lobby payload veri minimizasyonu dogrulamasi
+- 10 ardisik turda 42-70 ms local paralel join correctness baseline
+- gecici kayitli hesapla 3 oyuncu red / 4 oyuncu uygun server guard testi
+- `closed` admission altinda create/join red ve mevcut guest reconnect testi
+- test sonrasi system settings, audit ve gecici kullanici DB restorasyonu
+- Next route ve Socket.IO runtime icin process-global settings cache invalidation
 
 Acik kalanlar:
-- gercek browser socket akisi ve admin capacity UI smoke turu
-- production benzeri coklu instance load testi Redis adapter asamasinda yapilacak
-- atomik global seat reservation ancak gercek trafik heartbeat headroom'unu yetersiz
-  birakiyorsa eklenecek
+- limit dusurme ve late-spectator finalize manuel turu
+- admin health warning/critical gorunum turu
 
 Referans:
 - `docs/guides/room-rules-and-capacity-controls-guide.md`
+- `docs/guides/room-capacity-load-validation-checklist.md`
 
 ## Onceki Branch Kaydi
 ### `feature/admin-match-history-review`

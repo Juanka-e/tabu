@@ -14,9 +14,25 @@ import type {
 
 const SYSTEM_SETTINGS_CACHE_TTL_MS = 15_000;
 
-let cachedSystemSettings: SystemSettings | null = null;
-let cachedAt = 0;
-let warnedAboutSystemSettingsFallback = false;
+interface SystemSettingsCacheState {
+    settings: SystemSettings | null;
+    cachedAt: number;
+    warnedAboutFallback: boolean;
+}
+
+type SystemSettingsGlobal = typeof globalThis & {
+    __hushleSystemSettingsCacheState?: SystemSettingsCacheState;
+};
+
+function getSystemSettingsCacheState(): SystemSettingsCacheState {
+    const globalState = globalThis as SystemSettingsGlobal;
+    globalState.__hushleSystemSettingsCacheState ??= {
+        settings: null,
+        cachedAt: 0,
+        warnedAboutFallback: false,
+    };
+    return globalState.__hushleSystemSettingsCacheState;
+}
 
 function isCaptchaProviderConfigured(siteKey: string | undefined, secretKey: string | undefined): boolean {
     return Boolean(siteKey && siteKey.trim() && secretKey && secretKey.trim());
@@ -36,16 +52,18 @@ export function getCaptchaProviderReadiness(): CaptchaProviderReadiness {
 }
 
 export function clearSystemSettingsCache(): void {
-    cachedSystemSettings = null;
-    cachedAt = 0;
+    const cache = getSystemSettingsCacheState();
+    cache.settings = null;
+    cache.cachedAt = 0;
 }
 
 function shouldUseCachedSettings(forceRefresh: boolean): boolean {
-    if (forceRefresh || !cachedSystemSettings) {
+    const cache = getSystemSettingsCacheState();
+    if (forceRefresh || !cache.settings) {
         return false;
     }
 
-    return Date.now() - cachedAt < SYSTEM_SETTINGS_CACHE_TTL_MS;
+    return Date.now() - cache.cachedAt < SYSTEM_SETTINGS_CACHE_TTL_MS;
 }
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -131,7 +149,8 @@ function shouldFallbackToDefaultSettings(error: unknown): boolean {
 }
 
 function logSystemSettingsFallback(error: Error): void {
-    if (warnedAboutSystemSettingsFallback) {
+    const cache = getSystemSettingsCacheState();
+    if (cache.warnedAboutFallback) {
         return;
     }
 
@@ -139,7 +158,7 @@ function logSystemSettingsFallback(error: Error): void {
         "[system-settings] Falling back to default settings because the database is unavailable.",
         error.message
     );
-    warnedAboutSystemSettingsFallback = true;
+    cache.warnedAboutFallback = true;
 }
 
 export async function getSystemSettings(options?: {
@@ -151,7 +170,7 @@ export async function getSystemSettings(options?: {
 
     const forceRefresh = options?.forceRefresh ?? false;
     if (shouldUseCachedSettings(forceRefresh)) {
-        return cachedSystemSettings as SystemSettings;
+        return getSystemSettingsCacheState().settings as SystemSettings;
     }
 
     try {
@@ -168,17 +187,19 @@ export async function getSystemSettings(options?: {
         });
 
         const settings = buildSettingsFromRows(rows);
-        cachedSystemSettings = settings;
-        cachedAt = Date.now();
-        warnedAboutSystemSettingsFallback = false;
+        const cache = getSystemSettingsCacheState();
+        cache.settings = settings;
+        cache.cachedAt = Date.now();
+        cache.warnedAboutFallback = false;
 
         return settings;
     } catch (error) {
         if (shouldFallbackToDefaultSettings(error)) {
             logSystemSettingsFallback(error as Error);
             const fallbackSettings = normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS);
-            cachedSystemSettings = fallbackSettings;
-            cachedAt = Date.now();
+            const cache = getSystemSettingsCacheState();
+            cache.settings = fallbackSettings;
+            cache.cachedAt = Date.now();
             return fallbackSettings;
         }
 
