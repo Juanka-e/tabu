@@ -268,6 +268,7 @@ Current application consumers:
 - visible category tree, TTL `60s`
 - admin dashboard static word/category counters, TTL `10s`
 - system settings, TTL `15s`
+- shared store catalog snapshot, TTL `30s`
 
 The admin dashboard keeps room and online-player metrics outside the cached static
 payload. Those values are read live on every request. Category and word mutations
@@ -277,9 +278,17 @@ Cache telemetry is available through the authenticated capacity health API and t
 Integration Hub. Redis flush or cache loss must only increase DB work temporarily;
 it must not alter wallet, inventory, audit, match, or settings truth.
 
-The complete store catalog response is intentionally not cached globally because it
-contains user-specific wallet, ownership, equipped-item, and bundle ownership data.
-Future catalog caching must first split shared catalog records from per-user overlays.
+The store catalog is split into two layers:
+
+- shared Redis snapshot: active items, bundles, campaign pricing and live-ops view
+- per-request MySQL overlay: wallet balance, owned item ids, equipped slots and
+  bundle ownership counts
+
+The shared snapshot never stores a user id, coin balance, ownership or equipped
+state. Admin item, bundle, discount and system-settings mutations invalidate the
+shared key. Time-based availability and campaign display can remain in the storefront
+snapshot for at most `30s`; purchase transactions still reload and validate price,
+promotion capacity, ownership and wallet truth directly from MySQL.
 
 ## Rate Limit Strategy
 - Development can use memory-backed rate limiting.
@@ -314,7 +323,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - add short TTL coordination helpers
 - prepare websocket adapter integration
 - implemented: static admin dashboard summary cache
-- add store catalog cache abstraction
+- implemented: shared store catalog cache plus per-user MySQL overlay
 - add identity/profile mini-summary cache where it creates measurable savings
 
 ### Phase 4
@@ -337,7 +346,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 ### Dashboard / Player UX
 - notification unread count
 - dashboard summary snapshot
-- store catalog snapshot
+- implemented: shared store catalog snapshot
 - support inbox summary counters
 
 ### Security / Abuse

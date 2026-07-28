@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { invalidateStoreCatalogCache } from "@/lib/cache/application-cache";
 import {
     shopItemWriteSchema,
     toPrismaItemRarity,
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
         const data = toPrismaShopItemCreateData(shopItemWriteSchema.parse(body));
 
         const item = await prisma.shopItem.create({ data });
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: "admin.shop-item.create",

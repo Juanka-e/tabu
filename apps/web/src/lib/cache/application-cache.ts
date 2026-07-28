@@ -14,6 +14,11 @@ export const APPLICATION_CACHE_KEYS = {
         "system-settings",
         "v1"
     ),
+    storeCatalogShared: getRedisKey(
+        "cache",
+        "store-catalog-shared",
+        "v1"
+    ),
     visibleCategories: getRedisKey(
         "cache",
         "visible-categories",
@@ -29,6 +34,10 @@ export async function invalidateAdminDashboardStatsCache(): Promise<void> {
 
 export async function invalidateSystemSettingsCache(): Promise<void> {
     await invalidateJsonCache(APPLICATION_CACHE_KEYS.systemSettings);
+}
+
+export async function invalidateStoreCatalogCache(): Promise<void> {
+    await invalidateJsonCache(APPLICATION_CACHE_KEYS.storeCatalogShared);
 }
 
 export async function invalidateVisibleCategoriesCache(): Promise<void> {

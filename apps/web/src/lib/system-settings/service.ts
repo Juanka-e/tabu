@@ -4,6 +4,7 @@ import { unlink } from "node:fs/promises";
 import path from "node:path";
 import {
     APPLICATION_CACHE_KEYS,
+    invalidateStoreCatalogCache,
     invalidateSystemSettingsCache,
 } from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
@@ -220,7 +221,10 @@ export async function updateSystemSettings(
         )
     );
 
-    await clearSystemSettingsCache();
+    await Promise.all([
+        clearSystemSettingsCache(),
+        invalidateStoreCatalogCache(),
+    ]);
     await cleanupUnusedBrandingAssets(previousSettings, normalizedSettings);
 
     return normalizedSettings;

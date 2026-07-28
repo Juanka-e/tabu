@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { invalidateStoreCatalogCache } from "@/lib/cache/application-cache";
 import {
     bundleUpdateSchema,
     toPrismaBundleUpdateData,
@@ -137,6 +138,7 @@ export async function PUT(
                 },
             });
         });
+        await invalidateStoreCatalogCache();
         if (bundle) {
             await writeAuditLog({
                 actor: adminSession,
@@ -238,6 +240,7 @@ export async function DELETE(
             });
             outcome = "deleted";
         }
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: outcome === "deleted" ? "admin.bundle.delete" : "admin.bundle.deactivate",

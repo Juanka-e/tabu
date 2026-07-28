@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { invalidateStoreCatalogCache } from "@/lib/cache/application-cache";
 import {
     discountCampaignWriteSchema,
     toPrismaDiscountCampaignCreateData,
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
         const discount = await prisma.discountCampaign.create({
             data: toPrismaDiscountCampaignCreateData(parsed),
         });
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: "admin.discount.create",

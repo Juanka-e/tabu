@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { invalidateStoreCatalogCache } from "@/lib/cache/application-cache";
 import {
     bundleWriteSchema,
     toPrismaBundleCreateData,
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
                 },
             },
         });
+        await invalidateStoreCatalogCache();
         await writeAuditLog({
             actor: adminSession,
             action: "admin.bundle.create",

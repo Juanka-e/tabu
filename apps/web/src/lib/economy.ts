@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
+import { getOrSetJsonCache } from "@hushle/platform-cache";
 import { Prisma } from "@hushle/platform-db";
+import { APPLICATION_CACHE_KEYS } from "@/lib/cache/application-cache";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
@@ -712,20 +714,47 @@ function mapCatalogBundleView(
     };
 }
 
-async function loadStoreContext(settings: SystemSettings, userId?: number) {
-    if (userId) {
-        await ensureUserCore(userId);
-    }
+type SharedCatalogItem = Omit<
+    CatalogStoreItemView,
+    "owned" | "equipped"
+>;
+type SharedCatalogBundle = Omit<
+    CatalogBundleView,
+    "ownedItemCount" | "fullyOwned"
+>;
+type SharedStoreCatalogSnapshot = {
+    items: SharedCatalogItem[];
+    bundles: SharedCatalogBundle[];
+    liveops: StoreLiveopsView;
+};
 
+function removeItemUserOverlay(
+    item: CatalogStoreItemView
+): SharedCatalogItem {
+    const { owned, equipped, ...sharedItem } = item;
+    void owned;
+    void equipped;
+    return sharedItem;
+}
+
+function removeBundleUserOverlay(
+    bundle: CatalogBundleView
+): SharedCatalogBundle {
+    const { ownedItemCount, fullyOwned, ...sharedBundle } = bundle;
+    void ownedItemCount;
+    void fullyOwned;
+    return sharedBundle;
+}
+
+async function loadSharedStoreCatalog(
+    settings: SystemSettings
+): Promise<SharedStoreCatalogSnapshot> {
     const now = new Date();
 
     const [
         items,
         bundles,
         discounts,
-        wallet,
-        profile,
-        inventory,
     ] = await Promise.all([
         prisma.shopItem.findMany({
             where: { isActive: true },
@@ -797,36 +826,73 @@ async function loadStoreContext(settings: SystemSettings, userId?: number) {
                 },
             })
             : Promise.resolve([]),
-        userId
-            ? prisma.wallet.findUnique({ where: { userId } })
-            : Promise.resolve(null),
-        userId
-            ? prisma.userProfile.findUnique({
-                where: { userId },
-                select: {
-                    avatarItemId: true,
-                    frameItemId: true,
-                    cardBackItemId: true,
-                    cardFaceItemId: true,
-                },
-            })
-            : Promise.resolve(null),
-        userId
-            ? prisma.inventoryItem.findMany({
-                where: { userId },
-                select: { shopItemId: true },
-            })
-            : Promise.resolve([]),
     ]);
 
+    const availableItems = items.filter((item) =>
+        isShopItemDirectlyAvailable(item, now)
+    );
+    const emptyOwnedIds = new Set<number>();
+    const emptyEquippedSlots = getEquippedSlots(null);
+
     return {
-        items: items.filter((item) => isShopItemDirectlyAvailable(item, now)),
-        bundles,
-        discounts,
-        wallet,
-        profile,
-        inventory,
+        items: availableItems.map((item) =>
+            removeItemUserOverlay(
+                mapCatalogItemView(
+                    item,
+                    emptyOwnedIds,
+                    emptyEquippedSlots,
+                    discounts,
+                    now,
+                    settings
+                )
+            )
+        ),
+        bundles: bundles.map((bundle) =>
+            removeBundleUserOverlay(
+                mapCatalogBundleView(
+                    bundle,
+                    emptyOwnedIds,
+                    discounts,
+                    now,
+                    settings
+                )
+            )
+        ),
+        liveops: getStoreLiveopsState(settings, now) satisfies StoreLiveopsView,
     };
+}
+
+async function loadStoreUserOverlay(userId?: number) {
+    if (!userId) {
+        return {
+            wallet: null,
+            profile: null,
+            inventory: [] as Array<{ shopItemId: number }>,
+        };
+    }
+
+    await ensureUserCore(userId);
+    const [wallet, profile, inventory] = await Promise.all([
+        prisma.wallet.findUnique({
+            where: { userId },
+            select: { coinBalance: true },
+        }),
+        prisma.userProfile.findUnique({
+            where: { userId },
+            select: {
+                avatarItemId: true,
+                frameItemId: true,
+                cardBackItemId: true,
+                cardFaceItemId: true,
+            },
+        }),
+        prisma.inventoryItem.findMany({
+            where: { userId },
+            select: { shopItemId: true },
+        }),
+    ]);
+
+    return { wallet, profile, inventory };
 }
 
 async function loadCouponRecord(
@@ -927,16 +993,38 @@ export async function getStoreCatalog(
     settingsInput?: SystemSettings
 ): Promise<StoreCatalogResponse> {
     const settings = settingsInput ?? await getSystemSettings();
-    const { items, bundles, discounts, wallet, profile, inventory } = await loadStoreContext(settings, userId);
-    const now = new Date();
+    const [sharedResult, { wallet, profile, inventory }] = await Promise.all([
+        getOrSetJsonCache<SharedStoreCatalogSnapshot>({
+            key: APPLICATION_CACHE_KEYS.storeCatalogShared,
+            ttlMs: 30_000,
+            loader: () => loadSharedStoreCatalog(settings),
+        }),
+        loadStoreUserOverlay(userId),
+    ]);
+    const shared = sharedResult.value;
     const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
     const equippedSlots = getEquippedSlots(profile);
 
     return {
         coinBalance: wallet?.coinBalance ?? 0,
-        items: items.map((item) => mapCatalogItemView(item, ownedIds, equippedSlots, discounts, now, settings)),
-        bundles: bundles.map((bundle) => mapCatalogBundleView(bundle, ownedIds, discounts, now, settings)),
-        liveops: getStoreLiveopsState(settings, now) satisfies StoreLiveopsView,
+        items: shared.items.map((item) => ({
+            ...item,
+            owned: ownedIds.has(item.id),
+            equipped: isEquipped(item.id, item.type, equippedSlots),
+        })),
+        bundles: shared.bundles.map((bundle) => {
+            const ownedItemCount = bundle.items.filter((entry) =>
+                ownedIds.has(entry.shopItemId)
+            ).length;
+            return {
+                ...bundle,
+                ownedItemCount,
+                fullyOwned:
+                    ownedItemCount === bundle.items.length &&
+                    bundle.items.length > 0,
+            };
+        }),
+        liveops: shared.liveops,
     };
 }
 
