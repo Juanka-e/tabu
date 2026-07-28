@@ -20,11 +20,14 @@ import {
     Play,
     ShieldAlert,
 } from "lucide-react";
-import type { Player, CategoryItem, PendingAdminHandoffState } from "@/types/game";
+import type {
+    CategoryItem,
+    PendingAdminHandoffState,
+    RoomStartReadiness,
+} from "@/types/game";
 
 interface LobbyProps {
     roomCode: string;
-    players: Player[];
     settings: { sure: number; mod: "tur" | "skor"; deger: number };
     selectedCategories: number[];
     selectedDifficulties: number[];
@@ -32,6 +35,7 @@ interface LobbyProps {
     creatorId: string;
     currentSocketId: string;
     isHost: boolean;
+    startReadiness: RoomStartReadiness;
     pendingAdminHandoff: PendingAdminHandoffState | null;
     onUpdateSettings: (settings: {
         sure: number;
@@ -56,12 +60,12 @@ const difficultyLabels: Record<number, string> = {
 
 export function Lobby({
     roomCode,
-    players,
     settings,
     selectedCategories,
     selectedDifficulties,
     categories,
     isHost,
+    startReadiness,
     pendingAdminHandoff,
     onUpdateSettings,
     onUpdateCategories,
@@ -80,7 +84,6 @@ export function Lobby({
     const [tempSelectedDifficulties, setTempSelectedDifficulties] = useState<number[]>(selectedDifficulties);
     const [mounted, setMounted] = useState(false);
     const [handoffRemainingSeconds, setHandoffRemainingSeconds] = useState<number | null>(null);
-
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -554,12 +557,7 @@ export function Lobby({
                                 disabled={
                                     selectedCategories.length === 0 ||
                                     selectedDifficulties.length === 0 ||
-                                    players.filter(
-                                        (p) => p.takim === "A" && p.online
-                                    ).length < 2 ||
-                                    players.filter(
-                                        (p) => p.takim === "B" && p.online
-                                    ).length < 2
+                                    !startReadiness.ready
                                 }
                                 className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold text-lg shadow-lg shadow-green-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
                             >
@@ -573,18 +571,17 @@ export function Lobby({
                         )}
 
                         {/* Requirements notice */}
-                        {isHost &&
-                            (players.filter(
-                                (p) => p.takim === "A" && p.online
-                            ).length < 2 ||
-                                players.filter(
-                                    (p) => p.takim === "B" && p.online
-                                ).length < 2) && (
-                                <p className="text-xs text-muted-foreground text-center mt-2">
-                                    Her takımda en az 2 çevrimiçi oyuncu
-                                    gerekli.
-                                </p>
-                            )}
+                        <div className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
+                            {startReadiness.minimumPlayers === 4
+                                ? "Kayıtlı oyuncu bulunan odalarda en az 4 aktif oyuncu gerekir."
+                                : "Tamamı misafir olan odalar 2 aktif oyuncuyla başlayabilir."}{" "}
+                            Her takımda en az bir oyuncu bulunmalı; izleyiciler sayılmaz.
+                            {!startReadiness.ready ? (
+                                <span className="ml-1 font-semibold text-amber-600">
+                                    Şu an {startReadiness.activePlayers}/{startReadiness.minimumPlayers}.
+                                </span>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
             </div>

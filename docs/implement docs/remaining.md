@@ -23,20 +23,29 @@
 
 ## Aktif Branch
 
-### `feature/admin-categories-dnd-polish`
+### `feature/room-rules-and-capacity-controls`
 
 Tamamlananlar:
-- desktop mouse, touch ve klavye sensorleriyle ana kategori siralama
-- mobil ve dusuk hassasiyetli kullanim icin yukari/asagi tasima kontrolleri
-- optimistic UI, eszamanli istek kilidi, hata halinde rollback ve sessiz refetch
-- tum ana kategorileri kapsayan canonical `0, 10, 20...` server dogrulamasi
-- reorder sonrasi kategori cache invalidation ve admin audit kaydi
-- custom server / reverse proxy altinda same-origin CSRF dogrulama uyumlulugu
-- kategoriler sayfasinda UTF-8, responsive yerlesim ve erisilebilir geri bildirim
-- gercek MySQL ile desktop drag + mobil geri alma Playwright testi
+- kod seviyesinde oda 20 ve takim 10 hard limit
+- admin panelden yonetilen varsayilan oda 12 ve takim 6 limitleri
+- misafir-only oda icin minimum 2, aktif kayitli hesap varsa minimum 4 baslangic kurali
+- iki takimda da en az bir aktif oyuncu zorunlulugu
+- izleyicilerin oda kapasitesine dahil, takim ve baslangic sayimina haric olmasi
+- mac basinda immutable participant snapshot ve late-spectator reward dislama
+- Redis TTL heartbeat ile cluster oda, oyuncu, mac, spectator, socket ve process health ozeti
+- automatic/open/closed admission modlari ve reconnect korumasi
+- admin dashboard'da 10 saniyelik hafif kapasite health poll'u
+- Redis `MGET`, stale instance temizligi, local freshness ve local fallback
+- kapasite/economy guard smoke testleri
 
 Acik kalanlar:
-- gercek dokunmatik cihaz smoke turu release checklist'inde tekrarlanacak
+- gercek browser socket akisi ve admin capacity UI smoke turu
+- production benzeri coklu instance load testi Redis adapter asamasinda yapilacak
+- atomik global seat reservation ancak gercek trafik heartbeat headroom'unu yetersiz
+  birakiyorsa eklenecek
+
+Referans:
+- `docs/guides/room-rules-and-capacity-controls-guide.md`
 
 ## Onceki Branch Kaydi
 ### `feature/admin-match-history-review`
@@ -115,10 +124,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - kategoriler sayfasi UTF-8, responsive ve erisilebilirlik bakimindan temizlendi
 
 ### `feature/room-rules-and-capacity-controls`
-- oda kapasitesi icin net ust sinir karari
-- dengesiz takim senaryolari icin yonetici davranisi
-- gerekirse bounded oyuncu sirasi / anlatici sirasi kontrolu
-- oda sifresi eklenirse ayri, sade bir akisla ele alma
+- aktif branch; yukaridaki kapsam uygulanmis durumda
+- oda sifresi bu branch'e alinmadi; gerekirse ayri ve sade bir akis olacak
+- manuel izleyici modu launch kapsaminda degil; altyapi rolu ve reward dislama hazir
+- minimum katilim yuzdesi launch kapsaminda degil; saha verisi olmadan eklenmeyecek
 
 ### `feature/cache-and-rate-limit-foundation`
 - mevcut Redis abstraction'i uzerinde atomik counter/lock sertlestirmesi

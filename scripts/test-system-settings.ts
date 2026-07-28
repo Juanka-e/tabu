@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
     DEFAULT_SYSTEM_SETTINGS,
     normalizeSystemSettings,
+    systemSettingsWriteSchema,
 } from "../apps/web/src/lib/system-settings/schema";
 import {
     evaluateRoomRequestPolicy,
@@ -16,6 +17,26 @@ assert.deepEqual(defaults, DEFAULT_SYSTEM_SETTINGS);
 assert.equal(isRegistrationAvailable(defaults), true);
 assert.equal(isStoreAvailable(defaults), true);
 assert.equal(getFeatureDisabledMessage("store"), "Magaza su anda kullanima kapali.");
+
+const invalidTeamCapacity = systemSettingsWriteSchema.safeParse({
+    ...defaults,
+    capacity: {
+        ...defaults.capacity,
+        roomMaxPlayers: 20,
+        teamMaxPlayers: 6,
+    },
+});
+assert.equal(invalidTeamCapacity.success, false);
+
+const invalidCapacityThresholds = systemSettingsWriteSchema.safeParse({
+    ...defaults,
+    capacity: {
+        ...defaults.capacity,
+        warningThresholdPercent: 90,
+        criticalThresholdPercent: 80,
+    },
+});
+assert.equal(invalidCapacityThresholds.success, false);
 
 const maintenanceSettings = normalizeSystemSettings({
     platform: {

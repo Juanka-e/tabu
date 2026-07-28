@@ -90,6 +90,15 @@ export async function PUT(req: NextRequest) {
                 repeatedGroupWindowHours: updatedSettings.economy.repeatedGroupWindowHours,
                 repeatedGroupThreshold: updatedSettings.economy.repeatedGroupThreshold,
                 repeatedGroupMinMultiplier: updatedSettings.economy.repeatedGroupMinMultiplier,
+                roomMaxPlayers: updatedSettings.capacity.roomMaxPlayers,
+                teamMaxPlayers: updatedSettings.capacity.teamMaxPlayers,
+                maxActiveRooms: updatedSettings.capacity.maxActiveRooms,
+                maxOnlinePlayers: updatedSettings.capacity.maxOnlinePlayers,
+                capacityAdmissionMode: updatedSettings.capacity.admissionMode,
+                capacityWarningThresholdPercent:
+                    updatedSettings.capacity.warningThresholdPercent,
+                capacityCriticalThresholdPercent:
+                    updatedSettings.capacity.criticalThresholdPercent,
             },
             request: req,
         });

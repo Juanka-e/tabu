@@ -23,6 +23,7 @@ export const REWARD_REASON_CODES = [
     "room_not_found",
     "match_not_completed",
     "participant_not_found",
+    "spectator_not_eligible",
     "invalid_base_reward",
 ] as const;
 
@@ -43,6 +44,7 @@ export interface RewardLineupIdentity {
     usernameSnapshot: string | null;
     displayNameSnapshot: string;
     team: "A" | "B" | null;
+    roleAtStart: string;
 }
 
 export interface RewardRoomMetrics {

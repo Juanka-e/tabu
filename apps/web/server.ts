@@ -4,7 +4,11 @@ import next from "next";
 import { Server } from "socket.io";
 import { getToken } from "next-auth/jwt";
 import { fileURLToPath } from "node:url";
-import { setupGameSocket, getRoomMetrics } from "./src/lib/socket/game-socket";
+import {
+    setupGameSocket,
+    getLocalRoomCapacityMetrics,
+    getRoomMetrics,
+} from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
 import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
 import {
@@ -12,6 +16,10 @@ import {
     isTrustedWebOrigin,
     parseTrustedWebOrigins,
 } from "./src/lib/security/web-origin-policy";
+import {
+    publishCapacityHeartbeat,
+    removeCapacityHeartbeat,
+} from "./src/lib/socket/room-capacity";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -101,18 +109,37 @@ app.prepare().then(() => {
     });
 
     setupGameSocket(io);
+    const publishCurrentCapacity = () => {
+        void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(
+            (error) => {
+                console.error("Capacity heartbeat could not be published", error);
+            }
+        );
+    };
+    publishCurrentCapacity();
+    const capacityHeartbeat = setInterval(publishCurrentCapacity, 10_000);
+    capacityHeartbeat.unref();
 
     httpServer.listen(port, hostname, () => {
         console.log(`> Ready on http://${hostname}:${port}`);
     });
 
+    let shuttingDown = false;
     const shutdown = async () => {
+        if (shuttingDown) return;
+        shuttingDown = true;
         console.log("Shutting down...");
-        io.close();
-        await closeRedisClient();
-        httpServer.close(() => {
-            process.exit(0);
+        clearInterval(capacityHeartbeat);
+        await new Promise<void>((resolve) => {
+            io.close(() => resolve());
         });
+        await removeCapacityHeartbeat();
+        await closeRedisClient();
+        if (!httpServer.listening) {
+            process.exit(0);
+            return;
+        }
+        httpServer.close(() => process.exit(0));
     };
 
     process.on("SIGTERM", shutdown);

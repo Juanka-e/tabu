@@ -53,6 +53,8 @@
     "test:gameplay-ui-http-smoke": "tsx scripts/test-gameplay-ui-http-smoke.ts",
     "test:gameplay-ui-playwright": "playwright test tests/gameplay-ui-smoke.spec.ts",
     "test:room-admin-handoff": "tsx scripts/test-room-admin-handoff.ts",
+    "test:room-capacity-controls": "tsx scripts/test-room-capacity-controls.ts",
+    "test:room-capacity-socket": "tsx scripts/test-room-capacity-socket-integration.ts",
     "test:distributed-coordination": "tsx scripts/test-distributed-coordination.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",
     "test:captcha-security": "tsx scripts/test-captcha-security.ts",

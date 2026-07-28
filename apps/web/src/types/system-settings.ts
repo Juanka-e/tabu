@@ -14,6 +14,9 @@ export type CaptchaTurnstileMode = (typeof CAPTCHA_TURNSTILE_MODES)[number];
 export const ECONOMY_DAMPING_PROFILES = ["gentle", "standard", "strict"] as const;
 export type EconomyDampingProfile = (typeof ECONOMY_DAMPING_PROFILES)[number];
 
+export const CAPACITY_ADMISSION_MODES = ["automatic", "open", "closed"] as const;
+export type CapacityAdmissionMode = (typeof CAPACITY_ADMISSION_MODES)[number];
+
 export interface PlatformSettings {
     maintenanceEnabled: boolean;
     maintenanceMessage: string;
@@ -66,6 +69,17 @@ export interface EconomySettings {
     repeatedGroupMinMultiplier: number;
 }
 
+export interface CapacitySettings {
+    roomMaxPlayers: number;
+    teamMaxPlayers: number;
+    maxActiveRooms: number;
+    maxOnlinePlayers: number;
+    warningThresholdPercent: number;
+    criticalThresholdPercent: number;
+    admissionMode: CapacityAdmissionMode;
+    capacityMessage: string;
+}
+
 export interface CaptchaSettings {
     enabled: boolean;
     provider: CaptchaProvider;
@@ -88,6 +102,7 @@ export interface SystemSettings {
     branding: BrandingSettings;
     features: FeatureSettings;
     economy: EconomySettings;
+    capacity: CapacitySettings;
     security: SecuritySettings;
 }
 

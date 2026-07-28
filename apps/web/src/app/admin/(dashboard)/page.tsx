@@ -2,7 +2,16 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Gamepad2, BookOpen, FolderTree } from "lucide-react";
+import {
+    Activity,
+    BookOpen,
+    Eye,
+    FolderTree,
+    Gamepad2,
+    Server,
+    Users,
+    Wifi,
+} from "lucide-react";
 
 interface DashboardStats {
     onlineKullaniciSayisi: number;
@@ -12,9 +21,49 @@ interface DashboardStats {
     wordsByDifficulty: { easy: number; medium: number; hard: number };
 }
 
+interface CapacityHealth {
+    checkedAt: string;
+    redis: {
+        configured: boolean;
+        available: boolean;
+        latencyMs: number | null;
+    };
+    cluster: {
+        source: "redis" | "local";
+        activeInstances: number;
+        activeRooms: number;
+        activeMatches: number;
+        onlinePlayers: number;
+        spectators: number;
+        connectedSockets: number;
+        rssBytes: number;
+        heapUsedBytes: number;
+        maxEventLoopLagMs: number;
+    };
+    admission: {
+        level: "normal" | "warning" | "critical" | "closed";
+        allowCreate: boolean;
+        allowJoin: boolean;
+        roomUsagePercent: number;
+        playerUsagePercent: number;
+    };
+    limits: {
+        maxActiveRooms: number;
+        maxOnlinePlayers: number;
+        admissionMode: "automatic" | "open" | "closed";
+    };
+}
+
+function formatBytes(value: number): string {
+    if (!Number.isFinite(value) || value <= 0) return "0 MB";
+    return `${Math.round(value / 1024 / 1024)} MB`;
+}
+
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [capacity, setCapacity] = useState<CapacityHealth | null>(null);
+    const [capacityError, setCapacityError] = useState("");
 
     useEffect(() => {
         fetch("/api/admin/dashboard-stats")
@@ -24,6 +73,46 @@ export default function AdminDashboardPage() {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        const loadCapacity = async () => {
+            try {
+                const response = await fetch("/api/admin/capacity-health", {
+                    cache: "no-store",
+                });
+                const data = (await response.json()) as
+                    | CapacityHealth
+                    | { error?: string };
+                if (!response.ok || !("cluster" in data)) {
+                    throw new Error(
+                        "error" in data
+                            ? data.error || "Kapasite durumu alınamadı."
+                            : "Kapasite durumu alınamadı."
+                    );
+                }
+                if (active) {
+                    setCapacity(data);
+                    setCapacityError("");
+                }
+            } catch (error) {
+                if (active) {
+                    setCapacityError(
+                        error instanceof Error
+                            ? error.message
+                            : "Kapasite durumu alınamadı."
+                    );
+                }
+            }
+        };
+
+        void loadCapacity();
+        const interval = window.setInterval(loadCapacity, 10_000);
+        return () => {
+            active = false;
+            window.clearInterval(interval);
+        };
     }, []);
 
     // Memoize statCards to avoid recreating array on every render
@@ -86,6 +175,120 @@ export default function AdminDashboardPage() {
                     </Card>
                 ))}
             </div>
+
+            <Card className="overflow-hidden border-border/50">
+                <CardHeader className="border-b border-border/50 bg-muted/20">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <Activity className="h-5 w-5 text-cyan-500" />
+                                Canlı Kapasite
+                            </CardTitle>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Redis heartbeat veya güvenli local fallback üzerinden canlı özet.
+                            </p>
+                        </div>
+                        <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] ${
+                                !capacity
+                                    ? "bg-muted text-muted-foreground"
+                                    : capacity.admission.level === "normal"
+                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    : capacity.admission.level === "warning"
+                                      ? "bg-amber-500/10 text-amber-600"
+                                      : "bg-red-500/10 text-red-600"
+                            }`}
+                        >
+                            {capacity?.admission.level ?? "bekleniyor"}
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-5 p-5">
+                    {capacityError ? (
+                        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600">
+                            {capacityError}
+                        </div>
+                    ) : null}
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {[
+                            {
+                                label: "Aktif maç",
+                                value: capacity?.cluster.activeMatches ?? 0,
+                                icon: Gamepad2,
+                            },
+                            {
+                                label: "İzleyici",
+                                value: capacity?.cluster.spectators ?? 0,
+                                icon: Eye,
+                            },
+                            {
+                                label: "Socket",
+                                value: capacity?.cluster.connectedSockets ?? 0,
+                                icon: Wifi,
+                            },
+                            {
+                                label: "Instance",
+                                value: capacity?.cluster.activeInstances ?? 0,
+                                icon: Server,
+                            },
+                        ].map(({ label, value, icon: Icon }) => (
+                            <div
+                                key={label}
+                                className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-3"
+                            >
+                                <Icon className="h-4 w-4 text-cyan-500" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">{label}</p>
+                                    <p className="text-lg font-bold text-foreground">{value}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-2 rounded-xl border border-border/60 p-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="font-semibold">Oda kullanımı</span>
+                                <span className="text-muted-foreground">
+                                    {capacity?.cluster.activeRooms ?? 0} / {capacity?.limits.maxActiveRooms ?? 0}
+                                </span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className="h-full rounded-full bg-blue-500 transition-all"
+                                    style={{ width: `${capacity?.admission.roomUsagePercent ?? 0}%` }}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2 rounded-xl border border-border/60 p-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="font-semibold">Oyuncu kullanımı</span>
+                                <span className="text-muted-foreground">
+                                    {capacity?.cluster.onlinePlayers ?? 0} / {capacity?.limits.maxOnlinePlayers ?? 0}
+                                </span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className="h-full rounded-full bg-emerald-500 transition-all"
+                                    style={{ width: `${capacity?.admission.playerUsagePercent ?? 0}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                        <span>
+                            Redis: {capacity?.redis.available ? `${capacity.redis.latencyMs ?? 0} ms` : "erişilemiyor"}
+                        </span>
+                        <span>Kaynak: {capacity?.cluster.source ?? "-"}</span>
+                        <span>RSS: {formatBytes(capacity?.cluster.rssBytes ?? 0)}</span>
+                        <span>Heap: {formatBytes(capacity?.cluster.heapUsedBytes ?? 0)}</span>
+                        <span>Event loop: {capacity?.cluster.maxEventLoopLagMs ?? 0} ms</span>
+                        <span>Mod: {capacity?.limits.admissionMode ?? "-"}</span>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Difficulty breakdown */}
             {stats?.wordsByDifficulty && (

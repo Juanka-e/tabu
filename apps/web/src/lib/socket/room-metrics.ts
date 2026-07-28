@@ -4,6 +4,9 @@
 export interface RoomMetrics {
     aktifLobiSayisi: number;
     onlineKullaniciSayisi: number;
+    aktifMacSayisi: number;
+    izleyiciSayisi: number;
+    bagliSocketSayisi: number;
 }
 
 let metricsGetter: (() => RoomMetrics) | null = null;
@@ -22,5 +25,11 @@ export function getRoomMetrics(): RoomMetrics {
     if (metricsGetter) {
         return metricsGetter();
     }
-    return { aktifLobiSayisi: 0, onlineKullaniciSayisi: 0 };
+    return {
+        aktifLobiSayisi: 0,
+        onlineKullaniciSayisi: 0,
+        aktifMacSayisi: 0,
+        izleyiciSayisi: 0,
+        bagliSocketSayisi: 0,
+    };
 }

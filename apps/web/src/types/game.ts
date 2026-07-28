@@ -36,12 +36,19 @@ export interface PlayerCosmetics {
 export interface Player {
     id: string;
     playerId: string;
-    userId?: number | null;
     ad: string;
     takim: "A" | "B" | null;
     online: boolean;
     rol: "Oyuncu" | "İzleyici" | "Anlatıcı" | "Gözetmen" | "Tahminci";
     cosmetics?: PlayerCosmetics;
+}
+
+export interface RoomStartReadiness {
+    ready: boolean;
+    activePlayers: number;
+    minimumPlayers: number;
+    teamAPlayers: number;
+    teamBPlayers: number;
 }
 
 export interface RoomSettings {
@@ -58,6 +65,7 @@ export interface RoomData {
     ayarlar: RoomSettings;
     seciliKategoriler: number[];
     seciliZorluklar: number[];
+    startReadiness?: RoomStartReadiness;
     banList?: {
         playerIds: Set<string>;
         ips: Set<string>;
