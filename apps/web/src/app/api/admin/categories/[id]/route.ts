@@ -57,7 +57,7 @@ export async function PUT(
             data,
         });
 
-        invalidateCategoryCache();
+        await invalidateCategoryCache();
         return NextResponse.json(category, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -107,7 +107,7 @@ export async function DELETE(
         const categoryId = parseInt(id, 10);
         await assertCategoryCanBeDeleted(categoryId);
         await prisma.category.delete({ where: { id: categoryId } });
-        invalidateCategoryCache();
+        await invalidateCategoryCache();
         return NextResponse.json({ success: true }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof Error) {

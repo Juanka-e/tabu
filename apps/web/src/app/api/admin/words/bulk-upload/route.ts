@@ -10,6 +10,7 @@ import {
     processBulkWordUpload,
     type BulkUploadMode,
 } from "@/lib/admin-words-bulk-upload/service";
+import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest) {
             },
             request,
         });
+        if (results.success > 0) {
+            await invalidateAdminDashboardStatsCache();
+        }
 
         return NextResponse.json(results, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {

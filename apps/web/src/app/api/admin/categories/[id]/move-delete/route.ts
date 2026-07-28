@@ -179,7 +179,7 @@ export async function POST(
             });
         });
 
-        invalidateCategoryCache();
+        await invalidateCategoryCache();
 
         await writeAuditLog({
             actor: adminSession,

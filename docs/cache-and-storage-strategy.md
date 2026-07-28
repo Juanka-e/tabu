@@ -252,6 +252,35 @@ Ama oyuncu sayisi ve panel kullanim yogunlugu artarsa su model uygulanmalidir:
 
 Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuzeyleri daha ucuz hale getirir.
 
+## Current Shared JSON Cache Foundation
+
+Implemented in `@hushle/platform-cache`:
+
+- Redis-first JSON read-through cache
+- bounded process-memory fallback when Redis is unavailable
+- process-local single-flight loading to prevent duplicate DB work
+- corrupt JSON eviction and loader recovery
+- explicit key invalidation
+- hit, miss, load, coalescing, error and invalidation metrics
+- `CACHE_MEMORY_MAX_ENTRIES` bound, default `500`
+
+Current application consumers:
+
+- visible category tree, TTL `60s`
+- admin dashboard static word/category counters, TTL `10s`
+
+The admin dashboard keeps room and online-player metrics outside the cached static
+payload. Those values are read live on every request. Category and word mutations
+await targeted invalidation before returning success.
+
+Cache telemetry is available through the authenticated capacity health API and the
+Integration Hub. Redis flush or cache loss must only increase DB work temporarily;
+it must not alter wallet, inventory, audit, match, or settings truth.
+
+The complete store catalog response is intentionally not cached globally because it
+contains user-specific wallet, ownership, equipped-item, and bundle ownership data.
+Future catalog caching must first split shared catalog records from per-user overlays.
+
 ## Rate Limit Strategy
 - Development can use memory-backed rate limiting.
 - Production should use Redis/Valkey-backed counters so limits are shared across all instances.
@@ -263,23 +292,28 @@ Bu model oyunun ana socket loop'unu fetch baskisindan ayri tutar ve ikincil yuze
   - admin mutation routes
   - system settings update
 
+Distributed counters use one Redis Lua operation for `INCR`, first-write expiry and
+TTL read. This prevents a process interruption between `INCR` and `PEXPIRE` from
+leaving a permanent counter. Redis command failures fall back to process-local
+limits and emit at most one warning per 30 seconds to avoid outage log storms.
+
 ## Rollout Plan For `feature/cache-and-rate-limit-foundation`
 
 ### Phase 1
-- introduce cache/rate-limit abstraction layer
-- keep memory fallback for local development
-- allow Redis/Valkey backend via env
+- implemented: cache/rate-limit abstraction layer
+- implemented: bounded memory fallback for local development and Redis faults
+- implemented: Redis/Valkey backend via env
 
 ### Phase 2
-- move rate limit store behind shared adapter
+- implemented: atomic distributed rate limit store with local fallback
 - move system settings cache behind shared adapter
-- add invalidation helpers
+- implemented: targeted JSON cache invalidation helpers
 
 ### Phase 3
 - add notification/support counters
 - add short TTL coordination helpers
 - prepare websocket adapter integration
-- add dashboard summary cache abstraction
+- implemented: static admin dashboard summary cache
 - add store catalog cache abstraction
 - add identity/profile mini-summary cache where it creates measurable savings
 

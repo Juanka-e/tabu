@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        invalidateCategoryCache();
+        await invalidateCategoryCache();
         return NextResponse.json(category, {
             status: 201,
             headers: buildRateLimitHeaders(rateLimit),

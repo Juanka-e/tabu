@@ -4,8 +4,8 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `test/room-capacity-final-validation`
-2. `feature/cache-and-rate-limit-foundation`
+1. `feature/cache-and-rate-limit-foundation`
+2. `feature/cache-and-rate-limit-foundation-followup`
 3. `feature/post-launch-economy-observability-review`
 4. `feature/audit-retention-and-telemetry-foundation`
 5. `feature/admin-promotions-ux`
@@ -23,30 +23,32 @@
 
 ## Aktif Branch
 
-### `test/room-capacity-final-validation`
+### `feature/cache-and-rate-limit-foundation`
 
 Tamamlananlar:
-- paralel join sirasinda ikinci atomik room-cap kontrolu
-- takim secimi ile room state'e ekleme arasindaki await boslugunun kaldirilmasi
-- 24 adaydan 12 kabul / 12 red davranisini dogrulayan socket load scripti
-- full-room guest reconnect ve persistent `playerId` dogrulamasi
-- overflow sonrasi public lobby payload veri minimizasyonu dogrulamasi
-- 10 ardisik turda 42-70 ms local paralel join correctness baseline
-- gecici kayitli hesapla 3 oyuncu red / 4 oyuncu uygun server guard testi
-- `closed` admission altinda create/join red ve mevcut guest reconnect testi
-- test sonrasi system settings, audit ve gecici kullanici DB restorasyonu
-- Next route ve Socket.IO runtime icin process-global settings cache invalidation
-- Next admin route ve Socket.IO runtime icin process-global canli room metrics provider
-- mevcut oyunculari atmadan room/team limit dusurme ve tekrar yukseltme testi
-- warning, critical ve closed admin capacity health API karar testi
-- gercek mac akisi ile late spectator finalize red, sifir coin ve denied audit testi
+- Redis-first generic JSON read-through cache
+- bounded process-memory fallback ve process-local single-flight
+- corrupt JSON recovery ve hedefli key invalidation
+- cache hit, miss, load, error, invalidation ve coalescing metrikleri
+- gorunur kategori agaci icin 60 saniyelik shared cache
+- admin dashboard statik word/category sayaclari icin 10 saniyelik shared cache
+- kategori ve kelime mutation route'larinda await edilen targeted invalidation
+- admin capacity health ve Integration Hub cache gozlemlenebilirligi
+- Redis rate limit icin atomik Lua `INCR + PEXPIRE + PTTL`
+- Redis rate-limit arizasinda local fallback ve 30 saniyelik log throttle
+- fake Redis fault testleri, gercek Redis/MySQL invalidation testi
+- gercek Auth.js admin oturumuyla cross-process dashboard cache testi
 
 Acik kalanlar:
-- admin health kartinin masaustu ve mobilde son gorsel smoke turu
+- system settings cache'ini Redis version/invalidation modeline tasima
+- store katalogunu shared data ve user overlay olarak ayirarak cache'leme
+- notification unread counter
+- economy rolling/repeated-group counter'lari
+- Socket.IO Redis adapter ve multi-instance fan-out
+- shared registered room presence load testi
 
 Referans:
-- `docs/guides/room-rules-and-capacity-controls-guide.md`
-- `docs/guides/room-capacity-load-validation-checklist.md`
+- `docs/cache-and-storage-strategy.md`
 
 ## Onceki Branch Kaydi
 ### `feature/admin-match-history-review`
