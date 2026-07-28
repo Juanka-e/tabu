@@ -229,7 +229,7 @@ sayisi artirilmadan once:
 
 - `roomCode -> owner instance` yonlendirmesi
 - polling icin sticky session veya websocket-only karari
-- Redis room ownership lease ve stale owner recovery
+- Redis room ownership lease ve stale owner detection - create-only temel tamamlandi
 - owner'a cross-instance command forwarding
 - restart/reconnect/timer recovery semantigi
 
@@ -352,7 +352,14 @@ Onerilen implementasyon sirasi:
 - health'te adapter ve multi-instance readiness gorunurlugu
 - room state process-local kaldigi icin replica artirmama guardrail'i
 
-9. `feature/mobile-api-foundation`
+9. `feature/realtime-room-ownership-foundation` - tamamlandi
+- varsayilan kapali ve Redis yoksa fail-fast create lease
+- token kontrollu claim, renew ve release
+- stale process'in yeni owner lease'ini silememesi
+- health'te conflict, lost ownership ve renew failure gorunurlugu
+- mevcut maci Redis kesintisinde sonlandirmayan create-only enforcement
+
+10. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails

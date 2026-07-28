@@ -24,7 +24,8 @@ See:
 ## Key Components
 
 ### 1. GameSocket (`apps/web/src/lib/socket/game-socket.ts`)
-This file exports `setupGameSocket(io: Server)`, which initializes the socket event listeners.
+This file exports `setupGameSocket(io, roomOwnership)`, which initializes the
+socket event listeners with an explicit room ownership coordinator.
 
 *   **State Management:**
     *   `rooms`: A `Map<string, RoomData>` storing the state of all active game rooms.
@@ -33,7 +34,7 @@ This file exports `setupGameSocket(io: Server)`, which initializes the socket ev
     *   `roomJoinAttempts`: Rate limiting for room creation/joining.
 
 *   **Room Structure (`RoomData`):**
-    *   `odaKodu`: Unique 4-character room code.
+    *   `odaKodu`: Unique 6-character room code.
     *   `creatorId`: The **socket ID** of the current room host. Used for permission checks.
     *   `creatorPlayerId`: The **persistent Player ID** (UUID) of the room creator. Used to restore `creatorId` upon reconnection.
     *   `oyuncular`: List of players in the room.
@@ -52,7 +53,17 @@ This file exports `setupGameSocket(io: Server)`, which initializes the socket ev
 *   **Timer:** A `setInterval` runs on the server for each room to handle turn limits and state transitions.
 *   **State Updates:** Game state changes are broadcast to all room members via `oyunDurumuGuncelle` and `lobiGuncelle`.
 
-### 4. Security & Protections
+### 4. Room Ownership Boundary
+*   Room state and timers remain process-local.
+*   Optional Redis leases prevent two instances from successfully creating the
+    same room code.
+*   Lease renew and release are token-checked; stale instances cannot delete a
+    replacement owner's lease.
+*   Ownership is currently enforced only during room creation. Routing,
+    cross-instance commands and restart recovery are not implemented, so realtime
+    replica count must remain one.
+
+### 5. Security & Protections
 *   **WebSocket Authentication:** The `server.ts` utilizes a Socket.IO middleware that checks for a valid `next-auth/jwt` session token. Unauthorized (not logged in) connections are immediately rejected.
 *   **Identity Anti-Spoofing & Ban Enforcement:** Room permissions and bans are strictly enforced using the `user.id` from the NextAuth JWT. There is zero reliance on `localStorage`, making identity theft and ban-evasion via storage wiping impossible.
 *   **XSS & Clickjacking Prevention:** 

@@ -17,6 +17,7 @@ import {
     parseTrustedWebOrigins,
 } from "./src/lib/security/web-origin-policy";
 import {
+    getCapacityInstanceId,
     publishCapacityHeartbeat,
     removeCapacityHeartbeat,
 } from "./src/lib/socket/room-capacity";
@@ -25,6 +26,11 @@ import {
     getSocketRedisAdapterConfig,
     type SocketRedisAdapterHandle,
 } from "./src/lib/socket/socket-redis-adapter";
+import {
+    createRoomOwnershipCoordinator,
+    getRoomOwnershipConfig,
+    type RoomOwnershipCoordinator,
+} from "./src/lib/socket/room-ownership";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -41,7 +47,9 @@ const handler = app.getRequestHandler();
 
 app.prepare().then(async () => {
     let socketRedisAdapter: SocketRedisAdapterHandle | null = null;
+    let roomOwnership: RoomOwnershipCoordinator | null = null;
     const socketRedisAdapterConfig = getSocketRedisAdapterConfig();
+    const roomOwnershipConfig = getRoomOwnershipConfig();
     const httpServer = createServer(async (req, res) => {
         if (req.url !== "/api/health" || req.method !== "GET") {
             await handler(req, res);
@@ -65,26 +73,47 @@ app.prepare().then(async () => {
 
         const metrics = getRoomMetrics();
         const redis = await getRedisHealth();
+        const socketRedisAdapterStatus =
+            socketRedisAdapter?.getStatus() ?? {
+                enabled: socketRedisAdapterConfig.enabled,
+                available: false,
+                redisConfigured: socketRedisAdapterConfig.redisConfigured,
+                stickySessionsConfigured:
+                    socketRedisAdapterConfig.stickySessionsConfigured,
+                roomStateBackend: "process-local" as const,
+                multiInstanceReady: false as const,
+            };
+        const roomOwnershipStatus = roomOwnership?.getStatus() ?? {
+            enabled: roomOwnershipConfig.enabled,
+            available: false,
+            instanceId: getCapacityInstanceId(),
+            leaseTtlMs: roomOwnershipConfig.leaseTtlMs,
+            renewIntervalMs: roomOwnershipConfig.renewIntervalMs,
+            trackedRooms: 0,
+            ownedRooms: 0,
+            lostRooms: 0,
+            claimConflicts: 0,
+            lostOwnerships: 0,
+            renewFailures: 0,
+            lastRenewedAt: null,
+            enforcement: "create-only" as const,
+        };
+        const realtimeDegraded =
+            (socketRedisAdapterStatus.enabled &&
+                !socketRedisAdapterStatus.available) ||
+            (roomOwnershipStatus.enabled && !roomOwnershipStatus.available) ||
+            roomOwnershipStatus.lostRooms > 0;
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
             JSON.stringify({
-                status: "ok",
+                status: realtimeDegraded ? "degraded" : "ok",
                 uptime: process.uptime(),
                 dependencies: {
                     redis,
                 },
                 realtime: {
-                    socketRedisAdapter:
-                        socketRedisAdapter?.getStatus() ?? {
-                            enabled: socketRedisAdapterConfig.enabled,
-                            available: false,
-                            redisConfigured:
-                                socketRedisAdapterConfig.redisConfigured,
-                            stickySessionsConfigured:
-                                socketRedisAdapterConfig.stickySessionsConfigured,
-                            roomStateBackend: "process-local",
-                            multiInstanceReady: false,
-                        },
+                    socketRedisAdapter: socketRedisAdapterStatus,
+                    roomOwnership: roomOwnershipStatus,
                 },
                 ...metrics,
             })
@@ -118,6 +147,9 @@ app.prepare().then(async () => {
             );
         }
     }
+    roomOwnership = await createRoomOwnershipCoordinator({
+        instanceId: getCapacityInstanceId(),
+    });
 
     // Resolve auth when present, but keep guest socket access open.
     io.use(async (socket, nextMiddleware) => {
@@ -139,7 +171,7 @@ app.prepare().then(async () => {
         }
     });
 
-    setupGameSocket(io);
+    setupGameSocket(io, roomOwnership);
     const publishCurrentCapacity = () => {
         void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(
             (error) => {
@@ -150,6 +182,14 @@ app.prepare().then(async () => {
     publishCurrentCapacity();
     const capacityHeartbeat = setInterval(publishCurrentCapacity, 10_000);
     capacityHeartbeat.unref();
+    const ownershipHeartbeat = roomOwnership.getConfig().enabled
+        ? setInterval(() => {
+              void roomOwnership?.renewOwnedRooms().catch((error) => {
+                  console.error("Room ownership heartbeat failed", error);
+              });
+          }, roomOwnership.getConfig().renewIntervalMs)
+        : null;
+    ownershipHeartbeat?.unref();
 
     httpServer.listen(port, hostname, () => {
         console.log(`> Ready on http://${hostname}:${port}`);
@@ -161,10 +201,12 @@ app.prepare().then(async () => {
         shuttingDown = true;
         console.log("Shutting down...");
         clearInterval(capacityHeartbeat);
+        if (ownershipHeartbeat) clearInterval(ownershipHeartbeat);
         await new Promise<void>((resolve) => {
             io.close(() => resolve());
         });
         await socketRedisAdapter?.close();
+        await roomOwnership?.close();
         await removeCapacityHeartbeat();
         await closeRedisClient();
         if (!httpServer.listening) {

@@ -55,6 +55,7 @@ import {
     getCapacityClusterSnapshot,
     publishCapacityHeartbeat,
 } from "./room-capacity";
+import type { RoomOwnershipCoordinator } from "./room-ownership";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -286,7 +287,10 @@ const OyunVerisiSchema = z.object({
 
 // ─── Setup ─────────────────────────────────────────────────────
 
-export function setupGameSocket(io: Server): void {
+export function setupGameSocket(
+    io: Server,
+    roomOwnership: RoomOwnershipCoordinator
+): void {
     connectedSocketCountGetter = () => io.engine.clientsCount;
     registerMetricsProvider(getRoomMetrics);
 
@@ -298,8 +302,32 @@ export function setupGameSocket(io: Server): void {
         );
     }
 
-    function generateRoomCode(): string {
+    function generateRoomCodeCandidate(): string {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    async function claimAvailableRoomCode(): Promise<string> {
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+            const roomCode = generateRoomCodeCandidate();
+            if (rooms.has(roomCode)) continue;
+
+            let claim;
+            try {
+                claim = await roomOwnership.claim(roomCode);
+            } catch (error) {
+                console.error("Room ownership claim failed", error);
+                throw new Error(
+                    "Oda şu anda oluşturulamıyor. Lütfen kısa süre sonra tekrar deneyin."
+                );
+            }
+            if (claim.acquired) {
+                return roomCode;
+            }
+        }
+
+        throw new Error(
+            "Oda kodu şu anda oluşturulamadı. Lütfen kısa süre sonra tekrar deneyin."
+        );
     }
 
     function getRoom(roomCode: string): RoomData | undefined {
@@ -329,6 +357,9 @@ export function setupGameSocket(io: Server): void {
         rooms.delete(roomCode);
         clearWordPool(roomCode);
         void clearPendingRoomAdminHandoff(roomCode);
+        void roomOwnership.release(roomCode).catch((error) => {
+            console.error("Room ownership lease release failed", error);
+        });
         publishCurrentCapacity();
     }
 
@@ -865,6 +896,7 @@ export function setupGameSocket(io: Server): void {
             async (rawPayload: unknown) => {
                 let claimedMembershipUserId: number | null = null;
                 let claimedMembershipRoomCode: string | null = null;
+                let claimedNewRoomCode: string | null = null;
                 let joinedRoom = false;
                 const parsed = OdaIstegiSchema.safeParse(rawPayload);
                 if (!parsed.success) {
@@ -1029,7 +1061,8 @@ export function setupGameSocket(io: Server): void {
                             socket.emit("hata", "Bu oda bulunamadı.");
                             return;
                         }
-                        targetCode = generateRoomCode();
+                        targetCode = await claimAvailableRoomCode();
+                        claimedNewRoomCode = targetCode;
                         room = {
                             odaKodu: targetCode,
                             gameMode: TABU_MODE_ID,
@@ -1047,7 +1080,6 @@ export function setupGameSocket(io: Server): void {
                                 ips: new Set(),
                             },
                         };
-                        persistRoom(room);
                     }
 
                     if (!room.banList) {
@@ -1219,6 +1251,16 @@ export function setupGameSocket(io: Server): void {
                             claimedMembershipUserId,
                             claimedMembershipRoomCode
                         );
+                    }
+                    if (!joinedRoom && claimedNewRoomCode) {
+                        await roomOwnership
+                            .release(claimedNewRoomCode)
+                            .catch((error) => {
+                                console.error(
+                                    "Uncommitted room ownership release failed",
+                                    error
+                                );
+                            });
                     }
                 }
             }
