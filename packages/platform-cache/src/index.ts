@@ -1,6 +1,6 @@
 import { createClient } from "redis";
 
-type AppRedisClient = ReturnType<typeof createClient>;
+export type AppRedisClient = ReturnType<typeof createClient>;
 type RedisSetOptions = {
     PX?: number;
     NX?: boolean;
@@ -28,6 +28,12 @@ export interface RedisHealth {
     configured: boolean;
     available: boolean;
     latencyMs: number | null;
+}
+
+export interface DedicatedRedisConnectionPair {
+    publisher: AppRedisClient;
+    subscriber: AppRedisClient;
+    close(): Promise<void>;
 }
 
 export type JsonCacheSource = "redis" | "memory" | "loader";
@@ -80,6 +86,58 @@ function getRedisUrl(): string | null {
 export function getRedisKey(...segments: Array<string | number>): string {
     const prefix = process.env.REDIS_KEY_PREFIX?.trim() || "hushle";
     return [prefix, ...segments].join(":");
+}
+
+async function closeNativeRedisClient(client: AppRedisClient): Promise<void> {
+    if (client.isReady) {
+        await client.quit();
+    } else if (client.isOpen) {
+        client.destroy();
+    }
+}
+
+export async function createDedicatedRedisConnectionPair(options: {
+    url: string;
+    connectTimeoutMs?: number;
+    maxReconnectAttempts?: number;
+    onError?: (error: Error) => void;
+}): Promise<DedicatedRedisConnectionPair> {
+    const publisher = createClient({
+        url: options.url,
+        socket: {
+            connectTimeout: options.connectTimeoutMs ?? 3_000,
+            reconnectStrategy(retries) {
+                return retries > (options.maxReconnectAttempts ?? 10)
+                    ? false
+                    : Math.min(retries * 200, 2_000);
+            },
+        },
+    });
+    const subscriber = publisher.duplicate();
+    const onError = options.onError ?? (() => undefined);
+    publisher.on("error", onError);
+    subscriber.on("error", onError);
+
+    try {
+        await Promise.all([publisher.connect(), subscriber.connect()]);
+    } catch (error) {
+        await Promise.allSettled([
+            closeNativeRedisClient(publisher),
+            closeNativeRedisClient(subscriber),
+        ]);
+        throw error;
+    }
+
+    return {
+        publisher,
+        subscriber,
+        close: async () => {
+            await Promise.allSettled([
+                closeNativeRedisClient(publisher),
+                closeNativeRedisClient(subscriber),
+            ]);
+        },
+    };
 }
 
 function getPositiveIntegerSetting(name: string, fallback: number): number {

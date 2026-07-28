@@ -204,6 +204,39 @@ That breaks:
 - More scalable, but more complex.
 - Better once real concurrent room load and PM2 multi-instance become normal.
 
+### Current Socket.IO Redis Adapter Boundary
+
+Redis adapter foundation is implemented but disabled by default:
+
+- `SOCKET_IO_REDIS_ADAPTER_ENABLED=false` keeps the single-runtime behavior.
+- Explicit enablement requires `REDIS_URL`; startup fails instead of silently
+  falling back to a process-local adapter.
+- Publisher and subscriber use dedicated Redis connections because a subscribed
+  connection cannot be reused as a general cache client.
+- `/api/health` reports adapter enablement, availability, sticky-session
+  declaration, room-state backend and `multiInstanceReady`.
+- The integration test starts two Socket.IO runtimes and verifies cross-instance
+  room fan-out through Redis.
+
+This foundation does not make realtime multi-instance safe. Authoritative room
+maps, turn timers, host transfer and registered-user room indexes still live in
+the owning process. Polling transport also needs load-balancer affinity. Therefore:
+
+- keep one realtime replica for now
+- keep `multiInstanceReady=false`
+- do not treat adapter availability as room-state availability
+- set `SOCKET_IO_STICKY_SESSIONS_CONFIGURED=true` only after affinity is actually
+  configured at the load balancer
+
+Before increasing realtime replicas:
+
+1. Define stable `roomCode -> owning instance` routing.
+2. Add sticky sessions for Socket.IO polling or intentionally remove polling.
+3. Store room ownership as a renewable Redis lease with stale-owner recovery.
+4. Route cross-instance room commands to the owner or move authoritative room
+   state behind a concurrency-safe shared state machine.
+5. Define reconnect, owner restart, timer recovery and split-brain behavior.
+
 ## Recommended Realtime Direction
 - Early production:
   - single realtime process is acceptable
@@ -346,7 +379,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - implemented: notification unread counter
 - add support queue counters after their product semantics are defined
 - add short TTL coordination helpers
-- prepare websocket adapter integration
+- implemented: Socket.IO Redis adapter event fan-out foundation, default off
 - implemented: static admin dashboard summary cache
 - implemented: shared store catalog cache plus per-user MySQL overlay
 - implemented: dashboard match summary cache plus live wallet overlay
@@ -354,8 +387,10 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 
 ### Phase 4
 - if PM2 multi-instance realtime becomes standard:
-  - add Socket.IO Redis adapter
-  - add room/lobby ephemeral coordination strategy
+  - enable the tested Socket.IO Redis adapter foundation
+  - add room ownership and command-routing strategy
+  - add sticky sessions or remove polling transport
+  - add room/lobby authoritative shared coordination and recovery semantics
 
 ### Phase 5
 - move economy guard rolling counters behind Redis/Valkey
@@ -382,7 +417,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - short TTL locks around sensitive mutation bursts
 
 ### Realtime / Multi-instance
-- Socket.IO adapter pub/sub
+- implemented: Socket.IO adapter pub/sub foundation
 - room presence coordination
 - reconnect grace-period helpers
 - cross-instance room transfer signals
