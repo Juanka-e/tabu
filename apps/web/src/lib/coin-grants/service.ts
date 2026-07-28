@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Prisma } from "@hushle/platform-db";
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
+import { invalidateNotificationUnreadCountCache } from "@/lib/cache/application-cache";
 import type {
     CoinGrantCampaignWriteInput,
     CoinGrantCodeBatchCreateInput,
@@ -691,7 +692,7 @@ export async function redeemCoinGrantCode(input: {
     const now = new Date();
 
     try {
-        return await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             await tx.wallet.upsert({
                 where: { userId: input.userId },
                 update: {},
@@ -765,7 +766,7 @@ export async function redeemCoinGrantCode(input: {
                     campaignCode: codeRecord.campaign.code,
                     coinAmount: codeRecord.campaign.coinAmount,
                 },
-            });
+            }, { deferCacheInvalidation: true });
 
             return {
                 ok: true,
@@ -784,6 +785,8 @@ export async function redeemCoinGrantCode(input: {
                 claim: mapCoinGrantClaim(claim),
             } satisfies CoinGrantRedeemResult;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        await invalidateNotificationUnreadCountCache(input.userId);
+        return result;
     } catch (error) {
         if (error instanceof CoinGrantRedeemFailure) {
             return { ok: false, code: error.code };

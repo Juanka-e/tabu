@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { getOrSetJsonCache } from "@hushle/platform-cache";
 import { Prisma } from "@hushle/platform-db";
-import { APPLICATION_CACHE_KEYS } from "@/lib/cache/application-cache";
+import {
+    APPLICATION_CACHE_KEYS,
+    invalidateNotificationUnreadCountCache,
+} from "@/lib/cache/application-cache";
 import type { RoomCardCosmeticsSnapshot } from "@/lib/cosmetics/room-card-themes";
 import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import { normalizeTemplateConfig } from "@/lib/cosmetics/template-config";
@@ -1438,7 +1441,7 @@ export async function purchaseStoreItem(
 ): Promise<PurchaseItemResult> {
     const settings = settingsInput ?? await getSystemSettings();
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction<PurchaseItemResult>(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
             update: {},
@@ -1607,7 +1610,7 @@ export async function purchaseStoreItem(
                 finalPriceCoin,
                 couponCode: resolvedPricing?.ok ? coupon?.code ?? null : null,
             },
-        });
+        }, { deferCacheInvalidation: true });
 
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
@@ -1617,6 +1620,10 @@ export async function purchaseStoreItem(
             finalPriceCoin,
         };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    if (result.ok) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
+    return result;
 }
 
 export async function purchaseStoreBundle(
@@ -1627,7 +1634,7 @@ export async function purchaseStoreBundle(
 ): Promise<PurchaseBundleResult> {
     const settings = settingsInput ?? await getSystemSettings();
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction<PurchaseBundleResult>(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
             update: {},
@@ -1816,7 +1823,7 @@ export async function purchaseStoreBundle(
                 awardedItemCount: awardedEntries.length,
                 couponCode: resolvedPricing?.ok ? coupon?.code ?? null : null,
             },
-        });
+        }, { deferCacheInvalidation: true });
 
         const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
@@ -1827,6 +1834,10 @@ export async function purchaseStoreBundle(
             finalPriceCoin,
         };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    if (result.ok) {
+        await invalidateNotificationUnreadCountCache(userId);
+    }
+    return result;
 }
 
 export async function equipStoreItem(userId: number, itemType: StoreItemType, shopItemId: number | null) {

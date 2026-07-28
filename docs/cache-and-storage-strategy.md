@@ -269,6 +269,7 @@ Current application consumers:
 - admin dashboard static word/category counters, TTL `10s`
 - system settings, TTL `15s`
 - shared store catalog snapshot, TTL `30s`
+- per-user notification unread count, TTL `10s`
 
 The admin dashboard keeps room and online-player metrics outside the cached static
 payload. Those values are read live on every request. Category and word mutations
@@ -289,6 +290,17 @@ state. Admin item, bundle, discount and system-settings mutations invalidate the
 shared key. Time-based availability and campaign display can remain in the storefront
 snapshot for at most `30s`; purchase transactions still reload and validate price,
 promotion capacity, ownership and wallet truth directly from MySQL.
+
+Notification unread counts use one user-scoped cache key. Notification create,
+read and archive operations invalidate only the affected user. Services that create
+notifications inside a MySQL transaction defer Redis work until after commit so a
+rollback or an in-flight transaction cannot publish an incorrect counter. Redis
+stores only `{ unreadCount }`; notification bodies and metadata remain in MySQL.
+
+Support tickets do not currently have a read/unread model. Their lists and workflow
+state therefore remain MySQL-backed instead of inventing an ambiguous Redis counter.
+An admin queue summary should be added only with a defined operational meaning such
+as `open + in_progress`, a visible consumer and mutation-complete invalidation.
 
 ## Rate Limit Strategy
 - Development can use memory-backed rate limiting.
@@ -319,7 +331,8 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - implemented: targeted JSON cache invalidation helpers
 
 ### Phase 3
-- add notification/support counters
+- implemented: notification unread counter
+- add support queue counters after their product semantics are defined
 - add short TTL coordination helpers
 - prepare websocket adapter integration
 - implemented: static admin dashboard summary cache
