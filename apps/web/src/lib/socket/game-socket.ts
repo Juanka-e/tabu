@@ -56,6 +56,11 @@ import {
     publishCapacityHeartbeat,
 } from "./room-capacity";
 import type { RoomOwnershipCoordinator } from "./room-ownership";
+import {
+    ROOM_ROUTING_JOIN_ERROR,
+    shouldRejectRoomRoute,
+    type RoomRouteResolver,
+} from "./room-routing";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -289,7 +294,8 @@ const OyunVerisiSchema = z.object({
 
 export function setupGameSocket(
     io: Server,
-    roomOwnership: RoomOwnershipCoordinator
+    roomOwnership: RoomOwnershipCoordinator,
+    roomRouting: RoomRouteResolver
 ): void {
     connectedSocketCountGetter = () => io.engine.clientsCount;
     registerMetricsProvider(getRoomMetrics);
@@ -970,6 +976,21 @@ export function setupGameSocket(
                     }
                     let targetCode = requestedCode;
                     let room = targetCode ? getRoom(targetCode) : undefined;
+                    if (requestedCode) {
+                        const routeDecision = await roomRouting.resolve(
+                            requestedCode,
+                            Boolean(room)
+                        );
+                        if (
+                            shouldRejectRoomRoute(
+                                routeDecision,
+                                Boolean(room)
+                            )
+                        ) {
+                            socket.emit("hata", ROOM_ROUTING_JOIN_ERROR);
+                            return;
+                        }
+                    }
                     const existingPlayer = room?.oyuncular.find(
                         (player) => player.playerId === effectivePlayerId
                     );

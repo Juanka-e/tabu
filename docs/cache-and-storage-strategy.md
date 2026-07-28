@@ -228,6 +228,15 @@ Redis adapter foundation is implemented but disabled by default:
   `status: degraded` without terminating active matches.
 - Once a runtime observes a different owner, its local lease stays terminally
   `lost`; it cannot become a zombie owner by reclaiming the key later.
+- Owner-aware route resolution is implemented on room join. It distinguishes
+  local, missing, remote-owner, local-state-missing, ownership-mismatch and Redis
+  unavailable decisions.
+- Remote owner ids are consumed only inside the resolver and are not returned in
+  its decision contract. Until a gateway can route a socket to its owner, remote
+  and inconsistent joins receive one generic temporary error rather than a fake
+  reconnect loop.
+- Redis lookup failure does not reject a join when the room is already present
+  locally. Existing single-instance playability remains the priority.
 
 This foundation does not make realtime multi-instance safe. Authoritative room
 maps, turn timers, host transfer and registered-user room indexes still live in
@@ -241,7 +250,8 @@ the owning process. Polling transport also needs load-balancer affinity. Therefo
 
 Before increasing realtime replicas:
 
-1. Define stable `roomCode -> owning instance` routing.
+1. Implemented foundation: resolve `roomCode -> owning instance` and reject unsafe
+   joins without exposing topology. Actual traffic forwarding is still missing.
 2. Add sticky sessions for Socket.IO polling or intentionally remove polling.
 3. Implemented foundation: renewable room ownership lease and stale-owner
    detection. It currently protects creation only.
@@ -401,7 +411,8 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - if PM2 multi-instance realtime becomes standard:
   - enable the tested Socket.IO Redis adapter foundation
   - enable the tested create-only room ownership lease foundation
-  - add owner-aware request routing and command forwarding
+  - owner-aware request decision foundation is implemented
+  - add gateway routing or cross-instance command forwarding
   - add sticky sessions or remove polling transport
   - add room/lobby authoritative shared coordination and recovery semantics
 
@@ -432,6 +443,7 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 ### Realtime / Multi-instance
 - implemented: Socket.IO adapter pub/sub foundation
 - implemented: create-only room ownership lease, renew and token-safe release
+- implemented: server-only owner-aware join decision and routing anomaly metrics
 - room presence coordination
 - reconnect grace-period helpers
 - cross-instance room transfer signals

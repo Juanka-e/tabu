@@ -62,6 +62,11 @@ socket event listeners with an explicit room ownership coordinator.
 *   Ownership is currently enforced only during room creation. Routing,
     cross-instance commands and restart recovery are not implemented, so realtime
     replica count must remain one.
+*   Join requests now resolve a server-only owner-aware route decision. Remote
+    owner and state mismatch decisions are rejected with a generic player message;
+    instance ids are not returned by the decision contract or sent to the client.
+*   This resolver is not traffic routing. A gateway/load-balancer contract or
+    cross-instance command proxy is still required before adding replicas.
 
 ### 5. Security & Protections
 *   **WebSocket Authentication:** The `server.ts` utilizes a Socket.IO middleware that checks for a valid `next-auth/jwt` session token. Unauthorized (not logged in) connections are immediately rejected.

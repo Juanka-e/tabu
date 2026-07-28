@@ -227,10 +227,10 @@ Socket.IO adapter tek basina bu fazi tamamlamaz. Mevcut room map, timer, host
 transfer ve `userId -> roomCode` indexi process-local kalir. Realtime replica
 sayisi artirilmadan once:
 
-- `roomCode -> owner instance` yonlendirmesi
+- `roomCode -> owner instance` karari tamamlandi; trafik yonlendirme bekliyor
 - polling icin sticky session veya websocket-only karari
 - Redis room ownership lease ve stale owner detection - create-only temel tamamlandi
-- owner'a cross-instance command forwarding
+- owner-aware join karari tamamlandi; owner'a cross-instance forwarding bekliyor
 - restart/reconnect/timer recovery semantigi
 
 tamamlanmalidir. Health cevabindaki `multiInstanceReady=false` bu operasyonel
@@ -359,7 +359,14 @@ Onerilen implementasyon sirasi:
 - health'te conflict, lost ownership ve renew failure gorunurlugu
 - mevcut maci Redis kesintisinde sonlandirmayan create-only enforcement
 
-10. `feature/mobile-api-foundation`
+10. `feature/realtime-owner-routing-foundation` - tamamlandi
+- local, missing, remote owner ve state mismatch karar sozlesmesi
+- remote instance kimligini istemciye gondermeme
+- routing hazir degilken genel mesajla guvenli join reject
+- Redis lookup kesintisinde mevcut local odayi oynanabilir tutma
+- health'te routing anomaly ve lookup failure metrikleri
+
+11. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails
