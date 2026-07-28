@@ -5,7 +5,7 @@ Bu rehber Hushle icin hafif operasyon modelini tarif eder:
 1. local development kolay kalir
 2. production Docker Compose ile calisir
 3. GitHub Actions Ubuntu 24.04 sunucuya otomatik deploy yapar
-4. MySQL backup cron ile alinur
+4. MySQL backup cron ile alinir ve opsiyonel olarak offsite object storage'a yazilir
 
 ## 1. Hedef Mimari
 
@@ -128,7 +128,9 @@ Bu script:
 
 1. `mysqldump --single-transaction --quick --routines --triggers`
 2. gzip ile sikistirma
-3. varsayilan `7` gun retention
+3. SHA-256 checksum
+4. varsayilan `7` gun local retention
+5. etkinse R2 / S3 / B2 upload ve remote size dogrulamasi
 
 Calistirma:
 
@@ -148,11 +150,22 @@ chmod +x scripts/ops/mysql-restore.sh
 ./scripts/ops/mysql-restore.sh backups/mysql/hushle-mysql-YYYYMMDDTHHMMSSZ.sql.gz
 ```
 
-Oneri:
+Offsite ayarlari:
 
-1. local disk backup tek basina yeterli degil
-2. ikinci asamada S3 / R2 / Backblaze B2 gibi offsite kopya ekle
-3. haftalik restore testi yap
+1. `.env.production` icinde `BACKUP_REMOTE_ENABLED=true`
+2. provider'a gore `BACKUP_S3_ENDPOINT`, region, bucket ve prefix
+3. yalniz backup prefix'ine erisen access key
+4. provider lifecycle policy ile remote retention
+
+Remote restore ve haftalik smoke:
+
+```bash
+./scripts/ops/mysql-restore.sh s3://bucket/prefix/mysql/backup.sql.gz
+./scripts/ops/mysql-restore-smoke.sh backups/mysql/backup.sql.gz
+```
+
+Secret'lar yalniz `docker-compose.ops.yml` icindeki `backup-cli` servisine
+gider. `app` ve `jobs` servislerine object-storage credential verilmez.
 
 ## 7. Cloudflare Admin Koruma Karari
 

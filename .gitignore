@@ -46,6 +46,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Local database backups
+/backups/
+
 # ─── OS / Editor ──────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

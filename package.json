@@ -22,6 +22,8 @@
     "infra:down": "docker compose -f docker-compose.dev.yml down",
     "infra:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "infra:status": "docker compose -f docker-compose.dev.yml ps",
+    "test:offsite-backups": "bash scripts/test-offsite-backups.sh",
+    "test:offsite-backups-integration": "bash scripts/test-offsite-backups-integration.sh --run",
     "test:redis": "tsx scripts/test-redis-connection.ts",
     "test:json-cache": "tsx scripts/test-json-cache-foundation.ts",
     "test:application-cache": "tsx scripts/test-application-cache-integration.ts",
