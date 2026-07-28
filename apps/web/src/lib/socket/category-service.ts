@@ -1,7 +1,10 @@
+import { getOrSetJsonCache } from "@hushle/platform-cache";
+import {
+    APPLICATION_CACHE_KEYS,
+    invalidateAdminDashboardStatsCache,
+    invalidateVisibleCategoriesCache,
+} from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
-import { cache } from "react";
-
-// ─── Types ─────────────────────────────────────────────────────
 
 interface CategoryWithChildren {
     id: number;
@@ -12,63 +15,57 @@ interface CategoryWithChildren {
     children: CategoryWithChildren[];
 }
 
-// ─── Cache ─────────────────────────────────────────────────────
+const CACHE_TTL_MS = 60_000;
 
-let cachedCategories: CategoryWithChildren[] | null = null;
-let cacheExpiry = 0;
-const CACHE_TTL_MS = 60 * 1000; // 1 minute
+export async function getVisibleCategories(): Promise<CategoryWithChildren[]> {
+    const result = await getOrSetJsonCache<CategoryWithChildren[]>({
+        key: APPLICATION_CACHE_KEYS.visibleCategories,
+        ttlMs: CACHE_TTL_MS,
+        loader: async () => {
+            const allCategories = await prisma.category.findMany({
+                where: { isVisible: true },
+                orderBy: { sortOrder: "asc" },
+                select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    parentId: true,
+                    sortOrder: true,
+                },
+            });
+            const categories = new Map<number, CategoryWithChildren>();
+            const roots: CategoryWithChildren[] = [];
 
-// ─── Service Functions ─────────────────────────────────────────
+            for (const category of allCategories) {
+                categories.set(category.id, {
+                    ...category,
+                    children: [],
+                });
+            }
 
-/**
- * Load visible categories with hierarchy (parent-child).
- * Results are cached for 1 minute with per-request deduplication using React.cache().
- */
-export const getVisibleCategories = cache(async function getVisibleCategories(): Promise<CategoryWithChildren[]> {
-    const now = Date.now();
-    if (cachedCategories && now < cacheExpiry) {
-        return cachedCategories;
-    }
+            for (const category of allCategories) {
+                const node = categories.get(category.id);
+                if (!node) continue;
+                const parent = category.parentId
+                    ? categories.get(category.parentId)
+                    : null;
+                if (parent) {
+                    parent.children.push(node);
+                } else {
+                    roots.push(node);
+                }
+            }
 
-    const allCategories = await prisma.category.findMany({
-        where: { isVisible: true },
-        orderBy: { sortOrder: "asc" },
-        select: {
-            id: true,
-            name: true,
-            color: true,
-            parentId: true,
-            sortOrder: true,
+            return roots;
         },
     });
 
-    // Build tree
-    const map = new Map<number, CategoryWithChildren>();
-    const roots: CategoryWithChildren[] = [];
+    return result.value;
+}
 
-    for (const cat of allCategories) {
-        map.set(cat.id, { ...cat, children: [] });
-    }
-
-    for (const cat of allCategories) {
-        const node = map.get(cat.id)!;
-        if (cat.parentId && map.has(cat.parentId)) {
-            map.get(cat.parentId)!.children.push(node);
-        } else {
-            roots.push(node);
-        }
-    }
-
-    cachedCategories = roots;
-    cacheExpiry = now + CACHE_TTL_MS;
-
-    return roots;
-});
-
-/**
- * Invalidate the category cache (called after admin updates).
- */
-export function invalidateCategoryCache(): void {
-    cachedCategories = null;
-    cacheExpiry = 0;
+export async function invalidateCategoryCache(): Promise<void> {
+    await Promise.all([
+        invalidateVisibleCategoriesCache(),
+        invalidateAdminDashboardStatsCache(),
+    ]);
 }

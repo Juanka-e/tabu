@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@hushle/platform-db";
 import { validateWordCategorySelection } from "@/lib/words/category-assignment-policy";
+import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -131,6 +132,7 @@ export async function PUT(
                 },
             });
         });
+        await invalidateAdminDashboardStatsCache();
 
         return NextResponse.json(word, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
@@ -177,6 +179,7 @@ export async function DELETE(
     try {
         const { id } = await params;
         await prisma.word.delete({ where: { id: parseInt(id) } });
+        await invalidateAdminDashboardStatsCache();
         return NextResponse.json({ success: true }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         console.error("Failed to delete word:", error);

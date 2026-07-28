@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { validateWordCategorySelection } from "@/lib/words/category-assignment-policy";
+import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -148,6 +149,7 @@ export async function POST(request: NextRequest) {
                 wordCategories: { include: { category: true } },
             },
         });
+        await invalidateAdminDashboardStatsCache();
 
         return NextResponse.json(word, {
             status: 201,

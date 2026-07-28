@@ -35,6 +35,7 @@ type StoredValue = {
 
 class FakeRedisClient implements RedisLikeClient {
     private readonly store = new Map<string, StoredValue>();
+    failRateLimitEval = false;
 
     async ping(): Promise<string> {
         return "PONG";
@@ -119,10 +120,25 @@ class FakeRedisClient implements RedisLikeClient {
     }
 
     async eval(
-        _script: string,
+        script: string,
         options: { keys: string[]; arguments: string[] }
-    ): Promise<number> {
+    ): Promise<number | number[]> {
         const key = options.keys[0];
+        if (script.includes('redis.call("INCR"')) {
+            if (this.failRateLimitEval) {
+                throw new Error("simulated rate limit eval failure");
+            }
+            if (!key) return [0, -2];
+            const count = await this.incr(key);
+            if (count === 1) {
+                await this.pExpire(
+                    key,
+                    Number.parseInt(options.arguments[0] ?? "0", 10)
+                );
+            }
+            return [count, await this.pTTL(key)];
+        }
+
         const expectedValue = options.arguments[0];
         if (!key || !expectedValue) return 0;
         this.cleanup(key);
@@ -137,7 +153,8 @@ const originalRedisKeyPrefix = process.env.REDIS_KEY_PREFIX;
 async function run(): Promise<void> {
     process.env.REDIS_URL = "redis://fake-test";
     process.env.REDIS_KEY_PREFIX = "hushle:test";
-    setRedisTestClient(new FakeRedisClient());
+    const redis = new FakeRedisClient();
+    setRedisTestClient(redis);
     resetRequestRateLimitBuckets();
     resetRoomMembershipState();
     resetRoomAdminHandoffState();
@@ -176,6 +193,23 @@ async function run(): Promise<void> {
         maxRequests: 2,
     });
     assert.equal(blockedRate.allowed, false);
+
+    redis.failRateLimitEval = true;
+    const fallbackRate = await consumeDistributedRequestRateLimit({
+        bucket: "distributed-fallback-test",
+        key: "ip:203.0.113.11",
+        windowMs: 60_000,
+        maxRequests: 1,
+    });
+    const fallbackBlocked = await consumeDistributedRequestRateLimit({
+        bucket: "distributed-fallback-test",
+        key: "ip:203.0.113.11",
+        windowMs: 60_000,
+        maxRequests: 1,
+    });
+    assert.equal(fallbackRate.allowed, true);
+    assert.equal(fallbackBlocked.allowed, false);
+    redis.failRateLimitEval = false;
 
     const firstMembershipClaim = await claimOnlineRoomMembership(42, "ROOM42");
     assert.equal(firstMembershipClaim.allowed, true);

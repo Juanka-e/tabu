@@ -8,6 +8,7 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
 
 export const dynamic = "force-dynamic";
 const REASON_THRESHOLD = 10;
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
             },
             request,
         });
+        await invalidateAdminDashboardStatsCache();
 
         return NextResponse.json(
             { success: true, deletedCount: result.count },

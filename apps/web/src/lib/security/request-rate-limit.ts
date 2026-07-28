@@ -26,6 +26,15 @@ export interface RequestRateLimitResult {
 }
 
 const rateLimitBuckets = new Map<string, Map<string, RateLimitEntry>>();
+let distributedFallbackWarningAt = 0;
+const DISTRIBUTED_RATE_LIMIT_SCRIPT = `
+local count = redis.call("INCR", KEYS[1])
+if count == 1 then
+    redis.call("PEXPIRE", KEYS[1], ARGV[1])
+end
+local ttl = redis.call("PTTL", KEYS[1])
+return { count, ttl }
+`;
 
 function getBucketStore(bucket: string): Map<string, RateLimitEntry> {
     let store = rateLimitBuckets.get(bucket);
@@ -99,13 +108,35 @@ export async function consumeDistributedRequestRateLimit(
 
     const { bucket, key, windowMs, maxRequests } = options;
     const counterKey = getRedisKey("rate-limit", bucket, key);
-    const count = await client.incr(counterKey);
-
-    if (count === 1) {
-        await client.pExpire(counterKey, windowMs);
+    let count: number;
+    let ttlMs: number;
+    try {
+        const result = await client.eval(DISTRIBUTED_RATE_LIMIT_SCRIPT, {
+            keys: [counterKey],
+            arguments: [String(windowMs)],
+        });
+        if (
+            !Array.isArray(result) ||
+            result.length < 2 ||
+            !Number.isFinite(Number(result[0])) ||
+            !Number.isFinite(Number(result[1]))
+        ) {
+            throw new Error("Redis rate limit script returned invalid data");
+        }
+        count = Number(result[0]);
+        ttlMs = Number(result[1]);
+    } catch (error) {
+        const now = Date.now();
+        if (now - distributedFallbackWarningAt >= 30_000) {
+            distributedFallbackWarningAt = now;
+            console.warn(
+                "Distributed rate limit failed; using process-local fallback. Repeated warnings are suppressed for 30 seconds.",
+                error instanceof Error ? error.message : String(error)
+            );
+        }
+        return consumeRequestRateLimit(options);
     }
 
-    const ttlMs = await client.pTTL(counterKey);
     const retryAfterSeconds = Math.max(0, Math.ceil(Math.max(ttlMs, 0) / 1000));
 
     if (count > maxRequests) {
@@ -141,4 +172,5 @@ export function resetRequestRateLimitBuckets(): void {
         store.clear();
     }
     rateLimitBuckets.clear();
+    distributedFallbackWarningAt = 0;
 }

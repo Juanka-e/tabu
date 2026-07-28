@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRedisHealth } from "@hushle/platform-cache";
+import {
+    getJsonCacheMetrics,
+    getRedisHealth,
+} from "@hushle/platform-cache";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
     buildRateLimitHeaders,
@@ -57,6 +60,7 @@ export async function GET(request: NextRequest) {
             {
                 checkedAt: new Date().toISOString(),
                 redis,
+                cache: getJsonCacheMetrics(),
                 cluster,
                 admission,
                 limits: {

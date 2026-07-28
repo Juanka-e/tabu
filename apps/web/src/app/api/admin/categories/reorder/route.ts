@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
                 })
             )
         );
-        invalidateCategoryCache();
+        await invalidateCategoryCache();
 
         try {
             await writeAuditLog({

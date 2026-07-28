@@ -1,3 +1,9 @@
+import {
+    getJsonCacheMetrics,
+    getRedisHealth,
+    type JsonCacheMetrics,
+    type RedisHealth,
+} from "@hushle/platform-cache";
 import { getAdminAccessPolicy } from "@/lib/admin/access-policy";
 import { shouldTrustAuthHost } from "@/lib/auth-host";
 import { getCaptchaProviderReadiness, getSystemSettings } from "@/lib/system-settings/service";
@@ -176,7 +182,21 @@ function buildMessagingItems(): IntegrationItem[] {
     ];
 }
 
-function buildStorageItems(): IntegrationItem[] {
+function buildStorageItems(
+    redis: RedisHealth,
+    cache: JsonCacheMetrics
+): IntegrationItem[] {
+    const redisStatus: IntegrationStatus = redis.available
+        ? "ready"
+        : redis.configured
+          ? "partial"
+          : "planned";
+    const redisSummary = redis.available
+        ? `Shared Redis cache and coordination are available (${redis.latencyMs ?? 0} ms).`
+        : redis.configured
+          ? "Redis is configured but currently unavailable; memory fallback is active where safe."
+          : "Redis is not configured; local memory fallback is active where safe.";
+
     return [
         {
             id: "branding-assets",
@@ -194,11 +214,16 @@ function buildStorageItems(): IntegrationItem[] {
             id: "redis-valkey",
             category: "storage",
             title: "Redis / Valkey",
-            status: "planned",
-            summary: "Shared cache/rate-limit omurgasi henuz bagli degil.",
+            status: redisStatus,
+            summary: redisSummary,
             details: [
-                "Planned for cache-and-rate-limit foundation.",
-                "Will support shared rate limits, cache invalidation and multi-instance coordination.",
+                `Configured: ${redis.configured ? "yes" : "no"}`,
+                `Available: ${redis.available ? "yes" : "no"}`,
+                `Latency: ${redis.latencyMs ?? "-"} ms`,
+                `Cache hits: redis=${cache.redisHits}, memory=${cache.memoryHits}`,
+                `Cache misses/loads: ${cache.misses}/${cache.loads}`,
+                `Cache errors: read=${cache.readErrors}, write=${cache.writeErrors}`,
+                "Shared rate limits, cache invalidation, room coordination and capacity heartbeats are active when Redis is available.",
                 "See docs/cache-and-storage-strategy.md",
             ],
         },
@@ -208,7 +233,11 @@ function buildStorageItems(): IntegrationItem[] {
 export async function getIntegrationHubSnapshot(
     options?: { settings?: SystemSettings }
 ): Promise<IntegrationHubSnapshot> {
-    const settings = options?.settings ?? (await getSystemSettings());
+    const [settings, redis] = await Promise.all([
+        options?.settings ?? getSystemSettings(),
+        getRedisHealth(),
+    ]);
+    const cache = getJsonCacheMetrics();
 
     return {
         items: [
@@ -216,7 +245,7 @@ export async function getIntegrationHubSnapshot(
             ...buildCaptchaItems(settings),
             ...buildAccessItems(),
             ...buildMessagingItems(),
-            ...buildStorageItems(),
+            ...buildStorageItems(redis, cache),
         ],
     };
 }
