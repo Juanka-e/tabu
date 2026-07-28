@@ -55,6 +55,25 @@ export async function invalidateNotificationUnreadCountCache(
     await invalidateJsonCache(getNotificationUnreadCountCacheKey(userId));
 }
 
+export function getUserDashboardMatchSummaryCacheKey(
+    userId: number
+): string {
+    return getRedisKey(
+        "cache",
+        "user-dashboard-match-summary",
+        "v1",
+        userId
+    );
+}
+
+export async function invalidateUserDashboardMatchSummaryCache(
+    userId: number
+): Promise<void> {
+    await invalidateJsonCache(
+        getUserDashboardMatchSummaryCacheKey(userId)
+    );
+}
+
 export async function invalidateVisibleCategoriesCache(): Promise<void> {
     await invalidateJsonCache(APPLICATION_CACHE_KEYS.visibleCategories);
 }

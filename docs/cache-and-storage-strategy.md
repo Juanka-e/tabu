@@ -270,6 +270,7 @@ Current application consumers:
 - system settings, TTL `15s`
 - shared store catalog snapshot, TTL `30s`
 - per-user notification unread count, TTL `10s`
+- per-user dashboard match summary, TTL `30s`
 
 The admin dashboard keeps room and online-player metrics outside the cached static
 payload. Those values are read live on every request. Category and word mutations
@@ -301,6 +302,17 @@ Support tickets do not currently have a read/unread model. Their lists and workf
 state therefore remain MySQL-backed instead of inventing an ambiguous Redis counter.
 An admin queue summary should be added only with a defined operational meaning such
 as `open + in_progress`, a visible consumer and mutation-complete invalidation.
+
+The user dashboard is split into live and cached data:
+
+- live MySQL read: current coin balance
+- shared Redis cache: match totals, wins, earned match coin and five recent matches
+
+The match-finalize route invalidates only the finalized user's summary after the
+MySQL transaction commits. Duplicate finalize claims do not invalidate because they
+do not create a new match result. The cache contains no wallet or profile data.
+During a Redis outage, another process can show match statistics up to `30s` stale,
+while the coin balance remains live and settlement truth remains in MySQL.
 
 ## Rate Limit Strategy
 - Development can use memory-backed rate limiting.
@@ -337,7 +349,8 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - prepare websocket adapter integration
 - implemented: static admin dashboard summary cache
 - implemented: shared store catalog cache plus per-user MySQL overlay
-- add identity/profile mini-summary cache where it creates measurable savings
+- implemented: dashboard match summary cache plus live wallet overlay
+- add identity/profile mini-summary cache only where it creates measurable savings
 
 ### Phase 4
 - if PM2 multi-instance realtime becomes standard:
@@ -357,8 +370,8 @@ limits and emit at most one warning per 30 seconds to avoid outage log storms.
 - short TTL reward guard decision helpers
 
 ### Dashboard / Player UX
-- notification unread count
-- dashboard summary snapshot
+- implemented: notification unread count
+- implemented: dashboard match summary snapshot
 - implemented: shared store catalog snapshot
 - support inbox summary counters
 
