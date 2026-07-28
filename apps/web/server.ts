@@ -35,6 +35,10 @@ import {
     createRoomRouteResolver,
     type RoomRouteResolver,
 } from "./src/lib/socket/room-routing";
+import {
+    getRealtimeTopologyConfig,
+    getRealtimeTopologyStatus,
+} from "./src/lib/socket/realtime-topology";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -45,6 +49,10 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "127.0.0.1");
 const port = parseInt(process.env.PORT || "3000", 10);
 const trustedWebOrigins = parseTrustedWebOrigins();
+const realtimeTopologyConfig = getRealtimeTopologyConfig();
+const realtimeTopologyStatus = getRealtimeTopologyStatus(
+    realtimeTopologyConfig
+);
 
 const app = next({ dev, hostname, port, dir: appDirectory });
 const handler = app.getRequestHandler();
@@ -135,6 +143,7 @@ app.prepare().then(async () => {
                     redis,
                 },
                 realtime: {
+                    topology: realtimeTopologyStatus,
                     socketRedisAdapter: socketRedisAdapterStatus,
                     roomOwnership: roomOwnershipStatus,
                     roomRouting: roomRoutingStatus,
@@ -158,7 +167,7 @@ app.prepare().then(async () => {
             },
             methods: ["GET", "POST"],
         },
-        transports: ["websocket", "polling"],
+        transports: realtimeTopologyConfig.transports,
     });
     socketRedisAdapter = await configureSocketRedisAdapter(io);
     if (socketRedisAdapter.getStatus().enabled) {
@@ -218,6 +227,9 @@ app.prepare().then(async () => {
 
     httpServer.listen(port, hostname, () => {
         console.log(`> Ready on http://${hostname}:${port}`);
+        console.log(
+            `> Realtime topology: ${realtimeTopologyConfig.mode}, replicas=${realtimeTopologyConfig.declaredReplicaCount}, transports=${realtimeTopologyConfig.transports.join(",")}`
+        );
     });
 
     let shuttingDown = false;

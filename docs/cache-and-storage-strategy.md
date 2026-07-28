@@ -242,22 +242,29 @@ This foundation does not make realtime multi-instance safe. Authoritative room
 maps, turn timers, host transfer and registered-user room indexes still live in
 the owning process. Polling transport also needs load-balancer affinity. Therefore:
 
-- keep one realtime replica for now
+- production topology is explicitly `single-writer`; see
+  `docs/architecture/adr-003-single-realtime-writer-topology.md`
+- keep `REALTIME_REPLICA_COUNT=1`; startup rejects any other declared count
 - keep `multiInstanceReady=false`
 - do not treat adapter availability as room-state availability
 - set `SOCKET_IO_STICKY_SESSIONS_CONFIGURED=true` only after affinity is actually
   configured at the load balancer
+- treat the replica count env as a deployment contract, not runtime discovery;
+  orchestration and monitoring must still enforce one app replica
 
 Before increasing realtime replicas:
 
-1. Implemented foundation: resolve `roomCode -> owning instance` and reject unsafe
-   joins without exposing topology. Actual traffic forwarding is still missing.
-2. Add sticky sessions for Socket.IO polling or intentionally remove polling.
-3. Implemented foundation: renewable room ownership lease and stale-owner
-   detection. It currently protects creation only.
-4. Route cross-instance room commands to the owner or move authoritative room
+1. Choose an owner-aware gateway/command proxy or another single-writer-per-room
+   topology.
+2. Give every realtime process a unique and stable `INSTANCE_ID`.
+3. Add sticky sessions for Socket.IO polling or intentionally remove polling
+   after compatibility tests.
+4. Enable and load-test the Redis adapter and ownership leases.
+5. Route cross-instance room commands to the owner or move authoritative room
    state behind a concurrency-safe shared state machine.
-5. Define reconnect, owner restart, timer recovery and split-brain behavior.
+6. Define reconnect, owner restart, timer recovery and split-brain behavior.
+7. Pass multi-instance reconnect, rolling deploy, failover and load tests before
+   replacing the startup guard.
 
 ## Recommended Realtime Direction
 - Early production:

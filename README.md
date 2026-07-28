@@ -69,6 +69,11 @@ Notes:
 - The app should stay private on the Docker network.
 - Cloudflare Origin Certificate files should be mounted into `nginx/ssl/`.
 - Redis is provisioned now for cache, rate-limit, session coordination, and future realtime scaling work.
+- Active room state is process-local, so production must keep one `app` replica.
+  The Redis adapter and ownership lease foundations do not yet make horizontal
+  realtime scaling safe.
+- The accepted topology and future migration gate are documented in
+  `docs/architecture/adr-003-single-realtime-writer-topology.md`.
 
 ## Docker Compose
 
