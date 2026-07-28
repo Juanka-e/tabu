@@ -31,7 +31,8 @@ Bugunku sistem:
 - `apps/web/server.ts` ile custom Socket.IO server
 - Prisma + MySQL source of truth
 - Redis client, fallback, rate limit ve oda coordination temeli hazir
-- economy counter, cache ve Socket.IO adapter katmanlari henuz sonraki fazlarda
+- shared cache katmanlari ve Socket.IO Redis adapter event fan-out temeli hazir
+- oda state'i process-local; realtime multi-instance henuz hazir degil
 
 Bu nedenle dogru yon `modular monolith first`tir.
 
@@ -211,7 +212,7 @@ Multi-instance veya yuksek online esiginde:
 
 - Redis/Valkey counter
 - shared presence
-- Socket.IO adapter
+- Socket.IO adapter (event fan-out temeli tamamlandi, varsayilan kapali)
 - rate limit store
 - dashboard summary cache
 
@@ -221,6 +222,19 @@ Burada da kural degismez:
 
 - truth MySQL
 - speed/coordinator Redis
+
+Socket.IO adapter tek basina bu fazi tamamlamaz. Mevcut room map, timer, host
+transfer ve `userId -> roomCode` indexi process-local kalir. Realtime replica
+sayisi artirilmadan once:
+
+- `roomCode -> owner instance` yonlendirmesi
+- polling icin sticky session veya websocket-only karari
+- Redis room ownership lease ve stale owner recovery
+- owner'a cross-instance command forwarding
+- restart/reconnect/timer recovery semantigi
+
+tamamlanmalidir. Health cevabindaki `multiInstanceReady=false` bu operasyonel
+siniri acikca belirtir.
 
 ## Docker And Local Development Plan
 
@@ -331,7 +345,14 @@ Onerilen implementasyon sirasi:
 - admin hot/archive read path tamamlandi
 - telemetry rollup sonraki dar branch'te
 
-8. `feature/mobile-api-foundation`
+8. `feature/socketio-redis-adapter-foundation` - tamamlandi
+- varsayilan kapali, explicit enable ve fail-fast Redis baglantisi
+- dedicated publisher/subscriber connection
+- iki runtime arasinda Redis fan-out entegrasyon testi
+- health'te adapter ve multi-instance readiness gorunurlugu
+- room state process-local kaldigi icin replica artirmama guardrail'i
+
+9. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails

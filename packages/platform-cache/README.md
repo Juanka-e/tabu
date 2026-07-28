@@ -5,6 +5,7 @@ Owns Redis/Valkey connectivity and disposable coordination primitives.
 Allowed responsibilities:
 
 - Redis client lifecycle
+- dedicated publisher/subscriber connection pairs for pub/sub consumers
 - health and retry behavior
 - environment-specific key construction
 - cache, counter, lock, and coordination contracts

@@ -20,6 +20,11 @@ import {
     publishCapacityHeartbeat,
     removeCapacityHeartbeat,
 } from "./src/lib/socket/room-capacity";
+import {
+    configureSocketRedisAdapter,
+    getSocketRedisAdapterConfig,
+    type SocketRedisAdapterHandle,
+} from "./src/lib/socket/socket-redis-adapter";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -34,7 +39,9 @@ const trustedWebOrigins = parseTrustedWebOrigins();
 const app = next({ dev, hostname, port, dir: appDirectory });
 const handler = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+    let socketRedisAdapter: SocketRedisAdapterHandle | null = null;
+    const socketRedisAdapterConfig = getSocketRedisAdapterConfig();
     const httpServer = createServer(async (req, res) => {
         if (req.url !== "/api/health" || req.method !== "GET") {
             await handler(req, res);
@@ -66,6 +73,19 @@ app.prepare().then(() => {
                 dependencies: {
                     redis,
                 },
+                realtime: {
+                    socketRedisAdapter:
+                        socketRedisAdapter?.getStatus() ?? {
+                            enabled: socketRedisAdapterConfig.enabled,
+                            available: false,
+                            redisConfigured:
+                                socketRedisAdapterConfig.redisConfigured,
+                            stickySessionsConfigured:
+                                socketRedisAdapterConfig.stickySessionsConfigured,
+                            roomStateBackend: "process-local",
+                            multiInstanceReady: false,
+                        },
+                },
                 ...metrics,
             })
         );
@@ -87,6 +107,17 @@ app.prepare().then(() => {
         },
         transports: ["websocket", "polling"],
     });
+    socketRedisAdapter = await configureSocketRedisAdapter(io);
+    if (socketRedisAdapter.getStatus().enabled) {
+        console.warn(
+            "Socket.IO Redis adapter enabled. Room state remains process-local; do not scale realtime replicas yet."
+        );
+        if (!socketRedisAdapter.getStatus().stickySessionsConfigured) {
+            console.warn(
+                "Socket.IO polling requires sticky sessions before traffic can be distributed across realtime instances."
+            );
+        }
+    }
 
     // Resolve auth when present, but keep guest socket access open.
     io.use(async (socket, nextMiddleware) => {
@@ -133,6 +164,7 @@ app.prepare().then(() => {
         await new Promise<void>((resolve) => {
             io.close(() => resolve());
         });
+        await socketRedisAdapter?.close();
         await removeCapacityHeartbeat();
         await closeRedisClient();
         if (!httpServer.listening) {
@@ -144,4 +176,7 @@ app.prepare().then(() => {
 
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
+}).catch((error) => {
+    console.error("Web runtime startup failed", error);
+    process.exit(1);
 });
