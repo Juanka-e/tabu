@@ -4,38 +4,44 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/offsite-backup-object-storage` - siradaki
-2. `feature/cosmetic-render-upgrade`
-3. `feature/admin-cosmetic-authoring`
-4. `feature/analytics-event-foundation`
-5. `feature/word-analytics-liveops`
-6. `feature/release-ops-docs`
-7. `docs/encoding-cleanup`
-8. `feature/wallet-ledger-foundation`
-9. `feature/mobile-api-foundation`
-10. `feature/post-launch-economy-observability-review`
-11. `feature/post-launch-xp-level-foundation`
-12. `feature/post-launch-missions-foundation`
-13. `feature/post-launch-night-market-foundation`
+1. `feature/cosmetic-render-upgrade` - siradaki
+2. `feature/admin-cosmetic-authoring`
+3. `feature/analytics-event-foundation`
+4. `feature/word-analytics-liveops`
+5. `feature/release-ops-docs`
+6. `docs/encoding-cleanup`
+7. `feature/wallet-ledger-foundation`
+8. `feature/mobile-api-foundation`
+9. `feature/post-launch-economy-observability-review`
+10. `feature/post-launch-xp-level-foundation`
+11. `feature/post-launch-missions-foundation`
+12. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Siradaki Branch
 
-### `feature/offsite-backup-object-storage`
+### `feature/cosmetic-render-upgrade`
 
 Hedef:
-- local MySQL dump akisini bozmadan private S3-compatible offsite kopya
-- SHA-256 upload ve restore dogrulamasi
-- R2, Amazon S3 veya Backblaze B2 arasinda provider-neutral ops kontrati
-- remote retention/lifecycle ve haftalik restore smoke testi
-- backup secret'larini uygulama container'indan ayri tutma
+- magaza ve envanterde buyuk kataloglarda hafif thumbnail kullanimi
+- detay/onizleme acilana kadar agir kozmetik renderer'i calistirmama
+- avatar, frame ve kart kozmetiklerinde tutarli responsive oranlar
 
 Referans:
-- `docs/deploy/mysql-backups.md`
+- `docs/guides/admin-shop-ux-planning-guide.md`
 
 ## Onceki Branch Kaydi
+### `feature/offsite-backup-object-storage`
+Tamamlananlar:
+- local dump yaninda SHA-256 checksum uretimi
+- R2, Amazon S3 ve B2 icin ortak S3-compatible ops kontrati
+- dump ve checksum upload'i ile remote object size dogrulamasi
+- checksum zorunlu local/remote restore
+- production veritabanina dokunmayan gecici restore smoke testi
+- backup secret'larini app/jobs container'larindan ayiran ops compose
+
 ### `feature/admin-promotions-ux`
 Tamamlananlar:
 - yeni/duzenle formlarini responsive operasyon sheet'ine tasima
