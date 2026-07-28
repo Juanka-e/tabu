@@ -7,6 +7,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetTitle,
+} from "@/components/ui/sheet";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
@@ -23,6 +37,14 @@ import type {
 type ItemOption = Pick<StoreItemView, "id" | "code" | "name" | "type">;
 type PromotionSectionFilter = "all" | "bundles" | "discounts" | "coupons";
 type PromotionStatusFilter = "all" | "active" | "inactive" | "scheduled" | "expired";
+type PromotionEditorKind = Exclude<PromotionSectionFilter, "all">;
+
+interface PendingLifecycleAction {
+    kind: PromotionEditorKind;
+    id: number;
+    name: string;
+    isActive: boolean;
+}
 
 interface BundleItemFormRow {
     shopItemId: string;
@@ -296,58 +318,6 @@ function matchesBundleStatus(statusFilter: PromotionStatusFilter, isActive: bool
     return false;
 }
 
-function toBundleUpdatePayload(bundle: ShopBundleView, isActive: boolean) {
-    return {
-        code: bundle.code,
-        name: bundle.name,
-        description: bundle.description,
-        priceCoin: bundle.priceCoin,
-        isActive,
-        sortOrder: bundle.sortOrder,
-        items: bundle.items.map((item) => ({
-            shopItemId: item.shopItemId,
-            sortOrder: item.sortOrder,
-        })),
-    };
-}
-
-function toDiscountUpdatePayload(discount: DiscountCampaignView, isActive: boolean) {
-    return {
-        code: discount.code,
-        name: discount.name,
-        description: discount.description,
-        targetType: discount.targetType,
-        discountType: discount.discountType,
-        percentageOff: discount.discountType === "percentage" ? discount.percentageOff : null,
-        fixedCoinOff: discount.discountType === "fixed_coin" ? discount.fixedCoinOff : null,
-        shopItemId: discount.targetType === "shop_item" ? discount.shopItemId : null,
-        bundleId: discount.targetType === "bundle" ? discount.bundleId : null,
-        usageLimit: discount.usageLimit,
-        startsAt: discount.startsAt,
-        endsAt: discount.endsAt,
-        isActive,
-        stackableWithCoupon: discount.stackableWithCoupon,
-    };
-}
-
-function toCouponUpdatePayload(coupon: CouponCodeView, isActive: boolean) {
-    return {
-        code: coupon.code,
-        name: coupon.name,
-        description: coupon.description,
-        targetType: coupon.targetType,
-        discountType: coupon.discountType,
-        percentageOff: coupon.discountType === "percentage" ? coupon.percentageOff : null,
-        fixedCoinOff: coupon.discountType === "fixed_coin" ? coupon.fixedCoinOff : null,
-        shopItemId: coupon.targetType === "shop_item" ? coupon.shopItemId : null,
-        bundleId: coupon.targetType === "bundle" ? coupon.bundleId : null,
-        usageLimit: coupon.usageLimit,
-        startsAt: coupon.startsAt,
-        endsAt: coupon.endsAt,
-        isActive,
-    };
-}
-
 function DetailRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-center justify-between gap-3 text-xs">
@@ -481,6 +451,7 @@ function TargetScopeFields({
             <div className="grid gap-3 md:grid-cols-3">
                 <button
                     type="button"
+                    aria-pressed={targetType === "global"}
                     onClick={() => onTargetTypeChange("global")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "global" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
@@ -489,6 +460,7 @@ function TargetScopeFields({
                 </button>
                 <button
                     type="button"
+                    aria-pressed={targetType === "shop_item"}
                     onClick={() => onTargetTypeChange("shop_item")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "shop_item" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
@@ -497,6 +469,7 @@ function TargetScopeFields({
                 </button>
                 <button
                     type="button"
+                    aria-pressed={targetType === "bundle"}
                     onClick={() => onTargetTypeChange("bundle")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${targetType === "bundle" ? "border-blue-500 bg-blue-500/10" : "border-border bg-background hover:border-blue-300"}`}
                 >
@@ -551,6 +524,7 @@ function DiscountValueFields({
             <div className="grid gap-3 md:grid-cols-2">
                 <button
                     type="button"
+                    aria-pressed={discountType === "percentage"}
                     onClick={() => onDiscountTypeChange("percentage")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "percentage" ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:border-emerald-300"}`}
                 >
@@ -559,6 +533,7 @@ function DiscountValueFields({
                 </button>
                 <button
                     type="button"
+                    aria-pressed={discountType === "fixed_coin"}
                     onClick={() => onDiscountTypeChange("fixed_coin")}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${discountType === "fixed_coin" ? "border-amber-500 bg-amber-500/10" : "border-border bg-background hover:border-amber-300"}`}
                 >
@@ -870,6 +845,10 @@ export default function PromotionsPage() {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [batchSaving, setBatchSaving] = useState(false);
+    const [lifecycleSaving, setLifecycleSaving] = useState(false);
+    const [editorKind, setEditorKind] = useState<PromotionEditorKind | null>(null);
+    const [pendingLifecycleAction, setPendingLifecycleAction] =
+        useState<PendingLifecycleAction | null>(null);
     const [search, setSearch] = useState(deepLinkedSearch);
     const [sectionFilter, setSectionFilter] = useState<PromotionSectionFilter>("all");
     const [statusFilter, setStatusFilter] = useState<PromotionStatusFilter>("all");
@@ -1003,6 +982,98 @@ export default function PromotionsPage() {
         void loadAll();
     }, [loadAll]);
 
+    const closeEditor = () => {
+        if (saving) return;
+        setEditorKind(null);
+        setEditingBundleId(null);
+        setEditingDiscountId(null);
+        setEditingCouponId(null);
+    };
+
+    const openNewEditor = (kind: PromotionEditorKind) => {
+        setEditorKind(kind);
+        if (kind === "bundles") {
+            setEditingBundleId(null);
+            setBundleForm(emptyBundleForm);
+        } else if (kind === "discounts") {
+            setEditingDiscountId(null);
+            setDiscountForm(emptyDiscountForm);
+        } else {
+            setEditingCouponId(null);
+            setCouponForm(emptyCouponForm);
+        }
+    };
+
+    const openBundleEditor = (bundle: ShopBundleView) => {
+        setEditingBundleId(bundle.id);
+        setBundleForm({
+            code: bundle.code,
+            name: bundle.name,
+            description: bundle.description ?? "",
+            priceCoin: String(bundle.priceCoin),
+            isActive: bundle.isActive,
+            sortOrder: String(bundle.sortOrder),
+            items: bundle.items.map((item) => ({
+                shopItemId: String(item.shopItemId),
+                sortOrder: String(item.sortOrder),
+            })),
+        });
+        setEditorKind("bundles");
+    };
+
+    const openDiscountEditor = (discount: DiscountCampaignView) => {
+        setEditingDiscountId(discount.id);
+        setDiscountForm({
+            code: discount.code,
+            name: discount.name,
+            description: discount.description ?? "",
+            targetType: discount.targetType,
+            discountType: discount.discountType,
+            percentageOff: discount.percentageOff
+                ? String(discount.percentageOff)
+                : "",
+            fixedCoinOff: discount.fixedCoinOff
+                ? String(discount.fixedCoinOff)
+                : "",
+            shopItemId: discount.shopItemId
+                ? String(discount.shopItemId)
+                : "",
+            bundleId: discount.bundleId ? String(discount.bundleId) : "",
+            usageLimit: discount.usageLimit
+                ? String(discount.usageLimit)
+                : "",
+            startsAt: toDateTimeLocal(discount.startsAt),
+            endsAt: toDateTimeLocal(discount.endsAt),
+            isActive: discount.isActive,
+            stackableWithCoupon: discount.stackableWithCoupon,
+        });
+        setEditorKind("discounts");
+    };
+
+    const openCouponEditor = (coupon: CouponCodeView) => {
+        setEditingCouponId(coupon.id);
+        setCouponForm({
+            code: coupon.code,
+            name: coupon.name,
+            description: coupon.description ?? "",
+            targetType: coupon.targetType,
+            discountType: coupon.discountType,
+            percentageOff: coupon.percentageOff
+                ? String(coupon.percentageOff)
+                : "",
+            fixedCoinOff: coupon.fixedCoinOff
+                ? String(coupon.fixedCoinOff)
+                : "",
+            shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "",
+            bundleId: coupon.bundleId ? String(coupon.bundleId) : "",
+            usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "",
+            startsAt: toDateTimeLocal(coupon.startsAt),
+            endsAt: toDateTimeLocal(coupon.endsAt),
+            isActive: coupon.isActive,
+        });
+        setEditorKind("coupons");
+    };
+
     const saveBundle = async () => {
         setSaving(true);
         try {
@@ -1025,12 +1096,16 @@ export default function PromotionsPage() {
             });
             if (!response.ok) {
                 const errorPayload = (await response.json().catch(() => ({ error: "Bundle kaydedilemedi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Bundle kaydedilemedi.");
+                toast.error(errorPayload.error || "Paket kaydedilemedi.");
                 return;
             }
+            toast.success(editingBundleId ? "Paket güncellendi." : "Paket oluşturuldu.");
             setEditingBundleId(null);
             setBundleForm(emptyBundleForm);
+            setEditorKind(null);
             await loadAll();
+        } catch {
+            toast.error("Paket kaydedilemedi. Bağlantıyı kontrol edip tekrar deneyin.");
         } finally {
             setSaving(false);
         }
@@ -1062,12 +1137,16 @@ export default function PromotionsPage() {
             });
             if (!response.ok) {
                 const errorPayload = (await response.json().catch(() => ({ error: "Indirim kaydedilemedi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Indirim kaydedilemedi.");
+                toast.error(errorPayload.error || "İndirim kaydedilemedi.");
                 return;
             }
+            toast.success(editingDiscountId ? "Kampanya güncellendi." : "Kampanya oluşturuldu.");
             setEditingDiscountId(null);
             setDiscountForm(emptyDiscountForm);
+            setEditorKind(null);
             await loadAll();
+        } catch {
+            toast.error("Kampanya kaydedilemedi. Bağlantıyı kontrol edip tekrar deneyin.");
         } finally {
             setSaving(false);
         }
@@ -1098,27 +1177,50 @@ export default function PromotionsPage() {
             });
             if (!response.ok) {
                 const errorPayload = (await response.json().catch(() => ({ error: "Kupon kaydedilemedi." }))) as { error?: string };
-                window.alert(errorPayload.error || "Kupon kaydedilemedi.");
+                toast.error(errorPayload.error || "Kupon kaydedilemedi.");
                 return;
             }
+            toast.success(editingCouponId ? "Kupon güncellendi." : "Kupon oluşturuldu.");
             setEditingCouponId(null);
             setCouponForm(emptyCouponForm);
+            setEditorKind(null);
             await loadAll();
+        } catch {
+            toast.error("Kupon kaydedilemedi. Bağlantıyı kontrol edip tekrar deneyin.");
         } finally {
             setSaving(false);
         }
     };
 
-    const deactivateEntry = async (kind: "bundles" | "discounts" | "coupons", id: number) => {
-        const response = await fetch(`/api/admin/promotions/${kind}/${id}`, { method: "DELETE" });
-        const payload = (await response.json().catch(() => ({}))) as { error?: string; outcome?: "deleted" | "deactivated" };
-        if (!response.ok) {
-            toast.error(payload.error || "Promosyon işlemi tamamlanamadı.");
-            return;
-        }
+    const confirmLifecycleAction = async () => {
+        if (!pendingLifecycleAction) return;
+        setLifecycleSaving(true);
+        try {
+            const response = await fetch(
+                `/api/admin/promotions/${pendingLifecycleAction.kind}/${pendingLifecycleAction.id}`,
+                { method: "DELETE" }
+            );
+            const payload = (await response.json().catch(() => ({}))) as {
+                error?: string;
+                outcome?: "deleted" | "deactivated";
+            };
+            if (!response.ok) {
+                toast.error(payload.error || "Promosyon işlemi tamamlanamadı.");
+                return;
+            }
 
-        toast.success(payload.outcome === "deleted" ? "Kayıt kalıcı olarak silindi." : "Kayıt pasife alındı.");
-        await loadAll();
+            toast.success(
+                payload.outcome === "deleted"
+                    ? "Kayıt kalıcı olarak silindi."
+                    : "Kayıt pasife alındı."
+            );
+            setPendingLifecycleAction(null);
+            await loadAll();
+        } catch {
+            toast.error("Promosyon işlemi tamamlanamadı.");
+        } finally {
+            setLifecycleSaving(false);
+        }
     };
 
     const applyBulkPromotionStatus = async (
@@ -1131,49 +1233,52 @@ export default function PromotionsPage() {
                 : kind === "discounts"
                   ? filteredDiscounts
                   : filteredCoupons;
+        const changedEntries = entries.filter(
+            (entry) => entry.isActive !== isActive
+        );
 
-        if (entries.length === 0) {
-            toast.info("Bu filtrede işlem uygulanacak kayıt yok.");
+        if (changedEntries.length === 0) {
+            toast.info(
+                entries.length === 0
+                    ? "Bu filtrede işlem uygulanacak kayıt yok."
+                    : "Filtredeki kayıtlar zaten seçilen durumda."
+            );
             return;
         }
 
         setBatchSaving(true);
         try {
-            const results = await Promise.all(
-                entries.map((entry) => {
-                    if (kind === "bundles") {
-                        const bundle = entry as ShopBundleView;
-                        return fetch(`/api/admin/promotions/bundles/${bundle.id}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(toBundleUpdatePayload(bundle, isActive)),
-                        });
-                    }
-
-                    if (kind === "discounts") {
-                        const discount = entry as DiscountCampaignView;
-                        return fetch(`/api/admin/promotions/discounts/${discount.id}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(toDiscountUpdatePayload(discount, isActive)),
-                        });
-                    }
-
-                    const coupon = entry as CouponCodeView;
-                    return fetch(`/api/admin/promotions/coupons/${coupon.id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(toCouponUpdatePayload(coupon, isActive)),
-                    });
-                })
+            const response = await fetch(
+                "/api/admin/promotions/bulk-status",
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        kind,
+                        ids: changedEntries
+                            .slice(0, 100)
+                            .map((entry) => entry.id),
+                        isActive,
+                    }),
+                }
             );
-
-            if (results.some((response) => !response.ok)) {
-                toast.error("Toplu promosyon işlemi kısmen başarısız oldu.");
-            } else {
-                toast.success(isActive ? "Filtredeki kayıtlar yayına alındı." : "Filtredeki kayıtlar durduruldu.");
+            const payload = (await response.json().catch(() => ({}))) as {
+                error?: string;
+                updatedCount?: number;
+            };
+            if (!response.ok) {
+                toast.error(
+                    payload.error || "Toplu promosyon işlemi tamamlanamadı."
+                );
+                return;
             }
 
+            const limited = changedEntries.length > 100;
+            toast.success(
+                `${payload.updatedCount ?? 0} kayıt ${
+                    isActive ? "yayına alındı" : "durduruldu"
+                }.${limited ? " İlk 100 kayıt işlendi; kalanlar için işlemi tekrarlayın." : ""}`
+            );
             await loadAll();
         } catch {
             toast.error("Toplu promosyon işlemi tamamlanamadı.");
@@ -1225,6 +1330,7 @@ export default function PromotionsPage() {
                             <Button
                                 key={option.id}
                                 type="button"
+                                aria-pressed={sectionFilter === option.id}
                                 size="sm"
                                 variant={sectionFilter === option.id ? "default" : "outline"}
                                 onClick={() => setSectionFilter(option.id)}
@@ -1245,6 +1351,7 @@ export default function PromotionsPage() {
                         <Button
                             key={option.id}
                             type="button"
+                            aria-pressed={statusFilter === option.id}
                             size="sm"
                             variant={statusFilter === option.id ? "default" : "outline"}
                             onClick={() => setStatusFilter(option.id)}
@@ -1303,15 +1410,15 @@ export default function PromotionsPage() {
             <div className={`grid gap-6 ${visibleSectionCount > 1 ? "xl:grid-cols-2" : ""}`}>
                 {(sectionFilter === "all" || sectionFilter === "bundles") ? (
                 <Card id="bundles">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
                         <div className="space-y-2">
                             <CardTitle>Paket Tanımları</CardTitle>
                             <p className="text-sm text-muted-foreground">Filtrelenmiş paketler üzerinde hızlı yayın kontrolü ve içerik yönetimi.</p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
                             <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("bundles", true)}>Filtredekileri Yayına Al</Button>
                             <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("bundles", false)}>Filtredekileri Durdur</Button>
-                            <Button size="sm" onClick={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                            <Button size="sm" onClick={() => openNewEditor("bundles")} className="gap-2"><Plus size={14} />Yeni Paket</Button>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -1322,8 +1429,8 @@ export default function PromotionsPage() {
                             />
                         ) : null}
                         {filteredBundles.map((bundle) => (
-                            <div key={bundle.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
-                                <div className="flex items-start justify-between gap-3">
+                            <div key={bundle.id} data-testid={`promotion-bundle-${bundle.id}`} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
+                                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <PromotionTypeBadge label="paket" />
@@ -1334,26 +1441,13 @@ export default function PromotionsPage() {
                                         <p className="font-mono text-xs text-muted-foreground">{bundle.code}</p>
                                         <p className="text-sm text-muted-foreground">{bundle.description || "Açıklama eklenmemiş."}</p>
                                     </div>
-                                    <div className="flex flex-wrap justify-end gap-2">
+                                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             className="gap-2"
-                                            onClick={() => {
-                                                setEditingBundleId(bundle.id);
-                                                setBundleForm({
-                                                    code: bundle.code,
-                                                    name: bundle.name,
-                                                    description: bundle.description ?? "",
-                                                    priceCoin: String(bundle.priceCoin),
-                                                    isActive: bundle.isActive,
-                                                    sortOrder: String(bundle.sortOrder),
-                                                    items: bundle.items.map((item) => ({
-                                                        shopItemId: String(item.shopItemId),
-                                                        sortOrder: String(item.sortOrder),
-                                                    })),
-                                                });
-                                            }}
+                                            data-testid={`promotion-bundle-edit-${bundle.id}`}
+                                            onClick={() => openBundleEditor(bundle)}
                                         >
                                             <Edit2 size={14} />
                                             Düzenle
@@ -1362,7 +1456,15 @@ export default function PromotionsPage() {
                                             variant="ghost"
                                             size="sm"
                                             className="gap-2"
-                                            onClick={() => void deactivateEntry("bundles", bundle.id)}
+                                            data-testid={`promotion-bundle-lifecycle-${bundle.id}`}
+                                            onClick={() =>
+                                                setPendingLifecycleAction({
+                                                    kind: "bundles",
+                                                    id: bundle.id,
+                                                    name: bundle.name,
+                                                    isActive: bundle.isActive,
+                                                })
+                                            }
                                         >
                                             <Trash2 size={14} />
                                             {bundle.isActive ? "Pasife Al" : "Sil"}
@@ -1382,33 +1484,21 @@ export default function PromotionsPage() {
                                 </div>
                             </div>
                         ))}
-                        <BundleEditor
-                            form={bundleForm}
-                            itemOptions={itemOptions}
-                            editing={editingBundleId !== null}
-                            saving={saving}
-                            onChange={(patch) => setBundleForm((current) => ({ ...current, ...patch }))}
-                            onItemChange={(index, patch) => setBundleForm((current) => ({ ...current, items: current.items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) }))}
-                            onAddItem={() => setBundleForm((current) => ({ ...current, items: [...current.items, { shopItemId: "", sortOrder: String(current.items.length) }] }))}
-                            onRemoveItem={(index) => setBundleForm((current) => ({ ...current, items: current.items.filter((_, itemIndex) => itemIndex !== index) }))}
-                            onSubmit={() => void saveBundle()}
-                            onCancel={() => { setEditingBundleId(null); setBundleForm(emptyBundleForm); }}
-                        />
                     </CardContent>
                 </Card>
                 ) : null}
 
                 {(sectionFilter === "all" || sectionFilter === "discounts") ? (
                 <Card id="discounts">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
                         <div className="space-y-2">
                             <CardTitle>İndirim Kampanyaları</CardTitle>
                             <p className="text-sm text-muted-foreground">Kuponsuz çalışan kampanyaları yayın durumu ve zamanlamaya göre yönetin.</p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
                             <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("discounts", true)}>Filtredekileri Yayına Al</Button>
                             <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("discounts", false)}>Filtredekileri Durdur</Button>
-                            <Button size="sm" onClick={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                            <Button size="sm" onClick={() => openNewEditor("discounts")} className="gap-2"><Plus size={14} />Yeni Kampanya</Button>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -1419,8 +1509,8 @@ export default function PromotionsPage() {
                             />
                         ) : null}
                         {filteredDiscounts.map((discount) => (
-                            <div key={discount.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
-                                <div className="flex items-start justify-between gap-3">
+                            <div key={discount.id} data-testid={`promotion-discount-${discount.id}`} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
+                                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <PromotionTypeBadge label="kampanya" />
@@ -1433,30 +1523,13 @@ export default function PromotionsPage() {
                                         <p className="font-mono text-xs text-muted-foreground">{discount.code}</p>
                                         <p className="text-sm text-muted-foreground">{discount.description || "Açıklama eklenmemiş."}</p>
                                     </div>
-                                    <div className="flex flex-wrap justify-end gap-2">
+                                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             className="gap-2"
-                                            onClick={() => {
-                                                setEditingDiscountId(discount.id);
-                                                setDiscountForm({
-                                                    code: discount.code,
-                                                    name: discount.name,
-                                                    description: discount.description ?? "",
-                                                    targetType: discount.targetType,
-                                                    discountType: discount.discountType,
-                                                    percentageOff: discount.percentageOff ? String(discount.percentageOff) : "",
-                                                    fixedCoinOff: discount.fixedCoinOff ? String(discount.fixedCoinOff) : "",
-                                                    shopItemId: discount.shopItemId ? String(discount.shopItemId) : "",
-                                                    bundleId: discount.bundleId ? String(discount.bundleId) : "",
-                                                    usageLimit: discount.usageLimit ? String(discount.usageLimit) : "",
-                                                    startsAt: toDateTimeLocal(discount.startsAt),
-                                                    endsAt: toDateTimeLocal(discount.endsAt),
-                                                    isActive: discount.isActive,
-                                                    stackableWithCoupon: discount.stackableWithCoupon,
-                                                });
-                                            }}
+                                            data-testid={`promotion-discount-edit-${discount.id}`}
+                                            onClick={() => openDiscountEditor(discount)}
                                         >
                                             <Edit2 size={14} />
                                             Düzenle
@@ -1465,7 +1538,15 @@ export default function PromotionsPage() {
                                             variant="ghost"
                                             size="sm"
                                             className="gap-2"
-                                            onClick={() => void deactivateEntry("discounts", discount.id)}
+                                            data-testid={`promotion-discount-lifecycle-${discount.id}`}
+                                            onClick={() =>
+                                                setPendingLifecycleAction({
+                                                    kind: "discounts",
+                                                    id: discount.id,
+                                                    name: discount.name,
+                                                    isActive: discount.isActive,
+                                                })
+                                            }
                                         >
                                             <Trash2 size={14} />
                                             {discount.isActive ? "Pasife Al" : "Sil"}
@@ -1480,16 +1561,6 @@ export default function PromotionsPage() {
                                 </div>
                             </div>
                         ))}
-                        <DiscountEditor
-                            form={discountForm}
-                            itemOptions={itemOptions}
-                            bundleOptions={bundleOptions}
-                            editing={editingDiscountId !== null}
-                            saving={saving}
-                            onChange={(patch) => setDiscountForm((current) => ({ ...current, ...patch }))}
-                            onSubmit={() => void saveDiscount()}
-                            onCancel={() => { setEditingDiscountId(null); setDiscountForm(emptyDiscountForm); }}
-                        />
                     </CardContent>
                 </Card>
                 ) : null}
@@ -1498,15 +1569,15 @@ export default function PromotionsPage() {
 
             {!loading && !loadError && (sectionFilter === "all" || sectionFilter === "coupons") ? (
             <Card id="coupons">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
                     <div className="space-y-2">
                         <CardTitle>Kupon Kodları</CardTitle>
                         <p className="text-sm text-muted-foreground">Oyuncunun girdiği kodların hedefini, limitini ve yayın penceresini tek yerden kontrol et.</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
                         <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("coupons", true)}>Filtredekileri Yayına Al</Button>
                         <Button size="sm" variant="outline" disabled={batchSaving} onClick={() => void applyBulkPromotionStatus("coupons", false)}>Filtredekileri Durdur</Button>
-                        <Button size="sm" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }} className="gap-2"><Plus size={14} />Yeni</Button>
+                        <Button size="sm" onClick={() => openNewEditor("coupons")} className="gap-2"><Plus size={14} />Yeni Kupon</Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1517,8 +1588,8 @@ export default function PromotionsPage() {
                         />
                     ) : null}
                     {filteredCoupons.map((coupon) => (
-                        <div key={coupon.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
-                            <div className="flex items-start justify-between gap-3">
+                        <div key={coupon.id} data-testid={`promotion-coupon-${coupon.id}`} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm">
+                            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                                 <div className="space-y-3">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <PromotionTypeBadge label="kupon" />
@@ -1530,29 +1601,13 @@ export default function PromotionsPage() {
                                     <p className="font-mono text-xs text-muted-foreground">{coupon.code}</p>
                                     <p className="text-sm text-muted-foreground">{coupon.description || "Açıklama eklenmemiş."}</p>
                                 </div>
-                                <div className="flex flex-wrap justify-end gap-2">
+                                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         className="gap-2"
-                                        onClick={() => {
-                                            setEditingCouponId(coupon.id);
-                                            setCouponForm({
-                                                code: coupon.code,
-                                                name: coupon.name,
-                                                description: coupon.description ?? "",
-                                                targetType: coupon.targetType,
-                                                discountType: coupon.discountType,
-                                                percentageOff: coupon.percentageOff ? String(coupon.percentageOff) : "",
-                                                fixedCoinOff: coupon.fixedCoinOff ? String(coupon.fixedCoinOff) : "",
-                                                shopItemId: coupon.shopItemId ? String(coupon.shopItemId) : "",
-                                                bundleId: coupon.bundleId ? String(coupon.bundleId) : "",
-                                                usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "",
-                                                startsAt: toDateTimeLocal(coupon.startsAt),
-                                                endsAt: toDateTimeLocal(coupon.endsAt),
-                                                isActive: coupon.isActive,
-                                            });
-                                        }}
+                                        data-testid={`promotion-coupon-edit-${coupon.id}`}
+                                        onClick={() => openCouponEditor(coupon)}
                                     >
                                         <Edit2 size={14} />
                                         Düzenle
@@ -1561,7 +1616,15 @@ export default function PromotionsPage() {
                                         variant="ghost"
                                         size="sm"
                                         className="gap-2"
-                                        onClick={() => void deactivateEntry("coupons", coupon.id)}
+                                        data-testid={`promotion-coupon-lifecycle-${coupon.id}`}
+                                        onClick={() =>
+                                            setPendingLifecycleAction({
+                                                kind: "coupons",
+                                                id: coupon.id,
+                                                name: coupon.name,
+                                                isActive: coupon.isActive,
+                                            })
+                                        }
                                     >
                                         <Trash2 size={14} />
                                         {coupon.isActive ? "Pasife Al" : "Sil"}
@@ -1576,19 +1639,166 @@ export default function PromotionsPage() {
                             </div>
                         </div>
                     ))}
-                    <CouponEditor
-                        form={couponForm}
-                        itemOptions={itemOptions}
-                        bundleOptions={bundleOptions}
-                        editing={editingCouponId !== null}
-                        saving={saving}
-                        onChange={(patch) => setCouponForm((current) => ({ ...current, ...patch }))}
-                        onSubmit={() => void saveCoupon()}
-                        onCancel={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm); }}
-                    />
                 </CardContent>
             </Card>
             ) : null}
+
+            <Sheet
+                open={editorKind !== null}
+                onOpenChange={(open) => {
+                    if (!open) closeEditor();
+                }}
+            >
+                <SheetContent
+                    className="w-full overflow-y-auto p-3 sm:max-w-2xl sm:p-5"
+                    showCloseButton={!saving}
+                >
+                    <SheetTitle className="sr-only">
+                        Promosyon editörü
+                    </SheetTitle>
+                    <SheetDescription className="sr-only">
+                        Paket, kampanya veya kupon oluşturma ve düzenleme alanı.
+                    </SheetDescription>
+                    {editorKind === "bundles" ? (
+                        <BundleEditor
+                            form={bundleForm}
+                            itemOptions={itemOptions}
+                            editing={editingBundleId !== null}
+                            saving={saving}
+                            onChange={(patch) =>
+                                setBundleForm((current) => ({
+                                    ...current,
+                                    ...patch,
+                                }))
+                            }
+                            onItemChange={(index, patch) =>
+                                setBundleForm((current) => ({
+                                    ...current,
+                                    items: current.items.map((item, itemIndex) =>
+                                        itemIndex === index
+                                            ? { ...item, ...patch }
+                                            : item
+                                    ),
+                                }))
+                            }
+                            onAddItem={() =>
+                                setBundleForm((current) => ({
+                                    ...current,
+                                    items: [
+                                        ...current.items,
+                                        {
+                                            shopItemId: "",
+                                            sortOrder: String(
+                                                current.items.length
+                                            ),
+                                        },
+                                    ],
+                                }))
+                            }
+                            onRemoveItem={(index) =>
+                                setBundleForm((current) => ({
+                                    ...current,
+                                    items: current.items.filter(
+                                        (_, itemIndex) => itemIndex !== index
+                                    ),
+                                }))
+                            }
+                            onSubmit={() => void saveBundle()}
+                            onCancel={closeEditor}
+                        />
+                    ) : null}
+                    {editorKind === "discounts" ? (
+                        <DiscountEditor
+                            form={discountForm}
+                            itemOptions={itemOptions}
+                            bundleOptions={bundleOptions}
+                            editing={editingDiscountId !== null}
+                            saving={saving}
+                            onChange={(patch) =>
+                                setDiscountForm((current) => ({
+                                    ...current,
+                                    ...patch,
+                                }))
+                            }
+                            onSubmit={() => void saveDiscount()}
+                            onCancel={closeEditor}
+                        />
+                    ) : null}
+                    {editorKind === "coupons" ? (
+                        <CouponEditor
+                            form={couponForm}
+                            itemOptions={itemOptions}
+                            bundleOptions={bundleOptions}
+                            editing={editingCouponId !== null}
+                            saving={saving}
+                            onChange={(patch) =>
+                                setCouponForm((current) => ({
+                                    ...current,
+                                    ...patch,
+                                }))
+                            }
+                            onSubmit={() => void saveCoupon()}
+                            onCancel={closeEditor}
+                        />
+                    ) : null}
+                </SheetContent>
+            </Sheet>
+
+            <Dialog
+                open={pendingLifecycleAction !== null}
+                onOpenChange={(open) => {
+                    if (!open && !lifecycleSaving) {
+                        setPendingLifecycleAction(null);
+                    }
+                }}
+            >
+                <DialogContent showCloseButton={!lifecycleSaving}>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {pendingLifecycleAction?.isActive
+                                ? "Kaydı pasife al"
+                                : "Kaydı kalıcı olarak sil"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {pendingLifecycleAction?.isActive
+                                ? "Kayıt mağaza ve ödeme akışında uygulanmayacak, ancak tekrar açılabilmek için sistemde kalacak."
+                                : "Pasif ve kullanılmamış kayıt kalıcı olarak silinecek. İlişkili veya kullanılmış kayıtlar sunucu tarafından korunur."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
+                        <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            Etkilenecek kayıt
+                        </div>
+                        <div className="mt-2 font-semibold text-foreground">
+                            {pendingLifecycleAction?.name ?? "-"}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            disabled={lifecycleSaving}
+                            onClick={() => setPendingLifecycleAction(null)}
+                        >
+                            Vazgeç
+                        </Button>
+                        <Button
+                            variant={
+                                pendingLifecycleAction?.isActive
+                                    ? "default"
+                                    : "destructive"
+                            }
+                            disabled={lifecycleSaving}
+                            onClick={() => void confirmLifecycleAction()}
+                        >
+                            {lifecycleSaving
+                                ? "İşleniyor..."
+                                : pendingLifecycleAction?.isActive
+                                  ? "Pasife Al"
+                                  : "Kalıcı Olarak Sil"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

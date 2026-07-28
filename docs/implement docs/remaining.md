@@ -1,53 +1,49 @@
 # Kalan Isler
 
-> Son guncelleme: 28 July 2026
+> Son guncelleme: 29 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/post-launch-economy-observability-review`
-2. `feature/admin-promotions-ux`
-3. `feature/cosmetic-render-upgrade`
-4. `feature/admin-cosmetic-authoring`
-5. `feature/analytics-event-foundation`
-6. `feature/word-analytics-liveops`
-7. `feature/post-launch-xp-level-foundation`
-8. `feature/post-launch-missions-foundation`
-9. `feature/post-launch-night-market-foundation`
-10. `feature/mobile-api-foundation`
-11. `feature/release-ops-docs`
-12. `docs/encoding-cleanup`
-13. `feature/wallet-ledger-foundation`
+1. `feature/offsite-backup-object-storage` - siradaki
+2. `feature/cosmetic-render-upgrade`
+3. `feature/admin-cosmetic-authoring`
+4. `feature/analytics-event-foundation`
+5. `feature/word-analytics-liveops`
+6. `feature/release-ops-docs`
+7. `docs/encoding-cleanup`
+8. `feature/wallet-ledger-foundation`
+9. `feature/mobile-api-foundation`
+10. `feature/post-launch-economy-observability-review`
+11. `feature/post-launch-xp-level-foundation`
+12. `feature/post-launch-missions-foundation`
+13. `feature/post-launch-night-market-foundation`
 
-## Aktif Branch
+`post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
+implementasyona alinmaz.
 
-### `feature/cache-and-rate-limit-foundation`
+## Siradaki Branch
 
-Tamamlananlar:
-- Redis-first generic JSON read-through cache
-- bounded process-memory fallback ve process-local single-flight
-- corrupt JSON recovery ve hedefli key invalidation
-- cache hit, miss, load, error, invalidation ve coalescing metrikleri
-- gorunur kategori agaci icin 60 saniyelik shared cache
-- admin dashboard statik word/category sayaclari icin 10 saniyelik shared cache
-- kategori ve kelime mutation route'larinda await edilen targeted invalidation
-- admin capacity health ve Integration Hub cache gozlemlenebilirligi
-- Redis rate limit icin atomik Lua `INCR + PEXPIRE + PTTL`
-- Redis rate-limit arizasinda local fallback ve 30 saniyelik log throttle
-- fake Redis fault testleri, gercek Redis/MySQL invalidation testi
-- gercek Auth.js admin oturumuyla cross-process dashboard cache testi
+### `feature/offsite-backup-object-storage`
 
-Acik kalanlar:
-- system settings cache'ini Redis version/invalidation modeline tasima
-- store katalogunu shared data ve user overlay olarak ayirarak cache'leme
-- notification unread counter
-- economy rolling/repeated-group counter'lari
-- Socket.IO Redis adapter ve multi-instance fan-out
-- shared registered room presence load testi
+Hedef:
+- local MySQL dump akisini bozmadan private S3-compatible offsite kopya
+- SHA-256 upload ve restore dogrulamasi
+- R2, Amazon S3 veya Backblaze B2 arasinda provider-neutral ops kontrati
+- remote retention/lifecycle ve haftalik restore smoke testi
+- backup secret'larini uygulama container'indan ayri tutma
 
 Referans:
-- `docs/cache-and-storage-strategy.md`
+- `docs/deploy/mysql-backups.md`
 
 ## Onceki Branch Kaydi
+### `feature/admin-promotions-ux`
+Tamamlananlar:
+- yeni/duzenle formlarini responsive operasyon sheet'ine tasima
+- silme ve pasife alma icin sonucu aciklayan onay dialogu
+- mobil kart/header aksiyonlarini ve erisilebilir secimleri iyilestirme
+- coklu PUT firtinasi yerine rate-limitli, audit'li tek bulk status endpoint
+- statik regresyon ve gercek admin oturumlu Playwright testi
+
 ### `feature/admin-match-history-review`
 Tamamlananlar:
 - kullanici listesinden lazy acilan, sayfalanmis mac gecmisi

@@ -227,6 +227,11 @@ Bu branch yalniz "admin ekranini guzellestirme" isi degildir. Esas hedef, magaza
 - toplu yayina alma / durdurma
 - daha okunur kartlar
 - daha net form dili
+- form editorleri listeyi uzatmak yerine responsive operasyon sheet'inde acilir
+- yeni ve duzenle akislari ayni kontrollu editoru kullanir
+- silme / pasife alma sonucu onay dialogunda islemden once aciklanir
+- toplu durum degisikligi N adet paralel PUT yerine tek, sinirli ve audit'li
+  bulk endpoint kullanir
 
 4. Promotion lifecycle mantigi netlestirildi
 - `Sil` ile `Pasife Al` ayrildi
