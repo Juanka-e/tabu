@@ -222,6 +222,9 @@ That breaks:
 - Cache invalidation should happen on admin update.
 - Multi-instance invalidation still requires Redis pub/sub or a shared version key;
   `globalThis` only coordinates modules inside one process.
+- The Socket.IO room metrics provider also uses a process-global registration so
+  Next admin routes read the live local counters instead of a bundle-local zero
+  fallback. Multi-instance aggregation remains Redis heartbeat based.
 
 ## Dashboard And Player Surface Strategy
 
