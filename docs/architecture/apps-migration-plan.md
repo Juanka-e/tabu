@@ -366,7 +366,15 @@ Onerilen implementasyon sirasi:
 - Redis lookup kesintisinde mevcut local odayi oynanabilir tutma
 - health'te routing anomaly ve lookup failure metrikleri
 
-11. `feature/mobile-api-foundation`
+11. `feature/realtime-deployment-topology-guard` - tamamlandi
+- production icin tek realtime writer karari ve ADR
+- process-local room state varken replica sayisini birde tutan startup guard
+- Socket.IO transport seciminin dogrulanmis env ayarina baglanmasi
+- health endpointinde topology ve multi-instance readiness gorunurlugu
+- coklu instance gecisi icin sticky session, owner forwarding, recovery ve
+  failover kabul kapisi
+
+12. `feature/mobile-api-foundation`
 - ancak mobil backlog'u gercek implementasyona girdiginde
 
 ## Guardrails

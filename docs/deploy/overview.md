@@ -18,11 +18,18 @@ Temel kural:
 - production compose tarafinda Redis healthcheck gecmeden app kalkmis sayilmaz
 - production'da sadece Nginx `80/443` acik eder
 - app, MySQL ve Redis private Docker networkte kalir
+- realtime room state process-local oldugu icin production tek `app` replica
+  kullanir; Nginx upstream'i yalniz `app:3000` hedefler
+- `REALTIME_TOPOLOGY=single-writer` ve `REALTIME_REPLICA_COUNT=1` runtime
+  tarafinda da dogrulanir
+- Redis adapter ve ownership lease temelleri tek basina yatay realtime
+  olceklendirme izni vermez
 
 Ilgili dosyalar:
 
 - `docker-compose.dev.yml`
 - `docker-compose.yml`
 - `scripts/ops/deploy.sh`
+- `docs/architecture/adr-003-single-realtime-writer-topology.md`
 - `docs/guides/deployment-security-guide.md`
 - `docs/guides/deployment-ops-runbook.md`
