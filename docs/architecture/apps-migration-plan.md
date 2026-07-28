@@ -173,6 +173,8 @@ Tabu akisini kopyalamaz ve mobil API kontratini web UI'ya baglamaz.
 
 ### Phase 3 - `apps/jobs`
 
+Durum: temel tamamlandi.
+
 Ayri jobs runtime'i ilk gercek operasyonel faydayi burada verir.
 
 Buraya alinabilecekler:
@@ -186,6 +188,8 @@ Buraya alinabilecekler:
 Bu faz, web request runtime'ini agir batch islerinden ayirir.
 
 ### Phase 4 - `apps/api`
+
+Durum: bilincli scaffold; mobil/public API ihtiyaci henuz yok.
 
 `apps/api` hemen acilmamali.
 

@@ -33,7 +33,10 @@ async function testGuestRoomEligibility(): Promise<void> {
             oyunAktifMi: false,
             skor: { A: 5, B: 3 },
             matchStartedAt: "2026-04-01T12:00:00.000Z",
+            matchEndedAt: "2026-04-01T12:03:00.000Z",
             sureSeconds: 180,
+            matchFormat: "skor",
+            matchTarget: 10,
             oyuncular: [
                 {
                     playerId: "user:99",

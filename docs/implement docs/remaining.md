@@ -1,6 +1,6 @@
 # Kalan Isler
 
-> Son guncelleme: 27 July 2026
+> Son guncelleme: 28 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
@@ -25,18 +25,19 @@
 
 ## Aktif Branch
 
-### `feature/audit-archive-read-path`
+### `feature/admin-match-history-review`
 
 Tamamlananlar:
-- hot ve archive audit icin ayri, sayfalanmis admin gorunumleri
-- retention aninda actor username snapshot'i
-- archive kaynaginda arama, action, resource, rol ve economy guard filtreleri
-- archive zamani ve kaynak ayrimi
-- gercek MySQL retention + archive read-path entegrasyon testi
+- kullanici listesinden lazy acilan, sayfalanmis mac gecmisi
+- skor, takim, sonuc, coin, kadro dagilimi ve oyun modu gorunumu
+- yeni maclar icin server-owned bitis, sure, format ve hedef snapshot'i
+- hot/archive finalize audit metadata ile guard ve lineup zenginlestirmesi
+- audit snapshot yoksa bilinmeyen veriyi uydurmayan fallback
+- gercek MySQL hot -> archive entegrasyon testi
 
 Acik kalanlar:
-- production retention schedule icin operasyonel kabul ve zamanlama
-- telemetry siniflandirmasi ve archive purge politikasi ayri branch'lerdir
+- anlatici rotasyon gecmisi bugun room state'te kalici tutulmuyor
+- rotasyon ihtiyaci ayri game telemetry/snapshot tasariminda ele alinacak
 
 ## Onceki Branch Kaydi
 ### `feature/packages-extraction-foundation`
@@ -90,10 +91,12 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ## Yakin Sonraki Branch'ler
 
-### `feature/admin-match-history-review`
+### `feature/admin-match-history-review` - tamamlandi
 - admin kullanici inceleme akisina mac gecmisi yuzeyi
 - mac suresi, skor tipi, takim dagilimi, anlatici rotasyonu ve ekonomi etkisi gorunurlugu
 - audit ile mac detayi arasinda daha adil moderasyon gecisi
+- anlatici rotasyonu icin veri uydurulmadi; kalici event/snapshot modeli sonraya
+  birakildi
 
 ### `feature/admin-categories-dnd-polish`
 - kategori surukle-birak akisini dogrulama

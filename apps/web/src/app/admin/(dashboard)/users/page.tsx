@@ -19,6 +19,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminPagination } from "@/components/admin/admin-pagination";
 import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
+import { AdminUserMatchHistoryDialog } from "@/components/admin/admin-user-match-history-dialog";
 import type {
     AdminUserListResponse,
     AdminUserModerationView,
@@ -152,6 +153,7 @@ export default function AdminUsersPage() {
     const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
     const [selectedUser, setSelectedUser] = useState<AdminUserModerationView | null>(null);
     const [selectedWalletUser, setSelectedWalletUser] = useState<AdminUserModerationView | null>(null);
+    const [selectedMatchUser, setSelectedMatchUser] = useState<AdminUserModerationView | null>(null);
     const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
     const [actionMode, setActionMode] = useState<ActionMode>("suspend");
     const [walletAdjustmentType, setWalletAdjustmentType] = useState<WalletAdjustmentType>("credit");
@@ -648,6 +650,14 @@ export default function AdminUsersPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setSelectedMatchUser(user)}
+                                        >
+                                            Maçlar
+                                        </Button>
                                         {user.role === "admin" ? (
                                             <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
                                                 Admin hesabi
@@ -704,6 +714,13 @@ export default function AdminUsersPage() {
                     </TableBody>
                 </Table>
             </AdminTableShell>
+
+            {selectedMatchUser ? (
+                <AdminUserMatchHistoryDialog
+                    user={selectedMatchUser}
+                    onClose={() => setSelectedMatchUser(null)}
+                />
+            ) : null}
 
             {selectedUser ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
