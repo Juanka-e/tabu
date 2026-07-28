@@ -1126,6 +1126,32 @@ export function setupGameSocket(io: Server): void {
                         }
                     } else {
                         const isSpectator = room.oyunDurumu.oyunAktifMi;
+                        const yeniOyuncu: PlayerData = {
+                            id: socket.id,
+                            playerId: effectivePlayerId,
+                            userId: effectiveAuthUserId,
+                            identityType,
+                            usernameSnapshot,
+                            ad: effectiveDisplayName,
+                            takim: null,
+                            online: true,
+                            rol: isSpectator ? "İzleyici" : "Oyuncu",
+                            ip,
+                            cosmetics: createEmptyPlayerCosmetics(),
+                        };
+                        await hydratePlayerCosmetics(yeniOyuncu);
+
+                        if (
+                            room.oyuncular.filter((entry) => entry.online)
+                                .length >=
+                            getEffectiveRoomMaxPlayers(settings.capacity)
+                        ) {
+                            socket.emit(
+                                "hata",
+                                `Bu oda dolu. Oda kapasitesi ${getEffectiveRoomMaxPlayers(settings.capacity)} oyuncu.`
+                            );
+                            return;
+                        }
                         const assignedTeam = isSpectator
                             ? null
                             : chooseJoinTeam(
@@ -1144,20 +1170,7 @@ export function setupGameSocket(io: Server): void {
                             );
                             return;
                         }
-                        const yeniOyuncu: PlayerData = {
-                            id: socket.id,
-                            playerId: effectivePlayerId,
-                            userId: effectiveAuthUserId,
-                            identityType,
-                            usernameSnapshot,
-                            ad: effectiveDisplayName,
-                            takim: assignedTeam,
-                            online: true,
-                            rol: isSpectator ? "İzleyici" : "Oyuncu",
-                            ip,
-                            cosmetics: createEmptyPlayerCosmetics(),
-                        };
-                        await hydratePlayerCosmetics(yeniOyuncu);
+                        yeniOyuncu.takim = assignedTeam;
                         room.oyuncular.push(yeniOyuncu);
                     }
 

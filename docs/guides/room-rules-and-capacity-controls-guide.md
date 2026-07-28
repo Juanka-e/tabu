@@ -125,3 +125,7 @@ into Redis.
 6. Verify a room with one registered participant needs four active participants.
 7. Verify a late join during a match is a spectator and receives no reward.
 8. Verify lowering room/team limits does not remove existing players.
+
+Automated load and manual admin scenarios are maintained in:
+
+- `docs/guides/room-capacity-load-validation-checklist.md`
