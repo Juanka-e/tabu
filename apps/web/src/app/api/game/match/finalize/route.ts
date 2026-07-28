@@ -15,6 +15,10 @@ import {
   getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import {
+  recordMatchFinalizeTelemetry,
+  requiresDetailedMatchFinalizeAudit,
+} from "@/lib/security/telemetry-rollup";
 import { getSystemSettings } from "@/lib/system-settings/service";
 
 const finalizeSchema = z.object({
@@ -296,13 +300,7 @@ export async function POST(req: Request) {
     }
 
     await invalidateUserDashboardMatchSummaryCache(sessionUser.id);
-    await safeWriteAuditLog({
-      actor: sessionUser,
-      action: "game.match.finalize",
-      resourceType: "match_result",
-      resourceId: result.created.id,
-      summary: `Finalized match reward for room ${room.odaKodu}`,
-        metadata: {
+    const auditMetadata = {
         gameMode: room.gameMode,
         rewardSource: evaluation.source,
         eligibilityDecision: evaluation.decision,
@@ -352,9 +350,43 @@ export async function POST(req: Request) {
           evaluation.modifiers.reducedByRules ||
           result.repeatedGroup.triggered ||
           result.ceiling.triggered,
-      },
-      request: req,
+    };
+    const detailedAuditRequired = requiresDetailedMatchFinalizeAudit({
+      reviewFlags: evaluation.reviewFlags,
+      repeatedGroupTriggered: result.repeatedGroup.triggered,
+      rewardGuardTriggered: result.ceiling.triggered,
     });
+    const telemetryRecorded = detailedAuditRequired
+      ? false
+      : await recordMatchFinalizeTelemetry({
+          occurredAt: room.matchEndedAt
+            ? new Date(room.matchEndedAt)
+            : new Date(),
+          gameMode: room.gameMode,
+          coinEarned: result.coinEarned,
+          durationSeconds: evaluation.roomMetrics.sureSeconds,
+          totalPlayers: evaluation.roomMetrics.totalPlayers,
+          authenticatedPlayers:
+            evaluation.roomMetrics.authenticatedPlayers,
+          guestPlayers: evaluation.roomMetrics.guestPlayers,
+          won: evaluation.won,
+        });
+
+    if (detailedAuditRequired || !telemetryRecorded) {
+      await safeWriteAuditLog({
+        actor: sessionUser,
+        action: "game.match.finalize",
+        resourceType: "match_result",
+        resourceId: result.created.id,
+        summary: `Finalized match reward for room ${room.odaKodu}`,
+        metadata: {
+          ...auditMetadata,
+          telemetryAuditFallback:
+            !detailedAuditRequired && !telemetryRecorded,
+        },
+        request: req,
+      });
+    }
 
     return NextResponse.json({
       coinEarned: result.coinEarned,

@@ -39,6 +39,10 @@ import {
     getRealtimeTopologyConfig,
     getRealtimeTopologyStatus,
 } from "./src/lib/socket/realtime-topology";
+import {
+    getTelemetryRollupConfig,
+    getTelemetryRollupStatus,
+} from "./src/lib/security/telemetry-rollup";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -53,6 +57,7 @@ const realtimeTopologyConfig = getRealtimeTopologyConfig();
 const realtimeTopologyStatus = getRealtimeTopologyStatus(
     realtimeTopologyConfig
 );
+const telemetryRollupConfig = getTelemetryRollupConfig();
 
 const app = next({ dev, hostname, port, dir: appDirectory });
 const handler = app.getRequestHandler();
@@ -147,6 +152,10 @@ app.prepare().then(async () => {
                     socketRedisAdapter: socketRedisAdapterStatus,
                     roomOwnership: roomOwnershipStatus,
                     roomRouting: roomRoutingStatus,
+                },
+                telemetry: {
+                    matchFinalize:
+                        getTelemetryRollupStatus(telemetryRollupConfig),
                 },
                 ...metrics,
             })

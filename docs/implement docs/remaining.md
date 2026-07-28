@@ -4,22 +4,19 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/cache-and-rate-limit-foundation`
-2. `feature/cache-and-rate-limit-foundation-followup`
-3. `feature/post-launch-economy-observability-review`
-4. `feature/audit-retention-and-telemetry-foundation`
-5. `feature/admin-promotions-ux`
-6. `feature/cosmetic-render-upgrade`
-7. `feature/admin-cosmetic-authoring`
-8. `feature/analytics-event-foundation`
-9. `feature/word-analytics-liveops`
-10. `feature/post-launch-xp-level-foundation`
-11. `feature/post-launch-missions-foundation`
-12. `feature/post-launch-night-market-foundation`
-13. `feature/mobile-api-foundation`
-14. `feature/release-ops-docs`
-15. `docs/encoding-cleanup`
-16. `feature/wallet-ledger-foundation`
+1. `feature/post-launch-economy-observability-review`
+2. `feature/admin-promotions-ux`
+3. `feature/cosmetic-render-upgrade`
+4. `feature/admin-cosmetic-authoring`
+5. `feature/analytics-event-foundation`
+6. `feature/word-analytics-liveops`
+7. `feature/post-launch-xp-level-foundation`
+8. `feature/post-launch-missions-foundation`
+9. `feature/post-launch-night-market-foundation`
+10. `feature/mobile-api-foundation`
+11. `feature/release-ops-docs`
+12. `docs/encoding-cleanup`
+13. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
 
@@ -152,6 +149,9 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - non-triggered high-volume event'leri telemetry hattina tasima
 - economy finalize audit hacmini kontrollu hale getirme
 - admin review icin archive read path - tamamlandi
+- non-triggered finalize Redis gunluk rollup - tamamlandi
+- guard/review sinyalli finalize detayli audit korumasi - tamamlandi
+- Redis arizasinda detayli audit fallback - tamamlandi
 
 ### `feature/jobs-runtime-foundation` - tamamlandi
 - `apps/jobs` one-shot runtime ve audit archive job'u eklendi
@@ -187,7 +187,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.
 - bugunku registered room index tek-instance icin process-local yeterlidir; multi-instance asamasinda shared presence katmanina tasinmalidir.
-- non-triggered finalize kayitlari ileride daha hafif telemetry yoluna tasinabilir.
+- non-triggered finalize kayitlari PII'siz Redis gunluk telemetry rollup'ina
+  tasindi; match result kalici truth olarak MySQL'de kalir.
 - siradan `game.match.finalize` kayitlarini signal-first telemetry hattina ayirma
   isi retention'dan ayri ele alinmali.
 - admin kullanici mesajlasma sistemi ayri bir operasyon branch'i olarak dusunulmeli.
