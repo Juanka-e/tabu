@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { validateAdminCategoryReorderUpdates } from "../apps/web/src/lib/categories/admin-category-reorder";
 
 const categories = [
@@ -42,7 +43,7 @@ assert.throws(
 assert.throws(
     () =>
         validateAdminCategoryReorderUpdates([{ id: 1, sortOrder: 0 }], categories),
-    /tum ana kategorileri/
+    /tüm ana kategorileri/
 );
 
 assert.throws(
@@ -54,7 +55,47 @@ assert.throws(
             ],
             categories
         ),
-    /bulunamadi/
+    /bulunamadı/
 );
+
+assert.throws(
+    () =>
+        validateAdminCategoryReorderUpdates(
+            [
+                { id: 1, sortOrder: 0 },
+                { id: 2, sortOrder: 20 },
+            ],
+            categories
+        ),
+    /10'ar artmalıdır/
+);
+
+assert.throws(
+    () =>
+        validateAdminCategoryReorderUpdates(
+            [
+                { id: 1, sortOrder: 0 },
+                { id: 2, sortOrder: 0 },
+            ],
+            categories
+        ),
+    /10'ar artmalıdır/
+);
+
+const pageSource = readFileSync(
+    "apps/web/src/app/admin/(dashboard)/categories/page.tsx",
+    "utf8"
+);
+const routeSource = readFileSync(
+    "apps/web/src/app/api/admin/categories/reorder/route.ts",
+    "utf8"
+);
+assert.match(pageSource, /TouchSensor/);
+assert.match(pageSource, /reorderInFlightRef/);
+assert.match(pageSource, /setCategories\(previousCategories\)/);
+assert.match(pageSource, /Yukarı taşı/);
+assert.match(pageSource, /Aşağı taşı/);
+assert.match(routeSource, /invalidateCategoryCache\(\)/);
+assert.match(routeSource, /admin\.category\.reorder/);
 
 console.log("admin-category-reorder smoke test passed");

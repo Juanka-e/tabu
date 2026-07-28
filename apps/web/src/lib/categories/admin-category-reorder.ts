@@ -8,16 +8,27 @@ export interface CategoryReorderMeta {
     parentId: number | null;
 }
 
+export class AdminCategoryReorderValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "AdminCategoryReorderValidationError";
+    }
+}
+
+function invalid(message: string): never {
+    throw new AdminCategoryReorderValidationError(message);
+}
+
 export function validateAdminCategoryReorderUpdates(
     updates: CategoryReorderUpdate[],
     categories: CategoryReorderMeta[]
 ): CategoryReorderUpdate[] {
     if (!Array.isArray(updates) || updates.length === 0) {
-        throw new Error("Siralama listesi bos olamaz.");
+        invalid("Sıralama listesi boş olamaz.");
     }
 
     if (updates.length > 100) {
-        throw new Error("Tek seferde cok fazla kategori sirasi guncellenemez.");
+        invalid("Tek seferde çok fazla kategori sırası güncellenemez.");
     }
 
     const categoryMap = new Map(categories.map((category) => [category.id, category]));
@@ -29,43 +40,51 @@ export function validateAdminCategoryReorderUpdates(
 
     for (const update of updates) {
         if (!Number.isInteger(update.id) || update.id <= 0) {
-            throw new Error("Siralama listesinde gecersiz kategori kimligi var.");
+            invalid("Sıralama listesinde geçersiz kategori kimliği var.");
         }
 
         if (!Number.isInteger(update.sortOrder) || update.sortOrder < 0) {
-            throw new Error("Siralama listesinde gecersiz siralama degeri var.");
+            invalid("Sıralama listesinde geçersiz sıralama değeri var.");
         }
 
         if (seenIds.has(update.id)) {
-            throw new Error("Ayni kategori siralama listesinde birden fazla kez gonderilemez.");
+            invalid("Aynı kategori sıralama listesinde birden fazla kez gönderilemez.");
         }
         seenIds.add(update.id);
 
         const category = categoryMap.get(update.id);
         if (!category) {
-            throw new Error("Siralamaya calisilan kategorilerden biri bulunamadi.");
+            invalid("Sıralanmaya çalışılan kategorilerden biri bulunamadı.");
         }
 
         if (category.parentId !== null) {
-            throw new Error("Alt kategoriler bu akista suruklenemez. Yalnizca ana kategoriler siralanabilir.");
+            invalid("Alt kategoriler bu akışta sürüklenemez. Yalnızca ana kategoriler sıralanabilir.");
         }
     }
 
     const sortedSeenIds = Array.from(seenIds).sort((left, right) => left - right);
     if (sortedSeenIds.length !== rootCategoryIds.length) {
-        throw new Error("Siralama istegi tum ana kategorileri icermeli.");
+        invalid("Sıralama isteği tüm ana kategorileri içermeli.");
     }
 
     for (let index = 0; index < rootCategoryIds.length; index += 1) {
         if (sortedSeenIds[index] !== rootCategoryIds[index]) {
-            throw new Error("Siralama istegi tum ana kategorileri icermeli.");
+            invalid("Sıralama isteği tüm ana kategorileri içermeli.");
         }
     }
 
-    return updates
+    const normalized = updates
         .map((update) => ({
             id: update.id,
             sortOrder: update.sortOrder,
         }))
         .sort((left, right) => left.sortOrder - right.sortOrder);
+
+    normalized.forEach((update, index) => {
+        if (update.sortOrder !== index * 10) {
+            invalid("Sıralama değerleri 0'dan başlayarak 10'ar artmalıdır.");
+        }
+    });
+
+    return normalized;
 }

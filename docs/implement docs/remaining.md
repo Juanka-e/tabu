@@ -4,29 +4,42 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/admin-match-history-review`
-2. `feature/admin-categories-dnd-polish`
-3. `feature/room-rules-and-capacity-controls`
-4. `feature/post-launch-economy-observability-review`
-5. `feature/cache-and-rate-limit-foundation`
-6. `feature/audit-retention-and-telemetry-foundation`
-7. `feature/admin-promotions-ux`
-8. `feature/cosmetic-render-upgrade`
-9. `feature/admin-cosmetic-authoring`
-10. `feature/analytics-event-foundation`
-11. `feature/word-analytics-liveops`
-12. `feature/post-launch-xp-level-foundation`
-13. `feature/post-launch-missions-foundation`
-14. `feature/post-launch-night-market-foundation`
-15. `feature/mobile-api-foundation`
-16. `feature/release-ops-docs`
-17. `docs/encoding-cleanup`
-18. `feature/wallet-ledger-foundation`
+1. `feature/room-rules-and-capacity-controls`
+2. `feature/post-launch-economy-observability-review`
+3. `feature/cache-and-rate-limit-foundation`
+4. `feature/audit-retention-and-telemetry-foundation`
+5. `feature/admin-promotions-ux`
+6. `feature/cosmetic-render-upgrade`
+7. `feature/admin-cosmetic-authoring`
+8. `feature/analytics-event-foundation`
+9. `feature/word-analytics-liveops`
+10. `feature/post-launch-xp-level-foundation`
+11. `feature/post-launch-missions-foundation`
+12. `feature/post-launch-night-market-foundation`
+13. `feature/mobile-api-foundation`
+14. `feature/release-ops-docs`
+15. `docs/encoding-cleanup`
+16. `feature/wallet-ledger-foundation`
 
 ## Aktif Branch
 
-### `feature/admin-match-history-review`
+### `feature/admin-categories-dnd-polish`
 
+Tamamlananlar:
+- desktop mouse, touch ve klavye sensorleriyle ana kategori siralama
+- mobil ve dusuk hassasiyetli kullanim icin yukari/asagi tasima kontrolleri
+- optimistic UI, eszamanli istek kilidi, hata halinde rollback ve sessiz refetch
+- tum ana kategorileri kapsayan canonical `0, 10, 20...` server dogrulamasi
+- reorder sonrasi kategori cache invalidation ve admin audit kaydi
+- custom server / reverse proxy altinda same-origin CSRF dogrulama uyumlulugu
+- kategoriler sayfasinda UTF-8, responsive yerlesim ve erisilebilir geri bildirim
+- gercek MySQL ile desktop drag + mobil geri alma Playwright testi
+
+Acik kalanlar:
+- gercek dokunmatik cihaz smoke turu release checklist'inde tekrarlanacak
+
+## Onceki Branch Kaydi
+### `feature/admin-match-history-review`
 Tamamlananlar:
 - kullanici listesinden lazy acilan, sayfalanmis mac gecmisi
 - skor, takim, sonuc, coin, kadro dagilimi ve oyun modu gorunumu
@@ -39,7 +52,6 @@ Acik kalanlar:
 - anlatici rotasyon gecmisi bugun room state'te kalici tutulmuyor
 - rotasyon ihtiyaci ayri game telemetry/snapshot tasariminda ele alinacak
 
-## Onceki Branch Kaydi
 ### `feature/packages-extraction-foundation`
 Tamamlananlar:
 - `@hushle/platform-db` ve `@hushle/platform-cache`
@@ -75,7 +87,6 @@ Tamamlananlar:
 - MySQL 8.4 ve izole local Redis portlariyla kalici Docker gelistirme altyapisi
 
 Acik kalanlar:
-- admin kategoriler surukle-birak davranisini gercek kullanimda son kez dogrulama
 - bildirim sheet, toast, header ve hizli kusan iyilestirmelerini gercek cihazlarda son bir tur kontrol etmek
 - aktif oda korumasini coklu sekme / reconnect senaryolarinda son bir tur dogrulamak
 - `docs/guides/gameplay-ui-polish-smoke-checklist.md` uzerinden gercek cihaz smoke turu yapmak
@@ -87,7 +98,7 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - room sifre sistemi
 - oda kapasitesi ve oyuncu sirasi kural paneli
 - XP / gorev / event runtime
-- fiziksel `apps/web` veya `apps/api` kod tasimasi
+- yeni bir `apps/api` runtime'i; mobil veya bagimsiz API ihtiyaci dogana kadar acilmayacak
 
 ## Yakin Sonraki Branch'ler
 
@@ -98,11 +109,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - anlatici rotasyonu icin veri uydurulmadi; kalici event/snapshot modeli sonraya
   birakildi
 
-### `feature/admin-categories-dnd-polish`
-- kategori surukle-birak akisini dogrulama
-- reorder sonrasi geri bildirim / hata durumlari
-- kategoriler sayfasindaki UTF-8 ve copy temizligi
-- mobil / dusuk hassasiyetli pointer davranisini iyilestirme
+### `feature/admin-categories-dnd-polish` - tamamlandi
+- gercek mouse drag ve mobil ok kontrolu Playwright ile dogrulandi
+- hata rollback'i, server canonical order dogrulamasi, cache invalidation ve audit eklendi
+- kategoriler sayfasi UTF-8, responsive ve erisilebilirlik bakimindan temizlendi
 
 ### `feature/room-rules-and-capacity-controls`
 - oda kapasitesi icin net ust sinir karari
@@ -157,6 +167,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - economy guard tetiklerinin saha verisiyle yeniden tuning edilmesi
 
 ## Uzun Vadeli Notlar
+- mevcut modularizasyon fazi tamamlandi: web runtime `apps/web`, paylasilan DB/cache
+  katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
+- `apps/api` bilincli olarak bos tutulmuyor; bagimsiz deploy veya mobil kontrat ihtiyaci
+  gercek oldugunda acilacak.
 - modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.

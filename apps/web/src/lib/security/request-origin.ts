@@ -13,11 +13,29 @@ export function isTrustedStateChangeRequest(request: OriginCheckRequest): boolea
 
     const originHeader = request.headers.get("origin");
     const fetchSiteHeader = request.headers.get("sec-fetch-site");
-    const expectedOrigin = new URL(request.url).origin;
 
     if (originHeader) {
         try {
-            return new URL(originHeader).origin === expectedOrigin;
+            const requestUrl = new URL(request.url);
+            const expectedOrigins = new Set([requestUrl.origin]);
+            const forwardedProto = request.headers
+                .get("x-forwarded-proto")
+                ?.split(",", 1)[0]
+                ?.trim();
+            const protocol = forwardedProto
+                ? `${forwardedProto.replace(/:$/, "")}:`
+                : requestUrl.protocol;
+            const forwardedHost = request.headers
+                .get("x-forwarded-host")
+                ?.split(",", 1)[0]
+                ?.trim();
+            const host = forwardedHost || request.headers.get("host")?.trim();
+
+            if (host && (protocol === "http:" || protocol === "https:")) {
+                expectedOrigins.add(new URL(`${protocol}//${host}`).origin);
+            }
+
+            return expectedOrigins.has(new URL(originHeader).origin);
         } catch {
             return false;
         }
