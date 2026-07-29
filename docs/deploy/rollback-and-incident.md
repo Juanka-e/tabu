@@ -125,4 +125,3 @@ Incident su kosullarda kapanir:
 4. Ekonomi yan etkisi varsa etkilenen wallet kayitlari incelendi.
 5. Admission/maintenance normal ayara dondu.
 6. Kok neden, kalici aksiyon ve sahibi kaydedildi.
-

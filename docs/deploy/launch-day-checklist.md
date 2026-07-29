@@ -81,4 +81,3 @@ Otomatik ceza veya kelime gizleme karari ilk gun metriklerinden uretilmez.
 
 Containment ve rollback adimlari:
 [rollback-and-incident.md](./rollback-and-incident.md).
-
