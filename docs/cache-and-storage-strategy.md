@@ -586,6 +586,8 @@ Redis/Valkey burada sunlari hizlandirabilir:
 - Match finalize mevcut ozel rollup'ta kalir; reader migration olmadan iki hatta
   birden yazilarak cift sayim uretilmez.
 - Ayrintili kontrat: `docs/analytics-event-strategy.md`.
+- Word analytics gunluk tek hash kullanir; admin reader gorunen word ID'leri
+  `HMGET` ile 7/30 gunluk bounded aralikta okur. Keyspace scan yapilmaz.
 - unread / review queue counter'lari
 
 Ama audit truth ve admin inceleme izi yine MySQL/kalici storage tarafinda kalmalidir.

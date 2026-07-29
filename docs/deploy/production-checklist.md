@@ -45,6 +45,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 13. `TELEMETRY_ROLLUP_RETENTION_DAYS=45`
 14. Urun analytics acilacaksa `PRODUCT_ANALYTICS_ENABLED=true`
 15. `PRODUCT_ANALYTICS_RETENTION_DAYS=45`
+16. Kelime liveops olcumu acilacaksa `WORD_ANALYTICS_ENABLED=true`
+17. `WORD_ANALYTICS_RETENTION_DAYS=45`
 
 ## Deploy Öncesi
 

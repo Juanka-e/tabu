@@ -11,6 +11,15 @@ interface CardResult {
     categoryColor: string | null;
 }
 
+export interface WordDrawResult {
+    card: CardResult;
+    analytics: {
+        wordId: number;
+        categoryIds: number[];
+        difficulty: 1 | 2 | 3;
+    };
+}
+
 // ─── Word Pool per Room ────────────────────────────────────────
 
 const wordPools = new Map<string, number[]>();
@@ -81,7 +90,7 @@ export async function getNextWord(
     roomCode: string,
     categoryIds: number[],
     difficulties: number[]
-): Promise<CardResult | null> {
+): Promise<WordDrawResult | null> {
     // Rate limiter logic is better placed in the caller (socket), but we can protect cache stampede here
     let pool = wordPools.get(roomCode);
 
@@ -102,22 +111,27 @@ export async function getNextWord(
         include: {
             tabooWords: { select: { tabooWordText: true } },
             wordCategories: {
-                include: {
-                    category: { select: { color: true } },
-                },
-                take: 1,
+                include: { category: { select: { color: true } } },
             },
         },
     });
 
     if (!word) return null;
 
+    const difficulty = word.difficulty as 1 | 2 | 3;
     return {
-        id: word.id,
-        word: word.wordText,
-        difficulty: word.difficulty as 1 | 2 | 3,
-        taboo: word.tabooWords.map((tw) => tw.tabooWordText),
-        categoryColor: word.wordCategories[0]?.category?.color || null,
+        card: {
+            id: word.id,
+            word: word.wordText,
+            difficulty,
+            taboo: word.tabooWords.map((tw) => tw.tabooWordText),
+            categoryColor: word.wordCategories[0]?.category?.color || null,
+        },
+        analytics: {
+            wordId: word.id,
+            categoryIds: word.wordCategories.map((entry) => entry.categoryId),
+            difficulty,
+        },
     };
 }
 

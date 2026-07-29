@@ -11,6 +11,7 @@ import {
     shouldFinishTabuBeforeRound,
     type GameModeId,
     type TabuRoomSettings,
+    type WordAction,
 } from "@hushle/domain-game";
 import { getPlayerAppearanceSnapshot, getPlayerCardCosmeticsSnapshot } from "@/lib/economy";
 import { createEmptyRoomCardThemes, resolveRoomCardThemes, type RoomCardThemePayload } from "@/lib/cosmetics/room-card-themes";
@@ -61,6 +62,10 @@ import {
     shouldRejectRoomRoute,
     type RoomRouteResolver,
 } from "./room-routing";
+import {
+    recordWordAnalytics,
+    type WordAnalyticsOutcome,
+} from "@/lib/analytics/word-analytics";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -134,6 +139,12 @@ interface RoomData {
     seciliZorluklar?: number[];
     oyunDurumu: GameStateData;
     matchParticipants: MatchParticipantSnapshot[];
+    activeWordAnalytics: {
+        wordId: number;
+        categoryIds: number[];
+        difficulty: 1 | 2 | 3;
+        remainingSecondsAtDisplay: number;
+    } | null;
     zamanlayici: ReturnType<typeof setInterval> | null;
     banList: BanList;
 }
@@ -608,13 +619,20 @@ export function setupGameSocket(
         currentRoom.oyunDurumu.kalanPasHakki = 3;
 
         try {
-            const card = await getNextWord(
+            const draw = await getNextWord(
                 currentRoom.odaKodu,
                 currentRoom.gecerliKategoriIdleri,
                 currentRoom.gecerliZorlukSeviyeleri
             );
 
+            const card = draw?.card ?? null;
             currentRoom.oyunDurumu.aktifKart = card;
+            currentRoom.activeWordAnalytics = draw
+                ? {
+                    ...draw.analytics,
+                    remainingSecondsAtDisplay: currentRoom.oyunDurumu.kalanZaman,
+                }
+                : null;
             persistRoom(currentRoom);
 
             broadcastTurnInfo(currentRoom, narrator, inspector, card, narratorCardThemes);
@@ -707,6 +725,7 @@ export function setupGameSocket(
                 });
 
                 if (currentRoom.oyunDurumu.kalanZaman <= 0) {
+                    consumeActiveWordAnalytics(currentRoom, "timeout");
                     startNewRound(roomCode);
                 }
             }
@@ -717,9 +736,13 @@ export function setupGameSocket(
 
     async function handleWordAction(
         room: RoomData,
-        action: string,
+        action: WordAction,
         socket: Socket
     ): Promise<void> {
+        if (!room.activeWordAnalytics || !room.oyunDurumu.aktifKart) {
+            return;
+        }
+
         const now = Date.now();
         const lastActionAt = wordActionTimestamps.get(socket.id) || 0;
         if (now - lastActionAt < WORD_ACTION_COOLDOWN_MS) return;
@@ -762,6 +785,7 @@ export function setupGameSocket(
         } else if (action === "tabu") {
             room.oyunDurumu.skor[narrator.takim] -= 1;
         }
+        consumeActiveWordAnalytics(room, action);
 
         io.to(room.odaKodu).emit("oyunDurumuGuncelle", {
             ...room.oyunDurumu,
@@ -785,13 +809,20 @@ export function setupGameSocket(
         if (!["pas", "dogru", "tabu"].includes(action)) return;
 
         try {
-            const card = await getNextWord(
+            const draw = await getNextWord(
                 room.odaKodu,
                 room.gecerliKategoriIdleri,
                 room.gecerliZorlukSeviyeleri
             );
 
+            const card = draw?.card ?? null;
             room.oyunDurumu.aktifKart = card;
+            room.activeWordAnalytics = draw
+                ? {
+                    ...draw.analytics,
+                    remainingSecondsAtDisplay: room.oyunDurumu.kalanZaman,
+                }
+                : null;
             persistRoom(room);
 
             // Send card to narrator
@@ -816,6 +847,27 @@ export function setupGameSocket(
                 (error as Error).message || "Kelime alınamadı."
             );
         }
+    }
+
+    function consumeActiveWordAnalytics(
+        room: RoomData,
+        outcome: WordAnalyticsOutcome
+    ): void {
+        const active = room.activeWordAnalytics;
+        if (!active) return;
+
+        room.activeWordAnalytics = null;
+        void recordWordAnalytics({
+            occurredAt: new Date(),
+            wordId: active.wordId,
+            categoryIds: active.categoryIds,
+            difficulty: active.difficulty,
+            outcome,
+            exposureSeconds: Math.max(
+                0,
+                active.remainingSecondsAtDisplay - room.oyunDurumu.kalanZaman
+            ),
+        });
     }
 
     // ─── Game End ──────────────────────────────────────────────
@@ -861,6 +913,7 @@ export function setupGameSocket(
         room.oyunDurumu.kalanZaman = room.ayarlar.sure || 60;
         room.oyunDurumu.toplamTur = room.ayarlar.deger || 0;
         room.matchParticipants = [];
+        room.activeWordAnalytics = null;
 
         room.oyuncular.forEach((player) => {
             if (player.rol !== "İzleyici" || !player.online) {
@@ -1095,6 +1148,7 @@ export function setupGameSocket(
                             gecerliZorlukSeviyeleri: [],
                             oyunDurumu: createInitialGameState(),
                             matchParticipants: [],
+                            activeWordAnalytics: null,
                             zamanlayici: null,
                             banList: {
                                 playerIds: new Set(),
@@ -1523,6 +1577,7 @@ export function setupGameSocket(
                             teamAtStart: entry.takim as "A" | "B",
                             roleAtStart: entry.rol as MatchParticipantSnapshot["roleAtStart"],
                         }));
+                    room.activeWordAnalytics = null;
 
                     room.oyunDurumu = {
                         ...room.oyunDurumu,

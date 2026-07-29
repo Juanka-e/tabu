@@ -44,6 +44,7 @@ import {
     getTelemetryRollupStatus,
 } from "./src/lib/security/telemetry-rollup";
 import { getProductAnalyticsStatus } from "./src/lib/analytics/product-events";
+import { getWordAnalyticsStatus } from "./src/lib/analytics/word-analytics";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -158,6 +159,7 @@ app.prepare().then(async () => {
                     matchFinalize:
                         getTelemetryRollupStatus(telemetryRollupConfig),
                     productAnalytics: getProductAnalyticsStatus(),
+                    wordAnalytics: getWordAnalyticsStatus(),
                 },
                 ...metrics,
             })

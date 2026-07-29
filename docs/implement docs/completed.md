@@ -91,6 +91,13 @@
 - server-verified store metrikleri ve client-observed navigation siniri
 - analytics arizasini business request'inden ayiran dropped telemetry
 
+### 14. `feature/word-analytics-liveops`
+- dogru, tabu, pas ve timeout icin server-owned kelime olcumu
+- oyuncu, oda ve kelime metni tutmayan Redis gunluk aggregate
+- pause suresini dislayan exposure ve cok kategorili aggregate
+- admin kelime listesinde 7/30 gunluk bounded performans gorunumu
+- dusuk ornek uyarisi ve otomatik yaptirim uygulamayan liveops siniri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
