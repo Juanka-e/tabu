@@ -190,9 +190,9 @@ Bu faz, web request runtime'ini agir batch islerinden ayirir.
 
 ### Phase 4 - `apps/api`
 
-Durum: runtime, transport contract ve mobile auth gate tamamlandi. Auth route'lari
-`apps/api` icinde calisiyor; siradaki kademeli tasima `/v1/me` ve profile
-servisidir.
+Durum: runtime, transport contract, mobile auth gate, `/v1/me` ve profile
+read/write tamamlandi. Siradaki kademeli tasima inventory read ve equip
+mutation'dir.
 
 Ancak su durumlarda gercek runtime'a donusturulmeli:
 

@@ -1,176 +1,93 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import {
+    PlayerCoreError,
+    updatePlayerProfile,
+} from "@hushle/platform-player";
 import { getSessionUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { ensureUserCore } from "@/lib/economy";
 import {
-  buildRateLimitHeaders,
-  consumeRequestRateLimit,
-  getRequestIp,
+    buildRateLimitHeaders,
+    consumeRequestRateLimit,
+    getRequestIp,
 } from "@/lib/security/request-rate-limit";
-import { writeAuditLog } from "@/lib/security/audit-log";
-import {
-  areEmailsEqual,
-  isEmailWithinLimit,
-  normalizeEmail,
-  sanitizeEmail,
-} from "@/lib/users/email";
 
-const profileSchema = z.object({
-  displayName: z.preprocess(
-    (value) => {
-      if (typeof value !== "string") {
-        return value;
-      }
+function getUserAgent(request: Request): string | null {
+    return request.headers.get("user-agent")?.slice(0, 255) ?? null;
+}
 
-      const trimmedValue = value.trim();
-      return trimmedValue.length === 0 ? null : trimmedValue;
-    },
-    z.string().trim().min(1).max(60).nullable().optional()
-  ),
-  bio: z.string().trim().max(300).optional(),
-  email: z.preprocess(
-    (value) => {
-      if (typeof value !== "string") {
-        return value;
-      }
-
-      const trimmedValue = value.trim();
-      return trimmedValue.length === 0 ? undefined : trimmedValue;
-    },
-    z.email("Gecerli bir e-posta adresi girilmelidir.").optional()
-  ),
-});
+function mapPlayerError(error: PlayerCoreError) {
+    switch (error.code) {
+        case "invalid_profile":
+            return NextResponse.json(
+                { error: "Gecersiz profil bilgisi." },
+                { status: 422 }
+            );
+        case "email_conflict":
+            return NextResponse.json(
+                { error: "Bu e-posta adresi zaten kullaniliyor." },
+                { status: 409 }
+            );
+        case "user_not_found":
+            return NextResponse.json(
+                { error: "Kullanici bulunamadi." },
+                { status: 404 }
+            );
+    }
+}
 
 export async function PATCH(req: Request) {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
-  }
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+        return NextResponse.json(
+            { error: "Giris gerekli." },
+            { status: 401 }
+        );
+    }
 
-  try {
     const rateLimit = consumeRequestRateLimit({
-      bucket: "user-profile-update",
-      key: `user:${sessionUser.id}:${getRequestIp(req)}`,
-      windowMs: 60_000,
-      maxRequests: 20,
+        bucket: "user-profile-update",
+        key: `user:${sessionUser.id}:${getRequestIp(req)}`,
+        windowMs: 60_000,
+        maxRequests: 20,
     });
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: "Cok fazla profil guncelleme istegi gonderdin. Biraz bekleyip tekrar dene." },
-        { status: 429, headers: buildRateLimitHeaders(rateLimit) }
-      );
+        return NextResponse.json(
+            {
+                error: "Cok fazla profil guncelleme istegi gonderdin. Biraz bekleyip tekrar dene.",
+            },
+            {
+                status: 429,
+                headers: buildRateLimitHeaders(rateLimit),
+            }
+        );
     }
 
-    const body = await req.json();
-    const parsed = profileSchema.parse(body);
-    const sanitizedEmail = parsed.email !== undefined ? sanitizeEmail(parsed.email) : undefined;
-    const normalizedEmail = sanitizedEmail !== undefined ? normalizeEmail(sanitizedEmail) : undefined;
-
-    if (sanitizedEmail !== undefined && !isEmailWithinLimit(sanitizedEmail)) {
-      return NextResponse.json({ error: "E-posta adresi cok uzun." }, { status: 422 });
-    }
-
-    await ensureUserCore(sessionUser.id);
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: sessionUser.id },
-      select: {
-        email: true,
-        normalizedEmail: true,
-        username: true,
-        profile: {
-          select: {
-            displayName: true,
-          },
-        },
-      },
-    });
-    if (!currentUser) {
-      return NextResponse.json({ error: "Kullanici bulunamadi." }, { status: 404 });
-    }
-
-    if (
-      normalizedEmail !== undefined &&
-      !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)
-    ) {
-      const existingEmailUser = await prisma.user.findUnique({
-        where: { normalizedEmail },
-        select: { id: true },
-      });
-      if (existingEmailUser && existingEmailUser.id !== sessionUser.id) {
-        return NextResponse.json({ error: "Bu e-posta adresi zaten kullaniliyor." }, { status: 409 });
-      }
-    }
-
-    const requestedDisplayName =
-      parsed.displayName === undefined ? undefined : parsed.displayName?.trim() ?? null;
-    const currentDisplayName = currentUser.profile?.displayName?.trim() ?? null;
-    const displayNameChanged =
-      requestedDisplayName !== undefined && requestedDisplayName !== currentDisplayName;
-
-    const updated = await prisma.$transaction(async (tx) => {
-      if (normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null)) {
-        await tx.user.update({
-          where: { id: sessionUser.id },
-          data: {
-            email: sanitizedEmail,
-            normalizedEmail,
-            emailVerifiedAt: null,
-          },
+    try {
+        const result = await updatePlayerProfile({
+            userId: sessionUser.id,
+            patch: await req.json(),
+            auditContext: {
+                actorRole: sessionUser.role,
+                ipAddress: getRequestIp(req),
+                userAgent: getUserAgent(req),
+            },
         });
-      }
-
-      return tx.userProfile.update({
-        where: { userId: sessionUser.id },
-        data: {
-          ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
-          ...(parsed.bio !== undefined ? { bio: parsed.bio } : {}),
-        },
-        include: {
-          avatarItem: true,
-          frameItem: true,
-          cardBackItem: true,
-          cardFaceItem: true,
-        },
-      });
-    });
-
-    await writeAuditLog({
-      actor: sessionUser,
-      action: "user.profile.update",
-      resourceType: "user_profile",
-      resourceId: sessionUser.id,
-      summary: `Updated user profile ${sessionUser.id}`,
-      metadata: {
-        hasDisplayName: updated.displayName !== null,
-        hasBio: updated.bio !== null,
-        hasEmail: normalizedEmail !== undefined ? true : currentUser.email !== null,
-        emailChanged: normalizedEmail !== undefined && !areEmailsEqual(currentUser.email, sanitizedEmail ?? null),
-      },
-      request: req,
-    });
-
-    if (displayNameChanged) {
-      await writeAuditLog({
-        actor: sessionUser,
-        action: "user.profile.display_name_update",
-        resourceType: "user_profile",
-        resourceId: sessionUser.id,
-        summary: `Updated display name for user ${currentUser.username}`,
-        metadata: {
-          previousDisplayName: currentDisplayName,
-          nextDisplayName: updated.displayName,
-        },
-        request: req,
-      });
+        return NextResponse.json(
+            { profile: result.profile },
+            { headers: buildRateLimitHeaders(rateLimit) }
+        );
+    } catch (error) {
+        if (error instanceof PlayerCoreError) {
+            return mapPlayerError(error);
+        }
+        if (error instanceof SyntaxError) {
+            return NextResponse.json(
+                { error: "Gecersiz veri." },
+                { status: 422 }
+            );
+        }
+        return NextResponse.json(
+            { error: "Profil guncellenemedi." },
+            { status: 500 }
+        );
     }
-
-    return NextResponse.json({ profile: updated });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });
-    }
-    return NextResponse.json({ error: "Profil guncellenemedi." }, { status: 500 });
-  }
 }

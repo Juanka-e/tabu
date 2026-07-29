@@ -12,7 +12,8 @@
     "@hushle/api-contracts": "0.1.0",
     "@hushle/platform-auth": "0.1.0",
     "@hushle/platform-cache": "0.1.0",
-    "@hushle/platform-db": "0.1.0"
+    "@hushle/platform-db": "0.1.0",
+    "@hushle/platform-player": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",

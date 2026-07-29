@@ -15,8 +15,9 @@
 - `DELETE /v1/auth/sessions/:sessionId`
 
 Bu, `apps/web/src/app/api` klasörünün topluca taşınması değildir. Route'lar
-business servisleri ortak package sınırına çıkarıldıkça tek tek taşınır. Sıradaki
-dilim `/v1/me` ve profile read/write servisidir.
+business servisleri ortak package sınırına çıkarıldıkça tek tek taşınır.
+`/v1/me` ve profile read/write tamamlanmıştır; sıradaki dilim inventory read ve
+equip mutation'dır.
 
 ## Token Modeli
 

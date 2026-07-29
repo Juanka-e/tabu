@@ -51,7 +51,7 @@ Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
 ## Taşıma Sırası
 
 1. bearer access/refresh auth ve token rotation - tamamlandı
-2. `/v1/me` ve profile read/write
+2. `/v1/me` ve profile read/write - tamamlandı
 3. inventory read ve equip
 4. store catalog ve satın alma
 5. notifications ve support

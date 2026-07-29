@@ -7,6 +7,8 @@ export const MOBILE_API_ROUTES = {
     authRefresh: `/${MOBILE_API_VERSION}/auth/refresh`,
     authLogout: `/${MOBILE_API_VERSION}/auth/logout`,
     authSessions: `/${MOBILE_API_VERSION}/auth/sessions`,
+    me: `/${MOBILE_API_VERSION}/me`,
+    profile: `/${MOBILE_API_VERSION}/profile`,
 } as const;
 
 export type MobileApiCapabilityStatus =
@@ -40,6 +42,9 @@ export interface MobileApiError {
             | "rate_limited"
             | "auth_unavailable"
             | "session_not_found"
+            | "invalid_profile"
+            | "email_conflict"
+            | "user_not_found"
             | "method_not_allowed"
             | "not_found"
             | "internal_error";
@@ -74,6 +79,24 @@ export interface MobileAuthSessionData {
     createdAt: string;
     lastSeenAt: string;
     current: boolean;
+}
+
+export interface MobilePlayerCoreData {
+    id: number;
+    username: string;
+    email: string | null;
+    emailVerifiedAt: string | null;
+    wallet: {
+        coinBalance: number;
+    };
+    profile: {
+        displayName: string | null;
+        bio: string | null;
+        avatarItemId: number | null;
+        frameItemId: number | null;
+        cardBackItemId: number | null;
+        cardFaceItemId: number | null;
+    };
 }
 
 export interface MobileApiHealthData {

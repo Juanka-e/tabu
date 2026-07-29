@@ -33,6 +33,9 @@ export type AuthRouteResult = {
             | "rate_limited"
             | "auth_unavailable"
             | "session_not_found"
+            | "invalid_profile"
+            | "email_conflict"
+            | "user_not_found"
             | "method_not_allowed";
         message: string;
     };
