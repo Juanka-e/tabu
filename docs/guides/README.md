@@ -90,3 +90,9 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 - web acilisi icin core, Playwright, disposable DB ve Redis integration
   kapilarini tanimlar
 - otomatik test ile manuel coklu oyuncu/gercek cihaz smoke sinirini ayirir
+
+20. `web-responsive-device-matrix.md`
+- kucuk telefon, Android, yatay telefon, tablet ve laptop Playwright
+  profillerini tanimlar
+- Chromium emulasyonu ile fiziksel iOS/Android cihaz kaniti arasindaki siniri
+  aciklar

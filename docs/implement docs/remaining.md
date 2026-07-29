@@ -4,9 +4,9 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/web-launch-readiness-validation`
-2. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
-3. `feature/web-real-device-responsive-smoke`
+1. `feature/web-responsive-device-matrix`
+2. `feature/web-real-device-responsive-smoke`
+3. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
 4. `feature/post-launch-economy-observability-review`
 5. `feature/post-launch-xp-level-foundation`
 6. `feature/post-launch-missions-foundation`
@@ -22,16 +22,17 @@ bu ertelemenin disindadir.
 
 ## Aktif Branch
 
-### `feature/web-launch-readiness-validation`
+### `feature/web-responsive-device-matrix`
 
 Hedef:
-- daginik kritik web testlerini tek readiness kapisinda toplamak
-- desktop ve mobile temel yuzeyleri Playwright ile dogrulamak
-- disposable DB uzerinde kayit, login ve oda acma akisini kanitlamak
-- MySQL/Redis isteyen entegrasyonlari ayri ve guvenli bir kapida tutmak
+- Playwright'i kucuk telefon, Android, yatay telefon, tablet ve laptop
+  profillerine genisletmek
+- public auth/room yuzeylerinde overflow ve aksiyon erisimini dogrulamak
+- disposable DB dashboard/lobby akisini 390px viewport'ta kontrol etmek
+- fiziksel cihaz smoke maddelerini emulasyon sonucundan ayri tutmak
 
 Referans:
-- `docs/guides/web-launch-readiness-guide.md`
+- `docs/guides/web-responsive-device-matrix.md`
 
 ## Onceki Branch Kaydi
 ### `feature/release-ops-docs`

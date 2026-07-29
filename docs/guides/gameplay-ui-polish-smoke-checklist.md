@@ -71,18 +71,26 @@ yuzeylerinde kritik UX kirilmalarini hizli yakalamak.
 3. save feedback'i gorunmeli
 4. refresh sonrasi siralama tutarli kalmali
 
-## Playwright İçin Sonraki Adım
+## Playwright Durumu
 
-Bu checklist'teki maddeler tamamen e2e'ye tasinmadan once su yuzeyler icin minimum smoke otomasyonu dusunulebilir:
+Otomatik hale gelenler:
 
-- dashboard load + active room card render
-- room blocked-entry screen render
-- notifications sheet open/close
-- inline quick equip rail render
+- public ana sayfa, login, kayit ve guest room responsive matrisi
+- duyuru modalinin acilma/kapanma ve viewport kontrolu
+- disposable DB uzerinde kayit, login, mobile dashboard ve lobby
+- kucuk telefon, modern Android, yatay telefon, tablet ve laptop profilleri
+
+Manuel veya fixture bekleyenler:
+
+- active room card ve blocked-entry ekrani
+- dolu notifications sheet ve toast cakismasi
+- gercek inventory verisiyle inline quick equip rail
+- coklu sekme, reconnect ve tam socket/game akisi
 
 Not:
 
 - gercek socket/game flow'lari tam e2e'ye gecmeden once fixture ve test kullanicisi stratejisi netlestirilmeli
 - Redis'siz local gelistirme korunmali; smoke testler memory fallback ile de calisabilmeli
+- cihaz matrisi `docs/guides/web-responsive-device-matrix.md` icinde tanimlidir
 - auth'siz temel route sagligi icin `SMOKE_BASE_URL=http://localhost:3100 npm run test:gameplay-ui-http-smoke` gibi hizli bir HTTP smoke kullanilabilir
 - auth'siz temel UI smoke icin `SMOKE_BASE_URL=http://localhost:3100 npm run test:gameplay-ui-playwright` komutu kullanilabilir

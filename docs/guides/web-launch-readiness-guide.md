@@ -39,6 +39,10 @@ Varsayılan Playwright akışı:
 - korumalı dashboard redirect'i
 - room guest prompt
 - 390x844 görünümde ana sayfa, login, kayıt ve room overflow kontrolü
+- küçük telefon, modern Android, yatay telefon, tablet ve laptop cihaz matrisi
+
+Cihaz matrisi ayrıntıları:
+`docs/guides/web-responsive-device-matrix.md`.
 
 `WEB_LAUNCH_DB_E2E=true` verilmezse kayıtlı kullanıcı mutasyon testi kontrollü
 olarak skip edilir.
@@ -89,6 +93,7 @@ CI sırası:
 3. production build
 4. web launch readiness core
 5. Playwright UI ve disposable DB auth/room E2E
+6. beş profilli responsive cihaz matrisi
 
 Build veya readiness başarısızsa PR merge edilmez.
 
