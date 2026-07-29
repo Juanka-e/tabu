@@ -22,18 +22,16 @@ bu ertelemenin disindadir.
 
 ## Aktif Branch
 
-### `feature/mobile-api-foundation`
+### `feature/web-launch-readiness-validation`
 
-Tamamlananlar:
-- gercek fakat varsayilan deploy olmayan `apps/api` runtime
-- `@hushle/api-contracts` surumlu response kontratlari
-- health/meta endpoint'leri
-- exact CORS, request ID ve security header davranisi
-- loopback Docker profile ve runtime smoke testi
-- auth sonrasi kademeli route migration plani
+Hedef:
+- daginik kritik web testlerini tek readiness kapisinda toplamak
+- desktop ve mobile temel yuzeyleri Playwright ile dogrulamak
+- disposable DB uzerinde kayit, login ve oda acma akisini kanitlamak
+- MySQL/Redis isteyen entegrasyonlari ayri ve guvenli bir kapida tutmak
 
 Referans:
-- `docs/guides/mobile-api-foundation-guide.md`
+- `docs/guides/web-launch-readiness-guide.md`
 
 ## Onceki Branch Kaydi
 ### `feature/release-ops-docs`

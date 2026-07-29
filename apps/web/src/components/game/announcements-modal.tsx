@@ -102,6 +102,8 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                     <button
                         onClick={onClose}
                         className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-slate-800"
+                        aria-label="Duyurulari kapat"
+                        title="Kapat"
                     >
                         <X size={20} />
                     </button>

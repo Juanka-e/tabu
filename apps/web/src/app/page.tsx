@@ -153,6 +153,8 @@ export default function HomePage() {
                     size="icon"
                     onClick={() => setShowAnnouncements(true)}
                     className="rounded-full"
+                    aria-label="Duyurulari ac"
+                    title="Duyurular"
                 >
                     <Megaphone className="h-5 w-5" />
                 </Button>
@@ -163,6 +165,8 @@ export default function HomePage() {
                         setTheme(resolvedTheme === "dark" ? "light" : "dark")
                     }
                     className="rounded-full"
+                    aria-label="Temayi degistir"
+                    title="Temayi degistir"
                 >
                     <span className="relative flex h-5 w-5 items-center justify-center">
                         <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

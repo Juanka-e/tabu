@@ -55,6 +55,7 @@ Ubuntu 24.04 üzerinde hedef sade model:
 3. `npm run test:realtime-topology`
 4. `npm run test:telemetry-rollup`
 5. Kritik smoke testleri çalıştır:
+   - `npm run test:web-launch-readiness`
    - `npm run test:distributed-coordination`
    - `npm run test:room-capacity-controls`
    - `npm run test:economy-guardrails`
@@ -78,6 +79,9 @@ Ubuntu 24.04 üzerinde hedef sade model:
 10. Admission `closed` iken mevcut oyuncunun reconnect olabildiğini kontrol et.
 11. `telemetry.matchFinalize` altında recorded ve audit fallback sayaçlarını izle.
 12. Audit fallback sürekli artıyorsa Redis erişimini kontrol et.
+
+Web launch test katmanlari ve disposable DB siniri:
+`docs/guides/web-launch-readiness-guide.md`.
 
 ## Realtime Ölçekleme Engeli
 

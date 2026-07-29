@@ -85,3 +85,8 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 18. `mobile-store-catalog-guide.md`
 - bounded item/bundle katalog pagination ve cache revision modelini tanimlar
 - ortak fiyatlandirma ile server-owned purchase sinirini aciklar
+
+19. `web-launch-readiness-guide.md`
+- web acilisi icin core, Playwright, disposable DB ve Redis integration
+  kapilarini tanimlar
+- otomatik test ile manuel coklu oyuncu/gercek cihaz smoke sinirini ayirir

@@ -7,6 +7,24 @@ import { prisma } from "@hushle/platform-db";
 const serverUrl = process.env.SOCKET_TEST_URL ?? "http://127.0.0.1:3000";
 const timeoutMs = 15_000;
 
+function assertSafeTarget(): void {
+    assert.equal(
+        process.env.REGISTERED_START_RULE_TEST,
+        "true",
+        "REGISTERED_START_RULE_TEST=true is required"
+    );
+    assert.match(
+        process.env.DATABASE_URL ?? "",
+        /tabu_test/,
+        "Registered start rule test requires a disposable tabu_test database"
+    );
+    const url = new URL(serverUrl);
+    assert.ok(
+        url.hostname === "127.0.0.1" || url.hostname === "localhost",
+        "Registered start rule test only supports a loopback server"
+    );
+}
+
 interface SocketIdentity {
     playerId: string;
     guestToken?: string;
@@ -188,6 +206,7 @@ function emitStartAndWaitForError(socket: Socket): Promise<string> {
 }
 
 async function run(): Promise<void> {
+    assertSafeTarget();
     const suffix = randomUUID().replaceAll("-", "").slice(0, 12);
     const username = `capacity_user_${suffix}`;
     const password = `Capacity-${suffix}!`;
