@@ -1,0 +1,22 @@
+{
+  "name": "@hushle/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hushle/api-contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

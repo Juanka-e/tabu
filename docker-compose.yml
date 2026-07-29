@@ -1,4 +1,31 @@
 services:
+  api:
+    profiles: ["api"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hushle-api
+    restart: unless-stopped
+    command: ["npm", "run", "api:start"]
+    environment:
+      NODE_ENV: production
+      API_HOST: 0.0.0.0
+      API_PORT: 3001
+      API_ALLOWED_ORIGINS: ${API_ALLOWED_ORIGINS:-}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_CONNECTION_LIMIT: ${API_DATABASE_CONNECTION_LIMIT:-10}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-hushle:production}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORT:-3001}:3001"
+    networks:
+      - hushle-net
+
   jobs:
     profiles: ["jobs"]
     build:

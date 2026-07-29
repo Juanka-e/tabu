@@ -2,8 +2,10 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/package.json
 COPY apps/jobs/package.json ./apps/jobs/package.json
 COPY apps/web/package.json ./apps/web/package.json
+COPY packages/api-contracts/package.json ./packages/api-contracts/package.json
 COPY packages/domain-game/package.json ./packages/domain-game/package.json
 COPY packages/platform-cache/package.json ./packages/platform-cache/package.json
 COPY packages/platform-db/package.json ./packages/platform-db/package.json

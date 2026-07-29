@@ -190,9 +190,8 @@ Bu faz, web request runtime'ini agir batch islerinden ayirir.
 
 ### Phase 4 - `apps/api`
 
-Durum: bilincli scaffold; mobil/public API ihtiyaci henuz yok.
-
-`apps/api` hemen acilmamali.
+Durum: runtime ve transport contract temeli tamamlandi; kullanici endpoint'leri
+mobile auth gate'ini bekliyor.
 
 Ancak su durumlarda gercek runtime'a donusturulmeli:
 
@@ -380,8 +379,12 @@ Onerilen implementasyon sirasi:
 - Redis arizasinda odulu etkilemeden detayli audit fallback
 - health metrikleri ve gercek Redis Lua/TTL testi
 
-13. `feature/mobile-api-foundation`
-- ancak mobil backlog'u gercek implementasyona girdiginde
+13. `feature/mobile-api-foundation` - tamamlandi
+- bagimsiz Node HTTP runtime ve `@hushle/api-contracts`
+- `/health` ve `/v1/meta`
+- exact CORS, request ID ve guvenli JSON envelope
+- explicit Docker profile; public Nginx route'u yok
+- bearer auth sonrasi kademeli player endpoint migration plani
 
 ## Guardrails
 

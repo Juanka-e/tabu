@@ -7,6 +7,7 @@ before the Next.js runtime is physically moved into `apps/web`.
 
 Planned first boundaries:
 
+- `api-contracts` (implemented)
 - `platform-db` (implemented)
 - `platform-cache` (implemented)
 - `platform-auth`

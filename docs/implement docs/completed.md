@@ -119,6 +119,14 @@
 - admin ledger history ve bakiye reconciliation gorunumu
 - MySQL concurrency/idempotency CI testi
 
+### 18. `feature/mobile-api-foundation`
+- bagimsiz ve surumlu Node HTTP API runtime
+- paylasilan `@hushle/api-contracts` paketi
+- health/meta, exact CORS, request ID ve security header davranisi
+- varsayilan kapali Docker API profili
+- runtime HTTP ve package boundary regresyon testi
+- bearer auth sonrasina bagli kademeli route migration plani
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
