@@ -73,6 +73,6 @@ değerlendirilir.
 
 ## Sıradaki Taşıma
 
-Inventory read ve equip mutation `feature/mobile-inventory-and-equip` diliminde
-tamamlanmistir. Siradaki backend dilimi store catalog read'dir. Store purchase
-bunun ardindan tasinir; fiyat ve bakiye istemciden kabul edilmez.
+Inventory/equip ve store catalog read tamamlanmistir. Siradaki dusuk riskli
+backend dilimi notifications read'dir. Store purchase daha sonra tasinir;
+fiyat ve bakiye istemciden kabul edilmez.

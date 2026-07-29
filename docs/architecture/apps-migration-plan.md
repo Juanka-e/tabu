@@ -191,8 +191,8 @@ Bu faz, web request runtime'ini agir batch islerinden ayirir.
 ### Phase 4 - `apps/api`
 
 Durum: runtime, transport contract, mobile auth gate, `/v1/me`, profile
-read/write, sayfali inventory read ve equip mutation tamamlandi. Siradaki
-kademeli tasima store catalog read'dir; purchase bundan sonra ele alinacak.
+read/write, sayfali inventory/equip ve store catalog read tamamlandi. Purchase
+wallet ledger/idempotency ortaklastirmasindan sonra ayri ele alinacak.
 
 Ancak su durumlarda gercek runtime'a donusturulmeli:
 
@@ -399,6 +399,12 @@ Onerilen implementasyon sirasi:
 - bounded cursor pagination ile `/v1/inventory`
 - server-side sahiplik/tur kontrolu ile equip ve unequip
 - web ve mobil adapter'lar icin ortak inventory service
+
+17. `feature/mobile-store-catalog-read` - tamamlandi
+- bounded cursor pagination ile `/v1/store/catalog`
+- ortak promotion/coupon fiyatlandirma source of truth'u
+- revision tabanli Redis/memory katalog page cache
+- cache disinda kalan user coin/owned/equipped overlay'i
 
 ## Guardrails
 

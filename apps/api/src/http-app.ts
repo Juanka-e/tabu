@@ -328,6 +328,9 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                         inventory: options.authEnabled
                             ? "available"
                             : "planned",
+                        storeCatalog: options.authEnabled
+                            ? "available"
+                            : "planned",
                         progression: "planned",
                         realtimeGameplay: "web_runtime_only",
                         admin: "web_runtime_only",

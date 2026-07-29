@@ -70,6 +70,7 @@ async function run(): Promise<void> {
         assert.equal(metaPayload.data.capabilities.runtimeMeta, "available");
         assert.equal(metaPayload.data.capabilities.bearerAuth, "planned");
         assert.equal(metaPayload.data.capabilities.inventory, "planned");
+        assert.equal(metaPayload.data.capabilities.storeCatalog, "planned");
         assert.equal(
             metaPayload.data.capabilities.realtimeGameplay,
             "web_runtime_only"
@@ -196,6 +197,7 @@ async function run(): Promise<void> {
             MOBILE_API_ROUTES.me,
             MOBILE_API_ROUTES.inventory,
             MOBILE_API_ROUTES.inventoryEquipped,
+            MOBILE_API_ROUTES.storeCatalog,
         ].map((route) =>
             fetch(`http://127.0.0.1:${disabledPlayerAddress.port}${route}`)
         )
