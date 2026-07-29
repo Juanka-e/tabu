@@ -13,6 +13,7 @@ import {
   getFeatureDisabledMessage,
   isStoreAvailable,
 } from "@/lib/system-settings/policies";
+import { recordProductAnalyticsEvent } from "@/lib/analytics/product-events";
 
 const purchaseSchema = z.object({
   shopItemId: z.number().int().positive(),
@@ -78,6 +79,16 @@ export async function POST(req: Request) {
         finalPriceCoin: result.finalPriceCoin,
       },
       request: req,
+    });
+    await recordProductAnalyticsEvent({
+      name: "store.item_purchased",
+      version: 1,
+      trust: "server_verified",
+      occurredAt: new Date(),
+      itemType: result.item.type,
+      rarity: result.item.rarity,
+      finalPriceCoin: result.finalPriceCoin,
+      couponApplied: Boolean(couponCode),
     });
 
     return NextResponse.json({

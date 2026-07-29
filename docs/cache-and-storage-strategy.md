@@ -573,6 +573,19 @@ docker compose --profile jobs run --rm jobs
 Redis/Valkey burada sunlari hizlandirabilir:
 - archive job coordination lock'lari
 - telemetry counter / aggregation - non-triggered finalize icin uygulandi
+
+## Product Analytics Aggregate Foundation
+
+- `store.item_purchased.v1` ve `store.bundle_purchased.v1` yalniz basarili
+  server transaction'larindan PII'siz gunluk Redis aggregate uretir.
+- `navigation.screen_viewed.v1` client-observed olarak ayri guven sinifindadir;
+  coin, gelir veya gameplay karari tasimaz.
+- Ham event satiri, user id, IP, room code ve serbest metadata tutulmaz.
+- Redis/config arizasi ana request'i bozmaz; health telemetry'de `dropped`
+  sayaci artar ve audit fallback yazilmaz.
+- Match finalize mevcut ozel rollup'ta kalir; reader migration olmadan iki hatta
+  birden yazilarak cift sayim uretilmez.
+- Ayrintili kontrat: `docs/analytics-event-strategy.md`.
 - unread / review queue counter'lari
 
 Ama audit truth ve admin inceleme izi yine MySQL/kalici storage tarafinda kalmalidir.
