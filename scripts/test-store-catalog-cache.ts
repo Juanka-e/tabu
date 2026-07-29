@@ -93,12 +93,15 @@ async function run(): Promise<void> {
 
         const redis = await getRedisClient();
         assert.ok(redis);
+        const redisWithKeys = redis as typeof redis & {
+            keys(pattern: string): Promise<string[]>;
+        };
         const rawRevision = await redis.get(
             APPLICATION_CACHE_KEYS.storeCatalogRevision
         );
         assert.ok(rawRevision);
         const revision = JSON.parse(rawRevision) as string;
-        const snapshotKeys = await redis.keys(
+        const snapshotKeys = await redisWithKeys.keys(
             getRedisKey(
                 "cache",
                 "store-catalog-full",
