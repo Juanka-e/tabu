@@ -8,11 +8,11 @@
 | `takimlariKaristir` | `void` | (Admin only) Shuffles players between Team A and Team B. |
 | `yoneticiligiDevret` | `{ targetPlayerId: string }` | (Admin only) Transfers room admin rights to another player. |
 | `oyuncuyuAt` | `{ targetPlayerId: string }` | (Admin only) Kicks and bans a player from the room. |
-| `oyunBaslatIsteği` | `{ seciliKategoriler: number[], seciliZorluklar: number[], ayarlar: RoomSettings }` | (Admin only) Starts the game with selected settings. |
-| `oyunKontrolIsteği` | `void` | (Admin only) Pauses or resumes the game timer. |
+| `oyun_baslat` | `{ seciliKategoriler: number[], seciliZorluklar: number[], ayarlar: RoomSettings }` | (Admin only) Starts the game with selected settings. |
+| `oyun_kontrol` | `void` | (Admin only) Pauses or resumes the game timer. |
 | `oyunVerisi` | `{ eylem: 'dogru' | 'pas' | 'tabu' }` | Narrator sends action result for the current card. |
-| `oyunuSifirlaIsteği` | `void` | (Admin only) Resets the game state to lobby. |
-| `takimDegistirIsteği` | `void` | Player requests to switch teams (lobby only). |
+| `oyun_sifirla` | `void` | (Admin only) Resets the game state to lobby. |
+| `takim_degistir` | `void` | Player requests to switch teams (lobby only). |
 | `kategoriAyarlariGuncelle` | `{ seciliKategoriler: number[], seciliZorluklar: number[] }` | (Admin only) Updates selected categories and difficulties in lobby. |
 
 ## Server -> Client Events
@@ -33,3 +33,5 @@
 - Guest room creation/join was broken because the custom Socket.IO middleware in `server.ts` rejected unauthenticated sockets.
 - Authenticated full-page dashboard room creation was also broken because the dashboard client emitted a different room-request event name than the socket server expected.
 - The fix keeps guest sockets allowed at handshake time and standardizes room create/join onto the ASCII event name `room:request`.
+- Current room controls also use ASCII event names. The server temporarily keeps
+  exact legacy aliases for old clients, but new clients must not emit them.

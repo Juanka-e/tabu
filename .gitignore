@@ -41,6 +41,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 *.log
+/eslint-errors.txt
+/eslint_report.json
+/typescript-errors.txt
+/lint_utf8.txt
 
 # ─── TypeScript ───────────────────────────────────────────────────
 *.tsbuildinfo
