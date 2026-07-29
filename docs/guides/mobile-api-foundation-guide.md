@@ -35,7 +35,8 @@ gibi göstermez:
 
 - runtime meta: `available`
 - bearer auth: runtime flag aciksa `available`, aksi halde `planned`
-- profile/inventory/progression: `planned`
+- profile/inventory: auth runtime flag aciksa `available`, aksi halde `planned`
+- progression: `planned`
 - realtime gameplay/admin: `web_runtime_only`
 
 ## Transport Kontratı
@@ -131,15 +132,15 @@ net, server-owned opaque token modelidir.
 - `platform-auth` veya eşdeğer shared package
 
 Detaylar `docs/guides/mobile-auth-foundation-guide.md` içindedir. Production
-enablement explicit flag ile yapılır. Player core tamamlanmıştır; sıradaki route
-taşıması inventory read ve equip mutation'dır.
+enablement explicit flag ile yapılır. Player core ile inventory/equip tamamlanmistir;
+siradaki route tasimasi store catalog read'dir.
 
-### Faz 3 - player core - kısmen tamamlandı
+### Faz 3 - player core - tamamlandı
 
 - `/v1/me` - tamamlandı
 - profile read/write - tamamlandı
-- inventory read
-- equip mutation
+- inventory read - tamamlandi
+- equip mutation - tamamlandi
 
 Business logic önce shared package/service sınırına çıkarılır. Next route'ları
 uyumluluk adapter'ı olarak aynı servisi çağırmaya devam eder.

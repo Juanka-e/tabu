@@ -190,9 +190,9 @@ Bu faz, web request runtime'ini agir batch islerinden ayirir.
 
 ### Phase 4 - `apps/api`
 
-Durum: runtime, transport contract, mobile auth gate, `/v1/me` ve profile
-read/write tamamlandi. Siradaki kademeli tasima inventory read ve equip
-mutation'dir.
+Durum: runtime, transport contract, mobile auth gate, `/v1/me`, profile
+read/write, sayfali inventory read ve equip mutation tamamlandi. Siradaki
+kademeli tasima store catalog read'dir; purchase bundan sonra ele alinacak.
 
 Ancak su durumlarda gercek runtime'a donusturulmeli:
 
@@ -386,6 +386,19 @@ Onerilen implementasyon sirasi:
 - exact CORS, request ID ve guvenli JSON envelope
 - explicit Docker profile; public Nginx route'u yok
 - bearer auth sonrasi kademeli player endpoint migration plani
+
+14. `feature/mobile-auth-foundation` - tamamlandi
+- opaque access/refresh token, rotation ve session revoke
+- explicit runtime enablement ve captcha policy parity
+
+15. `feature/mobile-player-core` - tamamlandi
+- `/v1/me` ve profile read/write
+- ortak player service ve transaction icinde audit
+
+16. `feature/mobile-inventory-and-equip` - tamamlandi
+- bounded cursor pagination ile `/v1/inventory`
+- server-side sahiplik/tur kontrolu ile equip ve unequip
+- web ve mobil adapter'lar icin ortak inventory service
 
 ## Guardrails
 

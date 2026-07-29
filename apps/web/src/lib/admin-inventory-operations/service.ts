@@ -1,5 +1,5 @@
 import type { Prisma } from "@hushle/platform-db";
-import { getInventoryData } from "@/lib/economy";
+import { getInventory } from "@hushle/platform-inventory";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { invalidateNotificationUnreadCountCache } from "@/lib/cache/application-cache";
 import { prisma } from "@/lib/prisma";
@@ -114,7 +114,7 @@ export async function getAdminUserInventoryView(userId: number): Promise<AdminUs
     }
 
     const [inventory, recentAuditLogs] = await Promise.all([
-        getInventoryData(userId),
+        getInventory(userId),
         prisma.auditLog.findMany({
             where: {
                 action: {

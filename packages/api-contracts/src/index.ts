@@ -9,6 +9,8 @@ export const MOBILE_API_ROUTES = {
     authSessions: `/${MOBILE_API_VERSION}/auth/sessions`,
     me: `/${MOBILE_API_VERSION}/me`,
     profile: `/${MOBILE_API_VERSION}/profile`,
+    inventory: `/${MOBILE_API_VERSION}/inventory`,
+    inventoryEquipped: `/${MOBILE_API_VERSION}/inventory/equipped`,
 } as const;
 
 export type MobileApiCapabilityStatus =
@@ -45,6 +47,10 @@ export interface MobileApiError {
             | "invalid_profile"
             | "email_conflict"
             | "user_not_found"
+            | "inventory_item_not_found"
+            | "inventory_item_not_owned"
+            | "inventory_type_mismatch"
+            | "store_unavailable"
             | "method_not_allowed"
             | "not_found"
             | "internal_error";
@@ -97,6 +103,62 @@ export interface MobilePlayerCoreData {
         cardBackItemId: number | null;
         cardFaceItemId: number | null;
     };
+}
+
+export type MobileInventoryItemType =
+    | "avatar"
+    | "frame"
+    | "card_back"
+    | "card_face";
+
+export interface MobileInventoryItemData {
+    inventoryItemId: number;
+    shopItemId: number;
+    code: string;
+    name: string;
+    type: MobileInventoryItemType;
+    rarity: "common" | "rare" | "epic" | "legendary";
+    renderMode: "image" | "template";
+    renderSpecVersion: number;
+    priceCoin: number;
+    imageUrl: string;
+    thumbnailUrl: string | null;
+    templateKey: string | null;
+    templateConfig: Record<string, unknown> | null;
+    badgeText: string | null;
+    availabilityMode:
+        | "always_on"
+        | "scheduled"
+        | "seasonal"
+        | "limited"
+        | "event_only";
+    startsAt: string | null;
+    endsAt: string | null;
+    isFeatured: boolean;
+    source: "purchase" | "grant" | "migration";
+    acquiredAt: string;
+    equipped: boolean;
+}
+
+export interface MobileInventoryData {
+    profile: MobilePlayerCoreData["profile"];
+    items: MobileInventoryItemData[];
+    page: {
+        nextCursor: string | null;
+        hasMore: boolean;
+        limit: number;
+    };
+}
+
+export interface MobileEquippedInventoryData {
+    profile: MobilePlayerCoreData["profile"];
+    equippedSlots: Pick<
+        MobilePlayerCoreData["profile"],
+        | "avatarItemId"
+        | "frameItemId"
+        | "cardBackItemId"
+        | "cardFaceItemId"
+    >;
 }
 
 export interface MobileApiHealthData {

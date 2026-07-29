@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
-import { equipStoreItem } from "@/lib/economy";
+import {
+  equipInventoryItem,
+  InventoryError,
+} from "@hushle/platform-inventory";
 import {
   buildRateLimitHeaders,
   consumeRequestRateLimit,
@@ -12,11 +14,6 @@ import {
   getFeatureDisabledMessage,
   isStoreAvailable,
 } from "@/lib/system-settings/policies";
-
-const equipSchema = z.object({
-  shopItemId: z.number().int().positive().nullable(),
-  itemType: z.enum(["avatar", "frame", "card_back", "card_face"]),
-});
 
 export async function POST(req: Request) {
   const sessionUser = await getSessionUser();
@@ -44,31 +41,29 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { shopItemId, itemType } = equipSchema.parse(body);
-
-    const result = await equipStoreItem(sessionUser.id, itemType, shopItemId);
-    if (!result.ok) {
-      if (result.code === "not_found") {
-        return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
-      }
-      if (result.code === "type_mismatch") {
-        return NextResponse.json({ error: "Kozmetik slotu gecersiz." }, { status: 409 });
-      }
-      return NextResponse.json({ error: "Urun envanterde degil." }, { status: 409 });
-    }
+    const result = await equipInventoryItem({
+      userId: sessionUser.id,
+      request: body,
+    });
 
     return NextResponse.json({
       profile: result.profile,
-      equippedSlots: {
-        avatarItemId: result.profile.avatarItemId,
-        frameItemId: result.profile.frameItemId,
-        cardBackItemId: result.profile.cardBackItemId,
-        cardFaceItemId: result.profile.cardFaceItemId,
-      },
+      equippedSlots: result.equippedSlots,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || "Gecersiz veri." }, { status: 422 });
+    if (error instanceof InventoryError) {
+      if (error.code === "invalid_request") {
+        return NextResponse.json({ error: error.message }, { status: 422 });
+      }
+      if (error.code === "item_not_found") {
+        return NextResponse.json({ error: "Urun bulunamadi." }, { status: 404 });
+      }
+      if (error.code === "type_mismatch") {
+        return NextResponse.json({ error: "Kozmetik slotu gecersiz." }, { status: 409 });
+      }
+      if (error.code === "not_owned") {
+        return NextResponse.json({ error: "Urun envanterde degil." }, { status: 409 });
+      }
     }
     return NextResponse.json({ error: "Kusanma islemi basarisiz." }, { status: 500 });
   }

@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     "@hushle/domain-game",
     "@hushle/platform-cache",
     "@hushle/platform-db",
+    "@hushle/platform-inventory",
+    "@hushle/platform-player",
   ],
   experimental: {
     optimizePackageImports: ["lucide-react"],

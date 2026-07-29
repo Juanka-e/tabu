@@ -73,7 +73,6 @@ değerlendirilir.
 
 ## Sıradaki Taşıma
 
-Sıradaki backend dilimi inventory read ve equip mutation'dır. Business kuralları
-önce ortak package'e çıkarılacak, ardından web ve mobil adapter aynı servise
-bağlanacaktır. Store purchase bundan sonra taşınır; fiyat ve bakiye istemciden
-kabul edilmez.
+Inventory read ve equip mutation `feature/mobile-inventory-and-equip` diliminde
+tamamlanmistir. Siradaki backend dilimi store catalog read'dir. Store purchase
+bunun ardindan tasinir; fiyat ve bakiye istemciden kabul edilmez.

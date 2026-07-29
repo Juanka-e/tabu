@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { getInventoryData } from "@/lib/economy";
+import { getInventory } from "@hushle/platform-inventory";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         );
     }
 
-    const data = await getInventoryData(sessionUser.id);
+    const data = await getInventory(sessionUser.id);
     await recordUserAccessSignal({ userId: sessionUser.id, request });
     return NextResponse.json(data, { headers: buildRateLimitHeaders(rateLimit) });
 }

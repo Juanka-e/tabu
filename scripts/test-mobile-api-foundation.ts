@@ -69,6 +69,7 @@ async function run(): Promise<void> {
         assert.equal(metaPayload.ok, true);
         assert.equal(metaPayload.data.capabilities.runtimeMeta, "available");
         assert.equal(metaPayload.data.capabilities.bearerAuth, "planned");
+        assert.equal(metaPayload.data.capabilities.inventory, "planned");
         assert.equal(
             metaPayload.data.capabilities.realtimeGameplay,
             "web_runtime_only"
@@ -190,17 +191,25 @@ async function run(): Promise<void> {
     );
     const disabledPlayerAddress =
         disabledPlayerServer.address() as AddressInfo;
-    const disabledPlayer = await fetch(
-        `http://127.0.0.1:${disabledPlayerAddress.port}${MOBILE_API_ROUTES.me}`
+    const disabledPlayerResponses = await Promise.all(
+        [
+            MOBILE_API_ROUTES.me,
+            MOBILE_API_ROUTES.inventory,
+            MOBILE_API_ROUTES.inventoryEquipped,
+        ].map((route) =>
+            fetch(`http://127.0.0.1:${disabledPlayerAddress.port}${route}`)
+        )
     );
     await new Promise<void>((resolveClose) =>
         disabledPlayerServer.close(() => resolveClose())
     );
-    assert.equal(disabledPlayer.status, 503);
-    assert.equal(
-        ((await disabledPlayer.json()) as MobileApiError).error.code,
-        "auth_unavailable"
-    );
+    for (const response of disabledPlayerResponses) {
+        assert.equal(response.status, 503);
+        assert.equal(
+            ((await response.json()) as MobileApiError).error.code,
+            "auth_unavailable"
+        );
+    }
 
     const apiSourceRoot = resolve(process.cwd(), "apps/api/src");
     for (const file of collectFiles(apiSourceRoot).filter((path) =>
