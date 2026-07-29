@@ -62,6 +62,17 @@ interface WordListResponse {
     total: number;
     page: number;
     pages: number;
+    analyticsDays: number;
+    analyticsByWordId: Record<number, WordAnalyticsSummary>;
+}
+
+interface WordAnalyticsSummary {
+    shown: number;
+    dogru: number;
+    tabu: number;
+    pas: number;
+    timeout: number;
+    exposureSeconds: number;
 }
 
 type DifficultyValue = "1" | "2" | "3";
@@ -90,6 +101,40 @@ function buildEmptyTabooFields(): string[] {
     return ["", "", "", "", ""];
 }
 
+function WordPerformance({
+    summary,
+    days,
+}: {
+    summary: WordAnalyticsSummary | undefined;
+    days: number;
+}) {
+    if (!summary || summary.shown === 0) {
+        return <span className="text-xs text-muted-foreground">Veri yok</span>;
+    }
+
+    const successRate = Math.round((summary.dogru / summary.shown) * 100);
+    const averageSeconds = Math.round(summary.exposureSeconds / summary.shown);
+    return (
+        <div className="min-w-[150px] space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <span>%{successRate} doğru</span>
+                <span className="text-muted-foreground">Ort. {averageSeconds} sn</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+                {summary.shown} kart · {summary.pas} pas · {summary.tabu} tabu · {summary.timeout} süre
+            </div>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                <span>Son {days} gün</span>
+                {summary.shown < 10 ? (
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Düşük örnek
+                    </span>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
 export default function AdminWordsPage() {
     const [words, setWords] = useState<Word[]>([]);
     const [total, setTotal] = useState(0);
@@ -99,6 +144,8 @@ export default function AdminWordsPage() {
     const [filterDifficulty, setFilterDifficulty] = useState<"" | DifficultyValue>("");
     const [filterCategoryId, setFilterCategoryId] = useState("");
     const [loading, setLoading] = useState(true);
+    const [analyticsDays, setAnalyticsDays] = useState<7 | 30>(7);
+    const [analyticsByWordId, setAnalyticsByWordId] = useState<Record<number, WordAnalyticsSummary>>({});
 
     const [categories, setCategories] = useState<CategoryOption[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -197,6 +244,7 @@ export default function AdminWordsPage() {
         if (filterCategoryId) {
             params.set("categoryId", filterCategoryId);
         }
+        params.set("analyticsDays", String(analyticsDays));
 
         try {
             const response = await fetch(`/api/admin/words?${params.toString()}`, {
@@ -212,12 +260,13 @@ export default function AdminWordsPage() {
             setTotal(payload.total);
             setPages(payload.pages);
             setPage(payload.page);
+            setAnalyticsByWordId(payload.analyticsByWordId);
         } catch {
             toast.error("Kelime listesi yuklenemedi.");
         } finally {
             setLoading(false);
         }
-    }, [filterCategoryId, filterDifficulty, page, search]);
+    }, [analyticsDays, filterCategoryId, filterDifficulty, page, search]);
 
     const fetchCategories = useCallback(async () => {
         setCategoriesLoading(true);
@@ -455,7 +504,7 @@ export default function AdminWordsPage() {
             />
 
             <AdminToolbar>
-                <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
+                <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_160px_150px_220px]">
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -481,6 +530,15 @@ export default function AdminWordsPage() {
                         <option value="1">Kolay</option>
                         <option value="2">Orta</option>
                         <option value="3">Zor</option>
+                    </select>
+                    <select
+                        value={analyticsDays}
+                        onChange={(event) => setAnalyticsDays(Number(event.target.value) as 7 | 30)}
+                        className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none"
+                        aria-label="Kelime performans araligi"
+                    >
+                        <option value={7}>Son 7 gün</option>
+                        <option value={30}>Son 30 gün</option>
                     </select>
                     <select
                         value={filterCategoryId}
@@ -526,7 +584,7 @@ export default function AdminWordsPage() {
 
             <AdminTableShell
                 title="Kelime Kayitlari"
-                description="Liste server-side olarak filtrelenir ve sayfalanır. Seçim yalnız görünen sayfadaki kayıtları kapsar."
+                description="Liste server-side filtrelenir. Performans verisi karar desteğidir; kelimeler otomatik değiştirilmez veya gizlenmez."
                 loading={loading}
                 isEmpty={!loading && words.length === 0}
                 emptyState={
@@ -560,6 +618,7 @@ export default function AdminWordsPage() {
                             <TableHead>Zorluk</TableHead>
                             <TableHead>Yasakli Kelimeler</TableHead>
                             <TableHead>Kategoriler</TableHead>
+                            <TableHead>Performans</TableHead>
                             <TableHead className="text-right">Islem</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -614,6 +673,12 @@ export default function AdminWordsPage() {
                                             </span>
                                         ))}
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    <WordPerformance
+                                        summary={analyticsByWordId[word.id]}
+                                        days={analyticsDays}
+                                    />
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">

@@ -18,6 +18,7 @@ export interface RedisLikeClient {
     sAdd?(key: string, member: string): Promise<number>;
     sRem?(key: string, member: string): Promise<number>;
     sMembers?(key: string): Promise<string[]>;
+    hmGet?(key: string, fields: string[]): Promise<Array<string | null>>;
     eval(
         script: string,
         options: { keys: string[]; arguments: string[] }

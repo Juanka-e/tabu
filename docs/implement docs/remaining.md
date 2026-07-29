@@ -4,27 +4,30 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/word-analytics-liveops` - siradaki
-2. `feature/release-ops-docs`
-3. `docs/encoding-cleanup`
-4. `feature/wallet-ledger-foundation`
-5. `feature/mobile-api-foundation`
-6. `feature/post-launch-economy-observability-review`
-7. `feature/post-launch-xp-level-foundation`
-8. `feature/post-launch-missions-foundation`
-9. `feature/post-launch-night-market-foundation`
+1. `feature/release-ops-docs` - siradaki
+2. `docs/encoding-cleanup`
+3. `feature/wallet-ledger-foundation`
+4. `feature/mobile-api-foundation`
+5. `feature/post-launch-economy-observability-review`
+6. `feature/post-launch-xp-level-foundation`
+7. `feature/post-launch-missions-foundation`
+8. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
-## Siradaki Branch
+## Aktif Branch
 
 ### `feature/word-analytics-liveops`
 
-Hedef:
-- kelime ve kategori performansini PII'siz aggregate metriklerle olcme
-- skip/dogru/tabu ve anlatim suresi sinyallerinin server-owned kaynagini belirleme
-- admin liveops kararlarini destekleyen bounded reader modeli
+Tamamlananlar:
+- kelime ve kategori performansi icin PII'siz gunluk Redis aggregate
+- dogru, tabu, pas ve timeout sonucunu server-owned aktif karttan uretme
+- pause suresini dislayan server timer tabanli exposure olcumu
+- admin kelime listesinde 7/30 gunluk bounded `HMGET` reader
+- dusuk ornek uyarisi ve otomatik karar vermeyen liveops gorunumu
+- Redis/config arizasinda oyunu etkilemeyen best-effort kayit
+- health telemetry ve retention ayarlari
 
 Referans:
 - `docs/analytics-event-strategy.md`

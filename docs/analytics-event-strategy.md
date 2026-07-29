@@ -66,3 +66,30 @@ PRODUCT_ANALYTICS_RETENTION_DAYS=45
 `/api/health` altindaki `telemetry.productAnalytics` bolumu attempted, recorded,
 dropped ve son basari/hata zamanlarini gosterir. Redis veya config hatasi business
 request'ini basarisiz yapmaz.
+
+## Word Analytics Liveops
+
+Kelime eylemleri istemcinin kelime metninden degil server-owned aktif kart
+identity'sinden uretilir: `dogru`, `tabu`, `pas` ve `timeout`.
+
+Exposure suresi `Date.now()` yerine server timer'in kart gosterildigi andaki ve
+eylem anindaki `kalanZaman` farkidir. Oyun durduruldugunda timer azalmadigi icin
+pause suresi kelimeye yazilmaz.
+
+Gunluk Redis hash'lerinde yalniz word ID, category ID, difficulty, outcome ve
+exposure toplamlari vardir. Kelime metni, oda, oyuncu ve anlatici kimligi yoktur.
+Cok kategorili kelime her bagli kategori aggregate'ina katkida bulunur; kategori
+toplamlari birbirleriyle toplanmamalidir.
+
+Admin kelime listesi mevcut UI'da gorunen 20 kelimeyi 7 veya 30 gun icin
+`HMGET` ile okur; API sayfa boyutu en fazla 50 ile sinirlidir. 30 gunluk gorunum
+en fazla 30 Redis read uretir. On gosterimin altinda dusuk ornek uyarisi verilir.
+Bu metrikler otomatik gizleme, zorluk degistirme veya ceza karari uretmez.
+
+Word ve category hash key'leri ayni gun hash tag'ini kullanir. Boylece atomik
+Lua yazimi Redis Cluster topolojisinde de ayni slot sinirinda kalir.
+
+```env
+WORD_ANALYTICS_ENABLED=true
+WORD_ANALYTICS_RETENTION_DAYS=45
+```

@@ -9,6 +9,7 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { getWordAnalyticsSummaries } from "@/lib/analytics/word-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +38,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const requestedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const requestedLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+    const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+        ? requestedPage
+        : 1;
+    const limit = Number.isSafeInteger(requestedLimit)
+        ? Math.min(50, Math.max(1, requestedLimit))
+        : 20;
     const search = searchParams.get("search") || "";
     const difficulty = searchParams.get("difficulty");
     const categoryId = searchParams.get("categoryId");
+    const analyticsDays = searchParams.get("analyticsDays") === "30" ? 30 : 7;
 
     const where: Record<string, unknown> = {};
 
@@ -72,6 +80,10 @@ export async function GET(request: NextRequest) {
         }),
         prisma.word.count({ where }),
     ]);
+    const analyticsByWordId = await getWordAnalyticsSummaries(
+        words.map((word) => word.id),
+        analyticsDays
+    );
 
     return NextResponse.json(
         {
@@ -79,6 +91,8 @@ export async function GET(request: NextRequest) {
             total,
             page,
             pages: Math.ceil(total / limit),
+            analyticsDays,
+            analyticsByWordId,
         },
         {
             headers: buildRateLimitHeaders(rateLimit),
