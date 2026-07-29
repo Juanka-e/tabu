@@ -58,6 +58,11 @@ export interface ProductAnalyticsConfig {
     retentionDays: number;
 }
 
+export interface ProductAnalyticsEnvironment {
+    PRODUCT_ANALYTICS_ENABLED?: string;
+    PRODUCT_ANALYTICS_RETENTION_DAYS?: string;
+}
+
 interface AnalyticsState {
     attempted: number;
     recorded: number;
@@ -100,10 +105,19 @@ function parseRetentionDays(value: string | undefined): number {
     return parsed;
 }
 
-export function getProductAnalyticsConfig(env: NodeJS.ProcessEnv = process.env): ProductAnalyticsConfig {
+export function getProductAnalyticsConfig(
+    env?: ProductAnalyticsEnvironment
+): ProductAnalyticsConfig {
+    const runtimeEnv = env ?? {
+        PRODUCT_ANALYTICS_ENABLED: process.env.PRODUCT_ANALYTICS_ENABLED,
+        PRODUCT_ANALYTICS_RETENTION_DAYS:
+            process.env.PRODUCT_ANALYTICS_RETENTION_DAYS,
+    };
     return {
-        enabled: parseBoolean(env.PRODUCT_ANALYTICS_ENABLED),
-        retentionDays: parseRetentionDays(env.PRODUCT_ANALYTICS_RETENTION_DAYS),
+        enabled: parseBoolean(runtimeEnv.PRODUCT_ANALYTICS_ENABLED),
+        retentionDays: parseRetentionDays(
+            runtimeEnv.PRODUCT_ANALYTICS_RETENTION_DAYS
+        ),
     };
 }
 
