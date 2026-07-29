@@ -32,6 +32,9 @@ Bu liste ilk public acilis ve buyuk release pencereleri icindir.
 
 ## Kontrollu Smoke
 
+- [ ] `npm run test:web-launch-readiness` basarili.
+- [ ] MySQL + Redis integration kapisi
+  `docs/guides/web-launch-readiness-guide.md` uzerinden basarili.
 - [ ] Kayit olma ve login.
 - [ ] Guest join.
 - [ ] Kayitli kullanici ile oda olusturma.
@@ -43,6 +46,9 @@ Bu liste ilk public acilis ve buyuk release pencereleri icindir.
 - [ ] Store listeleme, satin alma ve equip.
 - [ ] Admin kelime, kullanici, audit ve health gorunumu.
 - [ ] Mobil ve masaustu ana oyun alani.
+
+Otomatik test sonucu manuel coklu oyuncu, reconnect ve gercek cihaz smoke
+turunun yerine gecmez.
 
 ## Ilk 60 Dakika
 

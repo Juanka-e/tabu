@@ -14,8 +14,7 @@ export default defineConfig({
   webServer: process.env.SMOKE_BASE_URL
     ? undefined
     : {
-        command:
-          "npx.cmd tsx scripts/start-playwright-smoke-server.ts",
+        command: "npm run smoke:web-server",
         url: baseURL,
         reuseExistingServer: false,
         timeout: 120_000,

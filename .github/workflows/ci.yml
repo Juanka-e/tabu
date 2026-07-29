@@ -94,3 +94,8 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
+
+      - name: Test web launch readiness
+        run: npm run test:web-launch-readiness
+        env:
+          WEB_LAUNCH_DB_E2E: "true"
