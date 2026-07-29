@@ -5,26 +5,34 @@ import {
     buildMobileApiSuccess,
     MOBILE_API_ROUTES,
     MOBILE_API_VERSION,
+    type MobileApiError,
     type MobileApiHealthData,
     type MobileApiRuntimeMetaData,
 } from "@hushle/api-contracts";
+import {
+    handleAuthRoute,
+    isAuthRoute,
+    type AuthRouteResult,
+} from "./auth-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
+const MAX_JSON_BODY_BYTES = 16 * 1024;
 
 export interface MobileApiHttpOptions {
     allowedOrigins: ReadonlySet<string>;
+    authEnabled?: boolean;
+    trustProxy?: boolean;
+    accessTokenTtlMs?: number;
+    refreshTokenTtlMs?: number;
 }
 
 function getRequestId(request: IncomingMessage): string {
     const candidate = request.headers["x-request-id"];
-    if (
-        typeof candidate === "string" &&
+    return typeof candidate === "string" &&
         REQUEST_ID_PATTERN.test(candidate)
-    ) {
-        return candidate;
-    }
-    return randomUUID();
+        ? candidate
+        : randomUUID();
 }
 
 function appendVary(response: ServerResponse, value: string): void {
@@ -54,24 +62,22 @@ function applyCorsHeaders(
     allowedOrigins: ReadonlySet<string>
 ): boolean {
     const origin = request.headers.origin;
-    if (!origin) {
-        return true;
-    }
+    if (!origin) return true;
 
     appendVary(response, "Origin");
-    if (!allowedOrigins.has(origin)) {
-        return false;
-    }
-
+    if (!allowedOrigins.has(origin)) return false;
     response.setHeader("Access-Control-Allow-Origin", origin);
-    response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    response.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, DELETE, OPTIONS"
+    );
     response.setHeader(
         "Access-Control-Allow-Headers",
         "Authorization, Content-Type, X-Request-Id"
     );
     response.setHeader(
         "Access-Control-Expose-Headers",
-        "X-Api-Version, X-Request-Id"
+        "Retry-After, X-Api-Version, X-Request-Id"
     );
     response.setHeader("Access-Control-Max-Age", "600");
     return true;
@@ -80,14 +86,104 @@ function applyCorsHeaders(
 function sendJson(
     response: ServerResponse,
     statusCode: number,
-    payload: unknown
+    payload?: unknown
 ): void {
     response.statusCode = statusCode;
+    if (statusCode === 204) {
+        response.removeHeader("Content-Type");
+        response.end();
+        return;
+    }
     response.end(JSON.stringify(payload));
 }
 
+function getRemoteIp(request: IncomingMessage, trustProxy: boolean): string {
+    if (trustProxy) {
+        const realIp = request.headers["x-real-ip"];
+        if (typeof realIp === "string" && realIp.trim()) {
+            return realIp.trim().slice(0, 64);
+        }
+        const forwarded = request.headers["x-forwarded-for"];
+        if (typeof forwarded === "string") {
+            const first = forwarded.split(",")[0]?.trim();
+            if (first) return first.slice(0, 64);
+        }
+    }
+    return request.socket.remoteAddress?.slice(0, 64) || "unknown";
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<unknown> {
+    const contentType = request.headers["content-type"]?.split(";")[0]?.trim();
+    if (
+        !contentType &&
+        !request.headers["content-length"] &&
+        !request.headers["transfer-encoding"]
+    ) {
+        return {};
+    }
+    if (contentType !== "application/json") {
+        throw new Error("unsupported_content_type");
+    }
+    const declaredLength = Number(request.headers["content-length"] ?? 0);
+    if (
+        Number.isFinite(declaredLength) &&
+        declaredLength > MAX_JSON_BODY_BYTES
+    ) {
+        throw new Error("body_too_large");
+    }
+
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of request) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        size += buffer.length;
+        if (size > MAX_JSON_BODY_BYTES) {
+            throw new Error("body_too_large");
+        }
+        chunks.push(buffer);
+    }
+    if (size === 0) return {};
+    try {
+        return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+        throw new Error("invalid_json");
+    }
+}
+
+function sendAuthResult(
+    response: ServerResponse,
+    requestId: string,
+    result: AuthRouteResult
+): void {
+    for (const [key, value] of Object.entries(result.headers ?? {})) {
+        response.setHeader(key, value);
+    }
+    if (result.error) {
+        sendJson(
+            response,
+            result.status,
+            buildMobileApiError(
+                result.error.code as MobileApiError["error"]["code"],
+                result.error.message,
+                requestId
+            )
+        );
+        return;
+    }
+    sendJson(
+        response,
+        result.status,
+        result.status === 204
+            ? undefined
+            : buildMobileApiSuccess(result.data, requestId)
+    );
+}
+
 export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
-    return (request: IncomingMessage, response: ServerResponse): void => {
+    return async (
+        request: IncomingMessage,
+        response: ServerResponse
+    ): Promise<void> => {
         const requestId = getRequestId(request);
         applyBaseHeaders(response, requestId);
 
@@ -103,11 +199,8 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
             );
             return;
         }
-
         if (request.method === "OPTIONS") {
-            response.statusCode = 204;
-            response.removeHeader("Content-Type");
-            response.end();
+            sendJson(response, 204);
             return;
         }
 
@@ -126,58 +219,130 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
             );
             return;
         }
-        const knownRoute =
-            url.pathname === MOBILE_API_ROUTES.health ||
-            url.pathname === MOBILE_API_ROUTES.meta;
-        if (knownRoute && request.method !== "GET") {
-            response.setHeader("Allow", "GET, OPTIONS");
+
+        try {
+            if (isAuthRoute(url.pathname)) {
+                let body: unknown = {};
+                if (request.method === "POST") {
+                    try {
+                        body = await readJsonBody(request);
+                    } catch {
+                        sendJson(
+                            response,
+                            400,
+                            buildMobileApiError(
+                                "invalid_request",
+                                "Request body must be valid JSON.",
+                                requestId
+                            )
+                        );
+                        return;
+                    }
+                }
+                const result = await handleAuthRoute({
+                    authEnabled: options.authEnabled ?? false,
+                    authOptions: {
+                        accessTtlMs:
+                            options.accessTokenTtlMs ?? 15 * 60_000,
+                        refreshTtlMs:
+                            options.refreshTokenTtlMs ??
+                            30 * 24 * 60 * 60_000,
+                    },
+                    body,
+                    method: request.method ?? "GET",
+                    pathname: url.pathname,
+                    remoteIp: getRemoteIp(
+                        request,
+                        options.trustProxy ?? false
+                    ),
+                    request,
+                });
+                sendAuthResult(response, requestId, result);
+                return;
+            }
+
+            const knownRoute =
+                url.pathname === MOBILE_API_ROUTES.health ||
+                url.pathname === MOBILE_API_ROUTES.meta;
+            if (knownRoute && request.method !== "GET") {
+                response.setHeader("Allow", "GET, OPTIONS");
+                sendJson(
+                    response,
+                    405,
+                    buildMobileApiError(
+                        "method_not_allowed",
+                        "Method is not allowed for this endpoint.",
+                        requestId
+                    )
+                );
+                return;
+            }
+            if (
+                request.method === "GET" &&
+                url.pathname === MOBILE_API_ROUTES.health
+            ) {
+                const data: MobileApiHealthData = {
+                    service: "hushle-api",
+                    status: "ok",
+                };
+                sendJson(
+                    response,
+                    200,
+                    buildMobileApiSuccess(data, requestId)
+                );
+                return;
+            }
+            if (
+                request.method === "GET" &&
+                url.pathname === MOBILE_API_ROUTES.meta
+            ) {
+                const data: MobileApiRuntimeMetaData = {
+                    service: "hushle-api",
+                    apiVersion: MOBILE_API_VERSION,
+                    capabilities: {
+                        runtimeMeta: "available",
+                        bearerAuth: options.authEnabled
+                            ? "available"
+                            : "planned",
+                        profile: "planned",
+                        inventory: "planned",
+                        progression: "planned",
+                        realtimeGameplay: "web_runtime_only",
+                        admin: "web_runtime_only",
+                    },
+                };
+                sendJson(
+                    response,
+                    200,
+                    buildMobileApiSuccess(data, requestId)
+                );
+                return;
+            }
+
             sendJson(
                 response,
-                405,
+                404,
                 buildMobileApiError(
-                    "method_not_allowed",
-                    "Method is not allowed for this endpoint.",
+                    "not_found",
+                    "Endpoint was not found.",
                     requestId
                 )
             );
-            return;
+        } catch (error) {
+            console.error(`[api] request ${requestId} failed`, error);
+            if (!response.headersSent) {
+                sendJson(
+                    response,
+                    500,
+                    buildMobileApiError(
+                        "internal_error",
+                        "An internal error occurred.",
+                        requestId
+                    )
+                );
+            } else {
+                response.destroy();
+            }
         }
-
-        if (request.method === "GET" && url.pathname === MOBILE_API_ROUTES.health) {
-            const data: MobileApiHealthData = {
-                service: "hushle-api",
-                status: "ok",
-            };
-            sendJson(response, 200, buildMobileApiSuccess(data, requestId));
-            return;
-        }
-
-        if (request.method === "GET" && url.pathname === MOBILE_API_ROUTES.meta) {
-            const data: MobileApiRuntimeMetaData = {
-                service: "hushle-api",
-                apiVersion: MOBILE_API_VERSION,
-                capabilities: {
-                    runtimeMeta: "available",
-                    bearerAuth: "planned",
-                    profile: "planned",
-                    inventory: "planned",
-                    progression: "planned",
-                    realtimeGameplay: "web_runtime_only",
-                    admin: "web_runtime_only",
-                },
-            };
-            sendJson(response, 200, buildMobileApiSuccess(data, requestId));
-            return;
-        }
-
-        sendJson(
-            response,
-            404,
-            buildMobileApiError(
-                "not_found",
-                "Endpoint was not found.",
-                requestId
-            )
-        );
     };
 }

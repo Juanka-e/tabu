@@ -190,8 +190,9 @@ Bu faz, web request runtime'ini agir batch islerinden ayirir.
 
 ### Phase 4 - `apps/api`
 
-Durum: runtime ve transport contract temeli tamamlandi; kullanici endpoint'leri
-mobile auth gate'ini bekliyor.
+Durum: runtime, transport contract ve mobile auth gate tamamlandi. Auth route'lari
+`apps/api` icinde calisiyor; siradaki kademeli tasima `/v1/me` ve profile
+servisidir.
 
 Ancak su durumlarda gercek runtime'a donusturulmeli:
 

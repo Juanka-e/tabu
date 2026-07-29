@@ -6,7 +6,12 @@ import {
 import {
     areJobsEnabled,
     getAuditRetentionConfig,
+    getMobileAuthRetentionConfig,
 } from "../apps/jobs/src/config";
+import {
+    runMobileAuthRetention,
+    type MobileAuthRetentionStore,
+} from "../apps/jobs/src/mobile-auth-retention";
 import { acquireJobLease } from "../apps/jobs/src/lease";
 import {
     getJobDefinition,
@@ -34,10 +39,25 @@ assert.deepEqual(config, {
 assert.equal(areJobsEnabled(undefined), false);
 assert.equal(areJobsEnabled("true"), true);
 assert.throws(() => areJobsEnabled("yes"), /must be true or false/);
-assert.deepEqual(JOB_NAMES, ["audit-retention"]);
+assert.deepEqual(JOB_NAMES, ["audit-retention", "mobile-auth-retention"]);
 assert.equal(isJobName("audit-retention"), true);
+assert.equal(isJobName("mobile-auth-retention"), true);
 assert.equal(isJobName("unknown-job"), false);
 assert.equal(getJobDefinition("audit-retention").leaseTtlMs, 900_000);
+assert.deepEqual(
+    getMobileAuthRetentionConfig({
+        MOBILE_AUTH_RETENTION_DAYS: "30",
+        MOBILE_AUTH_REUSE_EVIDENCE_DAYS: "7",
+        MOBILE_AUTH_RETENTION_BATCH_SIZE: "500",
+        MOBILE_AUTH_RETENTION_LEASE_TTL_MS: "300000",
+    }),
+    {
+        retentionDays: 30,
+        reuseEvidenceDays: 7,
+        batchSize: 500,
+        leaseTtlMs: 300_000,
+    }
+);
 
 async function main(): Promise<void> {
     const leaseValues = new Map<string, string>();
@@ -156,6 +176,36 @@ async function main(): Promise<void> {
         }),
         /made no progress/
     );
+
+    let retentionDeletes = 0;
+    const mobileAuthStore: MobileAuthRetentionStore = {
+        async findCandidateIds() {
+            return ["session-1"];
+        },
+        async deleteCandidates(ids) {
+            retentionDeletes += ids.length;
+            return ids.length;
+        },
+        async deleteTokenEvidence() {
+            return 2;
+        },
+    };
+    const retentionDryRun = await runMobileAuthRetention({
+        config: getMobileAuthRetentionConfig(),
+        dryRun: true,
+        store: mobileAuthStore,
+    });
+    assert.equal(retentionDryRun.candidateCount, 1);
+    assert.equal(retentionDryRun.deletedCount, 0);
+    assert.equal(retentionDeletes, 0);
+    const retentionExecute = await runMobileAuthRetention({
+        config: getMobileAuthRetentionConfig(),
+        dryRun: false,
+        store: mobileAuthStore,
+    });
+    assert.equal(retentionExecute.deletedCount, 1);
+    assert.equal(retentionExecute.deletedTokenCount, 2);
+    assert.equal(retentionDeletes, 1);
 
     console.log("jobs runtime smoke test passed");
 }

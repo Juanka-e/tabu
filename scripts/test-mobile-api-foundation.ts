@@ -89,7 +89,7 @@ async function run(): Promise<void> {
         assert.equal(preflight.status, 204);
         assert.equal(
             preflight.headers.get("access-control-allow-methods"),
-            "GET, OPTIONS"
+            "GET, POST, DELETE, OPTIONS"
         );
 
         const wrongMethod = await fetch(`${baseUrl}${MOBILE_API_ROUTES.meta}`, {
@@ -136,6 +136,48 @@ async function run(): Promise<void> {
             }),
         /API_PORT/
     );
+    assert.equal(
+        getMobileApiRuntimeConfig({
+            ...process.env,
+            NODE_ENV: "production",
+            MOBILE_AUTH_ENABLED: undefined,
+        }).authEnabled,
+        false
+    );
+
+    const disabledAuth = await (async () => {
+        const disabledServer = createServer(
+            createMobileApiHttpHandler({
+                allowedOrigins: new Set(),
+                authEnabled: false,
+            })
+        );
+        await new Promise<void>((resolveListen) =>
+            disabledServer.listen(0, "127.0.0.1", resolveListen)
+        );
+        const address = disabledServer.address() as AddressInfo;
+        try {
+            return await fetch(
+                `http://127.0.0.1:${address.port}${MOBILE_API_ROUTES.authLogin}`,
+                {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                        username: "test",
+                        password: "test",
+                        deviceName: "test",
+                    }),
+                }
+            );
+        } finally {
+            await new Promise<void>((resolveClose) =>
+                disabledServer.close(() => resolveClose())
+            );
+        }
+    })();
+    assert.equal(disabledAuth.status, 503);
+    const disabledPayload = (await disabledAuth.json()) as MobileApiError;
+    assert.equal(disabledPayload.error.code, "auth_unavailable");
 
     const apiSourceRoot = resolve(process.cwd(), "apps/api/src");
     for (const file of collectFiles(apiSourceRoot).filter((path) =>
