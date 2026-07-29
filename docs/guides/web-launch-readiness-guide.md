@@ -43,6 +43,8 @@ Varsayılan Playwright akışı:
 
 Cihaz matrisi ayrıntıları:
 `docs/guides/web-responsive-device-matrix.md`.
+WebKit motoru otomatik kapısı:
+`docs/guides/web-webkit-readiness.md`.
 Fiziksel cihaz kurulumu ve kanıt standardı:
 `docs/guides/web-real-device-smoke.md`.
 

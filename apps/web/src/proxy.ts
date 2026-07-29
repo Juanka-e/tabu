@@ -9,6 +9,7 @@ import { isTrustedStateChangeRequest } from "@/lib/security/request-origin";
 import {
     buildContentSecurityPolicy,
     generateCspNonce,
+    shouldUpgradeInsecureRequests,
 } from "@/lib/security/content-security-policy";
 
 const { auth } = NextAuth(sharedAuthConfig);
@@ -32,9 +33,11 @@ function shouldApplyPageCsp(req: NextRequest): boolean {
 
 function createPageResponse(req: NextRequest): NextResponse {
     const nonce = generateCspNonce();
+    const isDev = process.env.NODE_ENV !== "production";
     const csp = buildContentSecurityPolicy({
         nonce,
-        isDev: process.env.NODE_ENV !== "production",
+        isDev,
+        upgradeInsecureRequests: shouldUpgradeInsecureRequests(isDev),
     });
     const requestHeaders = new Headers(req.headers);
 

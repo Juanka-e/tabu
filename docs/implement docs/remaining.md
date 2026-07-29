@@ -33,6 +33,20 @@ Referans:
 - `docs/guides/web-real-device-smoke.md`
 
 ## Onceki Branch Kaydi
+### `test/web-webkit-readiness`
+Tamamlananlar:
+- iPhone ve desktop Safari profillerinde WebKit public responsive kapisi
+- disposable DB uzerinde tek mobil WebKit registered kullanici akisi
+- HTTP LAN smoke ortaminda assetleri HTTPS'e zorlayan CSP uyumsuzlugunun duzeltilmesi
+- HTTPS production ve eksik/gecersiz config icin guvenli CSP varsayiminin korunmasi
+
+### `feature/web-real-device-responsive-smoke`
+Tamamlananlar:
+- yalniz RFC1918 origin kabul eden production LAN smoke sunucusu
+- LAN bind, HTTP 200 ve process cleanup integration testi
+- fiziksel cihaz GO/HOLD kanit sablonu ve uygulama rehberi
+- harness kontratinin web launch-readiness CI kapisina eklenmesi
+
 ### `feature/web-responsive-device-matrix`
 Tamamlananlar:
 - kucuk telefon, modern Android, yatay telefon, tablet ve laptop Chromium matrisi
