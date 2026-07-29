@@ -18,7 +18,7 @@ function listTypeScriptFiles(directory: string): string[] {
 const forbiddenPlatformImports =
     /(?:from\s+|import\s*\(\s*|require\s*\(\s*)["'](?:@prisma\/client|redis)["']/;
 
-for (const directory of ["apps/web/src", "scripts"]) {
+for (const directory of ["apps/api/src", "apps/web/src", "scripts"]) {
     for (const file of listTypeScriptFiles(join(root, directory))) {
         if (file === join(root, "scripts/test-package-boundaries.ts")) {
             continue;
@@ -43,7 +43,9 @@ assert.match(
 );
 
 const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
+assert.match(dockerfile, /apps\/api\/package\.json/);
 assert.match(dockerfile, /apps\/jobs\/package\.json/);
+assert.match(dockerfile, /packages\/api-contracts\/package\.json/);
 assert.match(dockerfile, /packages\/domain-game\/package\.json/);
 assert.match(dockerfile, /packages\/platform-cache\/package\.json/);
 assert.match(dockerfile, /packages\/platform-db\/package\.json/);
@@ -60,6 +62,10 @@ assert.match(
 assert.match(
     readFileSync(join(root, "apps/jobs/package.json"), "utf8"),
     /"@hushle\/platform-db": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/api/package.json"), "utf8"),
+    /"@hushle\/api-contracts": "0\.1\.0"/
 );
 
 console.log("package boundary smoke test passed");

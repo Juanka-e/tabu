@@ -22,12 +22,12 @@ apps/
 
 - `apps/web` gercek Next.js + Socket.IO runtime'idir
 - `apps/jobs` gercek one-shot retention/background runtime'idir
-- `apps/api` mobil/public API ihtiyaci dogana kadar bilincli scaffold'dur
+- `apps/api` surumlu mobile/public API runtime temelidir; kullanici endpoint'leri bearer auth gate'ini bekler
 - root `package.json` workspace orchestration ve ortak komutlari yonetir
 - paylasilan platform/domain kodlari `packages/*` sinirinda buyur
 
-Bugun icin planlanan apps migration tamamlanmistir. `apps/api`yi ihtiyac
-olmadan calisan bos bir servise donusturmek hedef degildir.
+Bugun icin planlanan apps migration tamamlanmistir. `apps/api` varsayilan deploy
+degildir; yalniz explicit host komutu veya Compose profili ile calisir.
 
 ## Migration Kurali
 

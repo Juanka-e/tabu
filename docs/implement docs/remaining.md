@@ -4,7 +4,7 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/mobile-api-foundation` - siradaki
+1. `feature/mobile-auth-foundation` - siradaki mobile API gate
 2. `feature/post-launch-economy-observability-review`
 3. `feature/post-launch-xp-level-foundation`
 4. `feature/post-launch-missions-foundation`
@@ -15,18 +15,18 @@ implementasyona alinmaz.
 
 ## Aktif Branch
 
-### `feature/wallet-ledger-foundation`
+### `feature/mobile-api-foundation`
 
 Tamamlananlar:
-- merkezi ve atomik wallet ledger servisi
-- tum coin kazanma, harcama ve admin duzeltme akislarinin ledger'a tasinmasi
-- eski cuzdanlar icin lazy baseline snapshot
-- satir kilidiyle eszamanli fazla harcama korumasi
-- admin cuzdan hareketleri ve reconciliation gorunumu
-- gercek MySQL concurrency ve idempotency CI testi
+- gercek fakat varsayilan deploy olmayan `apps/api` runtime
+- `@hushle/api-contracts` surumlu response kontratlari
+- health/meta endpoint'leri
+- exact CORS, request ID ve security header davranisi
+- loopback Docker profile ve runtime smoke testi
+- auth sonrasi kademeli route migration plani
 
 Referans:
-- `docs/guides/wallet-ledger-foundation-guide.md`
+- `docs/guides/mobile-api-foundation-guide.md`
 
 ## Onceki Branch Kaydi
 ### `feature/release-ops-docs`
@@ -203,9 +203,9 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - production retention schedule yine explicit operasyon karariyla acilacak
 
 ### `feature/mobile-api-foundation`
-- ancak mobil backlog'u gercek implementasyona girdiginde acilacak
-- `apps/api` icin ilk API kontratlari
-- auth, profile, inventory ve progression gibi mobil dostu read/write surface'ler
+- runtime ve ilk transport kontratlari tamamlandi
+- siradaki gate `feature/mobile-auth-foundation`
+- profile, inventory ve progression endpoint'leri auth sonrasinda acilacak
 
 ### `feature/post-launch-economy-observability-review`
 - canlidan sonra gercek coin kazanimi gozlemi
@@ -216,8 +216,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 ## Uzun Vadeli Notlar
 - mevcut modularizasyon fazi tamamlandi: web runtime `apps/web`, paylasilan DB/cache
   katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
-- `apps/api` bilincli olarak bos tutulmuyor; bagimsiz deploy veya mobil kontrat ihtiyaci
-  gercek oldugunda acilacak.
+- `apps/api` runtime temeli tamamlandi; varsayilan deploy kapali ve kullanici
+  endpoint'leri mobile auth tamamlanana kadar acilmayacak.
 - modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.

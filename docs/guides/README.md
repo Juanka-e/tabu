@@ -71,3 +71,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 17. `wallet-ledger-foundation-guide.md`
 - coin bakiyesi ile immutable hareket zincirinin transaction kontratini tanimlar
 - legacy snapshot, eszamanli harcama, admin reconciliation ve production rollout adimlarini aciklar
+
+18. `mobile-api-foundation-guide.md`
+- apps/api runtime, surumlu JSON kontrati ve transport guvenlik sinirlarini tanimlar
+- bearer auth gate'i ile profile/inventory/economy route tasima sirasini aciklar

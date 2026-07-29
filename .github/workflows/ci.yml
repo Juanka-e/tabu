@@ -35,6 +35,9 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Test mobile API foundation
+        run: npm run test:mobile-api
+
   # ─── 2. Build Check ───────────────────────────────────────────────
   build:
     name: Build

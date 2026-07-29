@@ -1,31 +1,61 @@
-# apps/api
+# `apps/api`
 
-Mobil uygulama ve gelecekteki ayri backend/API yuzeyi icin ayrilan hedef runtime.
+Mobil uygulama ve gelecekteki bağımsız backend/API yüzeyi için sürümlü HTTP
+runtime'ı.
 
-## Neden Hemen Ayirmiyoruz
+## Bugünkü Kapsam
 
-Bugun:
+- bağımsız Node HTTP process'i
+- `GET /health`
+- `GET /v1/meta`
+- ortak success/error JSON zarfı
+- `X-Request-Id` ve `X-Api-Version`
+- exact browser CORS allowlist
+- origin göndermeyen native/server istemciler için transport desteği
+- opsiyonel Docker `api` profili
 
-- tek ekip / tek urun akisindayiz
-- realtime, auth ve admin route'lari hala yakindan bagli
-- erken ayrim gereksiz deploy ve contract maliyeti getirir
+Runtime bugün kullanıcı verisi sunmaz. Bearer/refresh token kimlik doğrulaması
+tamamlanmadan profile, inventory veya mutation endpoint'i açılmaz.
 
-Bu yuzden ilk karar:
+## Local Çalıştırma
 
-- once modular monolith
-- sonra gerekirse ayri API runtime
+Host makinede:
 
-## Gelecekte Bu App'e Tasinabilecekler
+```bash
+npm run api:dev
+```
 
-- mobil istemciye ozel stabil JSON API'ler
-- public API contract'lari
-- websocket disi backend gateway logic'i
-- admin disi backend servis entegrasyonlari
+Varsayılan adres: `http://127.0.0.1:3001`.
 
-## Gecis Tetikleri
+Docker ile:
 
-Su durumlar olusursa `apps/api` gercek runtime'a donusturulmeli:
+```bash
+docker compose --profile api up -d api
+```
 
-1. mobil uygulama aktif gelisime girdiginde
-2. web ve mobilin farkli release ritmi oldugunda
-3. UI'ya yakin olmayan backend route'lari belirgin sekilde buyudugunde
+Docker portu yalnız `127.0.0.1` üzerinde publish edilir. Nginx bu branch'te API
+runtime'ına public route açmaz.
+
+## Sınırlar
+
+`apps/api`:
+
+- `apps/web` veya Next.js import etmez
+- browser cookie session'ını API auth kontratı olarak kullanmaz
+- admin BFF route'larını barındırmaz
+- process-local room/socket state'ini okumaz
+- kalıcı veride MySQL, geçici koordinasyonda Redis kararını korur
+
+Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
+
+## Taşıma Sırası
+
+1. bearer access/refresh auth ve token rotation
+2. profile read/write
+3. inventory read ve equip
+4. store catalog ve satın alma
+5. notifications ve support
+6. shared presence hazır olduğunda active-room/read modelleri
+
+Admin route'ları web BFF'de kalır. Match finalize, room state bağımsız ve
+owner-aware hale gelmeden realtime writer runtime'ından taşınmaz.
