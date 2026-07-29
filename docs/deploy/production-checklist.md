@@ -93,10 +93,12 @@ Geçiş koşulları:
 
 ## Rollback
 
-1. Sunucuda bir önceki release arşivini sakla.
-2. Geri dönülecek release'i deploy path'e aç.
-3. `./scripts/ops/deploy.sh` komutunu tekrar çalıştır.
-4. DB migration gerektiren deploylarda rollback öncesi backup al.
+1. Mevcut workflow'un onceki release'i otomatik saklamadigini kabul et.
+2. Release oncesinde rollback adayi SHA ve dogrulanmis source arsivini belirle.
+3. Rollback oncesi guncel DB backup ve checksum al.
+4. Persistent `.env.production`, SSL dosyalari ve volume'lara dokunma.
+5. Uygulama rollback'inin DB rollback'i olmadigini kontrol et.
+6. Ayrintili sirayi `rollback-and-incident.md` dosyasindan uygula.
 
 ## Backup Disiplini
 

@@ -90,11 +90,19 @@ Bu script:
 2. app image'ini build eder
 3. `docker compose up -d --build --remove-orphans` calistirir
 
+Script production schema sync, post-deploy health veya otomatik rollback
+calistirmaz. Release gate ve kanit akisi icin
+`docs/deploy/release-process.md` zorunlu eslik eden dokumandir.
+
 ## 5. GitHub Actions Auto Deploy
 
 Workflow dosyasi:
 
 - `.github/workflows/deploy-production.yml`
+
+Workflow release SHA ve arsiv checksum'i uretir, transfer sonrasi checksum'i
+dogrular. Production concurrency grubu ayni anda tek deploy calistirir; yeni
+calisma devam eden deploy'u iptal etmez.
 
 Tetik:
 
@@ -115,6 +123,10 @@ Oneri:
 2. `develop` -> sadece CI
 3. production workflow icin GitHub Environment `production` kullan
 4. gerekiyorsa manual approval ekle
+
+Bugunku workflow in-place extract yapar; atomik release directory veya otomatik
+onceki surume donus saglamaz. Rollback gercegi
+`docs/deploy/rollback-and-incident.md` icinde tanimlidir.
 
 GitHub Environments ve deployment protection kurallari resmi olarak desteklenir. Branch bazli workflow tetigi de resmi `push.branches` filtresiyle calisir.
 

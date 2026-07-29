@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Ubuntu 24.04
@@ -18,12 +22,17 @@ jobs:
 
       - name: Create release archive
         run: |
+          printf '%s\n' "$GITHUB_SHA" > .release-sha
           tar \
             --exclude=.git \
             --exclude=node_modules \
             --exclude=.next \
             --exclude=backups \
-            -czf hushle-release.tgz .
+            -czf "$RUNNER_TEMP/hushle-release.tgz" .
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum hushle-release.tgz > hushle-release.tgz.sha256
+          )
 
       - name: Prepare SSH key
         run: |
@@ -34,15 +43,17 @@ jobs:
 
       - name: Upload release archive
         run: |
-          scp -P '${{ secrets.PROD_PORT }}' hushle-release.tgz '${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/hushle-release.tgz'
+          scp -P '${{ secrets.PROD_PORT }}' "$RUNNER_TEMP/hushle-release.tgz" '${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/hushle-release.tgz'
+          scp -P '${{ secrets.PROD_PORT }}' "$RUNNER_TEMP/hushle-release.tgz.sha256" '${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/hushle-release.tgz.sha256'
 
       - name: Deploy on server
         run: |
           ssh -p '${{ secrets.PROD_PORT }}' '${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}' <<'EOF'
           set -euo pipefail
           cd '${{ secrets.PROD_DEPLOY_PATH }}'
+          sha256sum -c hushle-release.tgz.sha256
           tar -xzf hushle-release.tgz
-          rm -f hushle-release.tgz
+          rm -f hushle-release.tgz hushle-release.tgz.sha256
           chmod +x scripts/ops/deploy.sh scripts/ops/mysql-backup.sh scripts/ops/mysql-restore.sh
           ./scripts/ops/deploy.sh
           EOF
