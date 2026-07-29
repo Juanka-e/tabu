@@ -98,6 +98,13 @@
 - admin kelime listesinde 7/30 gunluk bounded performans gorunumu
 - dusuk ornek uyarisi ve otomatik yaptirim uygulamayan liveops siniri
 
+### 15. `feature/release-ops-docs`
+- release gate, kanit kaydi ve production deploy gercegi
+- rollback/incident runbook'u ve launch-day checklist
+- production deploy concurrency, release SHA ve archive checksum
+- analytics env degerlerinin Compose app container parity'si
+- workflow, Compose, health ve dokuman kontrati regresyon testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

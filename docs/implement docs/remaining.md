@@ -4,22 +4,36 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/release-ops-docs` - siradaki
-2. `docs/encoding-cleanup`
-3. `feature/wallet-ledger-foundation`
-4. `feature/mobile-api-foundation`
-5. `feature/post-launch-economy-observability-review`
-6. `feature/post-launch-xp-level-foundation`
-7. `feature/post-launch-missions-foundation`
-8. `feature/post-launch-night-market-foundation`
+1. `docs/encoding-cleanup` - siradaki
+2. `feature/wallet-ledger-foundation`
+3. `feature/mobile-api-foundation`
+4. `feature/post-launch-economy-observability-review`
+5. `feature/post-launch-xp-level-foundation`
+6. `feature/post-launch-missions-foundation`
+7. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Aktif Branch
 
-### `feature/word-analytics-liveops`
+### `feature/release-ops-docs`
 
+Tamamlananlar:
+- gercek deploy davranisini anlatan release gate ve kanit runbook'u
+- manuel rollback/incident sinirlari ve destructive komut yasaklari
+- ilk public acilis icin launch-day checklist
+- production deploy concurrency, release SHA ve archive checksum dogrulamasi
+- product/word analytics env'lerinin Compose app container parity duzeltmesi
+- workflow, compose, health ve docs kontratini dogrulayan statik test
+
+Referans:
+- `docs/deploy/release-process.md`
+- `docs/deploy/rollback-and-incident.md`
+- `docs/deploy/launch-day-checklist.md`
+
+## Onceki Branch Kaydi
+### `feature/word-analytics-liveops`
 Tamamlananlar:
 - kelime ve kategori performansi icin PII'siz gunluk Redis aggregate
 - dogru, tabu, pas ve timeout sonucunu server-owned aktif karttan uretme
@@ -29,10 +43,6 @@ Tamamlananlar:
 - Redis/config arizasinda oyunu etkilemeyen best-effort kayit
 - health telemetry ve retention ayarlari
 
-Referans:
-- `docs/analytics-event-strategy.md`
-
-## Onceki Branch Kaydi
 ### `feature/analytics-event-foundation`
 Tamamlananlar:
 - versiyonlu `server_verified` ve `client_observed` event kontrati

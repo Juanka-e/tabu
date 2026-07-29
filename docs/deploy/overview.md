@@ -24,12 +24,19 @@ Temel kural:
   tarafinda da dogrulanir
 - Redis adapter ve ownership lease temelleri tek basina yatay realtime
   olceklendirme izni vermez
+- bugunku deploy arsivi mevcut klasorun ustune acilir; atomik release ve
+  otomatik rollback henuz yoktur
+- production schema degisikligi deploy scriptinin parcasi degildir; migration
+  gecmisi kurulana kadar ayri onayli operasyon gerektirir
 
 Ilgili dosyalar:
 
 - `docker-compose.dev.yml`
 - `docker-compose.yml`
 - `scripts/ops/deploy.sh`
+- `docs/deploy/release-process.md`
+- `docs/deploy/rollback-and-incident.md`
+- `docs/deploy/launch-day-checklist.md`
 - `docs/architecture/adr-003-single-realtime-writer-topology.md`
 - `docs/guides/deployment-security-guide.md`
 - `docs/guides/deployment-ops-runbook.md`

@@ -22,8 +22,23 @@ GitHub Actions workflow:
 Bu workflow:
 
 1. release arsivi olusturur
-2. SSH ile sunucuya yollar
-3. sunucuda `scripts/ops/deploy.sh` calistirir
+2. deploy edilen Git SHA'yi `.release-sha` icine yazar
+3. arsiv icin SHA-256 checksum uretir
+4. SSH ile arsiv ve checksum'i sunucuya yollar
+5. checksum'i dogrular
+6. sunucuda `scripts/ops/deploy.sh` calistirir
+7. production concurrency grubu ile ayni anda tek deploy calistirir
+
+Bugunku sinir:
+
+- arsiv mevcut deploy klasorunun ustune acilir
+- onceki release otomatik saklanmaz
+- post-deploy health ve otomatik rollback yoktur
+- DB schema otomatik degistirilmez
+
+Bu nedenle production environment manual approval zorunlu operasyon kapi
+olarak ele alinmalidir. Ayrintili akis:
+`docs/deploy/release-process.md`.
 
 Gerekli GitHub secrets:
 
