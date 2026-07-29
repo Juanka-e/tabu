@@ -72,8 +72,9 @@ Mevcut `ShopItem` modeli asagidaki alanlarla genisletilmeli:
   - enum: `avatar | frame | card_back | card_face | bundle`
 - `renderMode`
   - enum: `image | template`
-- `previewImageUrl`
-  - magazada gosterilecek kapak gorseli
+- `thumbnailUrl`
+  - magazada, envanterde ve discovery alaninda gosterilecek hafif kapak gorseli
+  - asil asset veya immutable satin alma snapshot'inin parcasi degildir
 - `assetUrl`
   - dosya tabanli urunlerde gercek asset yolu
 - `templateKey`
@@ -86,6 +87,17 @@ Mevcut `ShopItem` modeli asagidaki alanlarla genisletilmeli:
   - zamanli kampanyalar icin baslangic
 - `availableTo`
   - zamanli kampanyalar icin bitis
+
+### Thumbnail-first render karari
+
+- Grid kartlari `thumbnailUrl` varsa yalniz bu optimize asset'i lazy-load eder.
+- Thumbnail yoksa motion/flip calistirmayan statik bir fallback kullanilir.
+- Tam template renderer yalniz kullanici detay/onizleme modalini actiginda mount edilir.
+- Magaza ve envanter ilk 24 urunu render eder; devam eden urunler kullanici
+  "Daha fazla goster" dediginde 24'luk partilerle eklenir.
+- `thumbnailUrl` sunum/cache alanidir. Gameplay ve satin alma kimligi halen
+  `renderMode`, `renderSpecVersion`, `imageUrl`, `templateKey` ve
+  `templateConfig` snapshot'i ile korunur.
 
 ### UserProfile genisletmesi
 

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowUpRight, Plus, Sparkles, UserRound } from "lucide-react";
-import { CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
+import { CosmeticThumbnail, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinMark } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import { INVENTORY_UPDATED_EVENT } from "@/lib/inventory-events";
@@ -264,7 +264,7 @@ function QuickEquipPanel({
             title={`${item.name} • ${formatCosmeticTypeLabel(item.type)}`}
             type="button"
           >
-            <CosmeticMiniPreview item={item} />
+            <CosmeticThumbnail item={item} />
           </button>
         ))}
         <button
@@ -402,7 +402,7 @@ function DiscoveryStripPanel({
               className="flex min-w-0 flex-col rounded-2xl border border-white/70 bg-white/82 p-2.5 text-left transition hover:bg-white dark:border-slate-800/80 dark:bg-slate-900/80 dark:hover:bg-slate-900"
             >
               <div className="flex h-24 items-center justify-center overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-1.5 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
-                <CosmeticMiniPreview item={item} />
+                <CosmeticThumbnail item={item} />
               </div>
               <div className="mt-2 min-w-0">
                 <div className="truncate text-xs font-black text-slate-800 dark:text-white">

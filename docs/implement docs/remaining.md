@@ -4,35 +4,42 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/cosmetic-render-upgrade` - siradaki
-2. `feature/admin-cosmetic-authoring`
-3. `feature/analytics-event-foundation`
-4. `feature/word-analytics-liveops`
-5. `feature/release-ops-docs`
-6. `docs/encoding-cleanup`
-7. `feature/wallet-ledger-foundation`
-8. `feature/mobile-api-foundation`
-9. `feature/post-launch-economy-observability-review`
-10. `feature/post-launch-xp-level-foundation`
-11. `feature/post-launch-missions-foundation`
-12. `feature/post-launch-night-market-foundation`
+1. `feature/admin-cosmetic-authoring` - siradaki
+2. `feature/analytics-event-foundation`
+3. `feature/word-analytics-liveops`
+4. `feature/release-ops-docs`
+5. `docs/encoding-cleanup`
+6. `feature/wallet-ledger-foundation`
+7. `feature/mobile-api-foundation`
+8. `feature/post-launch-economy-observability-review`
+9. `feature/post-launch-xp-level-foundation`
+10. `feature/post-launch-missions-foundation`
+11. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Siradaki Branch
 
-### `feature/cosmetic-render-upgrade`
+### `feature/admin-cosmetic-authoring`
 
 Hedef:
-- magaza ve envanterde buyuk kataloglarda hafif thumbnail kullanimi
-- detay/onizleme acilana kadar agir kozmetik renderer'i calistirmama
-- avatar, frame ve kart kozmetiklerinde tutarli responsive oranlar
+- admin formunda kozmetik turune gore yonlendirilmis authoring akisi
+- thumbnail ve asil asset icin net boyut/dosya kurallari
+- template JSON icin guvenli hazir preset ve canli preview
 
 Referans:
 - `docs/guides/admin-shop-ux-planning-guide.md`
 
 ## Onceki Branch Kaydi
+### `feature/cosmetic-render-upgrade`
+Tamamlananlar:
+- nullable `thumbnailUrl` katalog alani ve admin upload/editor yuzeyi
+- magaza, envanter ve dashboard discovery alaninda ortak statik thumbnail
+- grid'de animasyon/motion calistirmayan hafif fallback renderer
+- magaza ve envanterde ilk 24 urun + kontrollu "Daha fazla goster" akisi
+- buyuk renderer'i yalniz detay modalinda mount eden ayrim
+
 ### `feature/offsite-backup-object-storage`
 Tamamlananlar:
 - local dump yaninda SHA-256 checksum uretimi
@@ -166,13 +173,6 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - ancak mobil backlog'u gercek implementasyona girdiginde acilacak
 - `apps/api` icin ilk API kontratlari
 - auth, profile, inventory ve progression gibi mobil dostu read/write surface'ler
-
-### `feature/cosmetic-render-upgrade`
-- magaza grid'inde thumbnail-first preview stratejisi
-- buyuk preview ile grid preview'ini ayirma
-- gerekirse `previewImageUrl` / `thumbnailUrl` alanlarini kataloga ekleme
-- kart / cerceve / avatar mini preview maliyetini dusurme
-- lazy loading, pagination veya virtualization ihtiyacini veri hacmine gore uygulama
 
 ### `feature/post-launch-economy-observability-review`
 - canlidan sonra gercek coin kazanimi gozlemi

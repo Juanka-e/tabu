@@ -1,6 +1,6 @@
 # Tamamlanan Isler
 
-> Son guncelleme: 15 March 2026
+> Son guncelleme: 29 July 2026
 > Durum: aktif completed log
 
 ## Yayinda Olan Temel Sistemler
@@ -72,6 +72,12 @@
 - kullanici ticket olusturma ve reply akisi
 - admin support kuyrugu, assignee, public reply ve internal note
 - support aksiyonlari icin audit log baglantisi
+
+### 11. `feature/cosmetic-render-upgrade`
+- katalogda asil asset'ten bagimsiz nullable `thumbnailUrl`
+- grid ve discovery yuzeylerinde memoized, statik thumbnail renderer
+- ilk 24 urun ve kullanici kontrollu batch genisletme
+- animasyonlu buyuk renderer'i yalniz detay modalinda mount etme
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

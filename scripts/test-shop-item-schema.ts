@@ -18,6 +18,7 @@ const imageItem = shopItemWriteSchema.safeParse({
     renderMode: "image",
     priceCoin: 420,
     imageUrl: "/cosmetics/mock/avatars/pulse-fox.svg",
+    thumbnailUrl: "/cosmetics/mock/thumbnails/pulse-fox.webp",
     templateKey: null,
     templateConfig: null,
     badgeText: "Yeni",
@@ -27,6 +28,13 @@ const imageItem = shopItemWriteSchema.safeParse({
 });
 
 assert.equal(imageItem.success, true);
+if (!imageItem.success) {
+    throw new Error("image item parse failed unexpectedly");
+}
+assert.equal(
+    toPrismaShopItemCreateData(imageItem.data).thumbnailUrl,
+    "/cosmetics/mock/thumbnails/pulse-fox.webp"
+);
 
 const templateItem = shopItemWriteSchema.safeParse({
     code: "ember_face",
@@ -67,5 +75,15 @@ const invalidAvatar = shopItemUpdateSchema.safeParse({
 });
 
 assert.equal(invalidAvatar.success, false);
+
+const invalidThumbnail = shopItemUpdateSchema.safeParse({
+    thumbnailUrl: "data:image/svg+xml,<svg onload=alert(1)>",
+});
+
+assert.equal(invalidThumbnail.success, false);
+assert.equal(
+    shopItemUpdateSchema.parse({ thumbnailUrl: "" }).thumbnailUrl,
+    ""
+);
 
 console.log("shop item schema smoke test passed");

@@ -428,6 +428,7 @@ model ShopItem {
   renderSpecVersion Int  @default(1) @map("render_spec_version")
   priceCoin Int          @map("price_coin")
   imageUrl  String       @map("image_url") @db.Text
+  thumbnailUrl String?   @map("thumbnail_url") @db.Text
   templateKey String?    @map("template_key") @db.VarChar(80)
   templateConfig Json?   @map("template_config")
   badgeText String?      @map("badge_text") @db.VarChar(24)
