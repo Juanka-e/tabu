@@ -39,9 +39,24 @@ test.describe("registered web launch flow", () => {
     await page.getByRole("button", { name: /^Giris Yap$/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+        )
+      )
+      .toBe(true);
     await page.getByRole("button", { name: /^Oyna$/i }).click();
     await page.getByRole("button", { name: /Yeni Oda Olustur/i }).click();
     await expect(page).toHaveURL(/\/room\/[A-Z0-9]{6}$/, { timeout: 15_000 });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+        )
+      )
+      .toBe(true);
     await expect(page.getByText(username, { exact: false }).first()).toBeVisible();
   });
 });
