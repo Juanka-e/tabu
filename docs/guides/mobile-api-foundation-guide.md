@@ -133,7 +133,9 @@ net, server-owned opaque token modelidir.
 
 Detaylar `docs/guides/mobile-auth-foundation-guide.md` içindedir. Production
 enablement explicit flag ile yapılır. Player core, inventory/equip ve store
-catalog read tamamlanmistir; siradaki route tasimasi notifications read'dir.
+catalog read tamamlanmistir. Yeni mobil route tasimalari web acilisi stabil
+hale gelene kadar duraklatilmistir; devam sirasi
+`apps/api/MOBILE_ROADMAP.md` icindedir.
 
 ### Faz 3 - player core - tamamlandı
 

@@ -4,14 +4,21 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/mobile-notifications-read`
-2. `feature/post-launch-economy-observability-review`
-3. `feature/post-launch-xp-level-foundation`
-4. `feature/post-launch-missions-foundation`
-5. `feature/post-launch-night-market-foundation`
+1. `feature/web-launch-readiness-validation`
+2. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
+3. `feature/web-real-device-responsive-smoke`
+4. `feature/post-launch-economy-observability-review`
+5. `feature/post-launch-xp-level-foundation`
+6. `feature/post-launch-missions-foundation`
+7. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
+
+Native mobil API genisletmesi web acilisi stabil hale gelene kadar
+duraklatildi. Tamamlananlar ve yeniden baslama sirasi
+`apps/api/MOBILE_ROADMAP.md` icinde tutulur. Web'in mobil responsive testleri
+bu ertelemenin disindadir.
 
 ## Aktif Branch
 
@@ -205,7 +212,9 @@ Bilincli olarak bu branch'te yapmiyoruz:
 ### `feature/mobile-api-foundation`
 - runtime ve ilk transport kontratlari tamamlandi
 - mobile auth, player core, inventory/equip ve store catalog read tamamlandi
-- siradaki dar dilim notifications read; progression launch sonrasina ertelendi
+- yeni endpoint gelistirmesi web acilisi stabil hale gelene kadar duraklatildi
+- ertelenen notifications, support ve purchase sirasi
+  `apps/api/MOBILE_ROADMAP.md` icinde korunuyor
 
 ### `feature/post-launch-economy-observability-review`
 - canlidan sonra gercek coin kazanimi gozlemi
@@ -218,8 +227,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
   katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
 - `apps/api` runtime ve mobile auth temeli tamamlandi; production deploy explicit
   flag ile kapali. `/v1/me`, profile read/write, bounded inventory read ve
-  equip/unequip ve store catalog read tamamlandi; siradaki endpoint
-  notifications read'dir.
+  equip/unequip ve store catalog read tamamlandi. Mobil genisleme web acilisi
+  stabil hale gelene kadar duraklatildi.
 - modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.

@@ -406,6 +406,11 @@ Onerilen implementasyon sirasi:
 - revision tabanli Redis/memory katalog page cache
 - cache disinda kalan user coin/owned/equipped overlay'i
 
+Sonraki mobil dilimler web acilisi stabil hale gelene kadar duraklatildi.
+Tamamlanan kapsam, ertelenen siralama ve yeniden baslatma kapisi
+`apps/api/MOBILE_ROADMAP.md` icinde tutulur. Web mobil responsive calismalari
+`apps/web` kapsaminda devam eder.
+
 ## Guardrails
 
 Gecis boyunca korunacak kurallar:
