@@ -12,6 +12,7 @@ import {
 } from "@hushle/platform-auth";
 import {
     MOBILE_API_ROUTES,
+    type MobileApiError,
     type MobileAuthLoginData,
     type MobileAuthSessionData,
     type MobileAuthTokenData,
@@ -22,21 +23,7 @@ export type AuthRouteResult = {
     status: number;
     data?: unknown;
     error?: {
-        code:
-            | "invalid_request"
-            | "invalid_credentials"
-            | "invalid_token"
-            | "token_expired"
-            | "token_reuse_detected"
-            | "account_suspended"
-            | "captcha_failed"
-            | "rate_limited"
-            | "auth_unavailable"
-            | "session_not_found"
-            | "invalid_profile"
-            | "email_conflict"
-            | "user_not_found"
-            | "method_not_allowed";
+        code: MobileApiError["error"]["code"];
         message: string;
     };
     headers?: Record<string, string>;

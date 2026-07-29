@@ -271,6 +271,7 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                           body,
                           method: request.method ?? "GET",
                           pathname: url.pathname,
+                          query: url.searchParams,
                           remoteIp,
                           request,
                       });
@@ -324,7 +325,9 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                         profile: options.authEnabled
                             ? "available"
                             : "planned",
-                        inventory: "planned",
+                        inventory: options.authEnabled
+                            ? "available"
+                            : "planned",
                         progression: "planned",
                         realtimeGameplay: "web_runtime_only",
                         admin: "web_runtime_only",

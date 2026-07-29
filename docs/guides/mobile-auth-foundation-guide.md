@@ -16,8 +16,8 @@
 
 Bu, `apps/web/src/app/api` klasörünün topluca taşınması değildir. Route'lar
 business servisleri ortak package sınırına çıkarıldıkça tek tek taşınır.
-`/v1/me` ve profile read/write tamamlanmıştır; sıradaki dilim inventory read ve
-equip mutation'dır.
+`/v1/me`, profile read/write, inventory read ve equip mutation tamamlanmistir.
+Siradaki dilim store catalog read'dir.
 
 ## Token Modeli
 

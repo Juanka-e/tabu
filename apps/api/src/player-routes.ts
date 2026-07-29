@@ -10,10 +10,18 @@ import {
     updatePlayerProfile,
 } from "@hushle/platform-player";
 import {
+    equipInventoryItem,
+    getInventoryPage,
+    InventoryError,
+} from "@hushle/platform-inventory";
+import {
     MOBILE_API_ROUTES,
+    type MobileEquippedInventoryData,
+    type MobileInventoryData,
     type MobilePlayerCoreData,
 } from "@hushle/api-contracts";
 import type { AuthRouteResult } from "./auth-routes.js";
+import { isMobileStoreAvailable } from "./store-policy.js";
 
 type PlayerRouteContext = {
     authEnabled: boolean;
@@ -22,6 +30,7 @@ type PlayerRouteContext = {
     pathname: string;
     remoteIp: string;
     request: IncomingMessage;
+    query: URLSearchParams;
 };
 
 function getBearerToken(request: IncomingMessage): string | null {
@@ -60,6 +69,36 @@ function mapPlayerError(error: unknown): AuthRouteResult {
             },
         };
     }
+    if (error instanceof InventoryError) {
+        const code =
+            error.code === "invalid_cursor"
+                ? "invalid_request"
+                : error.code === "item_not_found"
+                ? "inventory_item_not_found"
+                : error.code === "not_owned"
+                  ? "inventory_item_not_owned"
+                  : error.code === "type_mismatch"
+                    ? "inventory_type_mismatch"
+                    : error.code;
+        const status =
+            error.code === "user_not_found" ||
+            error.code === "item_not_found"
+                ? 404
+                : error.code === "invalid_request" ||
+                    error.code === "invalid_cursor"
+                  ? 422
+                  : 409;
+        return {
+            status,
+            error: {
+                code,
+                message:
+                    error.code === "invalid_cursor"
+                        ? "Inventory cursor is invalid."
+                        : error.message,
+            },
+        };
+    }
     throw error;
 }
 
@@ -88,7 +127,9 @@ async function applyLimit(input: {
 export function isPlayerRoute(pathname: string): boolean {
     return (
         pathname === MOBILE_API_ROUTES.me ||
-        pathname === MOBILE_API_ROUTES.profile
+        pathname === MOBILE_API_ROUTES.profile ||
+        pathname === MOBILE_API_ROUTES.inventory ||
+        pathname === MOBILE_API_ROUTES.inventoryEquipped
     );
 }
 
@@ -130,6 +171,50 @@ export async function handlePlayerRoute(
             const data: MobilePlayerCoreData = await getPlayerCore(
                 auth.user.id
             );
+            return { status: 200, data };
+        }
+
+        if (
+            context.pathname === MOBILE_API_ROUTES.inventory &&
+            context.method === "GET"
+        ) {
+            const limit = await applyLimit({
+                scope: "player-inventory",
+                identifier: `${auth.user.id}:${context.remoteIp}`,
+                limit: 120,
+            });
+            if (limit) return limit;
+            const data: MobileInventoryData = await getInventoryPage({
+                userId: auth.user.id,
+                query: Object.fromEntries(context.query.entries()),
+            });
+            return { status: 200, data };
+        }
+
+        if (
+            context.pathname === MOBILE_API_ROUTES.inventoryEquipped &&
+            context.method === "PATCH"
+        ) {
+            const limit = await applyLimit({
+                scope: "player-inventory-equip",
+                identifier: `${auth.user.id}:${context.remoteIp}`,
+                limit: 30,
+            });
+            if (limit) return limit;
+            if (!(await isMobileStoreAvailable())) {
+                return {
+                    status: 409,
+                    error: {
+                        code: "store_unavailable",
+                        message: "Store is currently unavailable.",
+                    },
+                };
+            }
+            const data: MobileEquippedInventoryData =
+                await equipInventoryItem({
+                    userId: auth.user.id,
+                    request: context.body,
+                });
             return { status: 200, data };
         }
 

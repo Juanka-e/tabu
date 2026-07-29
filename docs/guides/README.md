@@ -77,3 +77,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 - mobile auth foundation, opaque token rotation ve cihaz oturumu revoke modelini tanimlar
 - mobile player core, `/v1/me` ve ortak profile update servisini tanimlar
 - bearer auth gate'i ile profile/inventory/economy route tasima sirasini aciklar
+
+17. `mobile-inventory-and-equip-guide.md`
+- bounded mobil inventory pagination ve equip/unequip kontratini tanimlar
+- web ve mobil runtime'in ortak sahiplik/tur dogrulamasini aciklar

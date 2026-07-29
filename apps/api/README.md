@@ -8,14 +8,17 @@ runtime'ı.
 - bağımsız Node HTTP process'i
 - `GET /health`
 - `GET /v1/meta`
+- `GET /v1/inventory`
+- `PATCH /v1/inventory/equipped`
 - ortak success/error JSON zarfı
 - `X-Request-Id` ve `X-Api-Version`
 - exact browser CORS allowlist
 - origin göndermeyen native/server istemciler için transport desteği
 - opsiyonel Docker `api` profili
 
-Runtime opaque bearer/refresh kimlik doğrulamasını sunar. Profile, inventory ve
-ekonomi route'ları ortak business service'leri çıkarılmadan açılmaz.
+Runtime opaque bearer/refresh kimlik doğrulamasını sunar. Profile ve inventory
+route'lari ortak business service'leri kullanir. Economy route'lari ayni
+ayristirma yapilmadan acilmaz.
 
 ## Local Çalıştırma
 
@@ -52,10 +55,11 @@ Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
 
 1. bearer access/refresh auth ve token rotation - tamamlandı
 2. `/v1/me` ve profile read/write - tamamlandı
-3. inventory read ve equip
-4. store catalog ve satın alma
-5. notifications ve support
-6. shared presence hazır olduğunda active-room/read modelleri
+3. inventory read ve equip - tamamlandı
+4. store catalog read
+5. server-side fiyatlama ve wallet ledger ile satin alma
+6. notifications ve support
+7. shared presence hazır olduğunda active-room/read modelleri
 
 Admin route'ları web BFF'de kalır. Match finalize, room state bağımsız ve
 owner-aware hale gelmeden realtime writer runtime'ından taşınmaz.
