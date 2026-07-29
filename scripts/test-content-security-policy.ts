@@ -30,7 +30,7 @@ assert.equal(
     shouldUpgradeInsecureRequests(false, "http://192.168.1.20:3202"),
     false
 );
-assert.equal(shouldUpgradeInsecureRequests(false, undefined), true);
+assert.equal(shouldUpgradeInsecureRequests(false, ""), true);
 assert.equal(shouldUpgradeInsecureRequests(false, "not-a-url"), true);
 
 const externalSourcePolicy = buildContentSecurityPolicy({
