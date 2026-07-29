@@ -128,6 +128,8 @@
 - bearer auth sonrasina bagli kademeli route migration plani
 - opaque access/refresh token, rotation, reuse family revoke, cihaz oturumu
   listeleme/revoke ve mobile auth retention temeli
+- ortak player-core servisi, `/v1/me`, profile update ve transaction icinde
+  web/mobile audit parity
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

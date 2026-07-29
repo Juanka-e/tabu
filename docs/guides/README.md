@@ -75,4 +75,5 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 18. `mobile-api-foundation-guide.md`
 - apps/api runtime, surumlu JSON kontrati ve transport guvenlik sinirlarini tanimlar
 - mobile auth foundation, opaque token rotation ve cihaz oturumu revoke modelini tanimlar
+- mobile player core, `/v1/me` ve ortak profile update servisini tanimlar
 - bearer auth gate'i ile profile/inventory/economy route tasima sirasini aciklar

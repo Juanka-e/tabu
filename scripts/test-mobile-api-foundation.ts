@@ -89,7 +89,7 @@ async function run(): Promise<void> {
         assert.equal(preflight.status, 204);
         assert.equal(
             preflight.headers.get("access-control-allow-methods"),
-            "GET, POST, DELETE, OPTIONS"
+            "GET, POST, PATCH, DELETE, OPTIONS"
         );
 
         const wrongMethod = await fetch(`${baseUrl}${MOBILE_API_ROUTES.meta}`, {
@@ -178,6 +178,29 @@ async function run(): Promise<void> {
     assert.equal(disabledAuth.status, 503);
     const disabledPayload = (await disabledAuth.json()) as MobileApiError;
     assert.equal(disabledPayload.error.code, "auth_unavailable");
+
+    const disabledPlayerServer = createServer(
+        createMobileApiHttpHandler({
+            allowedOrigins: new Set(),
+            authEnabled: false,
+        })
+    );
+    await new Promise<void>((resolveListen) =>
+        disabledPlayerServer.listen(0, "127.0.0.1", resolveListen)
+    );
+    const disabledPlayerAddress =
+        disabledPlayerServer.address() as AddressInfo;
+    const disabledPlayer = await fetch(
+        `http://127.0.0.1:${disabledPlayerAddress.port}${MOBILE_API_ROUTES.me}`
+    );
+    await new Promise<void>((resolveClose) =>
+        disabledPlayerServer.close(() => resolveClose())
+    );
+    assert.equal(disabledPlayer.status, 503);
+    assert.equal(
+        ((await disabledPlayer.json()) as MobileApiError).error.code,
+        "auth_unavailable"
+    );
 
     const apiSourceRoot = resolve(process.cwd(), "apps/api/src");
     for (const file of collectFiles(apiSourceRoot).filter((path) =>

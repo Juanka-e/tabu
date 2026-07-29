@@ -131,13 +131,13 @@ net, server-owned opaque token modelidir.
 - `platform-auth` veya eşdeğer shared package
 
 Detaylar `docs/guides/mobile-auth-foundation-guide.md` içindedir. Production
-enablement explicit flag ile yapılır; sıradaki route taşıması `/v1/me` ve profile
-servisidir.
+enablement explicit flag ile yapılır. Player core tamamlanmıştır; sıradaki route
+taşıması inventory read ve equip mutation'dır.
 
-### Faz 3 - player core
+### Faz 3 - player core - kısmen tamamlandı
 
-- `/v1/me`
-- profile read/write
+- `/v1/me` - tamamlandı
+- profile read/write - tamamlandı
 - inventory read
 - equip mutation
 

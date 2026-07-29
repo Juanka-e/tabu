@@ -14,6 +14,10 @@ import {
     isAuthRoute,
     type AuthRouteResult,
 } from "./auth-routes.js";
+import {
+    handlePlayerRoute,
+    isPlayerRoute,
+} from "./player-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
@@ -69,7 +73,7 @@ function applyCorsHeaders(
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader(
         "Access-Control-Allow-Methods",
-        "GET, POST, DELETE, OPTIONS"
+        "GET, POST, PATCH, DELETE, OPTIONS"
     );
     response.setHeader(
         "Access-Control-Allow-Headers",
@@ -221,9 +225,12 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
         }
 
         try {
-            if (isAuthRoute(url.pathname)) {
+            if (isAuthRoute(url.pathname) || isPlayerRoute(url.pathname)) {
                 let body: unknown = {};
-                if (request.method === "POST") {
+                if (
+                    request.method === "POST" ||
+                    request.method === "PATCH"
+                ) {
                     try {
                         body = await readJsonBody(request);
                     } catch {
@@ -239,24 +246,34 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                         return;
                     }
                 }
-                const result = await handleAuthRoute({
-                    authEnabled: options.authEnabled ?? false,
-                    authOptions: {
-                        accessTtlMs:
-                            options.accessTokenTtlMs ?? 15 * 60_000,
-                        refreshTtlMs:
-                            options.refreshTokenTtlMs ??
-                            30 * 24 * 60 * 60_000,
-                    },
-                    body,
-                    method: request.method ?? "GET",
-                    pathname: url.pathname,
-                    remoteIp: getRemoteIp(
-                        request,
-                        options.trustProxy ?? false
-                    ),
+                const remoteIp = getRemoteIp(
                     request,
-                });
+                    options.trustProxy ?? false
+                );
+                const result = isAuthRoute(url.pathname)
+                    ? await handleAuthRoute({
+                          authEnabled: options.authEnabled ?? false,
+                          authOptions: {
+                              accessTtlMs:
+                                  options.accessTokenTtlMs ?? 15 * 60_000,
+                              refreshTtlMs:
+                                  options.refreshTokenTtlMs ??
+                                  30 * 24 * 60 * 60_000,
+                          },
+                          body,
+                          method: request.method ?? "GET",
+                          pathname: url.pathname,
+                          remoteIp,
+                          request,
+                      })
+                    : await handlePlayerRoute({
+                          authEnabled: options.authEnabled ?? false,
+                          body,
+                          method: request.method ?? "GET",
+                          pathname: url.pathname,
+                          remoteIp,
+                          request,
+                      });
                 sendAuthResult(response, requestId, result);
                 return;
             }
@@ -304,7 +321,9 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                         bearerAuth: options.authEnabled
                             ? "available"
                             : "planned",
-                        profile: "planned",
+                        profile: options.authEnabled
+                            ? "available"
+                            : "planned",
                         inventory: "planned",
                         progression: "planned",
                         realtimeGameplay: "web_runtime_only",
