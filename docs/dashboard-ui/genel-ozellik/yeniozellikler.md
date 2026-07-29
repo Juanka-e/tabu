@@ -59,9 +59,9 @@
 
 ### Gelecek Odeme Stratejisi
 - Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
-- Uygun zamanda `wallet ledger` omurgasi kurulacak.
+- `feature/wallet-ledger-foundation` ile wallet ledger omurgasi kuruldu.
+- Bakiye ve immutable hareket kaydi ayni MySQL transaction'inda yaziliyor.
 - Olasi ileriki branch'ler:
-  - `feature/wallet-ledger-foundation`
   - `feature/payment-orders-foundation`
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 

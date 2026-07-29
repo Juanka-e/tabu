@@ -20,6 +20,7 @@ import {
   requiresDetailedMatchFinalizeAudit,
 } from "@/lib/security/telemetry-rollup";
 import { getSystemSettings } from "@/lib/system-settings/service";
+import { applyWalletLedgerMutation } from "@/lib/wallet-ledger/service";
 
 const finalizeSchema = z.object({
   roomCode: z.string().trim().min(4).max(10),
@@ -274,12 +275,24 @@ export async function POST(req: Request) {
         };
       }
 
-      await tx.wallet.update({
-        where: { userId: sessionUser.id },
-        data: { coinBalance: { increment: coinEarned } },
-      });
-
-      const wallet = await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
+      const ledgerMutation =
+        coinEarned > 0
+          ? await applyWalletLedgerMutation(tx, {
+              userId: sessionUser.id,
+              source: "match_reward",
+              deltaCoin: coinEarned,
+              idempotencyKey: `match_result:${created.id}:reward`,
+              referenceType: "match_result",
+              referenceId: created.id,
+              metadata: {
+                gameMode: room.gameMode,
+                won: evaluation.won,
+              },
+            })
+          : null;
+      const wallet = ledgerMutation
+        ? { coinBalance: ledgerMutation.balanceAfter }
+        : await tx.wallet.findUnique({ where: { userId: sessionUser.id } });
       return {
         created,
         wallet,

@@ -19,6 +19,7 @@ import {
     sanitizeEmail,
 } from "@/lib/users/email";
 import { recordUserRegistrationSignal } from "@/lib/security/user-access-signal";
+import { initializeWalletLedger } from "@/lib/wallet-ledger/service";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
@@ -99,20 +100,27 @@ export async function POST(req: Request) {
 
         const hashedPassword = await bcryptjs.hash(password, 10);
 
-        const user = await prisma.user.create({
-            data: {
-                username,
-                email: sanitizedEmail,
-                normalizedEmail,
-                password: hashedPassword,
-                role: "user",
-                wallet: {
-                    create: { coinBalance: settings.economy.startingCoinBalance },
+        const user = await prisma.$transaction(async (tx) => {
+            const createdUser = await tx.user.create({
+                data: {
+                    username,
+                    email: sanitizedEmail,
+                    normalizedEmail,
+                    password: hashedPassword,
+                    role: "user",
+                    wallet: {
+                        create: { coinBalance: settings.economy.startingCoinBalance },
+                    },
+                    profile: {
+                        create: {},
+                    },
                 },
-                profile: {
-                    create: {},
-                },
-            },
+            });
+            await initializeWalletLedger(tx, {
+                userId: createdUser.id,
+                source: "account_opening",
+            });
+            return createdUser;
         });
 
         await recordUserRegistrationSignal({

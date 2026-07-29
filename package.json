@@ -41,6 +41,8 @@
     "test:word-analytics": "tsx scripts/test-word-analytics-liveops.ts",
     "test:release-ops-docs": "tsx scripts/test-release-ops-docs.ts",
     "test:encoding-integrity": "tsx scripts/test-encoding-integrity.ts",
+    "test:wallet-ledger": "tsx scripts/test-wallet-ledger-foundation.ts",
+    "test:wallet-ledger-integration": "tsx scripts/test-wallet-ledger-integration.ts",
     "test:admin-dashboard-cache": "tsx scripts/test-admin-dashboard-cache.ts",
     "typecheck:packages": "tsc -p packages/domain-game/tsconfig.json && tsc -p packages/platform-cache/tsconfig.json && tsc -p packages/platform-db/tsconfig.json && tsc -p apps/jobs/tsconfig.json",
     "test:package-boundaries": "tsx scripts/test-package-boundaries.ts",

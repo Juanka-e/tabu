@@ -7,6 +7,7 @@ export {
     PromotionDiscountType,
     PromotionTargetType,
     ShopItemType,
+    WalletLedgerSource,
 } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {

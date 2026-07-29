@@ -67,3 +67,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 16. `player-display-name-and-audit-strategy-guide.md`
 - kayitli oyuncunun gorunen adi, hesap username'i ve audit snapshot ayrimini tanimlar
 - displayName degisikligi ile gameplay UI polish backlog'unu ayni cercevede toplar
+
+17. `wallet-ledger-foundation-guide.md`
+- coin bakiyesi ile immutable hareket zincirinin transaction kontratini tanimlar
+- legacy snapshot, eszamanli harcama, admin reconciliation ve production rollout adimlarini aciklar

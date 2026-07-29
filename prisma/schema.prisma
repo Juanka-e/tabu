@@ -67,6 +67,16 @@ enum WalletAdjustmentType {
   debit
 }
 
+enum WalletLedgerSource {
+  legacy_balance_snapshot
+  account_opening
+  match_reward
+  store_item_purchase
+  store_bundle_purchase
+  coin_grant
+  admin_adjustment
+}
+
 enum CoinGrantClaimStatus {
   completed
 }
@@ -132,6 +142,7 @@ model User {
   moderationActionsReceived UserModerationEvent[] @relation("ModerationTarget")
   walletAdjustmentsAuthored WalletAdjustment[] @relation("WalletAdjustmentActor")
   walletAdjustmentsReceived WalletAdjustment[] @relation("WalletAdjustmentTarget")
+  walletLedgerEntriesAuthored WalletLedgerEntry[] @relation("WalletLedgerActor")
   coinGrantClaims          CoinGrantClaim[]
   coinGrantCampaignUsage   CoinGrantCampaignUser[]
   supportTicketsOwned      SupportTicket[]        @relation("SupportTicketOwner")
@@ -250,9 +261,35 @@ model Wallet {
   coinBalance Int      @default(0) @map("coin_balance")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries WalletLedgerEntry[]
 
   @@map("wallets")
+}
+
+model WalletLedgerEntry {
+  id             Int                @id @default(autoincrement())
+  walletId       Int                @map("wallet_id")
+  source         WalletLedgerSource
+  deltaCoin      Int                @map("delta_coin")
+  balanceBefore  Int                @map("balance_before")
+  balanceAfter   Int                @map("balance_after")
+  idempotencyKey String             @unique @map("idempotency_key") @db.VarChar(191)
+  referenceType  String?            @map("reference_type") @db.VarChar(80)
+  referenceId    String?            @map("reference_id") @db.VarChar(120)
+  actorUserId    Int?               @map("actor_user_id")
+  metadata       Json?              @db.Json
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  wallet      Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  actorUser   User?              @relation("WalletLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  adjustment  WalletAdjustment?
+
+  @@index([walletId, createdAt])
+  @@index([source, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([actorUserId, createdAt])
+  @@map("wallet_ledger_entries")
 }
 
 model WalletAdjustment {
@@ -264,10 +301,12 @@ model WalletAdjustment {
   reason        String               @db.VarChar(500)
   balanceBefore Int                  @map("balance_before")
   balanceAfter  Int                  @map("balance_after")
+  ledgerEntryId Int?                 @unique @map("ledger_entry_id")
   createdAt     DateTime             @default(now()) @map("created_at")
 
   targetUser User  @relation("WalletAdjustmentTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
   actorUser  User? @relation("WalletAdjustmentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  ledgerEntry WalletLedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
 
   @@index([targetUserId, createdAt])
   @@index([actorUserId, createdAt])

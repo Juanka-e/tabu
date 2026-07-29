@@ -20,6 +20,10 @@ import {
     getStoreLiveopsState,
 } from "@/lib/system-settings/economy";
 import { getSystemSettings } from "@/lib/system-settings/service";
+import {
+    applyWalletLedgerMutation,
+    WalletLedgerInsufficientBalanceError,
+} from "@/lib/wallet-ledger/service";
 import type { SystemSettings } from "@/types/system-settings";
 import type {
     CatalogBundleView,
@@ -1467,7 +1471,9 @@ export async function purchaseStoreItem(
 ): Promise<PurchaseItemResult> {
     const settings = settingsInput ?? await getSystemSettings();
 
-    const result = await prisma.$transaction<PurchaseItemResult>(async (tx) => {
+    let result: PurchaseItemResult;
+    try {
+        result = await prisma.$transaction<PurchaseItemResult>(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
             update: {},
@@ -1588,10 +1594,29 @@ export async function purchaseStoreItem(
             }
         }
 
-        await tx.wallet.update({
-            where: { userId },
-            data: { coinBalance: { decrement: finalPriceCoin } },
+        const purchase = await tx.purchase.create({
+            data: {
+                userId,
+                shopItemId,
+                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
+                priceCoin: finalPriceCoin,
+                listPriceCoin: effectivePriceCoin,
+                discountCoin: effectivePriceCoin - finalPriceCoin,
+                status: "completed",
+            },
         });
+        const walletMutation =
+            finalPriceCoin > 0
+                ? await applyWalletLedgerMutation(tx, {
+                      userId,
+                      source: "store_item_purchase",
+                      deltaCoin: -finalPriceCoin,
+                      idempotencyKey: `purchase:${purchase.id}:spend`,
+                      referenceType: "purchase",
+                      referenceId: purchase.id,
+                      metadata: { shopItemId },
+                  })
+                : null;
 
         await tx.inventoryItem.create({
             data: {
@@ -1611,18 +1636,6 @@ export async function purchaseStoreItem(
             },
         });
 
-        await tx.purchase.create({
-            data: {
-                userId,
-                shopItemId,
-                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
-                priceCoin: finalPriceCoin,
-                listPriceCoin: effectivePriceCoin,
-                discountCoin: effectivePriceCoin - finalPriceCoin,
-                status: "completed",
-            },
-        });
-
         await createUserNotificationWithClient(tx, {
             userId,
             type: "economy",
@@ -1639,14 +1652,19 @@ export async function purchaseStoreItem(
             },
         }, { deferCacheInvalidation: true });
 
-        const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
             ok: true,
             item,
-            coinBalance: updatedWallet?.coinBalance ?? 0,
+            coinBalance: walletMutation?.balanceAfter ?? wallet.coinBalance,
             finalPriceCoin,
         };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    } catch (error) {
+        if (error instanceof WalletLedgerInsufficientBalanceError) {
+            return { ok: false, code: "insufficient_balance" };
+        }
+        throw error;
+    }
     if (result.ok) {
         await invalidateNotificationUnreadCountCache(userId);
     }
@@ -1661,7 +1679,9 @@ export async function purchaseStoreBundle(
 ): Promise<PurchaseBundleResult> {
     const settings = settingsInput ?? await getSystemSettings();
 
-    const result = await prisma.$transaction<PurchaseBundleResult>(async (tx) => {
+    let result: PurchaseBundleResult;
+    try {
+        result = await prisma.$transaction<PurchaseBundleResult>(async (tx) => {
         await tx.wallet.upsert({
             where: { userId },
             update: {},
@@ -1801,10 +1821,32 @@ export async function purchaseStoreBundle(
             }
         }
 
-        await tx.wallet.update({
-            where: { userId },
-            data: { coinBalance: { decrement: finalPriceCoin } },
+        const purchase = await tx.purchase.create({
+            data: {
+                userId,
+                bundleId: bundle.id,
+                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
+                priceCoin: finalPriceCoin,
+                listPriceCoin: effectivePriceCoin,
+                discountCoin: effectivePriceCoin - finalPriceCoin,
+                status: "completed",
+            },
         });
+        const walletMutation =
+            finalPriceCoin > 0
+                ? await applyWalletLedgerMutation(tx, {
+                      userId,
+                      source: "store_bundle_purchase",
+                      deltaCoin: -finalPriceCoin,
+                      idempotencyKey: `purchase:${purchase.id}:spend`,
+                      referenceType: "purchase",
+                      referenceId: purchase.id,
+                      metadata: {
+                          bundleId: bundle.id,
+                          awardedItemCount: awardedEntries.length,
+                      },
+                  })
+                : null;
 
         await tx.inventoryItem.createMany({
             data: awardedEntries.map((entry) => ({
@@ -1824,18 +1866,6 @@ export async function purchaseStoreBundle(
             })),
         });
 
-        await tx.purchase.create({
-            data: {
-                userId,
-                bundleId: bundle.id,
-                couponCodeId: resolvedPricing?.ok ? coupon?.id ?? null : null,
-                priceCoin: finalPriceCoin,
-                listPriceCoin: effectivePriceCoin,
-                discountCoin: effectivePriceCoin - finalPriceCoin,
-                status: "completed",
-            },
-        });
-
         await createUserNotificationWithClient(tx, {
             userId,
             type: "economy",
@@ -1853,15 +1883,20 @@ export async function purchaseStoreBundle(
             },
         }, { deferCacheInvalidation: true });
 
-        const updatedWallet = await tx.wallet.findUnique({ where: { userId } });
         return {
             ok: true,
             bundle,
             awardedItems: awardedEntries.map((entry) => entry.shopItem),
-            coinBalance: updatedWallet?.coinBalance ?? 0,
+            coinBalance: walletMutation?.balanceAfter ?? wallet.coinBalance,
             finalPriceCoin,
         };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    } catch (error) {
+        if (error instanceof WalletLedgerInsufficientBalanceError) {
+            return { ok: false, code: "insufficient_balance" };
+        }
+        throw error;
+    }
     if (result.ok) {
         await invalidateNotificationUnreadCountCache(userId);
     }
