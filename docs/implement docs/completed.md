@@ -126,6 +126,8 @@
 - varsayilan kapali Docker API profili
 - runtime HTTP ve package boundary regresyon testi
 - bearer auth sonrasina bagli kademeli route migration plani
+- opaque access/refresh token, rotation, reuse family revoke, cihaz oturumu
+  listeleme/revoke ve mobile auth retention temeli
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

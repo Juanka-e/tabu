@@ -14,8 +14,8 @@ runtime'ı.
 - origin göndermeyen native/server istemciler için transport desteği
 - opsiyonel Docker `api` profili
 
-Runtime bugün kullanıcı verisi sunmaz. Bearer/refresh token kimlik doğrulaması
-tamamlanmadan profile, inventory veya mutation endpoint'i açılmaz.
+Runtime opaque bearer/refresh kimlik doğrulamasını sunar. Profile, inventory ve
+ekonomi route'ları ortak business service'leri çıkarılmadan açılmaz.
 
 ## Local Çalıştırma
 
@@ -50,8 +50,8 @@ Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
 
 ## Taşıma Sırası
 
-1. bearer access/refresh auth ve token rotation
-2. profile read/write
+1. bearer access/refresh auth ve token rotation - tamamlandı
+2. `/v1/me` ve profile read/write
 3. inventory read ve equip
 4. store catalog ve satın alma
 5. notifications ve support

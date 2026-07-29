@@ -1,7 +1,9 @@
 import { runAuditRetention } from "./audit-retention";
 import { getAuditRetentionConfig } from "./config";
+import { getMobileAuthRetentionConfig } from "./config";
+import { runMobileAuthRetention } from "./mobile-auth-retention";
 
-export const JOB_NAMES = ["audit-retention"] as const;
+export const JOB_NAMES = ["audit-retention", "mobile-auth-retention"] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
 export interface JobDefinition {
@@ -20,6 +22,14 @@ export function getJobDefinition(job: JobName): JobDefinition {
             return {
                 leaseTtlMs: config.leaseTtlMs,
                 run: ({ dryRun }) => runAuditRetention({ config, dryRun }),
+            };
+        }
+        case "mobile-auth-retention": {
+            const config = getMobileAuthRetentionConfig();
+            return {
+                leaseTtlMs: config.leaseTtlMs,
+                run: ({ dryRun }) =>
+                    runMobileAuthRetention({ config, dryRun }),
             };
         }
     }

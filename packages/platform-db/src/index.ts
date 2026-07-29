@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 export {
     CosmeticRenderMode,
     ItemRarity,
+    MobileAuthTokenKind,
     Prisma,
     PrismaClient,
     PromotionDiscountType,

@@ -6,6 +6,10 @@ const config = getMobileApiRuntimeConfig();
 const server = createServer(
     createMobileApiHttpHandler({
         allowedOrigins: config.allowedOrigins,
+        authEnabled: config.authEnabled,
+        trustProxy: config.trustProxy,
+        accessTokenTtlMs: config.accessTokenTtlMs,
+        refreshTokenTtlMs: config.refreshTokenTtlMs,
     })
 );
 

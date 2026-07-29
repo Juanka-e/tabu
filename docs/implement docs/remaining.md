@@ -216,8 +216,9 @@ Bilincli olarak bu branch'te yapmiyoruz:
 ## Uzun Vadeli Notlar
 - mevcut modularizasyon fazi tamamlandi: web runtime `apps/web`, paylasilan DB/cache
   katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
-- `apps/api` runtime temeli tamamlandi; varsayilan deploy kapali ve kullanici
-  endpoint'leri mobile auth tamamlanana kadar acilmayacak.
+- `apps/api` runtime ve mobile auth temeli tamamlandi; production deploy explicit
+  flag ile kapali. Siradaki kullanici endpoint'leri `/v1/me` ve profile
+  read/write servisidir.
 - modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.

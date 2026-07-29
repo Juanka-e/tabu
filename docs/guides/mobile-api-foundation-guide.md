@@ -34,7 +34,7 @@ endpoint'leri eklendiğinde dependency readiness ayrı alanlarla genişletilir.
 gibi göstermez:
 
 - runtime meta: `available`
-- bearer auth: `planned`
+- bearer auth: runtime flag aciksa `available`, aksi halde `planned`
 - profile/inventory/progression: `planned`
 - realtime gameplay/admin: `web_runtime_only`
 
@@ -124,11 +124,15 @@ net, server-owned opaque token modelidir.
 - CORS/request ID/security headers
 - opsiyonel Docker profile
 
-### Faz 2 - mobile auth
+### Faz 2 - mobile auth - tamamlandı
 
 - login, refresh, logout
 - session/device revoke
 - `platform-auth` veya eşdeğer shared package
+
+Detaylar `docs/guides/mobile-auth-foundation-guide.md` içindedir. Production
+enablement explicit flag ile yapılır; sıradaki route taşıması `/v1/me` ve profile
+servisidir.
 
 ### Faz 3 - player core
 

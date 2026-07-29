@@ -2,6 +2,31 @@ export interface MobileApiRuntimeConfig {
     host: string;
     port: number;
     allowedOrigins: ReadonlySet<string>;
+    authEnabled: boolean;
+    trustProxy: boolean;
+    accessTokenTtlMs: number;
+    refreshTokenTtlMs: number;
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean): boolean {
+    if (value === undefined || value.trim() === "") return fallback;
+    if (value === "true") return true;
+    if (value === "false") return false;
+    throw new Error("Boolean environment values must be true or false.");
+}
+
+function parseDuration(
+    value: string | undefined,
+    fallback: number,
+    min: number,
+    max: number,
+    name: string
+): number {
+    const result = Number(value ?? fallback);
+    if (!Number.isInteger(result) || result < min || result > max) {
+        throw new Error(`${name} is outside its allowed range.`);
+    }
+    return result;
 }
 
 function parsePort(value: string | undefined): number {
@@ -39,12 +64,29 @@ export function parseApiAllowedOrigins(
 export function getMobileApiRuntimeConfig(
     env: NodeJS.ProcessEnv = process.env
 ): MobileApiRuntimeConfig {
+    const production = env.NODE_ENV === "production";
     return {
         host: env.API_HOST?.trim() || "127.0.0.1",
         port: parsePort(env.API_PORT),
         allowedOrigins: parseApiAllowedOrigins(
             env.API_ALLOWED_ORIGINS,
             env.NODE_ENV
+        ),
+        authEnabled: parseBoolean(env.MOBILE_AUTH_ENABLED, !production),
+        trustProxy: parseBoolean(env.API_TRUST_PROXY, false),
+        accessTokenTtlMs: parseDuration(
+            env.MOBILE_ACCESS_TOKEN_TTL_MS,
+            15 * 60_000,
+            60_000,
+            60 * 60_000,
+            "MOBILE_ACCESS_TOKEN_TTL_MS"
+        ),
+        refreshTokenTtlMs: parseDuration(
+            env.MOBILE_REFRESH_TOKEN_TTL_MS,
+            30 * 24 * 60 * 60_000,
+            60 * 60_000,
+            180 * 24 * 60 * 60_000,
+            "MOBILE_REFRESH_TOKEN_TTL_MS"
         ),
     };
 }

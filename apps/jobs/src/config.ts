@@ -5,12 +5,58 @@ export interface AuditRetentionConfig {
     leaseTtlMs: number;
 }
 
+export interface MobileAuthRetentionConfig {
+    retentionDays: number;
+    reuseEvidenceDays: number;
+    batchSize: number;
+    leaseTtlMs: number;
+}
+
 interface JobsEnvironment {
     [key: string]: string | undefined;
     AUDIT_HOT_RETENTION_DAYS?: string;
     AUDIT_ARCHIVE_BATCH_SIZE?: string;
     AUDIT_ARCHIVE_MAX_BATCHES?: string;
     AUDIT_ARCHIVE_LEASE_TTL_MS?: string;
+    MOBILE_AUTH_RETENTION_DAYS?: string;
+    MOBILE_AUTH_REUSE_EVIDENCE_DAYS?: string;
+    MOBILE_AUTH_RETENTION_BATCH_SIZE?: string;
+    MOBILE_AUTH_RETENTION_LEASE_TTL_MS?: string;
+}
+
+export function getMobileAuthRetentionConfig(
+    env: JobsEnvironment = process.env
+): MobileAuthRetentionConfig {
+    return {
+        retentionDays: parseBoundedInteger({
+            name: "MOBILE_AUTH_RETENTION_DAYS",
+            value: env.MOBILE_AUTH_RETENTION_DAYS,
+            fallback: 30,
+            min: 7,
+            max: 365,
+        }),
+        reuseEvidenceDays: parseBoundedInteger({
+            name: "MOBILE_AUTH_REUSE_EVIDENCE_DAYS",
+            value: env.MOBILE_AUTH_REUSE_EVIDENCE_DAYS,
+            fallback: 7,
+            min: 1,
+            max: 30,
+        }),
+        batchSize: parseBoundedInteger({
+            name: "MOBILE_AUTH_RETENTION_BATCH_SIZE",
+            value: env.MOBILE_AUTH_RETENTION_BATCH_SIZE,
+            fallback: 500,
+            min: 10,
+            max: 5_000,
+        }),
+        leaseTtlMs: parseBoundedInteger({
+            name: "MOBILE_AUTH_RETENTION_LEASE_TTL_MS",
+            value: env.MOBILE_AUTH_RETENTION_LEASE_TTL_MS,
+            fallback: 5 * 60_000,
+            min: 60_000,
+            max: 60 * 60_000,
+        }),
+    };
 }
 
 function parseBoundedInteger(input: {
