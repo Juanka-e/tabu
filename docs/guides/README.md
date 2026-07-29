@@ -96,3 +96,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
   profillerini tanimlar
 - Chromium emulasyonu ile fiziksel iOS/Android cihaz kaniti arasindaki siniri
   aciklar
+
+21. `web-real-device-smoke.md`
+- fiziksel iOS, Android ve laptop smoke sunucusu kurulumunu tanimlar
+- cihaz, browser, release SHA ve GO/HOLD kanit standardini belirler
