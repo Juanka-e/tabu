@@ -4,34 +4,41 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/admin-cosmetic-authoring` - siradaki
-2. `feature/analytics-event-foundation`
-3. `feature/word-analytics-liveops`
-4. `feature/release-ops-docs`
-5. `docs/encoding-cleanup`
-6. `feature/wallet-ledger-foundation`
-7. `feature/mobile-api-foundation`
-8. `feature/post-launch-economy-observability-review`
-9. `feature/post-launch-xp-level-foundation`
-10. `feature/post-launch-missions-foundation`
-11. `feature/post-launch-night-market-foundation`
+1. `feature/analytics-event-foundation` - siradaki
+2. `feature/word-analytics-liveops`
+3. `feature/release-ops-docs`
+4. `docs/encoding-cleanup`
+5. `feature/wallet-ledger-foundation`
+6. `feature/mobile-api-foundation`
+7. `feature/post-launch-economy-observability-review`
+8. `feature/post-launch-xp-level-foundation`
+9. `feature/post-launch-missions-foundation`
+10. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Siradaki Branch
 
-### `feature/admin-cosmetic-authoring`
+### `feature/analytics-event-foundation`
 
 Hedef:
-- admin formunda kozmetik turune gore yonlendirilmis authoring akisi
-- thumbnail ve asil asset icin net boyut/dosya kurallari
-- template JSON icin guvenli hazir preset ve canli preview
+- PII icermeyen, versiyonlu urun event kontrati
+- gameplay, store ve navigation event'leri icin server-trusted sinirlar
+- kalici audit ile yuksek hacimli analytics event'lerini ayirma
 
 Referans:
 - `docs/guides/admin-shop-ux-planning-guide.md`
 
 ## Onceki Branch Kaydi
+### `feature/admin-cosmetic-authoring`
+Tamamlananlar:
+- frame, kart onu ve kart arkasi icin tur bazli guvenli preset katalogu
+- preset aciklamasi, template key ve JSON'i birlikte uygulayan admin akisi
+- isim, fiyat, yayin ve aktiflik alanlarini koruyan dar preset islemi
+- mevcut gercek renderer ile anlik canli onizleme
+- tum preset'leri write schema uzerinden dogrulayan regresyon testi
+
 ### `feature/cosmetic-render-upgrade`
 Tamamlananlar:
 - nullable `thumbnailUrl` katalog alani ve admin upload/editor yuzeyi

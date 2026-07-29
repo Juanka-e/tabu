@@ -32,6 +32,10 @@ import type { TemplateConfig } from "@/types/economy";
 import {
     ADMIN_RARITY_BADGE_CLASS,
 } from "@/lib/store/shop-admin";
+import {
+    getCosmeticAuthoringPresets,
+    serializeCosmeticAuthoringPreset,
+} from "@/lib/cosmetics/authoring-presets";
 
 type ItemType = "avatar" | "frame" | "card_back" | "card_face";
 type Rarity = "common" | "rare" | "epic" | "legendary";
@@ -226,101 +230,6 @@ function normalizeTemplateObject(input: Record<string, unknown>, depth: number):
     }
 
     return Object.fromEntries(normalizedEntries);
-}
-
-function getTemplateExample(type: ItemType): string {
-    if (type === "frame") {
-        return JSON.stringify(
-            {
-                palette: {
-                    primary: "#22c55e",
-                    secondary: "#bbf7d0",
-                },
-                pattern: {
-                    type: "rings",
-                    opacity: 0.22,
-                    scale: 14,
-                },
-                glow: {
-                    color: "#4ade80",
-                    blur: 24,
-                    opacity: 0.24,
-                },
-                frame: {
-                    style: "ornate",
-                    thickness: 3,
-                    radius: 20,
-                },
-                motion: {
-                    preset: "pulse",
-                    speedMs: 4200,
-                },
-            },
-            null,
-            2
-        );
-    }
-
-    if (type === "card_back") {
-        return JSON.stringify(
-            {
-                palette: {
-                    surface: "#111827",
-                    border: "#38bdf8",
-                    primary: "#22d3ee",
-                    secondary: "#93c5fd",
-                    title: "#f8fafc",
-                    detail: "#cbd5e1",
-                },
-                pattern: {
-                    type: "chevrons",
-                    opacity: 0.2,
-                    scale: 18,
-                },
-                glow: {
-                    color: "#38bdf8",
-                    blur: 30,
-                    opacity: 0.22,
-                },
-                motion: {
-                    preset: "drift",
-                    speedMs: 6200,
-                },
-            },
-            null,
-            2
-        );
-    }
-
-    return JSON.stringify(
-        {
-            palette: {
-                primary: "#8b5cf6",
-                secondary: "#ddd6fe",
-                surface: "#1e1b4b",
-                border: "#c4b5fd",
-                word: "#ffffff",
-                taboo: "#fda4af",
-                footer: "#ede9fe",
-            },
-            pattern: {
-                type: "noise",
-                opacity: 0.18,
-                scale: 16,
-            },
-            glow: {
-                color: "#a855f7",
-                blur: 28,
-                opacity: 0.2,
-            },
-            motion: {
-                preset: "shimmer",
-                speedMs: 3400,
-            },
-        },
-        null,
-        2
-    );
 }
 
 function toDateTimeLocalInput(value: string | null): string {
@@ -691,7 +600,10 @@ export default function ShopItemsPage() {
     };
 
     const imageUploadDisabled = form.renderMode !== "image";
-    const templateExample = useMemo(() => getTemplateExample(form.type), [form.type]);
+    const authoringPresets = useMemo(() => getCosmeticAuthoringPresets(form.type), [form.type]);
+    const templateExample = authoringPresets[0]
+        ? serializeCosmeticAuthoringPreset(authoringPresets[0])
+        : "";
     const previewTemplateResult = useMemo(() => {
         if (form.renderMode !== "template") {
             return { config: null, error: null as string | null };
@@ -1218,6 +1130,33 @@ export default function ShopItemsPage() {
                                             Örnek alanlar: <code>palette</code>, <code>pattern</code>, <code>glow</code>, <code>motion</code>, <code>frame</code>.
                                         </div>
                                     </div>
+
+                                    {form.renderMode === "template" ? (
+                                        <div>
+                                            <div className="mb-2">
+                                                <h4 className="text-xs font-bold uppercase text-muted-foreground">Güvenli Başlangıç Presetleri</h4>
+                                                <p className="mt-1 text-xs text-muted-foreground">Preset yalnız template key ve JSON ayarını değiştirir. Diğer ürün bilgileri korunur.</p>
+                                            </div>
+                                            <div className="grid gap-2 md:grid-cols-2">
+                                                {authoringPresets.map((preset) => (
+                                                    <button
+                                                        key={preset.id}
+                                                        type="button"
+                                                        onClick={() => setForm((current) => ({
+                                                            ...current,
+                                                            templateKey: preset.templateKey,
+                                                            templateConfigText: serializeCosmeticAuthoringPreset(preset),
+                                                        }))}
+                                                        className="rounded-xl border border-border bg-background/70 p-3 text-left transition hover:border-primary/50 hover:bg-background"
+                                                    >
+                                                        <span className="block text-sm font-semibold text-foreground">{preset.label}</span>
+                                                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{preset.description}</span>
+                                                        <code className="mt-2 block text-[11px] text-primary">{preset.templateKey}</code>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
 
                                     <div>
                                         <div className="mb-1 flex items-center justify-between gap-3">
