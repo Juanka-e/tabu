@@ -129,7 +129,11 @@ async function run(): Promise<void> {
         /wildcard is forbidden/
     );
     assert.throws(
-        () => getMobileApiRuntimeConfig({ API_PORT: "70000" } as NodeJS.ProcessEnv),
+        () =>
+            getMobileApiRuntimeConfig({
+                ...process.env,
+                API_PORT: "70000",
+            }),
         /API_PORT/
     );
 
