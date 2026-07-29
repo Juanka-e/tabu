@@ -79,6 +79,12 @@
 - ilk 24 urun ve kullanici kontrollu batch genisletme
 - animasyonlu buyuk renderer'i yalniz detay modalinda mount etme
 
+### 12. `feature/admin-cosmetic-authoring`
+- frame, card face ve card back icin test edilen hazir template preset'leri
+- preset'in etkisini aciklayan ve yalniz render alanlarini degistiren admin akisi
+- mevcut resolver ile anlik canli preview
+- preset katalogunun shop item write schema ile otomatik dogrulanmasi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

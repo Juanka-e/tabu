@@ -25,6 +25,17 @@ Operasyon akisi, AI promptablonlari ve Hushle kart sabit slot prensibi icin ek r
 - Admin thumbnail yuklemezse sistem hafif statik fallback uretir; runtime'da
   thumbnail dosyasi render edip depolayan bir image-processing job'u yoktur.
 
+## Admin Preset Akisi
+
+- Frame, card face ve card back editorleri test edilen iki baslangic preseti sunar.
+- Preset secimi yalniz `templateKey` ve `templateConfig` alanlarini degistirir.
+- Isim, code, fiyat, rarity, yayin penceresi ve aktiflik bilgisi korunur.
+- Preset uygulandiktan sonra admin sagdaki canli preview'da gercek resolver sonucunu
+  kontrol eder; preset kaydetme islemini otomatik baslatmaz.
+- Avatar yalniz image render destekledigi icin template preset gostermez.
+- Preset katalogu `apps/web/src/lib/cosmetics/authoring-presets.ts` dosyasindadir;
+  sayfa icine kopya JSON eklenmemelidir.
+
 ## Kozmetik Turleri
 
 ### 1. Avatar

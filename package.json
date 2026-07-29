@@ -51,6 +51,7 @@
     "test:admin-promotions-ux-e2e": "playwright test tests/admin-promotions-ux.spec.ts",
     "test:shop-items": "tsx scripts/test-shop-item-schema.ts",
     "test:cosmetic-render-upgrade": "tsx scripts/test-cosmetic-render-upgrade.ts",
+    "test:cosmetic-authoring": "tsx scripts/test-cosmetic-authoring-presets.ts",
     "test:shop-order": "tsx scripts/test-shop-order.ts",
     "test:store-pricing": "tsx scripts/test-store-pricing.ts",
     "test:announcement-security": "tsx scripts/test-announcement-security.ts",
