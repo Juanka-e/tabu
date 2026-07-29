@@ -4,7 +4,7 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/mobile-store-catalog-read`
+1. `feature/mobile-notifications-read`
 2. `feature/post-launch-economy-observability-review`
 3. `feature/post-launch-xp-level-foundation`
 4. `feature/post-launch-missions-foundation`
@@ -204,8 +204,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ### `feature/mobile-api-foundation`
 - runtime ve ilk transport kontratlari tamamlandi
-- mobile auth, player core, inventory read ve equip tamamlandi
-- siradaki dar dilim store catalog read; progression launch sonrasina ertelendi
+- mobile auth, player core, inventory/equip ve store catalog read tamamlandi
+- siradaki dar dilim notifications read; progression launch sonrasina ertelendi
 
 ### `feature/post-launch-economy-observability-review`
 - canlidan sonra gercek coin kazanimi gozlemi
@@ -218,7 +218,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
   katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
 - `apps/api` runtime ve mobile auth temeli tamamlandi; production deploy explicit
   flag ile kapali. `/v1/me`, profile read/write, bounded inventory read ve
-  equip/unequip tamamlandi; siradaki endpoint store catalog read'dir.
+  equip/unequip ve store catalog read tamamlandi; siradaki endpoint
+  notifications read'dir.
 - modularizasyon plani icin referans: `docs/architecture/adr-001-apps-workspace-and-runtime-split.md`
 - detayli migration fazlari: `docs/architecture/apps-migration-plan.md`
 - Redis geldiginde source of truth yine MySQL olacak; Redis yalniz cache / counter / coordination katmani olacak.

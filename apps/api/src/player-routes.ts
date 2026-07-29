@@ -15,13 +15,22 @@ import {
     InventoryError,
 } from "@hushle/platform-inventory";
 import {
+    getStoreCatalogPage,
+    StoreCatalogError,
+    type StoreCatalogPageView,
+} from "@hushle/platform-store";
+import {
     MOBILE_API_ROUTES,
     type MobileEquippedInventoryData,
     type MobileInventoryData,
     type MobilePlayerCoreData,
+    type MobileStoreCatalogData,
 } from "@hushle/api-contracts";
 import type { AuthRouteResult } from "./auth-routes.js";
-import { isMobileStoreAvailable } from "./store-policy.js";
+import {
+    getMobileStorePolicy,
+    isMobileStoreAvailable,
+} from "./store-policy.js";
 
 type PlayerRouteContext = {
     authEnabled: boolean;
@@ -37,6 +46,66 @@ function getBearerToken(request: IncomingMessage): string | null {
     const value = request.headers.authorization;
     if (!value) return null;
     return /^Bearer ([^\s]+)$/.exec(value)?.[1] ?? null;
+}
+
+function toMobileStoreCatalogData(
+    catalog: StoreCatalogPageView
+): MobileStoreCatalogData {
+    const mapPricing = (
+        pricing: StoreCatalogPageView["items"][number]["pricing"]
+    ) => ({
+        basePriceCoin: pricing.basePriceCoin,
+        discountCoin: pricing.discountCoin,
+        finalPriceCoin: pricing.finalPriceCoin,
+        appliedPromotion: pricing.appliedPromotion
+            ? {
+                  name: pricing.appliedPromotion.name,
+                  description: pricing.appliedPromotion.description,
+                  discountType: pricing.appliedPromotion.discountType,
+                  percentageOff: pricing.appliedPromotion.percentageOff,
+                  fixedCoinOff: pricing.appliedPromotion.fixedCoinOff,
+                  stackableWithCoupon:
+                      pricing.appliedPromotion.stackableWithCoupon,
+              }
+            : null,
+    });
+    return {
+        coinBalance: catalog.coinBalance,
+        kind: catalog.kind,
+        items: catalog.items.map(
+            ({ isActive, sortOrder, createdAt, pricing, ...item }) => {
+                void isActive;
+                void sortOrder;
+                void createdAt;
+                return { ...item, pricing: mapPricing(pricing) };
+            }
+        ),
+        bundles: catalog.bundles.map(
+            ({ isActive, sortOrder, createdAt, pricing, ...bundle }) => {
+                void isActive;
+                void sortOrder;
+                void createdAt;
+                return {
+                    ...bundle,
+                    items: bundle.items.map(
+                        ({ id, sortOrder: itemSortOrder, ...item }) => {
+                            void id;
+                            void itemSortOrder;
+                            return item;
+                        }
+                    ),
+                    pricing: mapPricing(pricing),
+                };
+            }
+        ),
+        liveops: {
+            bundlesEnabled: catalog.liveops.bundlesEnabled,
+            couponsEnabled: catalog.liveops.couponsEnabled,
+            discountCampaignsEnabled:
+                catalog.liveops.discountCampaignsEnabled,
+        },
+        page: catalog.page,
+    };
 }
 
 function mapPlayerError(error: unknown): AuthRouteResult {
@@ -99,6 +168,21 @@ function mapPlayerError(error: unknown): AuthRouteResult {
             },
         };
     }
+    if (error instanceof StoreCatalogError) {
+        return {
+            status: error.code === "user_not_found" ? 404 : 422,
+            error: {
+                code:
+                    error.code === "user_not_found"
+                        ? "user_not_found"
+                        : "invalid_request",
+                message:
+                    error.code === "invalid_cursor"
+                        ? "Store catalog cursor is invalid."
+                        : error.message,
+            },
+        };
+    }
     throw error;
 }
 
@@ -129,7 +213,8 @@ export function isPlayerRoute(pathname: string): boolean {
         pathname === MOBILE_API_ROUTES.me ||
         pathname === MOBILE_API_ROUTES.profile ||
         pathname === MOBILE_API_ROUTES.inventory ||
-        pathname === MOBILE_API_ROUTES.inventoryEquipped
+        pathname === MOBILE_API_ROUTES.inventoryEquipped ||
+        pathname === MOBILE_API_ROUTES.storeCatalog
     );
 }
 
@@ -170,6 +255,36 @@ export async function handlePlayerRoute(
             if (limit) return limit;
             const data: MobilePlayerCoreData = await getPlayerCore(
                 auth.user.id
+            );
+            return { status: 200, data };
+        }
+
+        if (
+            context.pathname === MOBILE_API_ROUTES.storeCatalog &&
+            context.method === "GET"
+        ) {
+            const limit = await applyLimit({
+                scope: "player-store-catalog",
+                identifier: `${auth.user.id}:${context.remoteIp}`,
+                limit: 60,
+            });
+            if (limit) return limit;
+            const storePolicy = await getMobileStorePolicy();
+            if (!storePolicy.available) {
+                return {
+                    status: 409,
+                    error: {
+                        code: "store_unavailable",
+                        message: "Store is currently unavailable.",
+                    },
+                };
+            }
+            const data = toMobileStoreCatalogData(
+                await getStoreCatalogPage({
+                    userId: auth.user.id,
+                    policy: storePolicy.catalog,
+                    query: Object.fromEntries(context.query.entries()),
+                })
             );
             return { status: 200, data };
         }

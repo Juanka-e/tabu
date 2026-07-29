@@ -81,3 +81,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 17. `mobile-inventory-and-equip-guide.md`
 - bounded mobil inventory pagination ve equip/unequip kontratini tanimlar
 - web ve mobil runtime'in ortak sahiplik/tur dogrulamasini aciklar
+
+18. `mobile-store-catalog-guide.md`
+- bounded item/bundle katalog pagination ve cache revision modelini tanimlar
+- ortak fiyatlandirma ile server-owned purchase sinirini aciklar

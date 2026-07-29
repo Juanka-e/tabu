@@ -11,6 +11,7 @@ export const MOBILE_API_ROUTES = {
     profile: `/${MOBILE_API_VERSION}/profile`,
     inventory: `/${MOBILE_API_VERSION}/inventory`,
     inventoryEquipped: `/${MOBILE_API_VERSION}/inventory/equipped`,
+    storeCatalog: `/${MOBILE_API_VERSION}/store/catalog`,
 } as const;
 
 export type MobileApiCapabilityStatus =
@@ -161,6 +162,83 @@ export interface MobileEquippedInventoryData {
     >;
 }
 
+export interface MobileStorePriceData {
+    basePriceCoin: number;
+    discountCoin: number;
+    finalPriceCoin: number;
+    appliedPromotion: {
+        name: string;
+        description: string | null;
+        discountType: "percentage" | "fixed_coin";
+        percentageOff: number | null;
+        fixedCoinOff: number | null;
+        stackableWithCoupon: boolean;
+    } | null;
+}
+
+export interface MobileStoreItemData {
+    id: number;
+    code: string;
+    name: string;
+    type: MobileInventoryItemType;
+    rarity: "common" | "rare" | "epic" | "legendary";
+    renderMode: "image" | "template";
+    renderSpecVersion: number;
+    priceCoin: number;
+    imageUrl: string;
+    thumbnailUrl: string | null;
+    templateKey: string | null;
+    templateConfig: Record<string, unknown> | null;
+    badgeText: string | null;
+    availabilityMode:
+        | "always_on"
+        | "scheduled"
+        | "seasonal"
+        | "limited"
+        | "event_only";
+    startsAt: string | null;
+    endsAt: string | null;
+    isFeatured: boolean;
+    owned: boolean;
+    equipped: boolean;
+    pricing: MobileStorePriceData;
+}
+
+export interface MobileStoreBundleData {
+    id: number;
+    code: string;
+    name: string;
+    description: string | null;
+    priceCoin: number;
+    ownedItemCount: number;
+    fullyOwned: boolean;
+    pricing: MobileStorePriceData;
+    items: Array<{
+        shopItemId: number;
+        itemCode: string;
+        itemName: string;
+        itemType: MobileInventoryItemType;
+        itemRarity: "common" | "rare" | "epic" | "legendary";
+    }>;
+}
+
+export interface MobileStoreCatalogData {
+    coinBalance: number;
+    kind: "items" | "bundles";
+    items: MobileStoreItemData[];
+    bundles: MobileStoreBundleData[];
+    liveops: {
+        bundlesEnabled: boolean;
+        couponsEnabled: boolean;
+        discountCampaignsEnabled: boolean;
+    };
+    page: {
+        nextCursor: string | null;
+        hasMore: boolean;
+        limit: number;
+    };
+}
+
 export interface MobileApiHealthData {
     service: "hushle-api";
     status: "ok";
@@ -174,6 +252,7 @@ export interface MobileApiRuntimeMetaData {
         bearerAuth: MobileApiCapabilityStatus;
         profile: MobileApiCapabilityStatus;
         inventory: MobileApiCapabilityStatus;
+        storeCatalog: MobileApiCapabilityStatus;
         progression: MobileApiCapabilityStatus;
         realtimeGameplay: MobileApiCapabilityStatus;
         admin: MobileApiCapabilityStatus;

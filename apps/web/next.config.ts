@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     "@hushle/platform-db",
     "@hushle/platform-inventory",
     "@hushle/platform-player",
+    "@hushle/platform-store",
   ],
   experimental: {
     optimizePackageImports: ["lucide-react"],

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
     closeRedisClient,
+    getRedisKey,
     getJsonCacheMetrics,
     getRedisClient,
 } from "@hushle/platform-cache";
@@ -92,9 +93,25 @@ async function run(): Promise<void> {
 
         const redis = await getRedisClient();
         assert.ok(redis);
-        const rawSnapshot = await redis.get(
-            APPLICATION_CACHE_KEYS.storeCatalogShared
+        const redisWithKeys = redis as typeof redis & {
+            keys(pattern: string): Promise<string[]>;
+        };
+        const rawRevision = await redis.get(
+            APPLICATION_CACHE_KEYS.storeCatalogRevision
         );
+        assert.ok(rawRevision);
+        const revision = JSON.parse(rawRevision) as string;
+        const snapshotKeys = await redisWithKeys.keys(
+            getRedisKey(
+                "cache",
+                "store-catalog-full",
+                "v2",
+                revision,
+                "*"
+            )
+        );
+        assert.equal(snapshotKeys.length, 1);
+        const rawSnapshot = await redis.get(snapshotKeys[0]!);
         assert.ok(rawSnapshot);
         const snapshot = JSON.parse(rawSnapshot) as {
             coinBalance?: number;

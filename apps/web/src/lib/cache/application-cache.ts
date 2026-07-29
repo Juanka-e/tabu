@@ -19,6 +19,16 @@ export const APPLICATION_CACHE_KEYS = {
         "store-catalog-shared",
         "v1"
     ),
+    storeCatalogRevision: getRedisKey(
+        "cache",
+        "store-catalog-revision",
+        "v2"
+    ),
+    mobileStorePolicy: getRedisKey(
+        "mobile-api",
+        "store-policy",
+        "v2"
+    ),
     visibleCategories: getRedisKey(
         "cache",
         "visible-categories",
@@ -37,7 +47,14 @@ export async function invalidateSystemSettingsCache(): Promise<void> {
 }
 
 export async function invalidateStoreCatalogCache(): Promise<void> {
-    await invalidateJsonCache(APPLICATION_CACHE_KEYS.storeCatalogShared);
+    await Promise.all([
+        invalidateJsonCache(APPLICATION_CACHE_KEYS.storeCatalogShared),
+        invalidateJsonCache(APPLICATION_CACHE_KEYS.storeCatalogRevision),
+    ]);
+}
+
+export async function invalidateMobileStorePolicyCache(): Promise<void> {
+    await invalidateJsonCache(APPLICATION_CACHE_KEYS.mobileStorePolicy);
 }
 
 export function getNotificationUnreadCountCacheKey(userId: number): string {

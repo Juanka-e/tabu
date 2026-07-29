@@ -132,8 +132,8 @@ net, server-owned opaque token modelidir.
 - `platform-auth` veya eşdeğer shared package
 
 Detaylar `docs/guides/mobile-auth-foundation-guide.md` içindedir. Production
-enablement explicit flag ile yapılır. Player core ile inventory/equip tamamlanmistir;
-siradaki route tasimasi store catalog read'dir.
+enablement explicit flag ile yapılır. Player core, inventory/equip ve store
+catalog read tamamlanmistir; siradaki route tasimasi notifications read'dir.
 
 ### Faz 3 - player core - tamamlandı
 
@@ -147,7 +147,7 @@ uyumluluk adapter'ı olarak aynı servisi çağırmaya devam eder.
 
 ### Faz 4 - economy/content
 
-- store catalog
+- store catalog - tamamlandi
 - purchase
 - notifications
 - support

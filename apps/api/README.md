@@ -10,6 +10,7 @@ runtime'ı.
 - `GET /v1/meta`
 - `GET /v1/inventory`
 - `PATCH /v1/inventory/equipped`
+- `GET /v1/store/catalog`
 - ortak success/error JSON zarfı
 - `X-Request-Id` ve `X-Api-Version`
 - exact browser CORS allowlist
@@ -56,7 +57,7 @@ Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
 1. bearer access/refresh auth ve token rotation - tamamlandı
 2. `/v1/me` ve profile read/write - tamamlandı
 3. inventory read ve equip - tamamlandı
-4. store catalog read
+4. store catalog read - tamamlandi
 5. server-side fiyatlama ve wallet ledger ile satin alma
 6. notifications ve support
 7. shared presence hazır olduğunda active-room/read modelleri

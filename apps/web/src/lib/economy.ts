@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { getOrSetJsonCache } from "@hushle/platform-cache";
 import { Prisma } from "@hushle/platform-db";
+import { getStoreCatalog as getPlatformStoreCatalog } from "@hushle/platform-store";
 import {
-    APPLICATION_CACHE_KEYS,
     invalidateNotificationUnreadCountCache,
     getUserDashboardMatchSummaryCacheKey,
 } from "@/lib/cache/application-cache";
@@ -26,18 +26,14 @@ import {
 } from "@/lib/wallet-ledger/service";
 import type { SystemSettings } from "@/types/system-settings";
 import type {
-    CatalogBundleView,
-    CatalogStoreItemView,
     CosmeticRenderSnapshot,
     CouponCatalogPreviewResponse,
     CouponPreviewResponse,
     DashboardDataResponse,
-    EquippedSlots,
     PlayerAppearanceSnapshot,
     StoreItemType,
     StoreItemView,
     StoreCatalogResponse,
-    StoreLiveopsView,
 } from "@/types/economy";
 
 type AppearanceProfileRecord = {
@@ -354,27 +350,6 @@ export async function getPlayerCardCosmeticsSnapshot(userId: number): Promise<Ro
     return mapPlayerCardCosmeticsSnapshot(profile, resolveInventoryRenderSnapshot(inventoryEntries));
 }
 
-function getEquippedSlots(profile: {
-    avatarItemId: number | null;
-    frameItemId: number | null;
-    cardBackItemId: number | null;
-    cardFaceItemId: number | null;
-} | null): EquippedSlots {
-    return {
-        avatarItemId: profile?.avatarItemId ?? null,
-        frameItemId: profile?.frameItemId ?? null,
-        cardBackItemId: profile?.cardBackItemId ?? null,
-        cardFaceItemId: profile?.cardFaceItemId ?? null,
-    };
-}
-
-function isEquipped(shopItemId: number, itemType: StoreItemType, equippedSlots: EquippedSlots): boolean {
-    if (itemType === "avatar") return equippedSlots.avatarItemId === shopItemId;
-    if (itemType === "frame") return equippedSlots.frameItemId === shopItemId;
-    if (itemType === "card_back") return equippedSlots.cardBackItemId === shopItemId;
-    return equippedSlots.cardFaceItemId === shopItemId;
-}
-
 function createEmptyAppearanceSnapshot(): PlayerAppearanceSnapshot {
     return {
         avatarImageUrl: null,
@@ -511,27 +486,6 @@ type StoreCatalogBundleRecord = Prisma.ShopBundleGetPayload<{
     };
 }>;
 
-type DiscountRecord = Prisma.DiscountCampaignGetPayload<{
-    select: {
-        id: true;
-        code: true;
-        name: true;
-        description: true;
-        targetType: true;
-        discountType: true;
-        percentageOff: true;
-        fixedCoinOff: true;
-        shopItemId: true;
-        bundleId: true;
-        usageLimit: true;
-        usedCount: true;
-        startsAt: true;
-        endsAt: true;
-        isActive: true;
-        stackableWithCoupon: true;
-    };
-}>;
-
 type CouponRecord = Prisma.CouponCodeGetPayload<{
     select: {
         id: true;
@@ -576,283 +530,6 @@ type PurchaseBundleResult =
         | "bundle_disabled"
         | "coupon_disabled";
     };
-
-function mapStoreItemView(
-    item: StoreCatalogItemRecord,
-    ownedIds: Set<number>,
-    equippedSlots: EquippedSlots,
-    settings: SystemSettings
-): StoreItemView {
-    const effectivePriceCoin = applyStorePriceMultiplier(item.priceCoin, settings);
-
-    return {
-        id: item.id,
-        code: item.code,
-        name: item.name,
-        type: item.type,
-        rarity: item.rarity,
-        renderMode: item.renderMode,
-        renderSpecVersion: normalizeRenderSpecVersion(item.renderSpecVersion),
-        priceCoin: effectivePriceCoin,
-        imageUrl: item.imageUrl,
-        thumbnailUrl: item.thumbnailUrl,
-        templateKey: item.templateKey,
-        templateConfig: normalizeTemplateConfig(item.templateConfig),
-        badgeText: item.badgeText,
-        availabilityMode: item.availabilityMode,
-        startsAt: item.startsAt?.toISOString() ?? null,
-        endsAt: item.endsAt?.toISOString() ?? null,
-        isFeatured: item.isFeatured,
-        isActive: item.isActive,
-        sortOrder: item.sortOrder,
-        createdAt: item.createdAt.toISOString(),
-        owned: ownedIds.has(item.id),
-        equipped: isEquipped(item.id, item.type, equippedSlots),
-    };
-}
-
-function mapCatalogItemView(
-    item: StoreCatalogItemRecord,
-    ownedIds: Set<number>,
-    equippedSlots: EquippedSlots,
-    discounts: DiscountRecord[],
-    now: Date,
-    settings: SystemSettings
-): CatalogStoreItemView {
-    const effectivePriceCoin = applyStorePriceMultiplier(item.priceCoin, settings);
-    const baseView = mapStoreItemView(item, ownedIds, equippedSlots, settings);
-
-    return {
-        ...baseView,
-        pricing: resolveCatalogPricing(
-            effectivePriceCoin,
-            { kind: "shop_item", targetId: item.id },
-            discounts,
-            now
-        ),
-    };
-}
-
-function mapCatalogBundleView(
-    bundle: StoreCatalogBundleRecord,
-    ownedIds: Set<number>,
-    discounts: DiscountRecord[],
-    now: Date,
-    settings: SystemSettings
-): CatalogBundleView {
-    const ownedItemCount = bundle.items.filter((entry) => ownedIds.has(entry.shopItemId)).length;
-    const effectivePriceCoin = applyStorePriceMultiplier(bundle.priceCoin, settings);
-
-    return {
-        id: bundle.id,
-        code: bundle.code,
-        name: bundle.name,
-        description: bundle.description,
-        priceCoin: effectivePriceCoin,
-        isActive: bundle.isActive,
-        sortOrder: bundle.sortOrder,
-        createdAt: bundle.createdAt.toISOString(),
-        ownedItemCount,
-        fullyOwned: ownedItemCount === bundle.items.length && bundle.items.length > 0,
-        pricing: resolveCatalogPricing(
-            effectivePriceCoin,
-            { kind: "bundle", targetId: bundle.id },
-            discounts,
-            now
-        ),
-        items: bundle.items.map((entry) => ({
-            id: entry.id,
-            shopItemId: entry.shopItemId,
-            sortOrder: entry.sortOrder,
-            itemCode: entry.shopItem.code,
-            itemName: entry.shopItem.name,
-            itemType: entry.shopItem.type,
-            itemRarity: entry.shopItem.rarity,
-        })),
-    };
-}
-
-type SharedCatalogItem = Omit<
-    CatalogStoreItemView,
-    "owned" | "equipped"
->;
-type SharedCatalogBundle = Omit<
-    CatalogBundleView,
-    "ownedItemCount" | "fullyOwned"
->;
-type SharedStoreCatalogSnapshot = {
-    items: SharedCatalogItem[];
-    bundles: SharedCatalogBundle[];
-    liveops: StoreLiveopsView;
-};
-
-function removeItemUserOverlay(
-    item: CatalogStoreItemView
-): SharedCatalogItem {
-    const { owned, equipped, ...sharedItem } = item;
-    void owned;
-    void equipped;
-    return sharedItem;
-}
-
-function removeBundleUserOverlay(
-    bundle: CatalogBundleView
-): SharedCatalogBundle {
-    const { ownedItemCount, fullyOwned, ...sharedBundle } = bundle;
-    void ownedItemCount;
-    void fullyOwned;
-    return sharedBundle;
-}
-
-async function loadSharedStoreCatalog(
-    settings: SystemSettings
-): Promise<SharedStoreCatalogSnapshot> {
-    const now = new Date();
-
-    const [
-        items,
-        bundles,
-        discounts,
-    ] = await Promise.all([
-        prisma.shopItem.findMany({
-            where: { isActive: true },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-            select: {
-                id: true,
-                code: true,
-                name: true,
-                type: true,
-                rarity: true,
-                renderMode: true,
-                renderSpecVersion: true,
-                priceCoin: true,
-                imageUrl: true,
-                thumbnailUrl: true,
-                templateKey: true,
-                templateConfig: true,
-                badgeText: true,
-                availabilityMode: true,
-                startsAt: true,
-                endsAt: true,
-                isFeatured: true,
-                isActive: true,
-                sortOrder: true,
-                createdAt: true,
-            },
-        }),
-        settings.economy.bundlesEnabled
-            ? prisma.shopBundle.findMany({
-                where: { isActive: true },
-                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-                include: {
-                    items: {
-                        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-                        include: {
-                            shopItem: {
-                                select: {
-                                    id: true,
-                                    code: true,
-                                    name: true,
-                                    type: true,
-                                    rarity: true,
-                                },
-                            },
-                        },
-                    },
-                },
-            })
-            : Promise.resolve([]),
-        settings.economy.discountCampaignsEnabled
-            ? prisma.discountCampaign.findMany({
-                where: { isActive: true },
-                select: {
-                    id: true,
-                    code: true,
-                    name: true,
-                    description: true,
-                    targetType: true,
-                    discountType: true,
-                    percentageOff: true,
-                    fixedCoinOff: true,
-                    shopItemId: true,
-                    bundleId: true,
-                    usageLimit: true,
-                    usedCount: true,
-                    startsAt: true,
-                    endsAt: true,
-                    isActive: true,
-                    stackableWithCoupon: true,
-                },
-            })
-            : Promise.resolve([]),
-    ]);
-
-    const availableItems = items.filter((item) =>
-        isShopItemDirectlyAvailable(item, now)
-    );
-    const emptyOwnedIds = new Set<number>();
-    const emptyEquippedSlots = getEquippedSlots(null);
-
-    return {
-        items: availableItems.map((item) =>
-            removeItemUserOverlay(
-                mapCatalogItemView(
-                    item,
-                    emptyOwnedIds,
-                    emptyEquippedSlots,
-                    discounts,
-                    now,
-                    settings
-                )
-            )
-        ),
-        bundles: bundles.map((bundle) =>
-            removeBundleUserOverlay(
-                mapCatalogBundleView(
-                    bundle,
-                    emptyOwnedIds,
-                    discounts,
-                    now,
-                    settings
-                )
-            )
-        ),
-        liveops: getStoreLiveopsState(settings, now) satisfies StoreLiveopsView,
-    };
-}
-
-async function loadStoreUserOverlay(userId?: number) {
-    if (!userId) {
-        return {
-            wallet: null,
-            profile: null,
-            inventory: [] as Array<{ shopItemId: number }>,
-        };
-    }
-
-    await ensureUserCore(userId);
-    const [wallet, profile, inventory] = await Promise.all([
-        prisma.wallet.findUnique({
-            where: { userId },
-            select: { coinBalance: true },
-        }),
-        prisma.userProfile.findUnique({
-            where: { userId },
-            select: {
-                avatarItemId: true,
-                frameItemId: true,
-                cardBackItemId: true,
-                cardFaceItemId: true,
-            },
-        }),
-        prisma.inventoryItem.findMany({
-            where: { userId },
-            select: { shopItemId: true },
-        }),
-    ]);
-
-    return { wallet, profile, inventory };
-}
 
 async function loadCouponRecord(
     tx: Prisma.TransactionClient,
@@ -952,39 +629,14 @@ export async function getStoreCatalog(
     settingsInput?: SystemSettings
 ): Promise<StoreCatalogResponse> {
     const settings = settingsInput ?? await getSystemSettings();
-    const [sharedResult, { wallet, profile, inventory }] = await Promise.all([
-        getOrSetJsonCache<SharedStoreCatalogSnapshot>({
-            key: APPLICATION_CACHE_KEYS.storeCatalogShared,
-            ttlMs: 30_000,
-            loader: () => loadSharedStoreCatalog(settings),
-        }),
-        loadStoreUserOverlay(userId),
-    ]);
-    const shared = sharedResult.value;
-    const ownedIds = new Set(inventory.map((entry) => entry.shopItemId));
-    const equippedSlots = getEquippedSlots(profile);
-
-    return {
-        coinBalance: wallet?.coinBalance ?? 0,
-        items: shared.items.map((item) => ({
-            ...item,
-            owned: ownedIds.has(item.id),
-            equipped: isEquipped(item.id, item.type, equippedSlots),
-        })),
-        bundles: shared.bundles.map((bundle) => {
-            const ownedItemCount = bundle.items.filter((entry) =>
-                ownedIds.has(entry.shopItemId)
-            ).length;
-            return {
-                ...bundle,
-                ownedItemCount,
-                fullyOwned:
-                    ownedItemCount === bundle.items.length &&
-                    bundle.items.length > 0,
-            };
-        }),
-        liveops: shared.liveops,
-    };
+    const liveops = getStoreLiveopsState(settings, new Date());
+    return getPlatformStoreCatalog({
+        userId,
+        policy: {
+            ...liveops,
+            storePriceMultiplier: settings.economy.storePriceMultiplier,
+        },
+    });
 }
 
 export async function previewCouponForTarget(

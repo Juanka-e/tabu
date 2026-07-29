@@ -161,7 +161,7 @@ function normalizeTemplateNode(
     return normalized.length > 0 ? Object.fromEntries(normalized) : undefined;
 }
 
-function normalizeTemplateConfig(value: unknown): TemplateConfig | null {
+export function normalizeTemplateConfig(value: unknown): TemplateConfig | null {
     const normalized = normalizeTemplateNode(value, 0);
     return normalized && typeof normalized === "object" && !Array.isArray(normalized)
         ? (normalized as TemplateConfig)

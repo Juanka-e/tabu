@@ -99,6 +99,7 @@ regresyonu icin branch kabul kapisinda calistirilir.
 
 ## Siradaki Dilim
 
-Store catalog read sonraki mantikli mobil API dilimidir. Purchase daha sonra
-tasinmali ve wallet ledger, idempotency, server-side fiyatlama ve kampanya
-snapshot kurallari ortak economy paketine alinmadan acilmamalidir.
+Store catalog read `feature/mobile-store-catalog-read` diliminde tamamlanmistir.
+Purchase daha sonra tasinmali ve wallet ledger, idempotency, server-side
+fiyatlama ve kampanya snapshot kurallari ortak economy paketine alinmadan
+acilmamalidir.
