@@ -31,10 +31,12 @@ Bu komut veritabanını sıfırlamaz, migration çalıştırmaz ve Redis'i kapat
 
 ```powershell
 npm run build
+npm run test:web-webkit
 npm run test:web-real-device-server
 ```
 
-İkinci komut production sunucusunun özel LAN IPv4 üzerinde HTTP 200 verdiğini
+WebKit komutu motor seviyesindeki public kontrolleri çalıştırır ancak fiziksel
+cihaz kanıtı değildir. Son komut production sunucusunun özel LAN IPv4 üzerinde HTTP 200 verdiğini
 otomatik doğrular ve CI launch-readiness zincirinde de çalışır. Fiziksel cihaz,
 touch veya gerçek browser kanıtı üretmez.
 

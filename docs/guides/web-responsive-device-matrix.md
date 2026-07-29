@@ -19,6 +19,9 @@ iPhone/iPad descriptor'ları viewport, user agent, touch ve device scale
 bilgisi için kullanılır. Test motoru CI'da tek ve deterministik Chromium'dur;
 bu test Safari/WebKit uyumluluk kanıtı değildir.
 
+WebKit motoru için ayrı otomatik kapı:
+`docs/guides/web-webkit-readiness.md`.
+
 ## Çalıştırma
 
 Production build sonrasında:

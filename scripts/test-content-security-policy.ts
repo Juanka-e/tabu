@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
     buildContentSecurityPolicy,
     getConfiguredCspSources,
+    shouldUpgradeInsecureRequests,
 } from "../apps/web/src/lib/security/content-security-policy";
 
 const prodPolicy = buildContentSecurityPolicy({
@@ -21,6 +22,16 @@ assert.match(
 assert.match(prodPolicy, /frame-ancestors 'none'/);
 assert.match(prodPolicy, /upgrade-insecure-requests/);
 assert.ok(!prodPolicy.includes("'unsafe-eval'"));
+assert.equal(
+    shouldUpgradeInsecureRequests(false, "https://play.example.com"),
+    true
+);
+assert.equal(
+    shouldUpgradeInsecureRequests(false, "http://192.168.1.20:3202"),
+    false
+);
+assert.equal(shouldUpgradeInsecureRequests(false, undefined), true);
+assert.equal(shouldUpgradeInsecureRequests(false, "not-a-url"), true);
 
 const externalSourcePolicy = buildContentSecurityPolicy({
     nonce: "external-sources",
@@ -69,5 +80,19 @@ assert.match(
     /script-src 'self' 'nonce-test-dev' 'strict-dynamic' 'unsafe-eval'/
 );
 assert.ok(!devPolicy.includes("upgrade-insecure-requests"));
+assert.equal(
+    shouldUpgradeInsecureRequests(true, "https://play.example.com"),
+    false
+);
+
+const localProductionPolicy = buildContentSecurityPolicy({
+    nonce: "local-production",
+    isDev: false,
+    upgradeInsecureRequests: shouldUpgradeInsecureRequests(
+        false,
+        "http://192.168.1.20:3202"
+    ),
+});
+assert.ok(!localProductionPolicy.includes("upgrade-insecure-requests"));
 
 console.log("content security policy smoke test passed");

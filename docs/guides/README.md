@@ -100,3 +100,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 21. `web-real-device-smoke.md`
 - fiziksel iOS, Android ve laptop smoke sunucusu kurulumunu tanimlar
 - cihaz, browser, release SHA ve GO/HOLD kanit standardini belirler
+
+22. `web-webkit-readiness.md`
+- WebKit iPhone ve desktop public responsive projelerini tanimlar
+- disposable DB registered akisiyla fiziksel Safari kaniti arasindaki siniri belirler

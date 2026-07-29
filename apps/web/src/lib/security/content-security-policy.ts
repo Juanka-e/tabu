@@ -1,6 +1,7 @@
 interface ContentSecurityPolicyOptions {
     nonce: string;
     isDev: boolean;
+    upgradeInsecureRequests?: boolean;
     externalSources?: ContentSecurityPolicyExternalSources;
 }
 
@@ -81,9 +82,24 @@ export function getConfiguredCspSources(
     };
 }
 
+export function shouldUpgradeInsecureRequests(
+    isDev: boolean,
+    publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL
+): boolean {
+    if (isDev) return false;
+    if (!publicSiteUrl?.trim()) return true;
+
+    try {
+        return new URL(publicSiteUrl).protocol === "https:";
+    } catch {
+        return true;
+    }
+}
+
 export function buildContentSecurityPolicy({
     nonce,
     isDev,
+    upgradeInsecureRequests = !isDev,
     externalSources = getConfiguredCspSources(isDev),
 }: ContentSecurityPolicyOptions): string {
     const directives: Array<[string, string[]]> = [
@@ -111,7 +127,7 @@ export function buildContentSecurityPolicy({
         ["frame-ancestors", ["'none'"]],
     ];
 
-    if (!isDev) {
+    if (upgradeInsecureRequests) {
         directives.push(["upgrade-insecure-requests", []]);
     }
 
