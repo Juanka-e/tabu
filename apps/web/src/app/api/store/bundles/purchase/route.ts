@@ -13,6 +13,7 @@ import {
     getFeatureDisabledMessage,
     isStoreAvailable,
 } from "@/lib/system-settings/policies";
+import { recordProductAnalyticsEvent } from "@/lib/analytics/product-events";
 
 const purchaseBundleSchema = z.object({
     bundleId: z.number().int().positive(),
@@ -89,6 +90,15 @@ export async function POST(req: Request) {
                 awardedItemCount: result.awardedItems.length,
             },
             request: req,
+        });
+        await recordProductAnalyticsEvent({
+            name: "store.bundle_purchased",
+            version: 1,
+            trust: "server_verified",
+            occurredAt: new Date(),
+            awardedItemCount: result.awardedItems.length,
+            finalPriceCoin: result.finalPriceCoin,
+            couponApplied: Boolean(couponCode),
         });
 
         return NextResponse.json({

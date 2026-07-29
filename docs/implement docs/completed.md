@@ -85,6 +85,12 @@
 - mevcut resolver ile anlik canli preview
 - preset katalogunun shop item write schema ile otomatik dogrulanmasi
 
+### 13. `feature/analytics-event-foundation`
+- versiyonlu ve guven seviyeli product event kontrati
+- PII ve ham event satiri tutmayan Redis gunluk aggregate
+- server-verified store metrikleri ve client-observed navigation siniri
+- analytics arizasini business request'inden ayiran dropped telemetry
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

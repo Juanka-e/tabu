@@ -4,33 +4,41 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/analytics-event-foundation` - siradaki
-2. `feature/word-analytics-liveops`
-3. `feature/release-ops-docs`
-4. `docs/encoding-cleanup`
-5. `feature/wallet-ledger-foundation`
-6. `feature/mobile-api-foundation`
-7. `feature/post-launch-economy-observability-review`
-8. `feature/post-launch-xp-level-foundation`
-9. `feature/post-launch-missions-foundation`
-10. `feature/post-launch-night-market-foundation`
+1. `feature/word-analytics-liveops` - siradaki
+2. `feature/release-ops-docs`
+3. `docs/encoding-cleanup`
+4. `feature/wallet-ledger-foundation`
+5. `feature/mobile-api-foundation`
+6. `feature/post-launch-economy-observability-review`
+7. `feature/post-launch-xp-level-foundation`
+8. `feature/post-launch-missions-foundation`
+9. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Siradaki Branch
 
-### `feature/analytics-event-foundation`
+### `feature/word-analytics-liveops`
 
 Hedef:
-- PII icermeyen, versiyonlu urun event kontrati
-- gameplay, store ve navigation event'leri icin server-trusted sinirlar
-- kalici audit ile yuksek hacimli analytics event'lerini ayirma
+- kelime ve kategori performansini PII'siz aggregate metriklerle olcme
+- skip/dogru/tabu ve anlatim suresi sinyallerinin server-owned kaynagini belirleme
+- admin liveops kararlarini destekleyen bounded reader modeli
 
 Referans:
-- `docs/guides/admin-shop-ux-planning-guide.md`
+- `docs/analytics-event-strategy.md`
 
 ## Onceki Branch Kaydi
+### `feature/analytics-event-foundation`
+Tamamlananlar:
+- versiyonlu `server_verified` ve `client_observed` event kontrati
+- item ve bundle satin alimlari icin PII'siz gunluk Redis aggregate
+- strict enum ve rate limit kullanan navigation collector
+- ham event, user id, IP, oda kodu ve serbest metadata tutmama
+- Redis/config arizasinda business request'i bozmayan dropped telemetry
+- health endpoint ve retention operasyon dokumani
+
 ### `feature/admin-cosmetic-authoring`
 Tamamlananlar:
 - frame, kart onu ve kart arkasi icin tur bazli guvenli preset katalogu
