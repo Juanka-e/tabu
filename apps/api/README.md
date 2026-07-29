@@ -21,6 +21,15 @@ Runtime opaque bearer/refresh kimlik doğrulamasını sunar. Profile ve inventor
 route'lari ortak business service'leri kullanir. Economy route'lari ayni
 ayristirma yapilmadan acilmaz.
 
+## Ürün Önceliği
+
+İlk ürün web olarak açılacağı için yeni mobil API dilimleri duraklatılmıştır.
+Mevcut runtime ve ortak paket sınırları korunur; aktif geliştirme kapasitesi web
+launch/readiness doğrulamalarına ayrılır.
+
+Tamamlanan mobil kapsam, ertelenen endpoint'ler, güvenlik sınırları ve yeniden
+başlatma koşulları için `apps/api/MOBILE_ROADMAP.md` esas kaynaktır.
+
 ## Local Çalıştırma
 
 Host makinede:
@@ -51,16 +60,6 @@ runtime'ına public route açmaz.
 - kalıcı veride MySQL, geçici koordinasyonda Redis kararını korur
 
 Paylaşılan transport kontratları `@hushle/api-contracts` paketindedir.
-
-## Taşıma Sırası
-
-1. bearer access/refresh auth ve token rotation - tamamlandı
-2. `/v1/me` ve profile read/write - tamamlandı
-3. inventory read ve equip - tamamlandı
-4. store catalog read - tamamlandi
-5. server-side fiyatlama ve wallet ledger ile satin alma
-6. notifications ve support
-7. shared presence hazır olduğunda active-room/read modelleri
 
 Admin route'ları web BFF'de kalır. Match finalize, room state bağımsız ve
 owner-aware hale gelmeden realtime writer runtime'ından taşınmaz.

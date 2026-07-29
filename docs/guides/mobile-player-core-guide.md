@@ -71,8 +71,9 @@ metadata davranışını doğrulayıp verileri temizler.
 UI değişen sonraki branch'lerde ilgili Playwright doğrulaması zorunlu olarak
 değerlendirilir.
 
-## Sıradaki Taşıma
+## Devam Durumu
 
-Inventory/equip ve store catalog read tamamlanmistir. Siradaki dusuk riskli
-backend dilimi notifications read'dir. Store purchase daha sonra tasinir;
-fiyat ve bakiye istemciden kabul edilmez.
+Inventory/equip ve store catalog read tamamlanmistir. Yeni mobil API dilimleri
+web acilisi stabil hale gelene kadar duraklatildi. Ertelenen sira ve yeniden
+baslatma kosullari `apps/api/MOBILE_ROADMAP.md` icindedir; fiyat ve bakiye
+istemciden kabul edilmez.

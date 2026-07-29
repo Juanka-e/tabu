@@ -111,8 +111,9 @@ Entegrasyon testi cursor pagination, type filter, promotion fiyati, coin,
 owned/equipped overlay'i ve bundle ownership oranini gecici verilerle
 dogrular.
 
-## Siradaki Dilim
+## Devam Durumu
 
-Mobil notifications read sonraki dusuk riskli backend dilimidir. Store purchase
-daha yuksek riskli oldugu icin wallet ledger ve idempotency ortaklastirmasi ile
-ayri bir branch'te ele alinmalidir.
+Yeni mobil API dilimleri web acilisi stabil hale gelene kadar duraklatildi.
+Notifications ve store purchase dahil devam sirasi
+`apps/api/MOBILE_ROADMAP.md` icinde korunur. Store purchase acildiginda wallet
+ledger ve idempotency zorunlulugu degismez.
