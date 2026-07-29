@@ -111,6 +111,14 @@
 - UTF-8 EditorConfig ve kalici encoding integrity testi
 - mevcut ASCII socket event dokumani ve escaped legacy compatibility alias'lari
 
+### 17. `feature/wallet-ledger-foundation`
+- atomik coin bakiye ve immutable ledger yazimi
+- tum mevcut coin kaynaklarinin merkezi servise tasinmasi
+- lazy legacy snapshot ve yeni hesap opening kaydi
+- eszamanli magaza harcamalarinda satir kilidi
+- admin ledger history ve bakiye reconciliation gorunumu
+- MySQL concurrency/idempotency CI testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

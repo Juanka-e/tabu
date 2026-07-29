@@ -20,6 +20,7 @@ import { AdminPagination } from "@/components/admin/admin-pagination";
 import { AdminTableShell, AdminEmptyState } from "@/components/admin/admin-table-shell";
 import { AdminToolbar, AdminToolbarStats } from "@/components/admin/admin-toolbar";
 import { AdminUserMatchHistoryDialog } from "@/components/admin/admin-user-match-history-dialog";
+import { AdminWalletLedgerDialog } from "@/components/admin/admin-wallet-ledger-dialog";
 import type {
     AdminUserListResponse,
     AdminUserModerationView,
@@ -154,6 +155,7 @@ export default function AdminUsersPage() {
     const [selectedUser, setSelectedUser] = useState<AdminUserModerationView | null>(null);
     const [selectedWalletUser, setSelectedWalletUser] = useState<AdminUserModerationView | null>(null);
     const [selectedMatchUser, setSelectedMatchUser] = useState<AdminUserModerationView | null>(null);
+    const [selectedLedgerUser, setSelectedLedgerUser] = useState<AdminUserModerationView | null>(null);
     const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
     const [actionMode, setActionMode] = useState<ActionMode>("suspend");
     const [walletAdjustmentType, setWalletAdjustmentType] = useState<WalletAdjustmentType>("credit");
@@ -658,6 +660,14 @@ export default function AdminUsersPage() {
                                         >
                                             Maçlar
                                         </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setSelectedLedgerUser(user)}
+                                        >
+                                            Cüzdan
+                                        </Button>
                                         {user.role === "admin" ? (
                                             <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
                                                 Admin hesabi
@@ -719,6 +729,13 @@ export default function AdminUsersPage() {
                 <AdminUserMatchHistoryDialog
                     user={selectedMatchUser}
                     onClose={() => setSelectedMatchUser(null)}
+                />
+            ) : null}
+
+            {selectedLedgerUser ? (
+                <AdminWalletLedgerDialog
+                    user={selectedLedgerUser}
+                    onClose={() => setSelectedLedgerUser(null)}
                 />
             ) : null}
 

@@ -4,30 +4,29 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/wallet-ledger-foundation` - siradaki
-2. `feature/mobile-api-foundation`
-3. `feature/post-launch-economy-observability-review`
-4. `feature/post-launch-xp-level-foundation`
-5. `feature/post-launch-missions-foundation`
-6. `feature/post-launch-night-market-foundation`
+1. `feature/mobile-api-foundation` - siradaki
+2. `feature/post-launch-economy-observability-review`
+3. `feature/post-launch-xp-level-foundation`
+4. `feature/post-launch-missions-foundation`
+5. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Aktif Branch
 
-### `docs/encoding-cleanup`
+### `feature/wallet-ledger-foundation`
 
 Tamamlananlar:
-- dort eski tasarim prototipindeki cift encoding bozulmasini geri cevirme
-- stale UTF-16 lint/typecheck raporlarini repodan kaldirma
-- yeni metinler icin UTF-8 EditorConfig politikasi
-- socket room-control event dokumanini mevcut ASCII kontratlarla esitleme
-- eski bozuk wire alias'larini runtime degerini degistirmeden escape etme
-- tracked metinler icin UTF-8, UTF-16 ve mojibake regresyon testi
+- merkezi ve atomik wallet ledger servisi
+- tum coin kazanma, harcama ve admin duzeltme akislarinin ledger'a tasinmasi
+- eski cuzdanlar icin lazy baseline snapshot
+- satir kilidiyle eszamanli fazla harcama korumasi
+- admin cuzdan hareketleri ve reconciliation gorunumu
+- gercek MySQL concurrency ve idempotency CI testi
 
 Referans:
-- `docs/encoding-policy.md`
+- `docs/guides/wallet-ledger-foundation-guide.md`
 
 ## Onceki Branch Kaydi
 ### `feature/release-ops-docs`

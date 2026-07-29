@@ -1,7 +1,12 @@
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { AdminSession } from "@/lib/admin/require-admin";
 import type { WalletAdjustmentInput } from "@/lib/admin-user-operations/schema";
 import type { AdminWalletAdjustmentView } from "@/types/admin-user-operations";
+import {
+    applyWalletLedgerMutation,
+    WalletLedgerInsufficientBalanceError,
+} from "@/lib/wallet-ledger/service";
 
 export function resolveWalletBalanceAfter(input: {
     adjustmentType: "credit" | "debit";
@@ -54,24 +59,14 @@ export async function applyAdminWalletAdjustment(input: {
         return { ok: false, code: "target_is_admin" };
     }
 
+    const operationId = randomUUID();
     return prisma.$transaction(async (tx) => {
-        await tx.wallet.upsert({
-            where: { userId: targetUserId },
-            update: {},
-            create: { userId: targetUserId, coinBalance: 0 },
-        });
-
         const targetUser = await tx.user.findUnique({
             where: { id: targetUserId },
             select: {
                 id: true,
                 username: true,
                 role: true,
-                wallet: {
-                    select: {
-                        coinBalance: true,
-                    },
-                },
             },
         });
 
@@ -83,26 +78,31 @@ export async function applyAdminWalletAdjustment(input: {
             return { ok: false, code: "target_is_admin" } as const;
         }
 
-        const balanceBefore = targetUser.wallet?.coinBalance ?? 0;
-        const balanceAfter = resolveWalletBalanceAfter({
-            adjustmentType: adjustment.adjustmentType,
-            amount: adjustment.amount,
-            balanceBefore,
-        });
-
-        if (balanceAfter < 0) {
-            return { ok: false, code: "insufficient_balance" } as const;
+        const deltaCoin =
+            adjustment.adjustmentType === "credit"
+                ? adjustment.amount
+                : -adjustment.amount;
+        let walletMutation;
+        try {
+            walletMutation = await applyWalletLedgerMutation(tx, {
+                userId: targetUserId,
+                source: "admin_adjustment",
+                deltaCoin,
+                idempotencyKey: `admin_wallet_adjustment:${operationId}`,
+                referenceType: "wallet_adjustment",
+                referenceId: operationId,
+                actorUserId: admin.id,
+                metadata: {
+                    adjustmentType: adjustment.adjustmentType,
+                    reason: adjustment.reason,
+                },
+            });
+        } catch (error) {
+            if (error instanceof WalletLedgerInsufficientBalanceError) {
+                return { ok: false, code: "insufficient_balance" } as const;
+            }
+            throw error;
         }
-
-        const updatedWallet = await tx.wallet.update({
-            where: { userId: targetUserId },
-            data: {
-                coinBalance: balanceAfter,
-            },
-            select: {
-                coinBalance: true,
-            },
-        });
 
         const createdAdjustment = await tx.walletAdjustment.create({
             data: {
@@ -111,8 +111,9 @@ export async function applyAdminWalletAdjustment(input: {
                 adjustmentType: adjustment.adjustmentType,
                 amount: adjustment.amount,
                 reason: adjustment.reason,
-                balanceBefore,
-                balanceAfter,
+                balanceBefore: walletMutation.balanceBefore,
+                balanceAfter: walletMutation.balanceAfter,
+                ledgerEntryId: walletMutation.ledgerEntryId,
             },
             include: {
                 actorUser: {
@@ -128,7 +129,7 @@ export async function applyAdminWalletAdjustment(input: {
         return {
             ok: true as const,
             adjustment: mapWalletAdjustment(createdAdjustment),
-            coinBalance: updatedWallet.coinBalance,
+            coinBalance: walletMutation.balanceAfter,
             targetUsername: targetUser.username,
         };
     });

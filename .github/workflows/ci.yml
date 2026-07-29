@@ -84,5 +84,10 @@ jobs:
           npx prisma generate
           npx prisma db push --skip-generate
 
+      - name: Test wallet ledger concurrency
+        run: npm run test:wallet-ledger-integration
+        env:
+          WALLET_LEDGER_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build

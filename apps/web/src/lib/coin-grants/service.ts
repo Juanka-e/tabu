@@ -3,6 +3,7 @@ import { Prisma } from "@hushle/platform-db";
 import { prisma } from "@/lib/prisma";
 import { createUserNotificationWithClient } from "@/lib/notifications/service";
 import { invalidateNotificationUnreadCountCache } from "@/lib/cache/application-cache";
+import { applyWalletLedgerMutation } from "@/lib/wallet-ledger/service";
 import type {
     CoinGrantCampaignWriteInput,
     CoinGrantCodeBatchCreateInput,
@@ -731,16 +732,6 @@ export async function redeemCoinGrantCode(input: {
                 now,
             });
 
-            const updatedWallet = await tx.wallet.update({
-                where: { userId: input.userId },
-                data: {
-                    coinBalance: { increment: codeRecord.campaign.coinAmount },
-                },
-                select: {
-                    coinBalance: true,
-                },
-            });
-
             const claim = await tx.coinGrantClaim.create({
                 data: {
                     campaignId: codeRecord.campaignId,
@@ -748,6 +739,18 @@ export async function redeemCoinGrantCode(input: {
                     userId: input.userId,
                     status: "completed",
                     coinAmount: codeRecord.campaign.coinAmount,
+                },
+            });
+            const walletMutation = await applyWalletLedgerMutation(tx, {
+                userId: input.userId,
+                source: "coin_grant",
+                deltaCoin: codeRecord.campaign.coinAmount,
+                idempotencyKey: `coin_grant_claim:${claim.id}:credit`,
+                referenceType: "coin_grant_claim",
+                referenceId: claim.id,
+                metadata: {
+                    campaignId: codeRecord.campaign.id,
+                    codeId: codeRecord.id,
                 },
             });
 
@@ -781,7 +784,7 @@ export async function redeemCoinGrantCode(input: {
                     label: codeRecord.label,
                 },
                 coinAmount: codeRecord.campaign.coinAmount,
-                coinBalance: updatedWallet.coinBalance,
+                coinBalance: walletMutation.balanceAfter,
                 claim: mapCoinGrantClaim(claim),
             } satisfies CoinGrantRedeemResult;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
