@@ -4,21 +4,33 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `docs/encoding-cleanup` - siradaki
-2. `feature/wallet-ledger-foundation`
-3. `feature/mobile-api-foundation`
-4. `feature/post-launch-economy-observability-review`
-5. `feature/post-launch-xp-level-foundation`
-6. `feature/post-launch-missions-foundation`
-7. `feature/post-launch-night-market-foundation`
+1. `feature/wallet-ledger-foundation` - siradaki
+2. `feature/mobile-api-foundation`
+3. `feature/post-launch-economy-observability-review`
+4. `feature/post-launch-xp-level-foundation`
+5. `feature/post-launch-missions-foundation`
+6. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
 
 ## Aktif Branch
 
-### `feature/release-ops-docs`
+### `docs/encoding-cleanup`
 
+Tamamlananlar:
+- dort eski tasarim prototipindeki cift encoding bozulmasini geri cevirme
+- stale UTF-16 lint/typecheck raporlarini repodan kaldirma
+- yeni metinler icin UTF-8 EditorConfig politikasi
+- socket room-control event dokumanini mevcut ASCII kontratlarla esitleme
+- eski bozuk wire alias'larini runtime degerini degistirmeden escape etme
+- tracked metinler icin UTF-8, UTF-16 ve mojibake regresyon testi
+
+Referans:
+- `docs/encoding-policy.md`
+
+## Onceki Branch Kaydi
+### `feature/release-ops-docs`
 Tamamlananlar:
 - gercek deploy davranisini anlatan release gate ve kanit runbook'u
 - manuel rollback/incident sinirlari ve destructive komut yasaklari
@@ -27,12 +39,6 @@ Tamamlananlar:
 - product/word analytics env'lerinin Compose app container parity duzeltmesi
 - workflow, compose, health ve docs kontratini dogrulayan statik test
 
-Referans:
-- `docs/deploy/release-process.md`
-- `docs/deploy/rollback-and-incident.md`
-- `docs/deploy/launch-day-checklist.md`
-
-## Onceki Branch Kaydi
 ### `feature/word-analytics-liveops`
 Tamamlananlar:
 - kelime ve kategori performansi icin PII'siz gunluk Redis aggregate

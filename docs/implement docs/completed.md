@@ -105,6 +105,12 @@
 - analytics env degerlerinin Compose app container parity'si
 - workflow, Compose, health ve dokuman kontrati regresyon testi
 
+### 16. `docs/encoding-cleanup`
+- cift encode edilmis tasarim prototiplerinin UTF-8 onarimi
+- stale UTF-16 lint/typecheck raporlarinin kaldirilmasi
+- UTF-8 EditorConfig ve kalici encoding integrity testi
+- mevcut ASCII socket event dokumani ve escaped legacy compatibility alias'lari
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

@@ -215,10 +215,11 @@ const ROOM_JOIN_MAX_ATTEMPTS = parseInt(process.env.ROOM_JOIN_MAX_ATTEMPTS || "1
 // Admin Transfer Timeout
 const roomAdminTimeouts = sharedGameSocketState.roomAdminTimeouts;
 const ADMIN_TIMEOUT_MS = parseInt(process.env.ADMIN_TIMEOUT_MS || "180000", 10); // Default 3 mins
-const ROOM_START_GAME_EVENTS = ["oyun_baslat", "oyunBaslatİsteği", "oyunBaslatÄ°steÄŸi"] as const;
-const ROOM_GAME_CONTROL_EVENTS = ["oyun_kontrol", "oyunKontrolİsteği", "oyunKontrolÄ°steÄŸi"] as const;
-const ROOM_RESET_GAME_EVENTS = ["oyun_sifirla", "oyunuSifirlaİsteği", "oyunuSifirlaÄ°steÄŸi"] as const;
-const ROOM_SWITCH_TEAM_EVENTS = ["takim_degistir", "takimDegistirİsteği", "takimDegistirÄ°steÄŸi"] as const;
+// Preserve malformed wire aliases from clients released before the ASCII migration.
+const ROOM_START_GAME_EVENTS = ["oyun_baslat", "oyunBaslatİsteği", "oyunBaslat\u00c4\u00b0ste\u00c4\u0178i"] as const;
+const ROOM_GAME_CONTROL_EVENTS = ["oyun_kontrol", "oyunKontrolİsteği", "oyunKontrol\u00c4\u00b0ste\u00c4\u0178i"] as const;
+const ROOM_RESET_GAME_EVENTS = ["oyun_sifirla", "oyunuSifirlaİsteği", "oyunuSifirla\u00c4\u00b0ste\u00c4\u0178i"] as const;
+const ROOM_SWITCH_TEAM_EVENTS = ["takim_degistir", "takimDegistirİsteği", "takimDegistir\u00c4\u00b0ste\u00c4\u0178i"] as const;
 const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 // ─── Helpers ───────────────────────────────────────────────────
