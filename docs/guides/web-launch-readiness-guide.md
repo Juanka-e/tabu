@@ -43,6 +43,8 @@ Varsayılan Playwright akışı:
 
 Cihaz matrisi ayrıntıları:
 `docs/guides/web-responsive-device-matrix.md`.
+Fiziksel cihaz kurulumu ve kanıt standardı:
+`docs/guides/web-real-device-smoke.md`.
 
 `WEB_LAUNCH_DB_E2E=true` verilmezse kayıtlı kullanıcı mutasyon testi kontrollü
 olarak skip edilir.

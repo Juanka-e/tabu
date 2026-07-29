@@ -4,13 +4,12 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/web-responsive-device-matrix`
-2. `feature/web-real-device-responsive-smoke`
-3. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
-4. `feature/post-launch-economy-observability-review`
-5. `feature/post-launch-xp-level-foundation`
-6. `feature/post-launch-missions-foundation`
-7. `feature/post-launch-night-market-foundation`
+1. `feature/web-real-device-responsive-smoke`
+2. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
+3. `feature/post-launch-economy-observability-review`
+4. `feature/post-launch-xp-level-foundation`
+5. `feature/post-launch-missions-foundation`
+6. `feature/post-launch-night-market-foundation`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
@@ -22,19 +21,25 @@ bu ertelemenin disindadir.
 
 ## Aktif Branch
 
-### `feature/web-responsive-device-matrix`
+### `feature/web-real-device-responsive-smoke`
 
 Hedef:
-- Playwright'i kucuk telefon, Android, yatay telefon, tablet ve laptop
-  profillerine genisletmek
-- public auth/room yuzeylerinde overflow ve aksiyon erisimini dogrulamak
-- disposable DB dashboard/lobby akisini 390px viewport'ta kontrol etmek
-- fiziksel cihaz smoke maddelerini emulasyon sonucundan ayri tutmak
+- production build'i acik bir LAN origin'i ile fiziksel cihaza sunmak
+- iOS Safari, Android Chrome, yatay telefon ve laptop kanitlarini ayri kaydetmek
+- sanal klavye, safe-area, touch, yon degisimi ve WebSocket davranisini kontrol etmek
+- gercek cihaz sonucu olmadan branch'i test edilmis saymamak
 
 Referans:
-- `docs/guides/web-responsive-device-matrix.md`
+- `docs/guides/web-real-device-smoke.md`
 
 ## Onceki Branch Kaydi
+### `feature/web-responsive-device-matrix`
+Tamamlananlar:
+- kucuk telefon, modern Android, yatay telefon, tablet ve laptop Chromium matrisi
+- public auth/room yuzeylerinde overflow ve aksiyon erisimi kontrolleri
+- disposable DB dashboard/lobby akisinda 390px viewport dogrulamasi
+- fiziksel cihaz sonucunu emulasyondan ayiran kabul standardi
+
 ### `feature/release-ops-docs`
 Tamamlananlar:
 - gercek deploy davranisini anlatan release gate ve kanit runbook'u

@@ -1,6 +1,6 @@
 # Web Responsive Cihaz Matrisi
 
-> Branch: `feature/web-responsive-device-matrix`
+> Durum: PR #85 ile tamamlandı
 > Kapsam: ilk web açılışının otomatik viewport ve touch emülasyon kapısı
 
 ## Otomatik Profiller
@@ -64,6 +64,8 @@ Emülasyon aşağıdakileri kanıtlamaz:
 - gerçek touch gecikmesi, scroll ve gesture hissi
 
 Bu maddeler fiziksel cihaz smoke turunda manuel olarak kapanır.
+Kurulum ve kanıt standardı:
+`docs/guides/web-real-device-smoke.md`.
 
 ## Fiziksel Cihaz Kanıtı
 
