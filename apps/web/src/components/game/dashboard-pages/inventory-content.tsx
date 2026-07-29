@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Eye, PackageOpen, X } from "lucide-react";
 import { DashboardEmptyState, DashboardPageShell, DashboardSection } from "@/components/game/dashboard-page-shell";
-import { CosmeticLargePreview, CosmeticMiniPreview, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
+import { CosmeticLargePreview, CosmeticThumbnail, formatCosmeticTypeLabel } from "@/components/game/cosmetic-preview";
 import { CoinBadge } from "@/components/ui/coin-badge";
 import { WALLET_UPDATED_EVENT } from "@/lib/wallet-events";
 import { dispatchInventoryUpdated } from "@/lib/inventory-events";
@@ -45,6 +45,8 @@ const tabs: { id: "all" | StoreItemType; label: string }[] = [
   { id: "card_face", label: "Kart Önleri" },
 ];
 
+const COSMETIC_GRID_BATCH_SIZE = 24;
+
 function isItemEquipped(item: InventoryItemView, equippedSlots: EquippedSlots): boolean {
   if (item.type === "avatar") {
     return equippedSlots.avatarItemId === item.shopItemId;
@@ -65,6 +67,7 @@ export function InventoryContent() {
   const [previewItem, setPreviewItem] = useState<InventoryItemView | null>(null);
   const [equipBusyId, setEquipBusyId] = useState<number | null>(null);
   const [coinBalance, setCoinBalance] = useState(0);
+  const [visibleItemCount, setVisibleItemCount] = useState(COSMETIC_GRID_BATCH_SIZE);
   const [equippedSlots, setEquippedSlots] = useState<EquippedSlots>({
     avatarItemId: null,
     frameItemId: null,
@@ -132,6 +135,15 @@ export function InventoryContent() {
   const filteredItems = useMemo(
     () => activeType === "all" ? items : items.filter((item) => item.type === activeType),
     [activeType, items]
+  );
+
+  useEffect(() => {
+    setVisibleItemCount(COSMETIC_GRID_BATCH_SIZE);
+  }, [activeType]);
+
+  const visibleItems = useMemo(
+    () => filteredItems.slice(0, visibleItemCount),
+    [filteredItems, visibleItemCount]
   );
 
   const handleEquip = async (item: InventoryItemView) => {
@@ -207,8 +219,9 @@ export function InventoryContent() {
                   icon={<PackageOpen className="h-5 w-5" />}
                 />
               ) : (
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-4">
-                  {filteredItems.map((item) => (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-4">
+                  {visibleItems.map((item) => (
                     <div
                       key={item.inventoryItemId}
                       className={`group relative flex flex-col rounded-[24px] border p-3 transition-all hover:-translate-y-0.5 hover:bg-white/85 dark:hover:bg-slate-950/60 ${rarityBorder[item.rarity]} ${rarityGlow[item.rarity]} ${item.equipped ? "ring-2 ring-blue-500/40" : ""}`}
@@ -227,7 +240,7 @@ export function InventoryContent() {
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
-                        <CosmeticMiniPreview item={item} />
+                        <CosmeticThumbnail item={item} />
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm font-black text-slate-900 dark:text-white">{item.name}</h3>
@@ -255,6 +268,21 @@ export function InventoryContent() {
                       </div>
                     </div>
                   ))}
+                  </div>
+                  {visibleItems.length < filteredItems.length ? (
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleItemCount((current) => current + COSMETIC_GRID_BATCH_SIZE)}
+                        className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"
+                      >
+                        Daha fazla göster
+                      </button>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {visibleItems.length} / {filteredItems.length} ürün gösteriliyor
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

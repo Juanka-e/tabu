@@ -111,6 +111,7 @@ const shopItemBaseSchema = z.object({
     renderSpecVersion: z.number().int().min(1).max(999).default(1),
     priceCoin: z.number().int().min(0).max(1_000_000),
     imageUrl: safeImageUrlSchema.default(""),
+    thumbnailUrl: safeImageUrlSchema.optional().nullable(),
     templateKey: z.string().trim().max(80).optional().nullable(),
     templateConfig: safeTemplateConfigSchema.optional().nullable(),
     badgeText: z.string().trim().max(24).optional().nullable(),
@@ -124,6 +125,7 @@ const shopItemBaseSchema = z.object({
 
 const shopItemUpdateBaseSchema = shopItemBaseSchema.partial().extend({
     imageUrl: safeImageUrlSchema.optional(),
+    thumbnailUrl: safeImageUrlSchema.optional().nullable(),
     templateKey: z.string().trim().max(80).optional().nullable(),
 });
 
@@ -256,6 +258,7 @@ export function toPrismaShopItemCreateData(input: ShopItemWriteInput): Prisma.Sh
         renderSpecVersion: input.renderSpecVersion,
         priceCoin: input.priceCoin,
         imageUrl: input.imageUrl,
+        thumbnailUrl: input.thumbnailUrl || null,
         templateKey: input.templateKey ?? null,
         templateConfig: input.templateConfig ?? Prisma.JsonNull,
         badgeText: input.badgeText ?? null,
@@ -278,6 +281,7 @@ export function toPrismaShopItemUpdateData(input: ShopItemUpdateInput): Prisma.S
         ...(input.renderSpecVersion !== undefined ? { renderSpecVersion: input.renderSpecVersion } : {}),
         ...(input.priceCoin !== undefined ? { priceCoin: input.priceCoin } : {}),
         ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
+        ...(input.thumbnailUrl !== undefined ? { thumbnailUrl: input.thumbnailUrl || null } : {}),
         ...(input.templateKey !== undefined ? { templateKey: input.templateKey ?? null } : {}),
         ...(input.templateConfig !== undefined
             ? { templateConfig: input.templateConfig ?? Prisma.JsonNull }

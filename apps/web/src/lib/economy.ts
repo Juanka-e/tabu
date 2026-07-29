@@ -500,6 +500,7 @@ export async function getInventoryData(userId: number): Promise<UserInventoryRes
             renderSpecVersion: renderSnapshot?.renderSpecVersion ?? normalizeRenderSpecVersion(entry.shopItem.renderSpecVersion),
             priceCoin: entry.shopItem.priceCoin,
             imageUrl: renderSnapshot?.imageUrl ?? entry.shopItem.imageUrl,
+            thumbnailUrl: entry.shopItem.thumbnailUrl,
             templateKey: renderSnapshot?.templateKey ?? entry.shopItem.templateKey,
             templateConfig: renderSnapshot?.templateConfig ?? normalizeTemplateConfig(entry.shopItem.templateConfig),
             badgeText: renderSnapshot?.badgeText ?? entry.shopItem.badgeText,
@@ -547,6 +548,7 @@ type StoreCatalogItemRecord = Prisma.ShopItemGetPayload<{
         renderSpecVersion: true;
         priceCoin: true;
         imageUrl: true;
+        thumbnailUrl: true;
         templateKey: true;
         templateConfig: true;
         badgeText: true;
@@ -663,6 +665,7 @@ function mapStoreItemView(
         renderSpecVersion: normalizeRenderSpecVersion(item.renderSpecVersion),
         priceCoin: effectivePriceCoin,
         imageUrl: item.imageUrl,
+        thumbnailUrl: item.thumbnailUrl,
         templateKey: item.templateKey,
         templateConfig: normalizeTemplateConfig(item.templateConfig),
         badgeText: item.badgeText,
@@ -794,6 +797,7 @@ async function loadSharedStoreCatalog(
                 renderSpecVersion: true,
                 priceCoin: true,
                 imageUrl: true,
+                thumbnailUrl: true,
                 templateKey: true,
                 templateConfig: true,
                 badgeText: true,
@@ -1491,6 +1495,7 @@ export async function purchaseStoreItem(
                     renderSpecVersion: true,
                     priceCoin: true,
                     imageUrl: true,
+                    thumbnailUrl: true,
                     templateKey: true,
                     templateConfig: true,
                     badgeText: true,
@@ -1689,6 +1694,7 @@ export async function purchaseStoreBundle(
                                     renderSpecVersion: true,
                                     priceCoin: true,
                                     imageUrl: true,
+                                    thumbnailUrl: true,
                                     templateKey: true,
                                     templateConfig: true,
                                     badgeText: true,

@@ -51,6 +51,7 @@ interface ShopItem {
     renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
+    thumbnailUrl: string | null;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
@@ -79,6 +80,7 @@ interface ShopItemFormState {
     renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
+    thumbnailUrl: string;
     templateKey: string;
     templateConfigText: string;
     badgeText: string;
@@ -146,6 +148,7 @@ const emptyItem: ShopItemFormState = {
     renderSpecVersion: 1,
     priceCoin: 100,
     imageUrl: "",
+    thumbnailUrl: "",
     templateKey: "",
     templateConfigText: "",
     badgeText: "",
@@ -526,6 +529,7 @@ export default function ShopItemsPage() {
             renderSpecVersion: item.renderSpecVersion,
             priceCoin: item.priceCoin,
             imageUrl: item.imageUrl,
+            thumbnailUrl: item.thumbnailUrl || "",
             templateKey: item.templateKey || "",
             templateConfigText: stringifyTemplateConfig(item.templateConfig),
             badgeText: item.badgeText || "",
@@ -551,6 +555,7 @@ export default function ShopItemsPage() {
                 renderSpecVersion: form.renderSpecVersion,
                 priceCoin: form.priceCoin,
                 imageUrl: form.imageUrl.trim(),
+                thumbnailUrl: form.thumbnailUrl.trim() || null,
                 templateKey: form.templateKey.trim() || null,
                 templateConfig: parseTemplateConfig(form.templateConfigText),
                 badgeText: form.badgeText.trim() || null,
@@ -649,7 +654,10 @@ export default function ShopItemsPage() {
         }
     }, [clearSelection, loadItems, selectedIds, updateItem]);
 
-    const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const handleUpload = async (
+        event: ChangeEvent<HTMLInputElement>,
+        target: "imageUrl" | "thumbnailUrl"
+    ) => {
         const file = event.target.files?.[0];
         if (!file) {
             return;
@@ -659,7 +667,10 @@ export default function ShopItemsPage() {
         try {
             const formData = new FormData();
             formData.append("file", file);
-            formData.append("category", mapUploadCategory(form.type));
+            formData.append(
+                "category",
+                target === "thumbnailUrl" ? `${form.type}-thumbnails` : mapUploadCategory(form.type)
+            );
             const response = await fetch("/api/admin/shop-items/upload", {
                 method: "POST",
                 body: formData,
@@ -670,7 +681,7 @@ export default function ShopItemsPage() {
             }
 
             const payload = (await response.json()) as { url: string };
-            setForm((current) => ({ ...current, imageUrl: payload.url }));
+            setForm((current) => ({ ...current, [target]: payload.url }));
         } catch {
             // Ignore upload failures for now.
         } finally {
@@ -954,8 +965,8 @@ export default function ShopItemsPage() {
                                         />
                                     </td>
                                     <td className="p-3">
-                                        {item.imageUrl ? (
-                                            <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={40} height={40} className="w-10 h-10 rounded-lg object-cover border border-border" />
+                                        {item.thumbnailUrl || item.imageUrl ? (
+                                            <Image loader={passthroughImageLoader} unoptimized src={item.thumbnailUrl || item.imageUrl} alt={item.name} width={40} height={40} className="w-10 h-10 rounded-lg object-contain border border-border" />
                                         ) : (
                                             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                                                 <ImageIcon size={16} className="text-muted-foreground" />
@@ -1158,7 +1169,7 @@ export default function ShopItemsPage() {
                                             <label className={`px-3 py-2 text-sm bg-muted rounded-lg transition-colors flex items-center gap-1 font-medium text-foreground shrink-0 ${imageUploadDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/80"}`}>
                                                 <Upload size={14} />
                                                 {uploading ? "..." : "Yükle"}
-                                                <input type="file" accept="image/*" onChange={handleUpload} disabled={imageUploadDisabled} className="hidden" />
+                                                <input type="file" accept="image/*" onChange={(event) => void handleUpload(event, "imageUrl")} disabled={imageUploadDisabled} className="hidden" />
                                             </label>
                                         </div>
                                         {form.imageUrl && (
@@ -1166,6 +1177,36 @@ export default function ShopItemsPage() {
                                                 <Image loader={passthroughImageLoader} unoptimized src={form.imageUrl} alt="Preview" width={64} height={64} className="w-16 h-16 rounded-lg object-cover border border-border" />
                                             </div>
                                         )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Grid Thumbnail URL</label>
+                                        <div className="flex gap-3 items-end">
+                                            <div className="flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={form.thumbnailUrl}
+                                                    onChange={(event) => setForm((current) => ({ ...current, thumbnailUrl: event.target.value }))}
+                                                    placeholder="/cosmetics/frame-thumbnails/royal-frame.webp"
+                                                    className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50"
+                                                />
+                                            </div>
+                                            <label className="shrink-0 cursor-pointer rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80">
+                                                <span className="flex items-center gap-1">
+                                                    <Upload size={14} />
+                                                    {uploading ? "..." : "Yükle"}
+                                                </span>
+                                                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void handleUpload(event, "thumbnailUrl")} className="hidden" />
+                                            </label>
+                                        </div>
+                                        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                                            Opsiyonel. Mağaza ve envanter grid&apos;lerinde ağır renderer yerine kullanılır. Küçük WebP önerilir; boşsa sistem statik fallback üretir.
+                                        </p>
+                                        {form.thumbnailUrl ? (
+                                            <div className="mt-2">
+                                                <Image loader={passthroughImageLoader} unoptimized src={form.thumbnailUrl} alt="Grid thumbnail preview" width={96} height={96} className="h-20 w-20 rounded-lg border border-border object-contain" />
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

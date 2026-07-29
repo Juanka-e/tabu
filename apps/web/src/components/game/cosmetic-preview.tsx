@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { Flame, Sparkles, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export interface CosmeticPreviewItem {
     renderMode: StoreItemRenderMode;
     renderSpecVersion?: number;
     imageUrl: string;
+    thumbnailUrl?: string | null;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
 }
@@ -39,19 +40,73 @@ function applyHexAlpha(hex: string, opacity: number) {
     return `${hex}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
-export function CosmeticMiniPreview({ item }: { item: CosmeticPreviewItem }) {
+export const CosmeticThumbnail = memo(function CosmeticThumbnail({
+    item,
+}: {
+    item: CosmeticPreviewItem;
+}) {
+    if (item.thumbnailUrl) {
+        const isCard = item.type === "card_back" || item.type === "card_face";
+        return (
+            <div
+                className={cn(
+                    "relative overflow-hidden border border-white/50 bg-white/70 shadow-[0_18px_38px_-26px_rgba(15,23,42,0.5)] dark:border-white/10 dark:bg-slate-950/70",
+                    isCard ? "h-24 w-[74px] rounded-[18px]" : "h-20 w-20 rounded-[22px]"
+                )}
+                data-cosmetic-thumbnail="asset"
+            >
+                <Image
+                    loader={passthroughImageLoader}
+                    unoptimized
+                    src={item.thumbnailUrl}
+                    alt={item.name}
+                    fill
+                    sizes={isCard ? "74px" : "80px"}
+                    loading="lazy"
+                    className="object-contain"
+                />
+            </div>
+        );
+    }
+
     if (item.type === "avatar") {
-        return <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[22px] border border-white/50 bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 shadow-[0_18px_38px_-24px_rgba(59,130,246,0.58)] dark:border-white/10">{item.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={80} height={80} className="h-full w-full object-cover" /> : <span className="text-2xl font-black text-white">{getItemInitial(item.name)}</span>}</div>;
+        return <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[22px] border border-white/50 bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 shadow-[0_18px_38px_-24px_rgba(59,130,246,0.58)] dark:border-white/10" data-cosmetic-thumbnail="fallback">{item.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={80} height={80} loading="lazy" className="h-full w-full object-cover" /> : <span className="text-2xl font-black text-white">{getItemInitial(item.name)}</span>}</div>;
     }
     if (item.type === "frame") {
         const theme = resolveFrameTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
         if (!theme) {
-            return <div className="flex h-20 w-20 items-center justify-center rounded-[22px] bg-slate-900 text-2xl font-black text-white">{getItemInitial(item.name)}</div>;
+            return <div className="flex h-20 w-20 items-center justify-center rounded-[22px] bg-slate-900 text-2xl font-black text-white" data-cosmetic-thumbnail="fallback">{getItemInitial(item.name)}</div>;
         }
         const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.accentColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-        return <div className="relative h-20 w-20"><div className="absolute inset-0 rounded-[24px]" style={{ border: `${theme.thickness}px solid ${theme.accentColor}`, boxShadow: `0 0 ${theme.glowBlur}px ${applyHexAlpha(theme.glowColor, theme.glowOpacity)}` }} />{theme.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.imageUrl} alt={item.name} fill className="rounded-[24px] object-cover opacity-85" /> : null}<div className={cn("absolute inset-0 rounded-[24px]", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[12px] flex items-center justify-center rounded-[16px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-xl font-black text-white shadow-lg">{getItemInitial(item.name)}</div></div>;
+        return <div className="relative h-20 w-20" data-cosmetic-thumbnail="fallback"><div className="absolute inset-0 rounded-[24px]" style={{ border: `${theme.thickness}px solid ${theme.accentColor}`, boxShadow: `0 0 ${Math.min(theme.glowBlur, 14)}px ${applyHexAlpha(theme.glowColor, Math.min(theme.glowOpacity, 0.35))}` }} />{theme.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.imageUrl} alt={item.name} fill sizes="80px" loading="lazy" className="rounded-[24px] object-cover opacity-85" /> : null}<div className="absolute inset-0 rounded-[24px]" style={patternStyle} /><div className="absolute inset-[12px] flex items-center justify-center rounded-[16px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-xl font-black text-white shadow-lg">{getItemInitial(item.name)}</div></div>;
     }
-    return <div className={cn("relative h-24 w-[74px] overflow-hidden rounded-[18px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]", item.type === "card_back" ? "bg-slate-900" : "bg-white")}><CosmeticCardPreviewSurface item={item} compact /></div>;
+    return <CosmeticStaticCardThumbnail item={item} />;
+});
+
+function CosmeticStaticCardThumbnail({ item }: { item: CosmeticPreviewItem }) {
+    if (item.type === "card_back") {
+        const theme = resolveCardBackTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+        const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
+        return (
+            <div className="relative h-24 w-[74px] overflow-hidden rounded-[18px] bg-slate-950 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]" data-cosmetic-thumbnail="fallback">
+                {theme.overlayImageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.overlayImageUrl} alt={item.name} fill sizes="74px" loading="lazy" className="object-cover opacity-85" /> : null}
+                <div className="absolute inset-0" style={patternStyle} />
+                <div className="absolute inset-[10%] rounded-[12px] border-2" style={{ borderColor: theme.borderColor }} />
+                <div className="absolute inset-[22%] rounded-[8px] border" style={{ borderColor: theme.secondaryColor }} />
+            </div>
+        );
+    }
+
+    const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+    const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
+    return (
+        <div className="relative h-24 w-[74px] overflow-hidden rounded-[18px] bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]" data-cosmetic-thumbnail="fallback">
+            <div className="absolute inset-[7px] rounded-[12px] border-2" style={{ borderColor: theme.borderColor, ...patternStyle }} />
+            <div className="absolute inset-x-[12px] top-[12px] h-5 rounded-md" style={{ backgroundColor: theme.accentColor }} />
+            <div className="absolute inset-x-[18px] top-[44px] h-2 rounded-full bg-slate-900/15" />
+            <div className="absolute inset-x-[20px] bottom-[15px] h-2 rounded-full" style={{ backgroundColor: theme.footerColor }} />
+        </div>
+    );
 }
 
 export function CosmeticLargePreview({

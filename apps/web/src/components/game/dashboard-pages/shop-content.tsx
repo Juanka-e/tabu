@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
@@ -20,6 +19,10 @@ import {
     X,
 } from "lucide-react";
 import { CoinBadge, CoinMark } from "@/components/ui/coin-badge";
+import {
+    CosmeticLargePreview,
+    CosmeticThumbnail,
+} from "@/components/game/cosmetic-preview";
 import { cn } from "@/lib/utils";
 import {
     SHOP_RARITY_BADGE_CLASS,
@@ -28,10 +31,6 @@ import {
     SHOP_RARITY_HALO_CLASS,
     SHOP_RARITY_TOP_STRIP_CLASS,
 } from "@/lib/store/shop-admin";
-import { resolveCardBackTheme } from "@/lib/cosmetics/card-back";
-import { resolveCardFaceTheme } from "@/lib/cosmetics/card-face";
-import { buildCosmeticPatternStyle, getCosmeticMotionClass, getCosmeticMotionStyle } from "@/lib/cosmetics/effects";
-import { resolveFrameTheme } from "@/lib/cosmetics/frame";
 import type {
     CatalogBundleView,
     CatalogStoreItemView,
@@ -65,6 +64,8 @@ interface ShopContentProps {
     layout?: LayoutMode;
 }
 
+const COSMETIC_GRID_BATCH_SIZE = 24;
+
 const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[] = [
     { id: "all", icon: ShoppingBag, label: "Tümü" },
     { id: "avatar", icon: UserCircle, label: "Avatar" },
@@ -72,8 +73,6 @@ const categories: { id: ShopCategory; icon: typeof ShoppingBag; label: string }[
     { id: "card_back", icon: Layers3, label: "Kart Arkası" },
     { id: "card_face", icon: Layers3, label: "Kart Önü" },
 ];
-
-const passthroughImageLoader = ({ src }: ImageLoaderProps) => src;
 
 function createEmptyCatalog(): StoreCatalogResponse {
     return {
@@ -96,15 +95,6 @@ function formatItemTypeLabel(type: StoreItemType) {
     if (type === "frame") return "Çerçeve";
     if (type === "card_back") return "Kart Arkası";
     return "Kart Önü";
-}
-
-function getItemInitial(name: string) {
-    const trimmed = name.trim();
-    return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "?";
-}
-
-function applyHexAlpha(hex: string, opacity: number) {
-    return `${hex}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`;
 }
 
 type StoreFlagTone = "neutral" | "accent" | "warning" | "danger";
@@ -174,6 +164,7 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
     const [previewOffer, setPreviewOffer] = useState<PreviewOffer>(null);
     const [utilityMode, setUtilityMode] = useState<UtilityMode>("coupon");
     const [activeCouponPreview, setActiveCouponPreview] = useState<ActiveCouponPreview | null>(null);
+    const [visibleItemCount, setVisibleItemCount] = useState(COSMETIC_GRID_BATCH_SIZE);
 
     useEffect(() => {
         if (!session?.user) {
@@ -326,6 +317,15 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
             return left.sortOrder - right.sortOrder;
         });
     }, [activeCouponItemMap, activeCouponPreview, filteredItems]);
+
+    useEffect(() => {
+        setVisibleItemCount(COSMETIC_GRID_BATCH_SIZE);
+    }, [category, searchQuery, activeCouponPreview]);
+
+    const visibleItems = useMemo(
+        () => sortedItems.slice(0, visibleItemCount),
+        [sortedItems, visibleItemCount]
+    );
 
     const applyOwnedItems = (awardedItemIds: number[], nextCoinBalance: number) => {
         const awardedSet = new Set(awardedItemIds);
@@ -725,10 +725,26 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                 {filteredItems.length === 0 ? (
                     <div className="rounded-[22px] border border-dashed border-slate-300/70 px-6 py-10 text-center text-sm text-slate-500 dark:border-slate-700/70 dark:text-slate-400">{searchQuery ? "Aramaya uygun ürün bulunamadı." : "Bu kategoride aktif ürün yok."}</div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
-                        {sortedItems.map((item) => (
-                            <MerchItemCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} />
-                        ))}
+                    <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-4">
+                            {visibleItems.map((item) => (
+                                <MerchItemCard key={item.id} item={item} activePricing={getDisplayedItemPricing(item)} busy={busyKey === `shop_item:${item.id}`} onPreview={() => setPreviewOffer({ kind: "item", item })} onBuy={() => void handleBuyItem(item)} />
+                            ))}
+                        </div>
+                        {visibleItems.length < sortedItems.length ? (
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setVisibleItemCount((current) => current + COSMETIC_GRID_BATCH_SIZE)}
+                                    className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-900"
+                                >
+                                    Daha fazla göster
+                                </button>
+                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                    {visibleItems.length} / {sortedItems.length} ürün gösteriliyor
+                                </span>
+                            </div>
+                        ) : null}
                     </div>
                 )}
             </section>
@@ -784,7 +800,7 @@ function FeatureCard({ item, activePricing, busy, onPreview, onBuy }: { item: Ca
                 </div>
 
                 <div className="mt-5 flex items-center justify-center rounded-[24px] border border-white/60 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),_transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.82),rgba(241,245,249,0.78))] p-5 dark:border-slate-700/60 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_58%),linear-gradient(180deg,rgba(30,41,59,0.72),rgba(15,23,42,0.82))]">
-                    <StoreMiniPreview item={item} />
+                    <CosmeticThumbnail item={item} />
                 </div>
 
                 <div className="mt-5 flex items-end justify-between gap-4">
@@ -815,7 +831,7 @@ function MerchItemCard({ item, activePricing, busy, onPreview, onBuy }: { item: 
             <div className={cn("absolute inset-x-4 top-0 h-1.5 rounded-b-full opacity-85", SHOP_RARITY_TOP_STRIP_CLASS[item.rarity])} />
             <div className="relative z-10">
                 <div className="mb-3 flex aspect-[0.95/1] items-center justify-center rounded-[20px] border border-white/40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.48),_transparent_55%),linear-gradient(180deg,rgba(248,250,252,0.95),rgba(226,232,240,0.85))] p-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%),linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.92))]">
-                    <StoreMiniPreview item={item} />
+                    <CosmeticThumbnail item={item} />
                 </div>
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -867,7 +883,7 @@ function BundleMerchCard({ bundle, activePricing, itemLookup, busy, onPreview, o
                     return (
                         <div key={item.id} className={`rounded-[22px] border p-3 shadow-sm ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}>
                             <div className="flex justify-center">
-                                {catalogItem ? <StoreMiniPreview item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}
+                                {catalogItem ? <CosmeticThumbnail item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}
                             </div>
                             <div className="mt-3 text-center">
                                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.itemType)}</div>
@@ -921,7 +937,7 @@ function ItemPreviewContent({ item, activePricing, busy, onBuy }: { item: Catalo
 
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><StoreLargePreview item={item} /></div>
+            <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]"><CosmeticLargePreview item={item} /></div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -948,7 +964,7 @@ function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, onBuy }
     return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.9))] p-5 dark:border-slate-800/70 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(2,6,23,0.96))]">
-                <div className="grid grid-cols-2 gap-4">{bundle.items.map((item) => { const catalogItem = itemLookup.get(item.shopItemId); return (<div key={item.id} className={`rounded-[22px] border p-4 text-center ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}><div className="flex justify-center">{catalogItem ? <StoreMiniPreview item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}</div><div className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.itemType)}</div><div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{item.itemName}</div></div>); })}</div>
+                <div className="grid grid-cols-2 gap-4">{bundle.items.map((item) => { const catalogItem = itemLookup.get(item.shopItemId); return (<div key={item.id} className={`rounded-[22px] border p-4 text-center ${SHOP_RARITY_CARD_CLASS[item.itemRarity]}`}><div className="flex justify-center">{catalogItem ? <CosmeticThumbnail item={catalogItem} /> : <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-slate-900 text-sm font-black text-white">{item.itemName.slice(0, 1).toUpperCase()}</div>}</div><div className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{formatItemTypeLabel(item.itemType)}</div><div className="mt-1 text-sm font-black text-slate-900 dark:text-white">{item.itemName}</div></div>); })}</div>
             </div>
             <div className="flex flex-col rounded-[28px] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-800/70 dark:bg-slate-950/45">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Paket Önizleme</div><h3 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">{bundle.name}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{bundle.description}</p>
@@ -958,46 +974,3 @@ function BundlePreviewContent({ bundle, activePricing, itemLookup, busy, onBuy }
         </div>
     );
 }
-
-function StoreMiniPreview({ item }: { item: CatalogStoreItemView }) {
-    if (item.type === "avatar") {
-        return <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[22px] border border-white/50 bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 shadow-[0_18px_38px_-24px_rgba(59,130,246,0.58)] dark:border-white/10">{item.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={80} height={80} className="h-full w-full object-cover" /> : <span className="text-2xl font-black text-white">{getItemInitial(item.name)}</span>}</div>;
-    }
-    if (item.type === "frame") {
-        const theme = resolveFrameTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
-        if (!theme) {
-            return <div className="flex h-20 w-20 items-center justify-center rounded-[22px] bg-slate-900 text-2xl font-black text-white">{getItemInitial(item.name)}</div>;
-        }
-        const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.accentColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-        return <div className="relative h-20 w-20"><div className="absolute inset-0 rounded-[24px]" style={{ border: `${theme.thickness}px solid ${theme.accentColor}`, boxShadow: `0 0 ${theme.glowBlur}px ${applyHexAlpha(theme.glowColor, theme.glowOpacity)}` }} />{theme.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.imageUrl} alt={item.name} fill className="rounded-[24px] object-cover opacity-85" /> : null}<div className={cn("absolute inset-0 rounded-[24px]", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[12px] flex items-center justify-center rounded-[16px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-xl font-black text-white shadow-lg">{getItemInitial(item.name)}</div></div>;
-    }
-    return <div className={cn("relative h-24 w-[74px] overflow-hidden rounded-[18px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]", item.type === "card_back" ? "bg-slate-900" : "bg-white")}><StoreCardPreviewSurface item={item} compact /></div>;
-}
-
-function StoreLargePreview({ item }: { item: CatalogStoreItemView }) {
-    if (item.type === "avatar") {
-        return <div className="flex min-h-[320px] items-center justify-center p-6"><div className="space-y-5 text-center"><div className="mx-auto flex h-36 w-36 items-center justify-center overflow-hidden rounded-[36px] border border-white/20 bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 shadow-[0_24px_60px_-34px_rgba(59,130,246,0.65)]">{item.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={item.imageUrl} alt={item.name} width={144} height={144} className="h-full w-full object-cover" /> : <span className="text-5xl font-black text-white">{getItemInitial(item.name)}</span>}</div><div><div className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Oyuncu Kutusu</div><div className="mt-2 text-lg font-black text-slate-900 dark:text-white">{item.name}</div></div></div></div>;
-    }
-    if (item.type === "frame") {
-        const theme = resolveFrameTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
-        if (!theme) {
-            return <div className="flex min-h-[320px] items-center justify-center p-6"><div className="flex h-56 w-56 items-center justify-center rounded-[44px] bg-slate-900 text-5xl font-black text-white">{getItemInitial(item.name)}</div></div>;
-        }
-        const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.accentColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-        return <div className="flex min-h-[320px] items-center justify-center p-6"><div className="relative flex h-56 w-56 items-center justify-center"><div className="absolute inset-0 rounded-[44px]" style={{ border: `${theme.thickness}px solid ${theme.accentColor}`, boxShadow: `0 0 ${theme.glowBlur}px ${applyHexAlpha(theme.glowColor, theme.glowOpacity)}` }} />{theme.frameStyle !== "solid" ? <div className="absolute inset-[14px] rounded-[34px] border" style={{ borderColor: theme.secondaryColor, opacity: theme.frameStyle === "double" ? 0.8 : 0.6 }} /> : null}{theme.imageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.imageUrl} alt={item.name} fill className="rounded-[44px] object-cover opacity-85" /> : null}<div className={cn("absolute inset-0 rounded-[44px]", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[34px] rounded-[28px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" /><div className="absolute inset-[58px] flex items-center justify-center rounded-[24px] bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 text-4xl font-black text-white shadow-lg">{getItemInitial(item.name)}</div></div></div>;
-    }
-    return <div className="flex min-h-[320px] items-center justify-center p-6"><div className="relative h-[272px] w-[198px] overflow-hidden rounded-[30px] border border-white/30 bg-slate-950 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.65)]"><StoreCardPreviewSurface item={item} /></div></div>;
-}
-
-function StoreCardPreviewSurface({ item, compact = false }: { item: CatalogStoreItemView; compact?: boolean }) {
-    if (item.type === "card_back") {
-        const theme = resolveCardBackTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
-        const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-        return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.98))]">{theme.overlayImageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.overlayImageUrl} alt={item.name} fill className="object-cover opacity-90" /> : null}<div className={cn("absolute inset-0", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[10%] rounded-[22px] border-2" style={{ borderColor: theme.borderColor }} /><div className="absolute inset-[20%] rounded-[16px] border" style={{ borderColor: theme.secondaryColor }} />{!compact ? <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">Kart Arkası</div> : null}</div>;
-    }
-    const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
-    const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
-    const overlayStyle = theme.overlayImageUrl ? { backgroundImage: `linear-gradient(rgba(255,255,255,${theme.overlayOpacity * 0.7}), rgba(255,255,255,${theme.overlayOpacity * 0.7})), url(${theme.overlayImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
-    return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.96))] text-slate-900"><div className="absolute inset-0" style={overlayStyle} /><div className={cn("absolute inset-[10px] rounded-[20px] border-2", getCosmeticMotionClass(theme.motionPreset))} style={{ borderColor: theme.borderColor, ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[18px] rounded-[16px] border bg-white/70 backdrop-blur-[1px]" style={{ borderColor: theme.secondaryColor }} />{compact ? <><div className="absolute inset-x-[24px] top-[18px] h-3 rounded-full bg-slate-900/15" /><div className="absolute inset-x-[28px] bottom-[18px] h-3 rounded-full bg-slate-900/12" /></> : <><div className="absolute inset-x-[20px] top-[22px] rounded-full bg-slate-900/85 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white">Tema</div><div className="absolute inset-x-6 top-[42%] -translate-y-1/2 text-center"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Kart Önü</div><div className="mt-2 text-lg font-black">{item.name}</div></div><div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 backdrop-blur-sm"><Sparkles className="h-3 w-3" />Oyun İçi</div></>}</div>;
-}
-

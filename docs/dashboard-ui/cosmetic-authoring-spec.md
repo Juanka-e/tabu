@@ -15,6 +15,16 @@ Operasyon akisi, AI promptablonlari ve Hushle kart sabit slot prensibi icin ek r
 
 - `docs/guides/card-design-guide.md`
 
+## Thumbnail Standardi
+
+- Her urun icin `thumbnailUrl` opsiyoneldir ancak buyuk kataloglarda onerilir.
+- Avatar ve frame: kare WebP, onerilen `256x256`, hedef en fazla `80 KB`.
+- Card face ve card back: `3:4` WebP, onerilen `240x320`, hedef en fazla `100 KB`.
+- Thumbnail animasyon, flip veya gameplay metni tasimaz; grid icin statik kapaktir.
+- Asil `imageUrl` detay ve oyun kalitesini korur. Thumbnail bunun yerine gecmez.
+- Admin thumbnail yuklemezse sistem hafif statik fallback uretir; runtime'da
+  thumbnail dosyasi render edip depolayan bir image-processing job'u yoktur.
+
 ## Kozmetik Turleri
 
 ### 1. Avatar

@@ -16,6 +16,7 @@ export interface MockShopItemSeed {
     renderSpecVersion?: number;
     priceCoin: number;
     imageUrl: string;
+    thumbnailUrl?: string | null;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;

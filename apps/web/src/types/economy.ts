@@ -59,6 +59,7 @@ export interface StoreItemView {
     renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
+    thumbnailUrl: string | null;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
@@ -108,6 +109,7 @@ export interface InventoryItemView {
     renderSpecVersion: number;
     priceCoin: number;
     imageUrl: string;
+    thumbnailUrl: string | null;
     templateKey: string | null;
     templateConfig: TemplateConfig | null;
     badgeText: string | null;
