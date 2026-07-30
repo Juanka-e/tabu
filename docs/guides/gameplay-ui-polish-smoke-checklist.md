@@ -21,11 +21,13 @@ yuzeylerinde kritik UX kirilmalarini hizli yakalamak.
 
 ## Room Header
 
-1. mobil genislikte `brand`, `stage`, `room code`, utility butonlari tek satirda veya kontrollu sarilarak gorunmeli
+1. lobby'de `brand`, `stage`, `room code` ve utility butonlari kontrollu yerlesmeli
 2. `Hushle` logosu sure veya ana oyun alanini kapatmiyor olmali
 3. dashboard butonu ve utility menu butonu ayni anda tiklanabilir olmali
 4. utility menu acikken ekranin sag disina tasma olmamali
 5. desktop gorunumde identity editor butonu logo alanina carpismamali
+6. hazirlik ve aktif oyunda room code yayin ekranina sizmamali; bitmemis amblem placeholder'i gorunmemeli
+7. mobil Takim A ve Takim B kenar sekmeleri ayri ayri acilip kapanabilmeli
 
 ## Dashboard Header
 
@@ -63,6 +65,8 @@ yuzeylerinde kritik UX kirilmalarini hizli yakalamak.
 2. sekmelerden biri kapaninca diger sekme odadan dusmus gibi gorunmemeli
 3. dashboard'dan yeni oda acma denemesi aktif room varken bloklanmali
 4. room refresh sonrasi host ise host hakki geri gelmeli
+5. aktif oyun refresh sonrasi oyuncu lobby'ye dusmemeli; rol ve kart gorunurlugu sunucu snapshot'indan geri kurulmalı
+6. mobilde olusturulan odaya desktop browser oda koduyla katilabilmeli
 
 ## Admin Category DnD Son Tur
 
@@ -79,13 +83,15 @@ Otomatik hale gelenler:
 - duyuru modalinin acilma/kapanma ve viewport kontrolu
 - disposable DB uzerinde kayit, login, mobile dashboard ve lobby
 - kucuk telefon, modern Android, yatay telefon, tablet ve laptop profilleri
+- iki guest ile lobby reconnect, aktif oyun reconnect ve ters mobil-host akisi
+- mobil Takim A / Takim B panel acma-kapama akisi
 
 Manuel veya fixture bekleyenler:
 
 - active room card ve blocked-entry ekrani
 - dolu notifications sheet ve toast cakismasi
 - gercek inventory verisiyle inline quick equip rail
-- coklu sekme, reconnect ve tam socket/game akisi
+- kayitli hesapla coklu sekme ve aktif oyun finalize akisi
 
 Not:
 

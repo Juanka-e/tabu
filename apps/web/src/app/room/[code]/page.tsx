@@ -466,10 +466,7 @@ export default function RoomPage() {
                 socket.on("turGecisiBaslat", (data: TransitionData) => {
                     setView(GameView.TRANSITION);
                     setIsPrimaryInspector(false);
-                    setTransition({
-                        ...data,
-                        ilkGecis: isInitialTransitionRef.current,
-                    });
+                    setTransition(data);
                     setCardBackTheme(data.cardBackTheme);
                 });
 
@@ -966,20 +963,30 @@ export default function RoomPage() {
             <div className="flex h-screen w-screen overflow-hidden bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
                 {/* Mobile Menu Toggles */}
                 {isMobile && (
-                    <div className="absolute top-4 left-4 z-50 flex gap-2">
+                    <>
                         <button
+                            type="button"
+                            aria-label="Takım A panelini aç"
+                            data-testid="mobile-team-a-toggle"
                             onClick={() => setSidebarAOpen((prev) => !prev)}
-                            className="bg-red-600 text-white p-2.5 rounded-lg shadow-md"
+                            className={`fixed left-0 top-1/2 z-[90] -translate-y-1/2 rounded-r-xl bg-red-600 p-2.5 text-white shadow-lg transition-transform ${
+                                sidebarAOpen ? "-translate-x-full" : "translate-x-0"
+                            }`}
                         >
                             <Menu size={20} />
                         </button>
                         <button
+                            type="button"
+                            aria-label="Takım B panelini aç"
+                            data-testid="mobile-team-b-toggle"
                             onClick={() => setSidebarBOpen((prev) => !prev)}
-                            className="bg-blue-600 text-white p-2.5 rounded-lg shadow-md"
+                            className={`fixed right-0 top-1/2 z-[90] -translate-y-1/2 rounded-l-xl bg-blue-600 p-2.5 text-white shadow-lg transition-transform ${
+                                sidebarBOpen ? "translate-x-full" : "translate-x-0"
+                            }`}
                         >
                             <Menu size={20} />
                         </button>
-                    </div>
+                    </>
                 )}
 
                 {/* Team A Sidebar (Red) */}
@@ -1006,6 +1013,7 @@ export default function RoomPage() {
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
                     <div className="relative z-[80] flex items-start justify-between gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
                         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+                            {view === GameView.LOBBY ? (
                             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[1.2rem] border border-white/60 bg-white/90 px-2 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:flex-none sm:gap-3 sm:px-4">
                                 <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:h-11 sm:w-11">
                                     {branding.logoUrl ? (
@@ -1023,9 +1031,6 @@ export default function RoomPage() {
                                         </span>
                                     )}
                                 </div>
-                                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300/90 bg-slate-50/80 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:border-slate-600/80 dark:bg-slate-800/70 dark:text-slate-500 lg:flex">
-                                    FX
-                                </div>
                                 <div className="min-w-0">
                                     <div className="truncate text-[12px] font-black tracking-[0.12em] text-slate-900 dark:text-white sm:text-base sm:tracking-[0.18em]">
                                         {brandLabel}
@@ -1038,12 +1043,30 @@ export default function RoomPage() {
                                             <Hash size={11} />
                                             {roomCode}
                                         </span>
-                                        <span className="hidden rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800 md:inline-flex">
-                                            Amblem Yakinda
-                                        </span>
                                     </div>
                                 </div>
                             </div>
+                            ) : (
+                                <div
+                                    className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center justify-center rounded-2xl border border-white/70 bg-white/85 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/85 sm:top-4"
+                                    aria-label={`${brandLabel} - ${activeStageLabel}`}
+                                >
+                                    {branding.logoUrl ? (
+                                        <Image
+                                            src={branding.logoUrl}
+                                            alt={`${branding.siteName} logo`}
+                                            width={88}
+                                            height={36}
+                                            unoptimized
+                                            className="h-7 w-auto max-w-24 object-contain sm:h-8 sm:max-w-28"
+                                        />
+                                    ) : (
+                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.2em] text-transparent">
+                                            {brandShortLabel}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-start gap-2">
                         <div className="relative">

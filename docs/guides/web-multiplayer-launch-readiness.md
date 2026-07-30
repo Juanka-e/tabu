@@ -20,6 +20,10 @@ yayınlandığını kanıtlamaz. Bu kapı iki izole browser context açar ve ger
 9. iki oyuncu ilk hazırlık ekranını görür
 10. host hazırlığı durdurur ve guest durumu senkron görür
 11. mobil guest viewport'unda yatay taşma olmadığı doğrulanır
+12. hazırlık tamamlanınca aktif oyundaki guest reload edilir ve lobby yerine
+    rol/kart yetkileri korunmuş oyun ekranına döner
+13. mobil host oda oluşturur ve ayrı desktop guest aynı oda koduyla katılır
+14. mobil guest Takım A ve Takım B panellerini ayrı ayrı açar ve kapatır
 
 ## Fixture Yaşam Döngüsü
 
@@ -50,7 +54,7 @@ npm run test:web-multiplayer
 
 - maç tamamlanmaz ve ödül finalize edilmez
 - coin/XP sonucu üretilmez
-- host/guest reload reconnect kapsam içindedir; timeout ile tamamlanan otomatik
+- lobby ve aktif oyun reload reconnect kapsam içindedir; timeout ile tamamlanan otomatik
   host handoff ve dört kayıtlı oyuncu senaryosu kapsam dışındadır
 - Chromium ve WebKit otomasyonu fiziksel cihaz kanıtı değildir
 - gerçek touch, sanal klavye ve cihaz performansı manuel smoke turunda kalır

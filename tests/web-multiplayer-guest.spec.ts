@@ -83,6 +83,34 @@ test("two guests join opposite teams and enter the first transition", async ({
       checkpoint(`${guestName} joined`);
     });
 
+    await test.step("mobile guest can open both team sidebars", async () => {
+      const teamAToggle = guestPage.getByRole("button", {
+        name: "Takım A panelini aç",
+      });
+      const teamBToggle = guestPage.getByRole("button", {
+        name: "Takım B panelini aç",
+      });
+
+      await expect(teamAToggle).toBeVisible();
+      await teamAToggle.click();
+      await expect(
+        guestPage.getByRole("button", { name: "Takım A panelini kapat" })
+      ).toBeVisible();
+      await guestPage
+        .getByRole("button", { name: "Takım A panelini kapat" })
+        .click();
+
+      await expect(teamBToggle).toBeVisible();
+      await teamBToggle.click();
+      await expect(
+        guestPage.getByRole("button", { name: "Takım B panelini kapat" })
+      ).toBeVisible();
+      await guestPage
+        .getByRole("button", { name: "Takım B panelini kapat" })
+        .click();
+      checkpoint("mobile team sidebars opened independently");
+    });
+
     await test.step("both guests reconnect without identity duplication", async () => {
       const hostPlayerIdBefore = await hostPage.evaluate(() =>
         window.sessionStorage.getItem("tabu_playerId")
@@ -146,9 +174,82 @@ test("two guests join opposite teams and enter the first transition", async ({
       checkpoint("pause synchronized");
     });
 
+    await test.step("active game reconnect restores the game instead of the lobby", async () => {
+      await hostPage.getByRole("button", { name: /Devam Ettir/i }).click();
+      await expect(guestPage.getByText("Anlatan", { exact: true })).toBeVisible({
+        timeout: 20_000,
+      });
+
+      await guestPage.reload();
+      await expect(guestPage.getByText("Anlatan", { exact: true })).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect(
+        guestPage.getByRole("button", { name: /Kategoriler/i })
+      ).toHaveCount(0);
+      await expect(
+        guestPage.getByText(/Amblem Yakinda/i)
+      ).toHaveCount(0);
+      await expectNoHorizontalOverflow(guestPage);
+      checkpoint("active game state survived guest reload");
+    });
+
     expect(hostErrors).toEqual([]);
     expect(guestErrors).toEqual([]);
   } finally {
     await guestContext.close();
+  }
+});
+
+test("mobile host creates a room that a desktop guest can join", async ({
+  browser,
+  page: desktopGuestPage,
+}, testInfo) => {
+  const suffix = `${testInfo.project.name}-${Date.now()}-reverse`
+    .replaceAll(/[^a-z0-9]/gi, "")
+    .slice(-10);
+  const hostName = `Mobil${suffix}`;
+  const guestName = `Masa${suffix}`;
+  const mobileHostContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+  });
+  const mobileHostPage = await mobileHostContext.newPage();
+  const mobileErrors = collectPageErrors(mobileHostPage);
+  const desktopErrors = collectPageErrors(desktopGuestPage);
+
+  try {
+    await mobileHostPage.goto("/");
+    await mobileHostPage.getByPlaceholder(/Adinizi girin/i).fill(hostName);
+    await mobileHostPage
+      .getByRole("button", { name: /Yeni Oda Olustur/i })
+      .click();
+    await expect(mobileHostPage).toHaveURL(/\/room\/[A-Z0-9]{6}$/, {
+      timeout: 20_000,
+    });
+    const roomCode = new URL(mobileHostPage.url()).pathname.split("/").at(-1);
+    expect(roomCode).toMatch(/^[A-Z0-9]{6}$/);
+
+    await desktopGuestPage.goto("/");
+    await desktopGuestPage
+      .getByPlaceholder(/Adinizi girin/i)
+      .fill(guestName);
+    await desktopGuestPage
+      .getByPlaceholder(/ABC123|Orn: ABC123/i)
+      .fill(roomCode ?? "");
+    await desktopGuestPage.getByRole("button", { name: /^Katil$/i }).click();
+
+    await expect(desktopGuestPage).toHaveURL(
+      new RegExp(`/room/${roomCode}$`),
+      { timeout: 20_000 }
+    );
+    await expect(
+      mobileHostPage.getByText(guestName, { exact: true }).first()
+    ).toBeVisible({ timeout: 20_000 });
+    await expectNoHorizontalOverflow(mobileHostPage);
+    expect(mobileErrors).toEqual([]);
+    expect(desktopErrors).toEqual([]);
+  } finally {
+    await mobileHostContext.close();
   }
 });

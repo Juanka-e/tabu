@@ -116,6 +116,13 @@ interface GameStateData {
     bittiAt?: number | null;
 }
 
+interface ActiveTransitionSnapshot {
+    anlatici: { ad: string; takim: "A" | "B" };
+    gozetmen: { ad: string; takim: "A" | "B" } | null;
+    ilkGecis: boolean;
+    cardBackTheme: RoomCardThemePayload["cardBackTheme"];
+}
+
 interface MatchParticipantSnapshot {
     playerId: string;
     userId: number | null;
@@ -138,6 +145,7 @@ interface RoomData {
     seciliKategoriler?: number[];
     seciliZorluklar?: number[];
     oyunDurumu: GameStateData;
+    activeTransition: ActiveTransitionSnapshot | null;
     matchParticipants: MatchParticipantSnapshot[];
     activeWordAnalytics: {
         wordId: number;
@@ -536,23 +544,42 @@ export function setupGameSocket(
                 ] || opponentPlayers[0]
                 : null;
 
-        const narratorCardThemes = await hydrateNarratorCardThemes(narrator.userId);
-
         room.oyunDurumu.kalanGecisSuresi = 10;
-        persistRoom(room);
-
-        io.to(room.odaKodu).emit("turGecisiBaslat", {
-            anlatici: { ad: narrator.ad, takim: narrator.takim },
+        const transitionSnapshot: ActiveTransitionSnapshot = {
+            anlatici: {
+                ad: narrator.ad,
+                takim: narrator.takim ?? anlatacakTakim,
+            },
             gozetmen: inspector
-                ? { ad: inspector.ad, takim: inspector.takim }
+                ? {
+                    ad: inspector.ad,
+                    takim: inspector.takim ?? opponentTeam,
+                }
                 : null,
-            kalanSure: room.oyunDurumu.kalanGecisSuresi,
-            oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
             ilkGecis:
                 room.oyunDurumu.anlatici === null &&
                 room.oyunDurumu.gozetmen === null,
+            cardBackTheme: null,
+        };
+        room.activeTransition = transitionSnapshot;
+        persistRoom(room);
+
+        const narratorCardThemes = await hydrateNarratorCardThemes(narrator.userId);
+        if (
+            !room.oyunDurumu.oyunAktifMi ||
+            !room.oyunDurumu.gecisEkraninda ||
+            room.activeTransition !== transitionSnapshot
+        ) {
+            return;
+        }
+        transitionSnapshot.cardBackTheme = narratorCardThemes.cardBackTheme;
+        persistRoom(room);
+
+        io.to(room.odaKodu).emit("turGecisiBaslat", {
+            ...room.activeTransition,
+            kalanSure: room.oyunDurumu.kalanGecisSuresi,
+            oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
             creatorId: room.creatorId,
-            cardBackTheme: narratorCardThemes.cardBackTheme,
         });
 
         room.zamanlayici = setInterval(() => {
@@ -618,6 +645,9 @@ export function setupGameSocket(
             }
             : null;
         currentRoom.oyunDurumu.kalanPasHakki = 3;
+        currentRoom.oyunDurumu.aktifKart = null;
+        currentRoom.activeTransition = null;
+        persistRoom(currentRoom);
 
         try {
             const draw = await getNextWord(
@@ -662,37 +692,89 @@ export function setupGameSocket(
             const playerSocket = io.sockets.sockets.get(player.id);
             if (!playerSocket) return;
 
-            let rol = "Tahminci";
-            let isPrimaryGozetmen = false;
+            emitTurnInfoForPlayer(
+                playerSocket,
+                player,
+                narrator,
+                inspector,
+                card,
+                narratorCardThemes
+            );
+        });
+    }
 
-            if (player.rol === "İzleyici") {
-                rol = "İzleyici";
-            } else if (player.playerId === narrator.playerId) {
-                rol = "Anlatıcı";
-            } else if (
-                inspector &&
-                player.playerId === inspector.playerId
-            ) {
-                rol = "Gözetmen";
-                isPrimaryGozetmen = true;
-            } else if (player.takim !== narrator.takim) {
-                rol = "Tahminci";
-            }
+    function emitTurnInfoForPlayer(
+        playerSocket: Socket,
+        player: PlayerData,
+        narrator: PlayerData | NarratorInfo,
+        inspector: PlayerData | NarratorInfo | null,
+        card: unknown,
+        narratorCardThemes: RoomCardThemePayload
+    ): void {
+        let rol = "Tahminci";
+        let isPrimaryGozetmen = false;
 
-            const shouldSeeCard =
-                rol === "Anlatıcı" ||
-                rol === "Gözetmen" ||
-                (player.takim !== null && narrator.takim !== null && player.takim !== narrator.takim);
+        if (player.rol === "İzleyici") {
+            rol = "İzleyici";
+        } else if (player.playerId === narrator.playerId) {
+            rol = "Anlatıcı";
+        } else if (inspector && player.playerId === inspector.playerId) {
+            rol = "Gözetmen";
+            isPrimaryGozetmen = true;
+        }
 
-            playerSocket.emit("yeniTurBilgisi", {
-                rol,
-                isPrimaryGozetmen,
-                kart: shouldSeeCard ? card : null,
-                anlaticiAd: narrator.ad,
-                gozetmenAd: inspector ? inspector.ad : "-",
-                cardFaceTheme: narratorCardThemes.cardFaceTheme,
-                cardBackTheme: narratorCardThemes.cardBackTheme,
+        const shouldSeeCard =
+            rol === "Anlatıcı" ||
+            rol === "Gözetmen" ||
+            (player.takim !== null &&
+                narrator.takim !== null &&
+                player.takim !== narrator.takim);
+
+        playerSocket.emit("yeniTurBilgisi", {
+            rol,
+            isPrimaryGozetmen,
+            kart: shouldSeeCard ? card : null,
+            anlaticiAd: narrator.ad,
+            gozetmenAd: inspector ? inspector.ad : "-",
+            cardFaceTheme: narratorCardThemes.cardFaceTheme,
+            cardBackTheme: narratorCardThemes.cardBackTheme,
+        });
+    }
+
+    async function replayActiveGameState(
+        socket: Socket,
+        room: RoomData,
+        player: PlayerData
+    ): Promise<void> {
+        if (room.oyunDurumu.gecisEkraninda && room.activeTransition) {
+            socket.emit("turGecisiBaslat", {
+                ...room.activeTransition,
+                kalanSure: room.oyunDurumu.kalanGecisSuresi ?? 0,
+                oyunDurduruldu: room.oyunDurumu.oyunDurduruldu,
+                creatorId: room.creatorId,
             });
+        } else if (room.oyunDurumu.anlatici) {
+            const narrator = room.oyunDurumu.anlatici;
+            const narratorPlayer = room.oyuncular.find(
+                (entry) => entry.playerId === narrator.playerId
+            );
+            const narratorCardThemes = await hydrateNarratorCardThemes(
+                narratorPlayer?.userId ?? null
+            );
+            emitTurnInfoForPlayer(
+                socket,
+                player,
+                narrator,
+                room.oyunDurumu.gozetmen,
+                room.oyunDurumu.aktifKart,
+                narratorCardThemes
+            );
+        }
+
+        socket.emit("oyunDurumuGuncelle", {
+            ...room.oyunDurumu,
+            creatorId: room.creatorId,
+            toplamSure: room.ayarlar.sure,
         });
     }
 
@@ -891,6 +973,7 @@ export function setupGameSocket(
         }
 
         room.oyunDurumu.oyunAktifMi = false;
+        room.activeTransition = null;
         room.oyunDurumu.bittiAt = Date.now();
         if (room.zamanlayici) {
             clearInterval(room.zamanlayici);
@@ -913,6 +996,7 @@ export function setupGameSocket(
         room.oyunDurumu = createInitialGameState();
         room.oyunDurumu.kalanZaman = room.ayarlar.sure || 60;
         room.oyunDurumu.toplamTur = room.ayarlar.deger || 0;
+        room.activeTransition = null;
         room.matchParticipants = [];
         room.activeWordAnalytics = null;
 
@@ -1148,6 +1232,7 @@ export function setupGameSocket(
                             gecerliKategoriIdleri: [],
                             gecerliZorlukSeviyeleri: [],
                             oyunDurumu: createInitialGameState(),
+                            activeTransition: null,
                             matchParticipants: [],
                             activeWordAnalytics: null,
                             zamanlayici: null,
@@ -1302,11 +1387,12 @@ export function setupGameSocket(
                     );
 
                     if (room.oyunDurumu.oyunAktifMi) {
-                        socket.emit("oyunBasladi");
-                        socket.emit("oyunDurumuGuncelle", {
-                            ...room.oyunDurumu,
-                            creatorId: room.creatorId,
-                        });
+                        const currentPlayer = room.oyuncular.find(
+                            (entry) => entry.playerId === effectivePlayerId
+                        );
+                        if (currentPlayer) {
+                            await replayActiveGameState(socket, room, currentPlayer);
+                        }
                     }
 
                     broadcastLobby(room);

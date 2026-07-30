@@ -45,6 +45,8 @@ Tamamlananlar:
 - reconnect sonrasinda korunan playerId ve duplicate olmayan lobby kaydi
 - host yetkisinin geri gelmesi ve pending otomatik devrin temizlenmesi
 - reconnect sonrasinda oyun baslatma ve pause senkronunun korunmasi
+- aktif oyun reconnect'inde rol, kart gorunurlugu ve oyun ekraninin sunucudan yeniden kurulmasi
+- mobil host -> desktop guest oda koduyla katilim ve mobil takim panel kontrolleri
 - Chromium ve WebKit disposable DB dogrulamasi
 
 ### `test/web-multiplayer-launch-readiness`
