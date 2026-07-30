@@ -25,6 +25,24 @@ Kontrol listesi tamamlanmalı ve sonuç şablona kaydedilmelidir.
 Bu komut veritabanını sıfırlamaz, migration çalıştırmaz ve Redis'i kapatmaz.
 `docker compose down -v` kullanılmaz.
 
+Kalıcı development veritabanında kategori/kelime yoksa fiziksel gameplay
+smoke'u için geçici fixture hazırlanabilir. Komut yalnız adı `_dev` veya
+`_test` ile biten MySQL veritabanında ve açık izin bayrağıyla çalışır:
+
+```powershell
+$env:REAL_DEVICE_FIXTURE_ALLOWED="true"
+npm run smoke:web-real-device-fixture -- prepare
+npm run smoke:web-real-device-fixture -- status
+```
+
+Smoke oturumu bitince yalnız rezerv fixture prefix'ini temizler:
+
+```powershell
+npm run smoke:web-real-device-fixture -- cleanup
+```
+
+Bu akış database reset, migration veya genel seed çalıştırmaz.
+
 ## Sunucuyu Açma
 
 Önce build:
