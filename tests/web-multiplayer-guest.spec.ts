@@ -60,11 +60,13 @@ test("two guests join opposite teams and enter the first transition", async ({
     });
 
     await test.step("second guest joins the room", async () => {
-      await guestPage.goto(`/room/${roomCode}`);
-      const guestNameInput = guestPage.locator("input[autofocus]");
-      await expect(guestNameInput).toBeVisible({ timeout: 20_000 });
-      await guestNameInput.fill(guestName);
-      await guestPage.getByRole("button", { name: /Oyuna Kat/i }).click();
+      await guestPage.goto("/");
+      await guestPage.getByPlaceholder(/Adinizi girin/i).fill(guestName);
+      await guestPage.getByPlaceholder(/ABC123|Orn: ABC123/i).fill(roomCode ?? "");
+      await guestPage.getByRole("button", { name: /^Katil$/i }).click();
+      await expect(guestPage).toHaveURL(new RegExp(`/room/${roomCode}$`), {
+        timeout: 20_000,
+      });
 
       await expect(hostPage.getByText(guestName, { exact: true }).first()).toBeVisible({
         timeout: 20_000,
