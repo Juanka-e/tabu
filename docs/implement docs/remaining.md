@@ -4,7 +4,7 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
-1. `feature/web-real-device-responsive-smoke`
+1. `manual/web-real-device-smoke`
 2. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
 3. `feature/post-launch-economy-observability-review`
 4. `feature/post-launch-xp-level-foundation`
@@ -19,26 +19,34 @@ duraklatildi. Tamamlananlar ve yeniden baslama sirasi
 `apps/api/MOBILE_ROADMAP.md` icinde tutulur. Web'in mobil responsive testleri
 bu ertelemenin disindadir.
 
-## Aktif Branch
+## Aktif Release Kapisi
 
-### `test/web-reconnect-readiness`
+### `manual/web-real-device-smoke`
 
 Hedef:
-- iki guest UI akisinda host ve guest reload reconnect'ini dogrulamak
-- reconnect sonrasinda playerId'nin korunmasini ve duplicate lobby kaydi
-  olusmamasini kanitlamak
-- host yetkisinin geri gelmesini ve pending otomatik devrin temizlenmesini
-  Chromium ve WebKit'te test etmek
-- reconnect sonrasinda oyun baslatma ve pause senkronunun calistigini korumak
+- hazir LAN production harness'i ile fiziksel iOS Safari, Android Chrome ve
+  laptop smoke kanitlarini kaydetmek
+- safe-area, touch, sanal klavye, yon degisimi ve gercek WebSocket davranisini
+  cihaz uzerinde kontrol etmek
+- yalniz gercek bir blocker bulunursa `feature/web-launch-blocker-fixes`
+  branch'ini acmak
 
 Referans:
-- `docs/guides/web-multiplayer-launch-readiness.md`
+- `docs/guides/web-real-device-smoke.md`
 
 Fiziksel iOS/Android/laptop smoke harness'i tamamlandi. Gercek cihaz sonucu
 otomasyonla uretilemeyecegi icin release kaniti olarak manuel acik kalir:
 - `docs/guides/web-real-device-smoke.md`
 
 ## Onceki Branch Kaydi
+### `test/web-reconnect-readiness`
+Tamamlananlar:
+- iki guest UI akisinda host ve guest reload reconnect'i
+- reconnect sonrasinda korunan playerId ve duplicate olmayan lobby kaydi
+- host yetkisinin geri gelmesi ve pending otomatik devrin temizlenmesi
+- reconnect sonrasinda oyun baslatma ve pause senkronunun korunmasi
+- Chromium ve WebKit disposable DB dogrulamasi
+
 ### `test/web-multiplayer-launch-readiness`
 Tamamlananlar:
 - iki izole guest browser context ile oda olusturma ve katilma
