@@ -1,0 +1,48 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+function read(path: string): string {
+    return readFileSync(path, "utf8");
+}
+
+const packageJson = JSON.parse(read("package.json")) as {
+    scripts?: Record<string, string>;
+};
+const runner = read("scripts/test-web-multiplayer-launch.ts");
+const config = read("playwright.multiplayer.config.ts");
+const spec = read("tests/web-multiplayer-guest.spec.ts");
+const guide = read("docs/guides/web-multiplayer-launch-readiness.md");
+
+assert.equal(
+    packageJson.scripts?.["test:web-multiplayer"],
+    "tsx scripts/test-web-multiplayer-launch.ts"
+);
+assert.equal(
+    packageJson.scripts?.["test:web-multiplayer-contract"],
+    "tsx scripts/test-web-multiplayer-readiness.ts"
+);
+assert.match(
+    packageJson.scripts?.["test:web-launch-readiness"] ?? "",
+    /npm run test:web-multiplayer-contract/
+);
+assert.match(
+    packageJson.scripts?.["test:web-launch-readiness"] ?? "",
+    /npm run test:web-multiplayer/
+);
+
+assert.match(runner, /WEB_LAUNCH_DB_E2E/);
+assert.match(runner, /tabu_test/);
+assert.match(runner, /prisma\.category\.create/);
+assert.match(runner, /prisma\.word\.deleteMany/);
+assert.match(runner, /finally/);
+assert.match(config, /workers:\s*1/);
+assert.match(config, /chromium-multiplayer/);
+assert.match(config, /webkit-multiplayer/);
+assert.match(spec, /browser\.newContext/);
+assert.match(spec, /expectNoHorizontalOverflow/);
+assert.match(spec, /Devam Ettir/);
+assert.match(guide, /iki izole browser context/i);
+assert.match(guide, /ödül/i);
+assert.match(guide, /fiziksel cihaz kanıtı değildir/i);
+
+console.log("Web multiplayer readiness contract checks passed.");

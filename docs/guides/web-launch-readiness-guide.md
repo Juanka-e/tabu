@@ -45,6 +45,8 @@ Cihaz matrisi ayrıntıları:
 `docs/guides/web-responsive-device-matrix.md`.
 WebKit motoru otomatik kapısı:
 `docs/guides/web-webkit-readiness.md`.
+İki guest multiplayer açılış kapısı:
+`docs/guides/web-multiplayer-launch-readiness.md`.
 Fiziksel cihaz kurulumu ve kanıt standardı:
 `docs/guides/web-real-device-smoke.md`.
 

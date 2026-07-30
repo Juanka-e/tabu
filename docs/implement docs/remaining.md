@@ -33,6 +33,14 @@ Referans:
 - `docs/guides/web-real-device-smoke.md`
 
 ## Onceki Branch Kaydi
+### `test/web-multiplayer-launch-readiness`
+Tamamlananlar:
+- iki izole guest browser context ile oda olusturma ve katilma
+- lobby oyuncu senkronu, iki takim readiness ve oyun baslatma
+- ilk hazirlik ekraninda pause durumunun iki oyuncuya yayilmasi
+- Chromium ve WebKit projelerinde mobil guest overflow kontrolu
+- disposable kategori/kelime fixture'i ve garantili cleanup
+
 ### `test/web-webkit-readiness`
 Tamamlananlar:
 - iPhone ve desktop Safari profillerinde WebKit public responsive kapisi

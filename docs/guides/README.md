@@ -104,3 +104,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 22. `web-webkit-readiness.md`
 - WebKit iPhone ve desktop public responsive projelerini tanimlar
 - disposable DB registered akisiyla fiziksel Safari kaniti arasindaki siniri belirler
+
+23. `web-multiplayer-launch-readiness.md`
+- iki guest browser context ile lobby, start ve hazirlik senkronunu tanimlar
+- disposable kategori/kelime fixture yasam dongusunu ve kapsam sinirini belirler
