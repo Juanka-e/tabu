@@ -5,7 +5,6 @@ const serverUrl = process.env.SOCKET_TEST_URL ?? "http://127.0.0.1:3000";
 const timeoutMs = 15_000;
 
 interface PublicPlayer {
-    id: string;
     playerId: string;
     ad: string;
     takim: "A" | "B" | null;
@@ -35,6 +34,9 @@ function connectGuest(name: string, roomCode?: string): Promise<{
             path: "/api/socketio",
             transports: ["websocket"],
             forceNew: true,
+            extraHeaders: {
+                Origin: serverUrl,
+            },
         });
         const timeout = setTimeout(() => {
             socket.disconnect();
@@ -123,11 +125,13 @@ async function run(): Promise<void> {
         assert.equal(fourth.lobby.startReadiness.teamBPlayers, 2);
 
         for (const player of fourth.lobby.oyuncular) {
+            assert.equal("id" in player, false);
             assert.equal("userId" in player, false);
             assert.equal("identityType" in player, false);
             assert.equal("usernameSnapshot" in player, false);
             assert.equal("ip" in player, false);
         }
+        assert.equal("creatorId" in fourth.lobby, false);
 
         console.log("room capacity socket integration test passed");
     } finally {

@@ -32,8 +32,6 @@ interface LobbyProps {
     selectedCategories: number[];
     selectedDifficulties: number[];
     categories: CategoryItem[];
-    creatorId: string;
-    currentSocketId: string;
     isHost: boolean;
     startReadiness: RoomStartReadiness;
     pendingAdminHandoff: PendingAdminHandoffState | null;
@@ -84,9 +82,41 @@ export function Lobby({
     const [tempSelectedDifficulties, setTempSelectedDifficulties] = useState<number[]>(selectedDifficulties);
     const [mounted, setMounted] = useState(false);
     const [handoffRemainingSeconds, setHandoffRemainingSeconds] = useState<number | null>(null);
+    const [showStartRequirement, setShowStartRequirement] = useState(false);
+    const startBlockedReason = useMemo(() => {
+        if (!startReadiness.ready) {
+            return `Başlamak için en az 4 aktif oyuncu ve her takımda en az 2 oyuncu gerekir. Şu an toplam ${startReadiness.activePlayers}/${startReadiness.minimumPlayers}; Takım A ${startReadiness.teamAPlayers}/2, Takım B ${startReadiness.teamBPlayers}/2.`;
+        }
+        if (selectedCategories.length === 0) {
+            return "Başlamak için en az bir kategori seçmelisin.";
+        }
+        if (selectedDifficulties.length === 0) {
+            return "Başlamak için en az bir zorluk seviyesi seçmelisin.";
+        }
+        return null;
+    }, [
+        selectedCategories.length,
+        selectedDifficulties.length,
+        startReadiness.activePlayers,
+        startReadiness.minimumPlayers,
+        startReadiness.ready,
+        startReadiness.teamAPlayers,
+        startReadiness.teamBPlayers,
+    ]);
+
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!showStartRequirement) return;
+
+        const timeoutId = window.setTimeout(
+            () => setShowStartRequirement(false),
+            3_500
+        );
+        return () => window.clearTimeout(timeoutId);
+    }, [showStartRequirement]);
 
     useEffect(() => {
         if (!mounted) return;
@@ -552,33 +582,52 @@ export function Lobby({
                     {/* Start Action */}
                     <div className="pt-2">
                         {isHost ? (
-                            <button
-                                onClick={onStartGame}
-                                disabled={
-                                    selectedCategories.length === 0 ||
-                                    selectedDifficulties.length === 0 ||
-                                    !startReadiness.ready
-                                }
-                                className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold text-lg shadow-lg shadow-green-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
-                            >
-                                <Play size={22} />
-                                Oyunu Başlat
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    type="button"
+                                    aria-disabled={Boolean(startBlockedReason)}
+                                    aria-describedby={
+                                        startBlockedReason
+                                            ? "room-start-requirement"
+                                            : undefined
+                                    }
+                                    onClick={() => {
+                                        if (startBlockedReason) {
+                                            setShowStartRequirement(true);
+                                            return;
+                                        }
+                                        onStartGame();
+                                    }}
+                                    className={`flex w-full transform items-center justify-center gap-2 rounded-xl py-4 text-lg font-bold text-white shadow-lg transition-all active:scale-[0.99] ${
+                                        startBlockedReason
+                                            ? "cursor-not-allowed bg-gray-400 shadow-none"
+                                            : "bg-green-600 shadow-green-600/20 hover:bg-green-700"
+                                    }`}
+                                >
+                                    <Play size={22} />
+                                    Oyunu Başlat
+                                </button>
+                                {startBlockedReason ? (
+                                    <div
+                                        id="room-start-requirement"
+                                        role="tooltip"
+                                        data-click-visible={showStartRequirement}
+                                        className={`pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-[min(24rem,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold leading-5 text-amber-800 shadow-xl transition duration-150 dark:border-amber-800/60 dark:bg-amber-950 dark:text-amber-200 ${
+                                            showStartRequirement
+                                                ? "translate-y-0 opacity-100"
+                                                : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                                        }`}
+                                    >
+                                        {startBlockedReason}
+                                    </div>
+                                ) : null}
+                            </div>
                         ) : (
                             <div className="w-full py-4 text-gray-400 text-center text-sm animate-pulse bg-gray-50 dark:bg-slate-900/50 rounded-xl">
                                 Yönetici oyunu başlatıyor...
                             </div>
                         )}
 
-                        {!startReadiness.ready ? (
-                            <div className="mt-3 text-center text-xs font-medium leading-5 text-amber-600 dark:text-amber-400">
-                                Başlamak için en az 4 aktif oyuncu ve her takımda en az 2 oyuncu gerekir.
-                                <span className="ml-1 font-semibold">
-                                    Şu an toplam {startReadiness.activePlayers}/{startReadiness.minimumPlayers};
-                                    Takım A {startReadiness.teamAPlayers}/2, Takım B {startReadiness.teamBPlayers}/2.
-                                </span>
-                            </div>
-                        ) : null}
                     </div>
                 </div>
             </div>

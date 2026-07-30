@@ -21,9 +21,7 @@ import type { Player } from "@/types/game";
 interface SidebarProps {
     team: "A" | "B";
     players: Player[];
-    creatorId: string;
     creatorPlayerId: string;
-    currentSocketId: string;
     currentPlayerId: string;
     isOpen: boolean;
     onToggle: () => void;

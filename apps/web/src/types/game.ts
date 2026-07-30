@@ -34,7 +34,6 @@ export interface PlayerCosmetics {
 // ─── Player & Room ─────────────────────────────────────────────
 
 export interface Player {
-    id: string;
     playerId: string;
     ad: string;
     takim: "A" | "B" | null;
@@ -59,7 +58,6 @@ export interface RoomSettings {
 
 export interface RoomData {
     odaKodu: string;
-    creatorId: string;
     creatorPlayerId: string;
     oyuncular: Player[];
     ayarlar: RoomSettings;
@@ -104,20 +102,14 @@ export interface GameState {
     skor: { A: number; B: number };
     anlatacakTakim: "A" | "B";
     anlatici: {
-        id: string;
-        playerId: string;
         ad: string;
         takim: "A" | "B";
     } | null;
     gozetmen: {
-        id: string;
-        playerId: string;
         ad: string;
         takim: "A" | "B";
     } | null;
-    aktifKart: CardData | null;
     altinSkorAktif: boolean;
-    creatorId?: string;
     toplamSure?: number;
 }
 
@@ -129,7 +121,6 @@ export interface TransitionData {
     kalanSure: number;
     oyunDurduruldu: boolean;
     ilkGecis: boolean;
-    creatorId: string;
     cardBackTheme: ResolvedCardBackTheme | null;
 }
 

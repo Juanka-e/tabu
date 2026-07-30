@@ -19,6 +19,7 @@ import {
     acquireRoomActionLock,
     releaseRoomActionLock,
     resetRoomActionLockState,
+    runWithRoomActionLock,
 } from "../apps/web/src/lib/socket/room-action-lock";
 import {
     getRedisHealth,
@@ -243,6 +244,50 @@ async function run(): Promise<void> {
     const thirdLock = await acquireRoomActionLock("ROOM42", "start-game", 5_000);
     assert.equal(thirdLock, true);
     await releaseRoomActionLock("ROOM42", "start-game");
+
+    let releaseFirstOperation!: () => void;
+    const firstOperationGate = new Promise<void>((resolve) => {
+        releaseFirstOperation = resolve;
+    });
+    const expiredOwner = runWithRoomActionLock(
+        "ROOM42",
+        "word-action",
+        10,
+        async () => firstOperationGate
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    let releaseSecondOperation!: () => void;
+    let secondOperationStarted = false;
+    const secondOperationGate = new Promise<void>((resolve) => {
+        releaseSecondOperation = resolve;
+    });
+    const currentOwner = runWithRoomActionLock(
+        "ROOM42",
+        "word-action",
+        5_000,
+        async () => {
+            secondOperationStarted = true;
+            await secondOperationGate;
+        }
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(secondOperationStarted, true);
+    releaseFirstOperation();
+    assert.equal((await expiredOwner).acquired, true);
+
+    const competingOperation = await runWithRoomActionLock(
+        "ROOM42",
+        "word-action",
+        5_000,
+        async () => undefined
+    );
+    assert.equal(competingOperation.acquired, false);
+
+    releaseSecondOperation();
+    assert.equal((await currentOwner).acquired, true);
 
     console.log("distributed coordination smoke test passed");
 }
