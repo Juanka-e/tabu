@@ -175,6 +175,9 @@ function connectGuest(options: {
             transports: ["websocket"],
             forceNew: true,
             reconnection: false,
+            extraHeaders: {
+                Origin: serverUrl,
+            },
         });
         let identity: SocketIdentity | null = null;
         let lobby: LobbyPayload | null = null;
@@ -238,6 +241,9 @@ function expectCapacityBlock(options: {
             transports: ["websocket"],
             forceNew: true,
             reconnection: false,
+            extraHeaders: {
+                Origin: serverUrl,
+            },
         });
         let capacityBlock: CapacityBlock | null = null;
         const timeout = setTimeout(() => {

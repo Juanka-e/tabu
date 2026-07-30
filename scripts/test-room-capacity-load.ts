@@ -65,6 +65,7 @@ function connectGuest(options: {
             transports: ["websocket"],
             forceNew: true,
             reconnection: false,
+            extraHeaders: { Origin: serverUrl },
         });
         let identity: SocketIdentity | null = null;
         let lobby: LobbyPayload | null = null;
