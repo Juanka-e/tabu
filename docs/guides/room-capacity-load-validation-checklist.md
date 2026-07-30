@@ -54,7 +54,7 @@ Local Windows and Docker validation on 28 July 2026:
 
 This is a correctness baseline, not a production capacity benchmark.
 
-### Registered Start Rule
+### Four-player Start Rule
 
 The test creates and removes a temporary registered user:
 
@@ -64,9 +64,8 @@ $env:DATABASE_URL="mysql://hushle:hushle@127.0.0.1:3307/hushle_dev"
 npm run test:room-registered-start-rule
 ```
 
-It verifies that three active players cannot start when a registered participant is
-present, four active players pass the start guard, and the next server validation is
-category selection.
+It verifies that three active players cannot start, four active players arranged
+2+2 pass the start guard, and the next server validation is category selection.
 
 ### Closed Admission And Reconnect
 

@@ -464,8 +464,8 @@ async function run(): Promise<void> {
             capacity: {
                 ...warningSettings.capacity,
                 admissionMode: "open",
-                roomMaxPlayers: 2,
-                teamMaxPlayers: 1,
+                roomMaxPlayers: 4,
+                teamMaxPlayers: 2,
                 maxActiveRooms: 100,
             },
         });

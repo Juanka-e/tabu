@@ -927,7 +927,7 @@ export default function SystemSettingsPage() {
                                     <input
                                         className={inputClassName}
                                         type="number"
-                                        min="2"
+                                        min="4"
                                         max="20"
                                         value={payload.settings.capacity.roomMaxPlayers}
                                         onChange={(event) =>
@@ -943,7 +943,7 @@ export default function SystemSettingsPage() {
                                     <input
                                         className={inputClassName}
                                         type="number"
-                                        min="1"
+                                        min="2"
                                         max="10"
                                         value={payload.settings.capacity.teamMaxPlayers}
                                         onChange={(event) =>
@@ -955,9 +955,8 @@ export default function SystemSettingsPage() {
 
                             <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm leading-6 text-muted-foreground">
                                 <span className="font-semibold text-foreground">Başlangıç kuralı:</span>{" "}
-                                Tamamı misafir olan odalar 2 aktif oyuncuyla başlayabilir.
-                                En az bir kayıtlı hesap varsa minimum 4 aktif oyuncu gerekir.
-                                Her iki takımda en az bir oyuncu bulunmalı; izleyiciler sayılmaz.
+                                Kimlik türünden bağımsız minimum 4 aktif oyuncu gerekir.
+                                Her iki takımda en az 2 oyuncu bulunmalı; izleyiciler sayılmaz.
                             </div>
                         </CardContent>
                     </Card>

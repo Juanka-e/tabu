@@ -71,7 +71,7 @@ async function run(): Promise<void> {
         const creator = await connectGuest("CapacityGuestA");
         sockets.push(creator.socket);
         assert.equal(creator.lobby.startReadiness.ready, false);
-        assert.equal(creator.lobby.startReadiness.minimumPlayers, 2);
+        assert.equal(creator.lobby.startReadiness.minimumPlayers, 4);
 
         const joiner = await connectGuest(
             "CapacityGuestB",
@@ -99,12 +99,30 @@ async function run(): Promise<void> {
             }
         });
 
-        assert.equal(joinedLobby.startReadiness.ready, true);
+        assert.equal(joinedLobby.startReadiness.ready, false);
         assert.equal(joinedLobby.startReadiness.activePlayers, 2);
         assert.equal(joinedLobby.startReadiness.teamAPlayers, 1);
         assert.equal(joinedLobby.startReadiness.teamBPlayers, 1);
 
-        for (const player of joinedLobby.oyuncular) {
+        const third = await connectGuest(
+            "CapacityGuestC",
+            creator.lobby.odaKodu
+        );
+        sockets.push(third.socket);
+        assert.equal(third.lobby.startReadiness.ready, false);
+        assert.equal(third.lobby.startReadiness.activePlayers, 3);
+
+        const fourth = await connectGuest(
+            "CapacityGuestD",
+            creator.lobby.odaKodu
+        );
+        sockets.push(fourth.socket);
+        assert.equal(fourth.lobby.startReadiness.ready, true);
+        assert.equal(fourth.lobby.startReadiness.activePlayers, 4);
+        assert.equal(fourth.lobby.startReadiness.teamAPlayers, 2);
+        assert.equal(fourth.lobby.startReadiness.teamBPlayers, 2);
+
+        for (const player of fourth.lobby.oyuncular) {
             assert.equal("userId" in player, false);
             assert.equal("identityType" in player, false);
             assert.equal("usernameSnapshot" in player, false);

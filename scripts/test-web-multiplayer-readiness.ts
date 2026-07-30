@@ -49,7 +49,8 @@ assert.match(spec, /Devam Ettir/);
 assert.match(spec, /active game state survived guest reload/);
 assert.match(spec, /Takım A panelini aç/);
 assert.match(spec, /mobile host creates a room that a desktop guest can join/);
-assert.match(guide, /iki izole browser context/i);
+assert.match(spec, /four active guests formed two teams/);
+assert.match(guide, /izole browser context/i);
 assert.match(guide, /ödül/i);
 assert.match(guide, /fiziksel cihaz kanıtı değildir/i);
 

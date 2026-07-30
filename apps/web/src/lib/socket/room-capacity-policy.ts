@@ -2,8 +2,8 @@ import type { CapacitySettings } from "@/types/system-settings";
 
 export const ROOM_HARD_MAX_PLAYERS = 20;
 export const TEAM_HARD_MAX_PLAYERS = 10;
-export const GUEST_ONLY_MINIMUM_PLAYERS = 2;
-export const REGISTERED_ROOM_MINIMUM_PLAYERS = 4;
+export const ROOM_MINIMUM_PLAYERS = 4;
+export const TEAM_MINIMUM_PLAYERS = 2;
 
 export type CapacityAdmissionLevel =
     | "normal"
@@ -53,14 +53,14 @@ function percentage(value: number, maximum: number): number {
 export function getEffectiveRoomMaxPlayers(settings: CapacitySettings): number {
     return Math.min(
         ROOM_HARD_MAX_PLAYERS,
-        Math.max(2, settings.roomMaxPlayers)
+        Math.max(ROOM_MINIMUM_PLAYERS, settings.roomMaxPlayers)
     );
 }
 
 export function getEffectiveTeamMaxPlayers(settings: CapacitySettings): number {
     return Math.min(
         TEAM_HARD_MAX_PLAYERS,
-        Math.max(1, settings.teamMaxPlayers)
+        Math.max(TEAM_MINIMUM_PLAYERS, settings.teamMaxPlayers)
     );
 }
 
@@ -76,10 +76,7 @@ export function resolveRoomStartDecision(
     const registeredPlayers = activePlayers.filter(
         (player) => player.identityType === "registered"
     ).length;
-    const minimumPlayers =
-        registeredPlayers > 0
-            ? REGISTERED_ROOM_MINIMUM_PLAYERS
-            : GUEST_ONLY_MINIMUM_PLAYERS;
+    const minimumPlayers = ROOM_MINIMUM_PLAYERS;
     const teamAPlayers = activePlayers.filter(
         (player) => player.team === "A"
     ).length;
@@ -95,14 +92,14 @@ export function resolveRoomStartDecision(
             registeredPlayers,
             teamAPlayers,
             teamBPlayers,
-            message:
-                registeredPlayers > 0
-                    ? "Kayıtlı oyuncu bulunan odalarda oyunu başlatmak için en az 4 aktif oyuncu gerekir."
-                    : "Tamamı misafir oyunculardan oluşan odalarda oyunu başlatmak için en az 2 aktif oyuncu gerekir.",
+            message: "Oyunu başlatmak için en az 4 aktif oyuncu gerekir.",
         };
     }
 
-    if (teamAPlayers < 1 || teamBPlayers < 1) {
+    if (
+        teamAPlayers < TEAM_MINIMUM_PLAYERS ||
+        teamBPlayers < TEAM_MINIMUM_PLAYERS
+    ) {
         return {
             allowed: false,
             minimumPlayers,
@@ -110,7 +107,7 @@ export function resolveRoomStartDecision(
             registeredPlayers,
             teamAPlayers,
             teamBPlayers,
-            message: "Oyunu başlatmak için her iki takımda da en az bir aktif oyuncu bulunmalı.",
+            message: "Oyunu başlatmak için her takımda en az 2 aktif oyuncu bulunmalı.",
         };
     }
 
