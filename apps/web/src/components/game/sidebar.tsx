@@ -85,7 +85,7 @@ export function Sidebar({
 
     // Position classes: mobile = fixed sliding panel, desktop = relative flex item
     const positionClasses = isMobile
-        ? `fixed inset-y-0 z-40 ${isTeamA ? "left-0" : "right-0"} w-72 shadow-2xl transform transition-transform duration-300 ${isOpen
+        ? `fixed inset-y-0 z-[100] ${isTeamA ? "left-0" : "right-0"} w-72 shadow-2xl transform transition-transform duration-300 ${isOpen
             ? "translate-x-0"
             : isTeamA
                 ? "-translate-x-full"
@@ -113,8 +113,24 @@ export function Sidebar({
 
             {/* Header */}
             <div className="relative z-10 flex flex-col justify-center min-h-[5rem] px-4 pt-4 pb-2">
+                {isMobile ? (
+                    <button
+                        type="button"
+                        aria-label={`Takım ${team} panelini kapat`}
+                        onClick={onToggle}
+                        className={`absolute top-4 rounded-xl border border-gray-200 bg-white p-2 text-gray-500 shadow-sm transition hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:text-white ${
+                            isTeamA ? "right-3" : "left-3"
+                        }`}
+                    >
+                        {isTeamA ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                    </button>
+                ) : null}
                 <div
-                    className={`flex items-center ${!isOpen && !isMobile
+                    className={`flex items-center ${isMobile
+                        ? isTeamA
+                            ? "justify-start pr-12"
+                            : "justify-end pl-12"
+                        : !isOpen
                         ? "justify-center"
                         : isTeamA
                             ? "justify-between"
