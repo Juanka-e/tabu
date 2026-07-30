@@ -170,6 +170,7 @@ export function AuthenticatedDashboardHome({
       const socket: Socket = io({
         path: "/api/socketio",
         transports: ["websocket", "polling"],
+        tryAllTransports: true,
       });
 
       socket.on("connect", () => {

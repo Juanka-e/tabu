@@ -30,6 +30,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         const socketInstance = io({
             path: "/api/socketio",
             transports: ["websocket", "polling"],
+            tryAllTransports: true,
         });
 
         socketRef.current = socketInstance;

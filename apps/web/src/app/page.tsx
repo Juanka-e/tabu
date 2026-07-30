@@ -72,6 +72,7 @@ export default function HomePage() {
             const socket = io({
                 path: "/api/socketio",
                 transports: ["websocket", "polling"],
+                tryAllTransports: true,
             });
 
             socket.on("connect", () => {
