@@ -25,6 +25,8 @@ yayınlandığını kanıtlamaz. Bu kapı iki izole browser context açar ve ger
 
 - benzersiz bir görünür kategori ve dört kelime ekler
 - Chromium ve WebKit projelerini tek worker ile çalıştırır
+- rate limit'i kapatmaz; aynı IP'deki iki motorun meşru reconnect istekleri için
+  yalnız test sürecinde `ROOM_JOIN_MAX_ATTEMPTS=100` varsayılanını kullanır
 - başarılı veya başarısız sonuçtan bağımsız `finally` içinde kelime ve
   kategoriyi siler
 - migration, database reset veya volume silme çalıştırmaz

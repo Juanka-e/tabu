@@ -74,6 +74,9 @@ async function run(): Promise<void> {
                 env: {
                     ...process.env,
                     WEB_MULTIPLAYER_E2E: "true",
+                    ROOM_JOIN_MAX_ATTEMPTS:
+                        process.env.WEB_MULTIPLAYER_ROOM_JOIN_MAX_ATTEMPTS ??
+                        "100",
                 },
                 stdio: "inherit",
             }

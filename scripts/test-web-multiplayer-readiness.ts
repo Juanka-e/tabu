@@ -35,6 +35,7 @@ assert.match(runner, /tabu_test/);
 assert.match(runner, /prisma\.category\.create/);
 assert.match(runner, /prisma\.word\.deleteMany/);
 assert.match(runner, /finally/);
+assert.match(runner, /WEB_MULTIPLAYER_ROOM_JOIN_MAX_ATTEMPTS/);
 assert.match(config, /workers:\s*1/);
 assert.match(config, /chromium-multiplayer/);
 assert.match(config, /webkit-multiplayer/);
