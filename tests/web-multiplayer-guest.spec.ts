@@ -35,7 +35,6 @@ test("two guests join opposite teams and enter the first transition", async ({
   const guestContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     hasTouch: true,
-    isMobile: testInfo.project.name.startsWith("webkit"),
   });
   const guestPage = await guestContext.newPage();
   const guestErrors = collectPageErrors(guestPage);
@@ -64,9 +63,15 @@ test("two guests join opposite teams and enter the first transition", async ({
       await guestPage.getByPlaceholder(/Adinizi girin/i).fill(guestName);
       await guestPage.getByPlaceholder(/ABC123|Orn: ABC123/i).fill(roomCode ?? "");
       await guestPage.getByRole("button", { name: /^Katil$/i }).click();
-      await expect(guestPage).toHaveURL(new RegExp(`/room/${roomCode}$`), {
-        timeout: 20_000,
-      });
+      try {
+        await expect(guestPage).toHaveURL(new RegExp(`/room/${roomCode}$`), {
+          timeout: 20_000,
+        });
+      } catch (error) {
+        const pageText = (await guestPage.locator("body").innerText()).replaceAll(/\s+/g, " ");
+        checkpoint(`guest entry stayed at ${guestPage.url()}: ${pageText.slice(0, 500)}`);
+        throw error;
+      }
 
       await expect(hostPage.getByText(guestName, { exact: true }).first()).toBeVisible({
         timeout: 20_000,
