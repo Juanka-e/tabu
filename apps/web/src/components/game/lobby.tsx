@@ -85,7 +85,7 @@ export function Lobby({
     const [showStartRequirement, setShowStartRequirement] = useState(false);
     const startBlockedReason = useMemo(() => {
         if (!startReadiness.ready) {
-            return `Başlamak için en az 4 aktif oyuncu ve her takımda en az 2 oyuncu gerekir. Şu an toplam ${startReadiness.activePlayers}/${startReadiness.minimumPlayers}; Takım A ${startReadiness.teamAPlayers}/2, Takım B ${startReadiness.teamBPlayers}/2.`;
+            return "Her iki takımda en az 2 oyuncu olmalı.";
         }
         if (selectedCategories.length === 0) {
             return "Başlamak için en az bir kategori seçmelisin.";
@@ -97,11 +97,7 @@ export function Lobby({
     }, [
         selectedCategories.length,
         selectedDifficulties.length,
-        startReadiness.activePlayers,
-        startReadiness.minimumPlayers,
         startReadiness.ready,
-        startReadiness.teamAPlayers,
-        startReadiness.teamBPlayers,
     ]);
 
     useEffect(() => {
@@ -113,7 +109,7 @@ export function Lobby({
 
         const timeoutId = window.setTimeout(
             () => setShowStartRequirement(false),
-            3_500
+            1_600
         );
         return () => window.clearTimeout(timeoutId);
     }, [showStartRequirement]);

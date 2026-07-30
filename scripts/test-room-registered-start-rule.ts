@@ -107,9 +107,10 @@ function connectPlayer(options: {
             transports: ["websocket"],
             forceNew: true,
             reconnection: false,
-            ...(options.cookie
-                ? { extraHeaders: { Cookie: options.cookie } }
-                : {}),
+            extraHeaders: {
+                Origin: serverUrl,
+                ...(options.cookie ? { Cookie: options.cookie } : {}),
+            },
         });
         let identity: SocketIdentity | null = null;
         let lobby: LobbyPayload | null = null;

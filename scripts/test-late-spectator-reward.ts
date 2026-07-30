@@ -3,12 +3,21 @@ import { randomUUID } from "node:crypto";
 import bcryptjs from "bcryptjs";
 import { io, type Socket } from "socket.io-client";
 import { prisma } from "@hushle/platform-db";
+import { closeRedisClient } from "@hushle/platform-cache";
+import { invalidateCategoryCache } from "../apps/web/src/lib/socket/category-service";
 
 const serverUrl = process.env.SOCKET_TEST_URL ?? "http://127.0.0.1:3000";
 const timeoutMs = 30_000;
 
 interface LobbyPayload {
     odaKodu: string;
+    startReadiness: {
+        ready: boolean;
+        activePlayers: number;
+        minimumPlayers: number;
+        teamAPlayers: number;
+        teamBPlayers: number;
+    };
     oyuncular: Array<{
         playerId: string;
         ad: string;
@@ -92,9 +101,10 @@ function connectPlayer(options: {
             transports: ["websocket"],
             forceNew: true,
             reconnection: false,
-            ...(options.cookie
-                ? { extraHeaders: { Cookie: options.cookie } }
-                : {}),
+            extraHeaders: {
+                Origin: serverUrl,
+                ...(options.cookie ? { Cookie: options.cookie } : {}),
+            },
         });
         const timeout = setTimeout(() => {
             socket.disconnect();
@@ -183,6 +193,7 @@ async function run(): Promise<void> {
             },
         });
         wordId = word.id;
+        await invalidateCategoryCache();
 
         const cookie = await login(username, password);
         const host = await connectPlayer({ name: "SpectatorTestHost" });
@@ -190,12 +201,30 @@ async function run(): Promise<void> {
             name: "SpectatorTestGuest",
             roomCode: host.lobby.odaKodu,
         });
-        sockets.push(host.socket, teammate.socket);
+        const thirdPlayer = await connectPlayer({
+            name: "SpectatorTestThird",
+            roomCode: host.lobby.odaKodu,
+        });
+        const fourthPlayer = await connectPlayer({
+            name: "SpectatorTestFourth",
+            roomCode: host.lobby.odaKodu,
+        });
+        const activePlayers = [host, teammate, thirdPlayer, fourthPlayer];
+        sockets.push(...activePlayers.map((player) => player.socket));
+        assert.deepEqual(fourthPlayer.lobby.startReadiness, {
+            ready: true,
+            activePlayers: 4,
+            minimumPlayers: 4,
+            teamAPlayers: 2,
+            teamBPlayers: 2,
+        });
+        console.log("[late-spectator] four-player room ready");
 
         const gameStarted = waitForEvent<undefined>(
             host.socket,
             "oyunBasladi"
         );
+        const gameStartError = waitForEvent<string>(host.socket, "hata");
         host.socket.emit("oyun_baslat", {
             seciliKategoriler: [categoryId],
             seciliZorluklar: [1],
@@ -205,7 +234,13 @@ async function run(): Promise<void> {
                 deger: 10,
             },
         });
-        await gameStarted;
+        await Promise.race([
+            gameStarted,
+            gameStartError.then((message) => {
+                throw new Error(`Game start rejected: ${message}`);
+            }),
+        ]);
+        console.log("[late-spectator] game started");
 
         const spectator = await connectPlayer({
             name: username,
@@ -219,26 +254,22 @@ async function run(): Promise<void> {
         assert.ok(spectatorPlayer);
         assert.equal(spectatorPlayer.rol, "İzleyici");
         assert.equal(spectatorPlayer.takim, null);
+        console.log("[late-spectator] spectator role verified");
 
-        const hostTurn = waitForEvent<{ rol: string }>(
-            host.socket,
-            "yeniTurBilgisi"
+        const turnRoles = await Promise.all(
+            activePlayers.map(async (player) => ({
+                socket: player.socket,
+                turn: await waitForEvent<{ rol: string }>(
+                    player.socket,
+                    "yeniTurBilgisi"
+                ),
+            }))
         );
-        const teammateTurn = waitForEvent<{ rol: string }>(
-            teammate.socket,
-            "yeniTurBilgisi"
-        );
-        const [hostRole, teammateRole] = await Promise.all([
-            hostTurn,
-            teammateTurn,
-        ]);
         const narratorSocket =
-            hostRole.rol === "Anlatıcı"
-                ? host.socket
-                : teammateRole.rol === "Anlatıcı"
-                  ? teammate.socket
-                  : null;
+            turnRoles.find(({ turn }) => turn.rol === "Anlatıcı")?.socket ??
+            null;
         assert.ok(narratorSocket, "Narrator socket was not identified");
+        console.log("[late-spectator] narrator identified");
 
         const gameFinished = waitForEvent<{
             kazananTakim: "A" | "B";
@@ -248,6 +279,7 @@ async function run(): Promise<void> {
             await new Promise((resolve) => setTimeout(resolve, 250));
         }
         await gameFinished;
+        console.log("[late-spectator] game finished");
 
         const beforeResultCount = await prisma.matchResult.count({
             where: { userId },
@@ -303,6 +335,7 @@ async function run(): Promise<void> {
             JSON.stringify(deniedAudit.metadata),
             /participant_not_found|spectator_not_eligible/
         );
+        console.log("[late-spectator] reward denial verified");
 
         console.log(
             JSON.stringify({
@@ -315,6 +348,7 @@ async function run(): Promise<void> {
             })
         );
     } finally {
+        console.log("[late-spectator] cleanup started");
         for (const socket of sockets) {
             socket.disconnect();
         }
@@ -329,11 +363,14 @@ async function run(): Promise<void> {
         }
         if (categoryId !== null) {
             await prisma.category.deleteMany({ where: { id: categoryId } });
+            await invalidateCategoryCache();
         }
         if (wordId !== null) {
             await prisma.word.deleteMany({ where: { id: wordId } });
         }
         await prisma.$disconnect();
+        await closeRedisClient();
+        console.log("[late-spectator] cleanup completed");
     }
 }
 

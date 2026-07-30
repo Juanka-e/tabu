@@ -96,11 +96,18 @@ test("four guests form two playable teams and enter the first transition", async
       await expect(blockedStartButton).toBeDisabled();
       await blockedStartButton.hover();
       await expect(startRequirement).toHaveCSS("opacity", "1");
-      await expect(startRequirement).toContainText(/en az 4 aktif oyuncu/i);
+      await expect(startRequirement).toHaveText(
+        "Her iki takımda en az 2 oyuncu olmalı."
+      );
       await blockedStartButton.dispatchEvent("click");
       await expect(startRequirement).toHaveAttribute(
         "data-click-visible",
         "true"
+      );
+      await expect(startRequirement).toHaveAttribute(
+        "data-click-visible",
+        "false",
+        { timeout: 2_500 }
       );
       checkpoint(`${guestName} joined`);
     });

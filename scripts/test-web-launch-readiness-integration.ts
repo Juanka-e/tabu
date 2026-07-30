@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { loadEnvConfig } from "@next/env";
+
+loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 
 interface IntegrationCheck {
     area: string;
