@@ -35,13 +35,10 @@ assert.equal(
         skor: { A: 0, B: 0 },
         anlatacakTakim: "B",
         anlatici: {
-            id: "socket-1",
-            playerId: "user:1",
             ad: "Erdal",
             takim: "A",
         },
         gozetmen: null,
-        aktifKart: null,
         altinSkorAktif: false,
     }),
     "A"
@@ -60,7 +57,6 @@ assert.equal(
         anlatacakTakim: "A",
         anlatici: null,
         gozetmen: null,
-        aktifKart: null,
         altinSkorAktif: false,
     }),
     "B"

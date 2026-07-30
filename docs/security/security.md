@@ -1143,3 +1143,38 @@ Critical Findings
 - Admin panel captcha karti sadeleştirildi:
   - fail mode secicisi kaldirildi
   - provider secimi + korunan akislar + turnstile mode + readiness + production policy bilgisi korunuyor
+## Realtime Oyun Payload Sertleştirmesi (30 Temmuz 2026)
+
+- Genel `oyunDurumuGuncelle` olayı yalnız whitelist ile oluşturulan public state
+  gönderir. `aktifKart`, socket id'leri, dahili anlatıcı/gözetmen kimlikleri ve
+  `creatorId` bu payload'a girmez.
+- Kart yalnız sunucunun rol ve takım kontrolünden sonra `yeniTurBilgisi` veya
+  `kartGuncelle` ile yetkili oyuncuya gönderilir.
+- Lobi oyuncu listesi socket id, IP, user id, identity type ve username snapshot
+  içermez. Kalıcı `playerId`, host/kick/self eşleştirmesi için public oyun
+  kimliği olarak kalır ve tek başına yetki sağlamaz.
+- Oyun başlatma, yönetici devri ve oyuncu atma payload'ları Zod ile doğrulanır.
+  Eksik veya bozuk F12/socket payload'ları handler destructuring hatası
+  üretemez.
+- Aktif maç yeniden başlatılamaz veya takımlar F12 üzerinden karıştırılamaz.
+  Kelime aksiyonları oda bazlı lock ile seri işlenir.
+- Redis oda kilitleri sahiplik token'ı ve atomik compare-and-delete ile bırakılır;
+  süresi dolan eski bir işlem yeni sahibin kilidini silemez.
+- Kategori ID'leri hem ayar güncellemesinde hem oyun başlangıcında sunucunun
+  görünür kategori whitelist'iyle kesiştirilir. Takım değişimleri de kapasite
+  yarışlarını önlemek için oda bazında seri işlenir.
+- Bütün kritik yetkiler istemci görünümünden bağımsız olarak sunucuda güncel
+  socket üyeliği ve `creatorPlayerId`/rol üzerinden tekrar doğrulanır.
+
+Regresyon kapısı:
+
+```powershell
+npm run test:room-socket-security
+```
+
+### Geçici transitive bağımlılık sabitlemeleri
+
+- Next.js `16.2.12` güncel sürümü eski PostCSS ve Sharp sürümlerini taşıdığı için
+  kök `package.json` içinde PostCSS `8.5.25` ve Sharp `0.35.3` override edilir.
+- Override'lar kaldırılmadan önce `npm audit --omit=dev --audit-level=high`,
+  production build ve multiplayer Playwright paketi yeniden çalıştırılmalıdır.

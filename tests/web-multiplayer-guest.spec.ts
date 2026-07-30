@@ -89,9 +89,19 @@ test("four guests form two playable teams and enter the first transition", async
         timeout: 20_000,
       });
       await expectNoHorizontalOverflow(guestPage);
-      await expect(
-        hostPage.getByRole("button", { name: /Oyunu Ba/i })
-      ).toBeDisabled();
+      const blockedStartButton = hostPage.getByRole("button", {
+        name: /Oyunu Ba/i,
+      });
+      const startRequirement = hostPage.getByRole("tooltip");
+      await expect(blockedStartButton).toBeDisabled();
+      await blockedStartButton.hover();
+      await expect(startRequirement).toHaveCSS("opacity", "1");
+      await expect(startRequirement).toContainText(/en az 4 aktif oyuncu/i);
+      await blockedStartButton.dispatchEvent("click");
+      await expect(startRequirement).toHaveAttribute(
+        "data-click-visible",
+        "true"
+      );
       checkpoint(`${guestName} joined`);
     });
 

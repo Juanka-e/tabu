@@ -82,7 +82,6 @@ export default function RoomPage() {
     // Socket
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [socketId, setSocketId] = useState("");
     const [myPlayerId, setMyPlayerId] = useState("");
     const rewardClaimedMatchesRef = useRef<Set<string>>(new Set());
     const currentMatchSequenceRef = useRef(0);
@@ -91,7 +90,6 @@ export default function RoomPage() {
     // Room state
     const [view, setView] = useState<GameView>(GameView.LOBBY);
     const [players, setPlayers] = useState<Player[]>([]);
-    const [creatorId, setCreatorId] = useState("");
     const [creatorPlayerId, setCreatorPlayerId] = useState("");
     const [startReadiness, setStartReadiness] = useState({
         ready: false,
@@ -398,7 +396,6 @@ export default function RoomPage() {
 
                 socket.on("connect", () => {
                     setIsConnected(true);
-                    if (socket.id) setSocketId(socket.id);
                     socket.emit("room:request", {
                         kullaniciAdi: username,
                         odaKodu: roomCode,
@@ -421,7 +418,6 @@ export default function RoomPage() {
 
                 socket.on("lobiGuncelle", (data: RoomData & { creatorPlayerId?: string }) => {
                     setPlayers(data.oyuncular);
-                    setCreatorId(data.creatorId);
                     setCreatorPlayerId(data.creatorPlayerId || "");
                     setSettings(data.ayarlar);
                     if (data.startReadiness) {
@@ -488,7 +484,6 @@ export default function RoomPage() {
 
                 socket.on("oyunDurumuGuncelle", (data: GameState) => {
                     setGameState(data);
-                    if (data.creatorId) setCreatorId(data.creatorId);
                 });
 
                 socket.on("kartGuncelle", (newCard: CardData | null) => {
@@ -817,8 +812,6 @@ export default function RoomPage() {
                 selectedCategories={selectedCategories}
                 selectedDifficulties={selectedDifficulties}
                 categories={categories}
-                creatorId={creatorId}
-                currentSocketId={socketId}
                 isHost={isHost as boolean}
                 startReadiness={startReadiness}
                 pendingAdminHandoff={pendingAdminHandoff}
@@ -985,9 +978,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="A"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketId}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarAOpen}
                     onToggle={() => setSidebarAOpen((prev) => !prev)}
@@ -1269,9 +1260,7 @@ export default function RoomPage() {
                 <Sidebar
                     team="B"
                     players={players}
-                    creatorId={creatorId}
                     creatorPlayerId={creatorPlayerId}
-                    currentSocketId={socketId}
                     currentPlayerId={myPlayerId}
                     isOpen={sidebarBOpen}
                     onToggle={() => setSidebarBOpen((prev) => !prev)}
