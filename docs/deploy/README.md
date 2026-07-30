@@ -13,5 +13,6 @@ Baslangic okuma sirasi:
 7. [mysql-backups.md](./mysql-backups.md)
 8. [cloudflare-admin.md](./cloudflare-admin.md)
 9. [subdomain-and-cors.md](./subdomain-and-cors.md)
-10. [redis-rollout.md](./redis-rollout.md)
-11. [prisma-build-hardening.md](./prisma-build-hardening.md)
+10. [production-readiness-report.md](./production-readiness-report.md)
+11. [redis-rollout.md](./redis-rollout.md)
+12. [prisma-build-hardening.md](./prisma-build-hardening.md)

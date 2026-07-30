@@ -12,12 +12,16 @@ const prodPolicy = buildContentSecurityPolicy({
 
 assert.match(
     prodPolicy,
-    /script-src 'self' 'nonce-test-nonce' 'strict-dynamic'/
+    /script-src 'self' 'nonce-test-nonce' 'strict-dynamic' https:\/\/challenges\.cloudflare\.com/
 );
 assert.match(prodPolicy, /script-src-attr 'none'/);
 assert.match(
     prodPolicy,
-    /frame-src 'self' https:\/\/www\.youtube\.com https:\/\/www\.youtube-nocookie\.com/
+    /frame-src 'self' https:\/\/challenges\.cloudflare\.com https:\/\/www\.youtube\.com https:\/\/www\.youtube-nocookie\.com/
+);
+assert.match(
+    prodPolicy,
+    /connect-src[^;]+https:\/\/challenges\.cloudflare\.com/
 );
 assert.match(prodPolicy, /frame-ancestors 'none'/);
 assert.match(prodPolicy, /upgrade-insecure-requests/);
@@ -77,7 +81,7 @@ const devPolicy = buildContentSecurityPolicy({
 
 assert.match(
     devPolicy,
-    /script-src 'self' 'nonce-test-dev' 'strict-dynamic' 'unsafe-eval'/
+    /script-src 'self' 'nonce-test-dev' 'strict-dynamic' https:\/\/challenges\.cloudflare\.com 'unsafe-eval'/
 );
 assert.ok(!devPolicy.includes("upgrade-insecure-requests"));
 assert.equal(

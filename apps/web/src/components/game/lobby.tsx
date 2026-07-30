@@ -85,7 +85,7 @@ export function Lobby({
     const [showStartRequirement, setShowStartRequirement] = useState(false);
     const startBlockedReason = useMemo(() => {
         if (!startReadiness.ready) {
-            return "Her iki takımda en az 2 oyuncu olmalı.";
+            return "Her iki takımda en az iki oyuncu olmalı!";
         }
         if (selectedCategories.length === 0) {
             return "Başlamak için en az bir kategori seçmelisin.";
@@ -641,7 +641,7 @@ export function Lobby({
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {isHost
-                                        ? "Soldaki grup kutusu ana kategori ile alt kategorilerini birlikte seçer. Kart listesindeki ana kategori satiri ise yalnizca ana kategoriye bagli kelimeleri ekler."
+                                        ? "Soldaki grup kutusu ana kategori ile alt kategorilerini birlikte seçer. Kart listesindeki ana kategori satırı ise yalnızca ana kategoriye bağlı kelimeleri ekler."
                                         : "Bu liste yalnızca görüntüleme amaçlıdır. Kategori ve zorlukları sadece oda yöneticisi değiştirebilir."}
                                 </p>
 
