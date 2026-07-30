@@ -9,6 +9,8 @@ import {
     canMoveToTeam,
     chooseJoinTeam,
     evaluateCapacityAdmission,
+    getEffectiveRoomMaxPlayers,
+    getEffectiveTeamMaxPlayers,
     resolveRoomStartDecision,
     type RoomRulePlayer,
 } from "../apps/web/src/lib/socket/room-capacity-policy";
@@ -132,14 +134,27 @@ function player(
 
 async function run(): Promise<void> {
     const settings = normalizeSystemSettings({});
-
     assert.equal(
-        resolveRoomStartDecision([
-            player("guest", "A"),
-            player("guest", "B"),
-        ]).allowed,
-        true
+        getEffectiveRoomMaxPlayers({
+            ...settings.capacity,
+            roomMaxPlayers: 2,
+        }),
+        4
     );
+    assert.equal(
+        getEffectiveTeamMaxPlayers({
+            ...settings.capacity,
+            teamMaxPlayers: 1,
+        }),
+        2
+    );
+
+    const guestPair = resolveRoomStartDecision([
+        player("guest", "A"),
+        player("guest", "B"),
+    ]);
+    assert.equal(guestPair.allowed, false);
+    assert.equal(guestPair.minimumPlayers, 4);
 
     const registeredThree = resolveRoomStartDecision([
         player("registered", "A"),
@@ -160,12 +175,23 @@ async function run(): Promise<void> {
         true
     );
 
+    const unbalancedFour = resolveRoomStartDecision([
+        player("guest", "A"),
+        player("guest", "A"),
+        player("guest", "A"),
+        player("guest", "B"),
+    ]);
+    assert.equal(unbalancedFour.allowed, false);
+    assert.match(unbalancedFour.message ?? "", /en az 2 aktif oyuncu/i);
+
     assert.equal(
         resolveRoomStartDecision([
             player("guest", "A"),
             player("guest", "A"),
+            player("guest", "B"),
+            player("guest", "B"),
         ]).allowed,
-        false
+        true
     );
 
     assert.equal(

@@ -10,7 +10,7 @@ import { RulesModal } from "@/components/game/rules-modal";
 import { Lobby } from "@/components/game/lobby";
 import { AnnouncementsModal } from "@/components/game/announcements-modal";
 import { DashboardOverlay } from "@/components/game/dashboard-overlay";
-import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, Hash, ArrowRight, LoaderCircle } from "lucide-react";
+import { Moon, Sun, Megaphone, Book, Menu, LayoutDashboard, Lock, Pencil, Save, UserRound, ArrowRight, LoaderCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useBranding } from "@/components/providers/branding-provider";
 import { clearActiveRoomPresenceTab, writeActiveRoomPresence } from "@/lib/client/active-room-presence";
@@ -96,7 +96,7 @@ export default function RoomPage() {
     const [startReadiness, setStartReadiness] = useState({
         ready: false,
         activePlayers: 0,
-        minimumPlayers: 2,
+        minimumPlayers: 4,
         teamAPlayers: 0,
         teamBPlayers: 0,
     });
@@ -171,14 +171,6 @@ export default function RoomPage() {
     const canEditIdentity = view === GameView.LOBBY;
     const shouldShowIdentityLabel = !isMobile && view === GameView.LOBBY;
     const allCategoryIds = flattenCategoryIds(categories);
-    const activeStageLabel =
-        view === GameView.PLAYING
-            ? "Oyun"
-            : view === GameView.TRANSITION
-                ? "Hazirlik"
-                : view === GameView.GAME_OVER
-                    ? "Mac Sonu"
-                    : "Lobi";
     const brandLabel = branding.siteName.trim() || "Hushle";
     const brandShortLabel = branding.siteShortName.trim() || "H";
     const isActiveRoomGuardReady = !isAuthenticatedRoomUser || activeRoomGuard.status === "ready";
@@ -1013,60 +1005,25 @@ export default function RoomPage() {
                 <main className="flex-1 flex flex-col relative overflow-hidden min-w-0">
                     <div className="relative z-[80] flex items-start justify-between gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
                         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
-                            {view === GameView.LOBBY ? (
-                            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[1.2rem] border border-white/60 bg-white/90 px-2 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/88 sm:flex-none sm:gap-3 sm:px-4">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:h-11 sm:w-11">
-                                    {branding.logoUrl ? (
-                                        <Image
-                                            src={branding.logoUrl}
-                                            alt={`${branding.siteName} logo`}
-                                            width={44}
-                                            height={44}
-                                            unoptimized
-                                            className="h-6 w-6 object-contain sm:h-8 sm:w-8"
-                                        />
-                                    ) : (
-                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-xs font-black uppercase tracking-[0.18em] text-transparent sm:text-sm sm:tracking-[0.22em]">
-                                            {brandShortLabel}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="min-w-0">
-                                    <div className="truncate text-[12px] font-black tracking-[0.12em] text-slate-900 dark:text-white sm:text-base sm:tracking-[0.18em]">
-                                        {brandLabel}
-                                    </div>
-                                    <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 sm:gap-2 sm:text-[11px] sm:tracking-[0.18em]">
-                                        <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
-                                            {activeStageLabel}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
-                                            <Hash size={11} />
-                                            {roomCode}
-                                        </span>
-                                    </div>
-                                </div>
+                            <div
+                                className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center justify-center rounded-2xl border border-white/70 bg-white/85 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/85 sm:top-4"
+                                aria-label={brandLabel}
+                            >
+                                {branding.logoUrl ? (
+                                    <Image
+                                        src={branding.logoUrl}
+                                        alt={`${branding.siteName} logo`}
+                                        width={88}
+                                        height={36}
+                                        unoptimized
+                                        className="h-7 w-auto max-w-24 object-contain sm:h-8 sm:max-w-28"
+                                    />
+                                ) : (
+                                    <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.2em] text-transparent">
+                                        {brandShortLabel}
+                                    </span>
+                                )}
                             </div>
-                            ) : (
-                                <div
-                                    className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center justify-center rounded-2xl border border-white/70 bg-white/85 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/85 sm:top-4"
-                                    aria-label={`${brandLabel} - ${activeStageLabel}`}
-                                >
-                                    {branding.logoUrl ? (
-                                        <Image
-                                            src={branding.logoUrl}
-                                            alt={`${branding.siteName} logo`}
-                                            width={88}
-                                            height={36}
-                                            unoptimized
-                                            className="h-7 w-auto max-w-24 object-contain sm:h-8 sm:max-w-28"
-                                        />
-                                    ) : (
-                                        <span className="bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-sm font-black uppercase tracking-[0.2em] text-transparent">
-                                            {brandShortLabel}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
                         </div>
                         <div className="flex items-start gap-2">
                         <div className="relative">

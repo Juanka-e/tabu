@@ -21,7 +21,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     .toBe(true);
 }
 
-test("two guests join opposite teams and enter the first transition", async ({
+test("four guests form two playable teams and enter the first transition", async ({
   browser,
   page: hostPage,
 }, testInfo) => {
@@ -31,6 +31,8 @@ test("two guests join opposite teams and enter the first transition", async ({
   const suffix = `${testInfo.project.name}-${Date.now()}`.replaceAll(/[^a-z0-9]/gi, "").slice(-10);
   const hostName = `Host${suffix}`;
   const guestName = `Guest${suffix}`;
+  const thirdName = `Third${suffix}`;
+  const fourthName = `Fourth${suffix}`;
   const hostErrors = collectPageErrors(hostPage);
   const guestContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -38,6 +40,13 @@ test("two guests join opposite teams and enter the first transition", async ({
   });
   const guestPage = await guestContext.newPage();
   const guestErrors = collectPageErrors(guestPage);
+  const supportContext = await browser.newContext({
+    viewport: { width: 1024, height: 768 },
+  });
+  const thirdPage = await supportContext.newPage();
+  const fourthPage = await supportContext.newPage();
+  const thirdErrors = collectPageErrors(thirdPage);
+  const fourthErrors = collectPageErrors(fourthPage);
 
   try {
     let roomCode: string | undefined;
@@ -80,7 +89,37 @@ test("two guests join opposite teams and enter the first transition", async ({
         timeout: 20_000,
       });
       await expectNoHorizontalOverflow(guestPage);
+      await expect(
+        hostPage.getByRole("button", { name: /Oyunu Ba/i })
+      ).toBeDisabled();
       checkpoint(`${guestName} joined`);
+    });
+
+    await test.step("two more guests complete two playable teams", async () => {
+      const supportPlayers: Array<[Page, string]> = [
+        [thirdPage, thirdName],
+        [fourthPage, fourthName],
+      ];
+
+      for (const [playerPage, playerName] of supportPlayers) {
+        await playerPage.goto("/");
+        await playerPage.getByPlaceholder(/Adinizi girin/i).fill(playerName);
+        await playerPage
+          .getByPlaceholder(/ABC123|Orn: ABC123/i)
+          .fill(roomCode ?? "");
+        await playerPage.getByRole("button", { name: /^Katil$/i }).click();
+        await expect(playerPage).toHaveURL(new RegExp(`/room/${roomCode}$`), {
+          timeout: 20_000,
+        });
+        await expect(
+          hostPage.getByText(playerName, { exact: true }).first()
+        ).toBeVisible({ timeout: 20_000 });
+      }
+
+      await expect(
+        hostPage.getByRole("button", { name: /Oyunu Ba/i })
+      ).toBeEnabled();
+      checkpoint("four active guests formed two teams");
     });
 
     await test.step("mobile guest can open both team sidebars", async () => {
@@ -196,7 +235,10 @@ test("two guests join opposite teams and enter the first transition", async ({
 
     expect(hostErrors).toEqual([]);
     expect(guestErrors).toEqual([]);
+    expect(thirdErrors).toEqual([]);
+    expect(fourthErrors).toEqual([]);
   } finally {
+    await supportContext.close();
     await guestContext.close();
   }
 });

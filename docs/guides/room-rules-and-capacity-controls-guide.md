@@ -26,14 +26,14 @@ The hard limits are not configurable. The admin values can only make them strict
 
 ## Start Rules
 
-- A room containing only guests can start with 2 active players.
-- If at least one active participant is a registered account, 4 active players are required.
-- Both teams must contain at least one active player.
+- Every room requires at least 4 active players, regardless of identity type.
+- Both teams must contain at least 2 active players so the narrator has a teammate who can guess.
 - Offline players and spectators do not count.
 - No minimum participation percentage is enforced at launch.
 
-The registered-player rule is evaluated from the active match roster, not from old
-or disconnected room entries.
+The rule is evaluated from the active match roster, not from old or disconnected
+room entries. A future 1v1 mode may define a separate role rotation, but the current
+Tabu mode does not permit 1v1 play.
 
 ## Match Roster And Rewards
 
@@ -123,8 +123,8 @@ into Redis.
 2. Keep `teamMaxPlayers * 2 >= roomMaxPlayers`.
 3. Confirm Redis is available in the admin capacity card.
 4. Verify reconnect works while admission mode is `closed`.
-5. Verify a guest-only A/B pair can start.
-6. Verify a room with one registered participant needs four active participants.
+5. Verify two active players cannot start, including a guest-only A/B pair.
+6. Verify four active players arranged 2+2 can start.
 7. Verify a late join during a match is a spectator and receives no reward.
 8. Verify lowering room/team limits does not remove existing players.
 

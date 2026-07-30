@@ -570,18 +570,15 @@ export function Lobby({
                             </div>
                         )}
 
-                        {/* Requirements notice */}
-                        <div className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
-                            {startReadiness.minimumPlayers === 4
-                                ? "Kayıtlı oyuncu bulunan odalarda en az 4 aktif oyuncu gerekir."
-                                : "Tamamı misafir olan odalar 2 aktif oyuncuyla başlayabilir."}{" "}
-                            Her takımda en az bir oyuncu bulunmalı; izleyiciler sayılmaz.
-                            {!startReadiness.ready ? (
-                                <span className="ml-1 font-semibold text-amber-600">
-                                    Şu an {startReadiness.activePlayers}/{startReadiness.minimumPlayers}.
+                        {!startReadiness.ready ? (
+                            <div className="mt-3 text-center text-xs font-medium leading-5 text-amber-600 dark:text-amber-400">
+                                Başlamak için en az 4 aktif oyuncu ve her takımda en az 2 oyuncu gerekir.
+                                <span className="ml-1 font-semibold">
+                                    Şu an toplam {startReadiness.activePlayers}/{startReadiness.minimumPlayers};
+                                    Takım A {startReadiness.teamAPlayers}/2, Takım B {startReadiness.teamBPlayers}/2.
                                 </span>
-                            ) : null}
-                        </div>
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>

@@ -263,8 +263,8 @@ async function run(): Promise<void> {
                 : await waitForLobby(host.socket, 4);
         assert.equal(fourPlayerLobby.startReadiness.minimumPlayers, 4);
         assert.equal(fourPlayerLobby.startReadiness.ready, true);
-        assert.ok(fourPlayerLobby.startReadiness.teamAPlayers >= 1);
-        assert.ok(fourPlayerLobby.startReadiness.teamBPlayers >= 1);
+        assert.equal(fourPlayerLobby.startReadiness.teamAPlayers, 2);
+        assert.equal(fourPlayerLobby.startReadiness.teamBPlayers, 2);
 
         const categoryMessage = await emitStartAndWaitForError(host.socket);
         assert.match(categoryMessage, /kategori seçin/i);

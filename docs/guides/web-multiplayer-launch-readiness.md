@@ -1,29 +1,30 @@
 # Web Multiplayer Açılış Kontrolü
 
 > Durum: disposable DB kullanan otomatik CI kapısı
-> Kapsam: iki guest oyuncunun lobby ve ilk hazırlık senkronu
+> Kapsam: dört guest oyuncunun 2+2 takım, lobby ve oyun senkronu
 
 ## Amaç
 
-Tek sayfa smoke testleri Socket.IO oda durumunun iki oyuncu arasında doğru
-yayınlandığını kanıtlamaz. Bu kapı iki izole browser context açar ve gerçek UI
+Tek sayfa smoke testleri Socket.IO oda durumunun oyuncular arasında doğru
+yayınlandığını kanıtlamaz. Bu kapı izole browser context'leri açar ve gerçek UI
 üzerinden aşağıdaki akışı çalıştırır:
 
 1. host guest adıyla oda oluşturur
 2. ikinci guest oda koduyla katılır
-3. iki oyuncu karşı takımlara yerleşir
-4. host ve guest sayfaları sırayla reload edilir
-5. iki oyuncunun player kimliği korunur ve duplicate lobby kaydı oluşmaz
-6. host yetkisi geri gelir ve bekleyen otomatik devir kapanır
-7. kategori ve zorluk fixture'ı lobby'ye gelir
-8. host oyunu başlatır
-9. iki oyuncu ilk hazırlık ekranını görür
-10. host hazırlığı durdurur ve guest durumu senkron görür
-11. mobil guest viewport'unda yatay taşma olmadığı doğrulanır
-12. hazırlık tamamlanınca aktif oyundaki guest reload edilir ve lobby yerine
+3. iki oyuncuyla başlatma kapalı kalır
+4. iki ek guest katılır ve takımlar 2+2 oyuncuya ulaşır
+5. host ve guest sayfaları sırayla reload edilir
+6. iki oyuncunun player kimliği korunur ve duplicate lobby kaydı oluşmaz
+7. host yetkisi geri gelir ve bekleyen otomatik devir kapanır
+8. kategori ve zorluk fixture'ı lobby'ye gelir
+9. host oyunu başlatır
+10. iki oyuncu ilk hazırlık ekranını görür
+11. host hazırlığı durdurur ve guest durumu senkron görür
+12. mobil guest viewport'unda yatay taşma olmadığı doğrulanır
+13. hazırlık tamamlanınca aktif oyundaki guest reload edilir ve lobby yerine
     rol/kart yetkileri korunmuş oyun ekranına döner
-13. mobil host oda oluşturur ve ayrı desktop guest aynı oda koduyla katılır
-14. mobil guest Takım A ve Takım B panellerini ayrı ayrı açar ve kapatır
+14. mobil host oda oluşturur ve ayrı desktop guest aynı oda koduyla katılır
+15. mobil guest Takım A ve Takım B panellerini ayrı ayrı açar ve kapatır
 
 ## Fixture Yaşam Döngüsü
 

@@ -28,6 +28,16 @@ const invalidTeamCapacity = systemSettingsWriteSchema.safeParse({
 });
 assert.equal(invalidTeamCapacity.success, false);
 
+const invalidPlayableCapacity = systemSettingsWriteSchema.safeParse({
+    ...defaults,
+    capacity: {
+        ...defaults.capacity,
+        roomMaxPlayers: 2,
+        teamMaxPlayers: 1,
+    },
+});
+assert.equal(invalidPlayableCapacity.success, false);
+
 const invalidCapacityThresholds = systemSettingsWriteSchema.safeParse({
     ...defaults,
     capacity: {
