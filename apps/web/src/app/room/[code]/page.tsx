@@ -398,6 +398,7 @@ export default function RoomPage() {
                 const socket = io({
                     path: "/api/socketio",
                     transports: ["websocket", "polling"],
+                    tryAllTransports: true,
                 });
 
                 activeSocket = socket;
