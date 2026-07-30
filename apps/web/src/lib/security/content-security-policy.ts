@@ -22,6 +22,7 @@ const YOUTUBE_FRAME_SOURCES = [
     "https://www.youtube.com",
     "https://www.youtube-nocookie.com",
 ];
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
 export function generateCspNonce(): string {
     return Buffer.from(crypto.randomUUID()).toString("base64");
@@ -110,6 +111,7 @@ export function buildContentSecurityPolicy({
                 "'self'",
                 `'nonce-${nonce}'`,
                 "'strict-dynamic'",
+                TURNSTILE_ORIGIN,
                 ...(isDev ? ["'unsafe-eval'"] : []),
             ],
         ],
@@ -118,8 +120,17 @@ export function buildContentSecurityPolicy({
         ["style-src-attr", ["'unsafe-inline'"]],
         ["img-src", ["'self'", "data:", "blob:", "https:"]],
         ["font-src", ["'self'", "data:", ...(externalSources.fonts ?? [])]],
-        ["connect-src", ["'self'", "ws:", "wss:", ...(externalSources.connections ?? [])]],
-        ["frame-src", ["'self'", ...YOUTUBE_FRAME_SOURCES]],
+        [
+            "connect-src",
+            [
+                "'self'",
+                "ws:",
+                "wss:",
+                TURNSTILE_ORIGIN,
+                ...(externalSources.connections ?? []),
+            ],
+        ],
+        ["frame-src", ["'self'", TURNSTILE_ORIGIN, ...YOUTUBE_FRAME_SOURCES]],
         ["media-src", ["'self'", "blob:", "https:"]],
         ["object-src", ["'none'"]],
         ["base-uri", ["'self'"]],

@@ -71,6 +71,8 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
     const faviconType = getIconType(favicon);
     const appleIcons = faviconType === "image/png" ? [{ url: favicon, type: "image/png" }] : undefined;
     const twitterHandle = normalizeTwitterHandle(branding.twitterHandle);
+    const googleSiteVerification =
+        process.env.GOOGLE_SITE_VERIFICATION?.trim() || undefined;
 
     return {
         metadataBase,
@@ -103,6 +105,9 @@ export function buildRootMetadata(branding: BrandingSettings): Metadata {
             shortcut: [{ url: favicon, type: faviconType }],
             apple: appleIcons,
         },
+        verification: googleSiteVerification
+            ? { google: googleSiteVerification }
+            : undefined,
     };
 }
 

@@ -97,7 +97,7 @@ test("four guests form two playable teams and enter the first transition", async
       await blockedStartButton.hover();
       await expect(startRequirement).toHaveCSS("opacity", "1");
       await expect(startRequirement).toHaveText(
-        "Her iki takımda en az 2 oyuncu olmalı."
+        "Her iki takımda en az iki oyuncu olmalı!"
       );
       await blockedStartButton.dispatchEvent("click");
       await expect(startRequirement).toHaveAttribute(
