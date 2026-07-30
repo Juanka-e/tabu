@@ -12,11 +12,14 @@ yayınlandığını kanıtlamaz. Bu kapı iki izole browser context açar ve ger
 1. host guest adıyla oda oluşturur
 2. ikinci guest oda koduyla katılır
 3. iki oyuncu karşı takımlara yerleşir
-4. kategori ve zorluk fixture'ı lobby'ye gelir
-5. host oyunu başlatır
-6. iki oyuncu ilk hazırlık ekranını görür
-7. host hazırlığı durdurur ve guest durumu senkron görür
-8. mobil guest viewport'unda yatay taşma olmadığı doğrulanır
+4. host ve guest sayfaları sırayla reload edilir
+5. iki oyuncunun player kimliği korunur ve duplicate lobby kaydı oluşmaz
+6. host yetkisi geri gelir ve bekleyen otomatik devir kapanır
+7. kategori ve zorluk fixture'ı lobby'ye gelir
+8. host oyunu başlatır
+9. iki oyuncu ilk hazırlık ekranını görür
+10. host hazırlığı durdurur ve guest durumu senkron görür
+11. mobil guest viewport'unda yatay taşma olmadığı doğrulanır
 
 ## Fixture Yaşam Döngüsü
 
@@ -47,7 +50,7 @@ npm run test:web-multiplayer
 
 - maç tamamlanmaz ve ödül finalize edilmez
 - coin/XP sonucu üretilmez
-- reconnect, host handoff ve dört kayıtlı oyuncu senaryosu bu testin kapsamı
-  değildir
+- host/guest reload reconnect kapsam içindedir; timeout ile tamamlanan otomatik
+  host handoff ve dört kayıtlı oyuncu senaryosu kapsam dışındadır
 - Chromium ve WebKit otomasyonu fiziksel cihaz kanıtı değildir
 - gerçek touch, sanal klavye ve cihaz performansı manuel smoke turunda kalır

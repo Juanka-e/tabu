@@ -83,6 +83,43 @@ test("two guests join opposite teams and enter the first transition", async ({
       checkpoint(`${guestName} joined`);
     });
 
+    await test.step("both guests reconnect without identity duplication", async () => {
+      const hostPlayerIdBefore = await hostPage.evaluate(() =>
+        window.sessionStorage.getItem("tabu_playerId")
+      );
+      const guestPlayerIdBefore = await guestPage.evaluate(() =>
+        window.sessionStorage.getItem("tabu_playerId")
+      );
+      expect(hostPlayerIdBefore).toMatch(/^(?:user:\d+|guest:[a-f0-9-]+)$/i);
+      expect(guestPlayerIdBefore).toMatch(/^(?:user:\d+|guest:[a-f0-9-]+)$/i);
+
+      await hostPage.reload();
+      await expect(hostPage.getByRole("button", { name: /Kategoriler/i })).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect
+        .poll(() =>
+          hostPage.evaluate(() => window.sessionStorage.getItem("tabu_playerId"))
+        )
+        .toBe(hostPlayerIdBefore);
+
+      await guestPage.reload();
+      await expect(guestPage.getByRole("button", { name: /Kategoriler/i })).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect
+        .poll(() =>
+          guestPage.evaluate(() => window.sessionStorage.getItem("tabu_playerId"))
+        )
+        .toBe(guestPlayerIdBefore);
+
+      await expect(hostPage.getByText(guestName, { exact: true })).toHaveCount(1);
+      await expect(guestPage.getByText(hostName, { exact: true })).toHaveCount(1);
+      await expect(guestPage.getByText(/otomatik devir/i)).toHaveCount(0);
+      await expectNoHorizontalOverflow(guestPage);
+      checkpoint("host and guest identities survived reload");
+    });
+
     await test.step("host starts the game", async () => {
       const startButton = hostPage.getByRole("button", { name: /Oyunu Ba/i });
       await expect(startButton).toBeEnabled({ timeout: 20_000 });

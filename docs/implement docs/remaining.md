@@ -1,6 +1,6 @@
 # Kalan Isler
 
-> Son guncelleme: 29 July 2026
+> Son guncelleme: 30 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
@@ -21,15 +21,21 @@ bu ertelemenin disindadir.
 
 ## Aktif Branch
 
-### `feature/web-real-device-responsive-smoke`
+### `test/web-reconnect-readiness`
 
 Hedef:
-- production build'i acik bir LAN origin'i ile fiziksel cihaza sunmak
-- iOS Safari, Android Chrome, yatay telefon ve laptop kanitlarini ayri kaydetmek
-- sanal klavye, safe-area, touch, yon degisimi ve WebSocket davranisini kontrol etmek
-- gercek cihaz sonucu olmadan branch'i test edilmis saymamak
+- iki guest UI akisinda host ve guest reload reconnect'ini dogrulamak
+- reconnect sonrasinda playerId'nin korunmasini ve duplicate lobby kaydi
+  olusmamasini kanitlamak
+- host yetkisinin geri gelmesini ve pending otomatik devrin temizlenmesini
+  Chromium ve WebKit'te test etmek
+- reconnect sonrasinda oyun baslatma ve pause senkronunun calistigini korumak
 
 Referans:
+- `docs/guides/web-multiplayer-launch-readiness.md`
+
+Fiziksel iOS/Android/laptop smoke harness'i tamamlandi. Gercek cihaz sonucu
+otomasyonla uretilemeyecegi icin release kaniti olarak manuel acik kalir:
 - `docs/guides/web-real-device-smoke.md`
 
 ## Onceki Branch Kaydi
