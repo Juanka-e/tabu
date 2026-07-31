@@ -1,6 +1,6 @@
 # Kalan Isler
 
-> Son guncelleme: 30 July 2026
+> Son guncelleme: 31 July 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
@@ -18,6 +18,11 @@ Native mobil API genisletmesi web acilisi stabil hale gelene kadar
 duraklatildi. Tamamlananlar ve yeniden baslama sirasi
 `apps/api/MOBILE_ROADMAP.md` icinde tutulur. Web'in mobil responsive testleri
 bu ertelemenin disindadir.
+
+E-posta doğrulama temeli tamamlandı. Parola kurtarma, güvenli e-posta değiştirme,
+provider bounce webhook'ları ve consent tabanlı marketing gönderimi ayrı dar
+branch'lerde ele alınacaktır. Referans:
+`docs/guides/email-verification-foundation-guide.md`.
 
 ## Aktif Release Kapisi
 

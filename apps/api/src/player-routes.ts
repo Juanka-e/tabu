@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import {
     authenticateAccessToken,
+    canUseAccountCapability,
     consumeAuthRateLimit,
     MobileAuthError,
 } from "@hushle/platform-auth";
@@ -310,6 +311,21 @@ export async function handlePlayerRoute(
             context.pathname === MOBILE_API_ROUTES.inventoryEquipped &&
             context.method === "PATCH"
         ) {
+            if (
+                !canUseAccountCapability(
+                    auth.user,
+                    "store_mutation"
+                )
+            ) {
+                return {
+                    status: 403,
+                    error: {
+                        code: "email_verification_required",
+                        message:
+                            "Email verification is required for this action.",
+                    },
+                };
+            }
             const limit = await applyLimit({
                 scope: "player-inventory-equip",
                 identifier: `${auth.user.id}:${context.remoteIp}`,

@@ -6,8 +6,14 @@ import {
 import {
     areJobsEnabled,
     getAuditRetentionConfig,
+    getEmailDeliveryConfig,
+    getEmailRetentionConfig,
     getMobileAuthRetentionConfig,
 } from "../apps/jobs/src/config";
+import {
+    runEmailRetention,
+    type EmailRetentionStore,
+} from "../apps/jobs/src/email-retention";
 import {
     runMobileAuthRetention,
     type MobileAuthRetentionStore,
@@ -39,9 +45,16 @@ assert.deepEqual(config, {
 assert.equal(areJobsEnabled(undefined), false);
 assert.equal(areJobsEnabled("true"), true);
 assert.throws(() => areJobsEnabled("yes"), /must be true or false/);
-assert.deepEqual(JOB_NAMES, ["audit-retention", "mobile-auth-retention"]);
+assert.deepEqual(JOB_NAMES, [
+    "audit-retention",
+    "mobile-auth-retention",
+    "email-delivery",
+    "email-retention",
+]);
 assert.equal(isJobName("audit-retention"), true);
 assert.equal(isJobName("mobile-auth-retention"), true);
+assert.equal(isJobName("email-delivery"), true);
+assert.equal(isJobName("email-retention"), true);
 assert.equal(isJobName("unknown-job"), false);
 assert.equal(getJobDefinition("audit-retention").leaseTtlMs, 900_000);
 assert.deepEqual(
@@ -54,6 +67,34 @@ assert.deepEqual(
     {
         retentionDays: 30,
         reuseEvidenceDays: 7,
+        batchSize: 500,
+        leaseTtlMs: 300_000,
+    }
+);
+assert.deepEqual(
+    getEmailDeliveryConfig({
+        EMAIL_DELIVERY_BATCH_SIZE: "25",
+        EMAIL_DELIVERY_LEASE_TTL_MS: "900000",
+    }),
+    {
+        batchSize: 25,
+        leaseTtlMs: 900_000,
+    }
+);
+assert.deepEqual(
+    getEmailRetentionConfig({
+        EMAIL_SENT_RETENTION_DAYS: "30",
+        EMAIL_DEAD_LETTER_RETENTION_DAYS: "90",
+        EMAIL_TOKEN_RETENTION_DAYS: "7",
+        EMAIL_PENDING_ACCOUNT_RETENTION_DAYS: "7",
+        EMAIL_RETENTION_BATCH_SIZE: "500",
+        EMAIL_RETENTION_LEASE_TTL_MS: "300000",
+    }),
+    {
+        sentRetentionDays: 30,
+        deadLetterRetentionDays: 90,
+        tokenRetentionDays: 7,
+        pendingAccountRetentionDays: 7,
         batchSize: 500,
         leaseTtlMs: 300_000,
     }
@@ -206,6 +247,59 @@ async function main(): Promise<void> {
     assert.equal(retentionExecute.deletedCount, 1);
     assert.equal(retentionExecute.deletedTokenCount, 2);
     assert.equal(retentionDeletes, 1);
+
+    const emailRetentionCalls = {
+        outbox: 0,
+        tokens: 0,
+        accounts: 0,
+    };
+    const emailRetentionStore: EmailRetentionStore = {
+        async findOutboxIds() {
+            return ["outbox-1"];
+        },
+        async deleteOutbox(ids) {
+            emailRetentionCalls.outbox += ids.length;
+            return ids.length;
+        },
+        async findTokenIds() {
+            return ["token-1"];
+        },
+        async deleteTokens(ids) {
+            emailRetentionCalls.tokens += ids.length;
+            return ids.length;
+        },
+        async findPendingAccountIds() {
+            return [91];
+        },
+        async deletePendingAccounts(ids) {
+            emailRetentionCalls.accounts += ids.length;
+            return ids.length;
+        },
+    };
+    const emailRetentionDryRun = await runEmailRetention({
+        config: getEmailRetentionConfig(),
+        dryRun: true,
+        store: emailRetentionStore,
+    });
+    assert.equal(emailRetentionDryRun.pendingAccountCandidateCount, 1);
+    assert.deepEqual(emailRetentionCalls, {
+        outbox: 0,
+        tokens: 0,
+        accounts: 0,
+    });
+    const emailRetentionExecute = await runEmailRetention({
+        config: getEmailRetentionConfig(),
+        dryRun: false,
+        store: emailRetentionStore,
+    });
+    assert.equal(emailRetentionExecute.deletedOutboxCount, 1);
+    assert.equal(emailRetentionExecute.deletedTokenCount, 1);
+    assert.equal(emailRetentionExecute.deletedPendingAccountCount, 1);
+    assert.deepEqual(emailRetentionCalls, {
+        outbox: 1,
+        tokens: 1,
+        accounts: 1,
+    });
 
     console.log("jobs runtime smoke test passed");
 }

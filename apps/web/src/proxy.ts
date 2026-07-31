@@ -179,5 +179,6 @@ export const config = {
         "/api/store/:path*",
         "/api/game/:path*",
         "/api/auth/register",
+        "/api/auth/email-verification/:path*",
     ],
 };

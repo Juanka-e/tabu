@@ -19,6 +19,12 @@ async function main(): Promise<void> {
     process.env.ADMIN_ACCESS_EMAIL_HEADER_NAME = "";
     process.env.ADMIN_ACCESS_ALLOWED_EMAILS = "";
     process.env.ADMIN_ACCESS_ALLOWED_EMAIL_DOMAINS = "";
+    process.env.EMAIL_PROVIDER = "smtp";
+    process.env.EMAIL_FROM = "Hushle <no-reply@example.test>";
+    process.env.EMAIL_TOKEN_SECRET =
+        "integration_test_email_token_secret_123456";
+    process.env.SMTP_HOST = "127.0.0.1";
+    process.env.SMTP_PORT = "1025";
 
     const settings = normalizeSystemSettings({
         security: {
@@ -51,7 +57,7 @@ async function main(): Promise<void> {
     assert.equal(adminAccess.status, "ready");
 
     assert.ok(emailOutbound);
-    assert.equal(emailOutbound.status, "planned");
+    assert.equal(emailOutbound.status, "ready");
 
     assert.ok(redis);
     assert.equal(redis.status, "planned");

@@ -1,21 +1,21 @@
 {
-  "name": "@hushle/jobs",
+  "name": "@hushle/platform-email",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "run": "tsx src/runner.ts",
-    "typecheck": "tsc --noEmit"
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
   },
   "dependencies": {
-    "@hushle/platform-cache": "0.1.0",
     "@hushle/platform-db": "0.1.0",
-    "@hushle/platform-email": "0.1.0",
-    "@prisma/client": "^6.19.2"
+    "nodemailer": "^9.0.3"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "tsx": "^4.21.0",
+    "@types/nodemailer": "^7.0.11",
     "typescript": "^5"
   },
   "engines": {

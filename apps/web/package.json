@@ -18,6 +18,7 @@
     "@hushle/platform-cache": "0.1.0",
     "@hushle/platform-auth": "0.1.0",
     "@hushle/platform-db": "0.1.0",
+    "@hushle/platform-email": "0.1.0",
     "@hushle/platform-inventory": "0.1.0",
     "@hushle/platform-player": "0.1.0",
     "@hushle/platform-store": "0.1.0",

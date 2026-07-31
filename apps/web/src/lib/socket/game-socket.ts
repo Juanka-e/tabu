@@ -1,5 +1,6 @@
 ﻿import { Server, Socket } from "socket.io";
 import { z } from "zod";
+import { isEmailVerificationRestrictionActive } from "@hushle/platform-auth";
 import { getToken } from "next-auth/jwt";
 import {
     TABU_DEFAULT_SETTINGS,
@@ -1181,6 +1182,13 @@ export function setupGameSocket(
                         socket.emit("hata", "Geçerli bir kullanıcı adı girin.");
                         return;
                     }
+                    if (socketAuthState.emailVerificationRequired) {
+                        socket.emit(
+                            "hata",
+                            "Odaya katılmak için önce e-posta adresini doğrulamalısın."
+                        );
+                        return;
+                    }
 
                     const identity = resolveSocketPlayerIdentity(
                         effectiveAuthUserId,
@@ -2258,12 +2266,14 @@ function isTrustedSocketOrigin(socket: Socket): boolean {
 async function getSocketAuthState(socket: Socket): Promise<{
     userId: number | null;
     isSuspended: boolean;
+    emailVerificationRequired: boolean;
 }> {
     const cookieHeader = socket.handshake.headers.cookie;
     if (!cookieHeader || !process.env.AUTH_SECRET) {
         return {
             userId: null,
             isSuspended: false,
+            emailVerificationRequired: false,
         };
     }
 
@@ -2282,6 +2292,7 @@ async function getSocketAuthState(socket: Socket): Promise<{
         return {
             userId: null,
             isSuspended: false,
+            emailVerificationRequired: false,
         };
     }
 
@@ -2292,6 +2303,9 @@ async function getSocketAuthState(socket: Socket): Promise<{
             id: true,
             isSuspended: true,
             suspendedUntil: true,
+            accountStatus: true,
+            emailVerifiedAt: true,
+            emailVerificationRequiredAt: true,
         },
     });
 
@@ -2299,12 +2313,15 @@ async function getSocketAuthState(socket: Socket): Promise<{
         return {
             userId: null,
             isSuspended: false,
+            emailVerificationRequired: false,
         };
     }
 
     return {
         userId: isSuspensionActive(user) ? null : user.id,
         isSuspended: isSuspensionActive(user),
+        emailVerificationRequired:
+            isEmailVerificationRestrictionActive(user),
     };
 }
 

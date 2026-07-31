@@ -4,6 +4,7 @@ import { getRedisClient, getRedisKey } from "@hushle/platform-cache";
 import {
     MobileAuthTokenKind,
     Prisma,
+    UserAccountStatus,
     prisma,
 } from "@hushle/platform-db";
 
@@ -17,6 +18,45 @@ const PASSWORD_LOGIN_IP_WINDOW_MS = 10 * 60_000;
 const PASSWORD_LOGIN_ACCOUNT_LIMIT = 8;
 const PASSWORD_LOGIN_ACCOUNT_WINDOW_MS = 15 * 60_000;
 
+export interface AccountCapabilityRecord {
+    accountStatus: UserAccountStatus;
+    emailVerifiedAt: Date | null;
+    emailVerificationRequiredAt: Date | null;
+}
+
+export type AccountCapability =
+    | "session"
+    | "email_verification"
+    | "profile"
+    | "room"
+    | "store_mutation"
+    | "reward";
+
+export function isEmailVerificationRestrictionActive(
+    account: AccountCapabilityRecord
+): boolean {
+    return (
+        account.accountStatus ===
+            UserAccountStatus.pending_email_verification &&
+        account.emailVerificationRequiredAt !== null &&
+        account.emailVerifiedAt === null
+    );
+}
+
+export function canUseAccountCapability(
+    account: AccountCapabilityRecord,
+    capability: AccountCapability
+): boolean {
+    if (!isEmailVerificationRestrictionActive(account)) {
+        return true;
+    }
+    return (
+        capability === "session" ||
+        capability === "email_verification" ||
+        capability === "profile"
+    );
+}
+
 export type MobileTokenPair = {
     accessToken: string;
     accessTokenExpiresAt: Date;
@@ -29,6 +69,9 @@ export type MobileAuthUser = {
     id: number;
     username: string;
     role: string;
+    accountStatus: UserAccountStatus;
+    emailVerifiedAt: Date | null;
+    emailVerificationRequiredAt: Date | null;
 };
 
 export type MobileAuthSessionView = {
@@ -186,6 +229,9 @@ export async function loginWithPassword(input: {
             username: true,
             password: true,
             role: true,
+            accountStatus: true,
+            emailVerifiedAt: true,
+            emailVerificationRequiredAt: true,
             isSuspended: true,
             suspendedUntil: true,
         },
@@ -245,7 +291,15 @@ export async function loginWithPassword(input: {
     });
 
     return {
-        user: { id: user.id, username: user.username, role: user.role },
+        user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            accountStatus: user.accountStatus,
+            emailVerifiedAt: user.emailVerifiedAt,
+            emailVerificationRequiredAt:
+                user.emailVerificationRequiredAt,
+        },
         tokens: result.tokens,
     };
 }
@@ -289,6 +343,9 @@ export async function rotateRefreshToken(input: {
                                             id: true,
                                             username: true,
                                             role: true,
+                                            accountStatus: true,
+                                            emailVerifiedAt: true,
+                                            emailVerificationRequiredAt: true,
                                             isSuspended: true,
                                             suspendedUntil: true,
                                         },
@@ -370,6 +427,13 @@ export async function rotateRefreshToken(input: {
                             id: token.session.user.id,
                             username: token.session.user.username,
                             role: token.session.user.role,
+                            accountStatus:
+                                token.session.user.accountStatus,
+                            emailVerifiedAt:
+                                token.session.user.emailVerifiedAt,
+                            emailVerificationRequiredAt:
+                                token.session.user
+                                    .emailVerificationRequiredAt,
                         },
                         tokens,
                     };
@@ -417,6 +481,9 @@ export async function authenticateAccessToken(
                             id: true,
                             username: true,
                             role: true,
+                            accountStatus: true,
+                            emailVerifiedAt: true,
+                            emailVerificationRequiredAt: true,
                             isSuspended: true,
                             suspendedUntil: true,
                         },
@@ -469,6 +536,10 @@ export async function authenticateAccessToken(
             id: token.session.user.id,
             username: token.session.user.username,
             role: token.session.user.role,
+            accountStatus: token.session.user.accountStatus,
+            emailVerifiedAt: token.session.user.emailVerifiedAt,
+            emailVerificationRequiredAt:
+                token.session.user.emailVerificationRequiredAt,
         },
         sessionId: token.sessionId,
     };

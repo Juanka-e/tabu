@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { enforceAccountCapability } from "@/lib/auth/account-capability";
 import {
   equipInventoryItem,
   InventoryError,
@@ -20,6 +21,11 @@ export async function POST(req: Request) {
   if (!sessionUser) {
     return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
   }
+  const capabilityError = enforceAccountCapability(
+    sessionUser,
+    "store_mutation"
+  );
+  if (capabilityError) return capabilityError;
 
   const settings = await getSystemSettings();
   if (!isStoreAvailable(settings)) {

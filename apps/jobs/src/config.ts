@@ -12,6 +12,20 @@ export interface MobileAuthRetentionConfig {
     leaseTtlMs: number;
 }
 
+export interface EmailDeliveryConfig {
+    batchSize: number;
+    leaseTtlMs: number;
+}
+
+export interface EmailRetentionConfig {
+    sentRetentionDays: number;
+    deadLetterRetentionDays: number;
+    tokenRetentionDays: number;
+    pendingAccountRetentionDays: number;
+    batchSize: number;
+    leaseTtlMs: number;
+}
+
 interface JobsEnvironment {
     [key: string]: string | undefined;
     AUDIT_HOT_RETENTION_DAYS?: string;
@@ -22,6 +36,84 @@ interface JobsEnvironment {
     MOBILE_AUTH_REUSE_EVIDENCE_DAYS?: string;
     MOBILE_AUTH_RETENTION_BATCH_SIZE?: string;
     MOBILE_AUTH_RETENTION_LEASE_TTL_MS?: string;
+    EMAIL_DELIVERY_BATCH_SIZE?: string;
+    EMAIL_DELIVERY_LEASE_TTL_MS?: string;
+    EMAIL_SENT_RETENTION_DAYS?: string;
+    EMAIL_DEAD_LETTER_RETENTION_DAYS?: string;
+    EMAIL_TOKEN_RETENTION_DAYS?: string;
+    EMAIL_PENDING_ACCOUNT_RETENTION_DAYS?: string;
+    EMAIL_RETENTION_BATCH_SIZE?: string;
+    EMAIL_RETENTION_LEASE_TTL_MS?: string;
+}
+
+export function getEmailDeliveryConfig(
+    env: JobsEnvironment = process.env
+): EmailDeliveryConfig {
+    return {
+        batchSize: parseBoundedInteger({
+            name: "EMAIL_DELIVERY_BATCH_SIZE",
+            value: env.EMAIL_DELIVERY_BATCH_SIZE,
+            fallback: 25,
+            min: 1,
+            max: 100,
+        }),
+        leaseTtlMs: parseBoundedInteger({
+            name: "EMAIL_DELIVERY_LEASE_TTL_MS",
+            value: env.EMAIL_DELIVERY_LEASE_TTL_MS,
+            fallback: 15 * 60_000,
+            min: 60_000,
+            max: 60 * 60_000,
+        }),
+    };
+}
+
+export function getEmailRetentionConfig(
+    env: JobsEnvironment = process.env
+): EmailRetentionConfig {
+    return {
+        sentRetentionDays: parseBoundedInteger({
+            name: "EMAIL_SENT_RETENTION_DAYS",
+            value: env.EMAIL_SENT_RETENTION_DAYS,
+            fallback: 30,
+            min: 7,
+            max: 365,
+        }),
+        deadLetterRetentionDays: parseBoundedInteger({
+            name: "EMAIL_DEAD_LETTER_RETENTION_DAYS",
+            value: env.EMAIL_DEAD_LETTER_RETENTION_DAYS,
+            fallback: 90,
+            min: 30,
+            max: 730,
+        }),
+        tokenRetentionDays: parseBoundedInteger({
+            name: "EMAIL_TOKEN_RETENTION_DAYS",
+            value: env.EMAIL_TOKEN_RETENTION_DAYS,
+            fallback: 7,
+            min: 1,
+            max: 90,
+        }),
+        pendingAccountRetentionDays: parseBoundedInteger({
+            name: "EMAIL_PENDING_ACCOUNT_RETENTION_DAYS",
+            value: env.EMAIL_PENDING_ACCOUNT_RETENTION_DAYS,
+            fallback: 7,
+            min: 1,
+            max: 90,
+        }),
+        batchSize: parseBoundedInteger({
+            name: "EMAIL_RETENTION_BATCH_SIZE",
+            value: env.EMAIL_RETENTION_BATCH_SIZE,
+            fallback: 500,
+            min: 10,
+            max: 5_000,
+        }),
+        leaseTtlMs: parseBoundedInteger({
+            name: "EMAIL_RETENTION_LEASE_TTL_MS",
+            value: env.EMAIL_RETENTION_LEASE_TTL_MS,
+            fallback: 5 * 60_000,
+            min: 60_000,
+            max: 60 * 60_000,
+        }),
+    };
 }
 
 export function getMobileAuthRetentionConfig(

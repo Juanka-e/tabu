@@ -17,6 +17,9 @@ export async function getSessionUser() {
             username: true,
             isSuspended: true,
             suspendedUntil: true,
+            accountStatus: true,
+            emailVerifiedAt: true,
+            emailVerificationRequiredAt: true,
         },
     });
     if (!user || isSuspensionActive(user)) {
@@ -27,5 +30,8 @@ export async function getSessionUser() {
         id: user.id,
         role: user.role || "user",
         name: user.username || "",
+        accountStatus: user.accountStatus,
+        emailVerifiedAt: user.emailVerifiedAt,
+        emailVerificationRequiredAt: user.emailVerificationRequiredAt,
     };
 }

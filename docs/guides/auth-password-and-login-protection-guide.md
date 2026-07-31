@@ -60,7 +60,10 @@ Production'da Redis sağlık ve fallback uyarıları izlenmelidir.
 
 ## E-posta Doğrulama Kararı
 
-E-posta doğrulaması ayrı bir branch'te provider bağımsız olarak uygulanacaktır.
+E-posta doğrulaması `feature/email-verification-foundation` branch'inde provider
+bağımsız olarak uygulanmıştır. Güncel runtime, operasyon ve retention ayrıntıları:
+`docs/guides/email-verification-foundation-guide.md`.
+
 Varsayılan mod `optional` olacaktır. Yeni hesap aktif açılır; otomatik e-posta
 gönderilmez. Oyuncu dashboard veya settings içindeki "E-postanı doğrula"
 çağrısını kullandığında doğrulama e-postası gönderilir.
@@ -118,8 +121,7 @@ npx tsc --noEmit -p tsconfig.json
 
 ## Sonraki Güvenlik Dilimleri
 
-1. Provider bağımsız e-posta doğrulama, outbox ve tek kullanımlık parola
-   kurtarma tokenları
+1. Tek kullanımlık parola kurtarma ve güvenli e-posta değiştirme akışı
 2. Adaptif Turnstile `CAPTCHA_REQUIRED` step-up akışı
 3. Admin için Cloudflare Access MFA
 4. Mevcut bcrypt hashlerinin başarılı login sırasında Argon2id'e kademeli

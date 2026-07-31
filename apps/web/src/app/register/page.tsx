@@ -74,13 +74,23 @@ export default function RegisterPage() {
                 }),
             });
 
-            const data = await res.json();
+            const data = (await res.json()) as {
+                error?: string;
+                verificationRequired?: boolean;
+            };
 
             if (!res.ok) {
                 setError(data.error || "Kayit basarisiz.");
             } else {
-                toast.success("Kayıt başarılı! Giriş yapabilirsiniz.");
-                router.push("/login");
+                if (data.verificationRequired) {
+                    toast.success(
+                        "Doğrulama bağlantısı e-posta adresine gönderildi."
+                    );
+                    router.push("/verify-email?sent=1&required=1");
+                } else {
+                    toast.success("Kayıt başarılı! Giriş yapabilirsiniz.");
+                    router.push("/login");
+                }
             }
         } catch {
             setError("Bir hata oluştu.");

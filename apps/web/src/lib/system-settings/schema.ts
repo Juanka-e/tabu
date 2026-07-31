@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EMAIL_VERIFICATION_MODES } from "@hushle/platform-email";
 import {
     CAPTCHA_FAIL_MODES,
     CAPTCHA_PROVIDERS,
@@ -123,6 +124,11 @@ const captchaSettingsSchema = z.object({
 
 const securitySettingsSchema = z.object({
     captcha: captchaSettingsSchema.default(captchaSettingsSchema.parse({})),
+    emailVerification: z
+        .object({
+            mode: z.enum(EMAIL_VERIFICATION_MODES).default("optional"),
+        })
+        .default({ mode: "optional" }),
 });
 
 export const systemSettingsSchema = z.object({

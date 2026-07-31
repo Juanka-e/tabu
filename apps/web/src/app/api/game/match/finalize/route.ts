@@ -3,6 +3,7 @@ import { invalidateUserDashboardMatchSummaryCache } from "@/lib/cache/applicatio
 import { z } from "zod";
 import { Prisma } from "@hushle/platform-db";
 import { getSessionUser } from "@/lib/session";
+import { enforceAccountCapability } from "@/lib/auth/account-capability";
 import { prisma } from "@/lib/prisma";
 import { ensureUserCore } from "@/lib/economy";
 import { getRoomMatchSnapshot } from "@/lib/socket/game-socket";
@@ -75,6 +76,8 @@ export async function POST(req: Request) {
   if (!sessionUser) {
     return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
   }
+  const capabilityError = enforceAccountCapability(sessionUser, "reward");
+  if (capabilityError) return capabilityError;
 
   try {
     const rateLimit = consumeRequestRateLimit({

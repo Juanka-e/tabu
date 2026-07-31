@@ -41,6 +41,7 @@ export interface MobileApiError {
             | "token_expired"
             | "token_reuse_detected"
             | "account_suspended"
+            | "email_verification_required"
             | "captcha_failed"
             | "rate_limited"
             | "auth_unavailable"

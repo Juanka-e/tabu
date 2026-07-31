@@ -22,6 +22,11 @@ import {
 import { recordUserRegistrationSignal } from "@/lib/security/user-access-signal";
 import { initializeWalletLedger } from "@/lib/wallet-ledger/service";
 import { checkPasswordBreach } from "@/lib/security/password-breach";
+import {
+    enqueueEmailVerification,
+    getEmailProviderReadiness,
+} from "@hushle/platform-email";
+import { UserAccountStatus } from "@hushle/platform-db";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
@@ -92,6 +97,20 @@ export async function POST(req: Request) {
             );
         }
 
+        const verificationRequired =
+            settings.security.emailVerification.mode ===
+            "required_for_new_accounts";
+        const emailReadiness = getEmailProviderReadiness();
+        if (verificationRequired && !emailReadiness.configured) {
+            return NextResponse.json(
+                {
+                    error:
+                        "E-posta doğrulama servisi şu anda hazır değil. Lütfen kısa süre sonra tekrar deneyin.",
+                },
+                { status: 503 }
+            );
+        }
+
         const captchaResult = await verifyCaptchaForAction({
             action: "register",
             token: captchaToken ?? null,
@@ -129,6 +148,7 @@ export async function POST(req: Request) {
 
         const hashedPassword = await bcryptjs.hash(password, 10);
 
+        const now = new Date();
         const user = await prisma.$transaction(async (tx) => {
             const createdUser = await tx.user.create({
                 data: {
@@ -137,6 +157,12 @@ export async function POST(req: Request) {
                     normalizedEmail,
                     password: hashedPassword,
                     role: "user",
+                    accountStatus: verificationRequired
+                        ? UserAccountStatus.pending_email_verification
+                        : UserAccountStatus.active,
+                    emailVerificationRequiredAt: verificationRequired
+                        ? now
+                        : null,
                     wallet: {
                         create: { coinBalance: settings.economy.startingCoinBalance },
                     },
@@ -149,6 +175,14 @@ export async function POST(req: Request) {
                 userId: createdUser.id,
                 source: "account_opening",
             });
+            if (verificationRequired) {
+                await enqueueEmailVerification(tx, {
+                    userId: createdUser.id,
+                    email: sanitizedEmail,
+                    siteName: settings.branding.siteName,
+                    now,
+                });
+            }
             return createdUser;
         });
 
@@ -158,7 +192,14 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(
-            { message: "Kayit basarili.", userId: user.id },
+            {
+                message: verificationRequired
+                    ? "Hesabını etkinleştirmek için e-posta adresini doğrula."
+                    : "Kayıt başarılı.",
+                userId: user.id,
+                verificationRequired,
+                verificationEmailQueued: verificationRequired,
+            },
             { status: 201 }
         );
     } catch (error) {
