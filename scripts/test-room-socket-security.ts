@@ -9,6 +9,10 @@ const roomActionLockSource = readFileSync(
     "apps/web/src/lib/socket/room-action-lock.ts",
     "utf8"
 );
+const serverRuntimeSource = readFileSync(
+    "apps/web/server-runtime.ts",
+    "utf8"
+);
 const clientTypes = readFileSync("apps/web/src/types/game.ts", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
     scripts?: Record<string, string>;
@@ -36,6 +40,9 @@ assert.match(socketSource, /const StartGameSchema = z\.object/);
 assert.match(socketSource, /StartGameSchema\.safeParse\(rawPayload\)/);
 assert.match(socketSource, /const PlayerTargetSchema = z\.object/);
 assert.match(socketSource, /PlayerTargetSchema\.safeParse\(rawPayload\)/);
+assert.match(socketSource, /consumeSocketActionBurstLimit/);
+assert.match(socketSource, /clearSocketActionBurstLimits\(socket\.id\)/);
+assert.match(serverRuntimeSource, /maxHttpBufferSize:\s*16 \* 1024/);
 assert.match(
     socketSource,
     /if \(room\.oyunDurumu\.oyunAktifMi\) \{\s*socket\.emit\("hata", "Oyun zaten devam ediyor\."\)/

@@ -50,7 +50,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | HTTP CSRF/origin | Kismi | Same-origin kontrolu var; Origin ve Sec-Fetch-Site ikisi de yoksa istek kabul ediliyor |
 | Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn politikasi, HIBP kontrolu, bcrypt, captcha ve rate-limit var; email dogrulama bekliyor |
 | Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
-| Email verification | Eksik | DB alani var, token/delivery/confirm akisi yok |
+| Email verification | Eksik/Planli | DB alani var; varsayilan `optional`, admin kontrollu `required_for_new_accounts` modu ve provider bagimsiz outbox akisi uygulanacak |
 | Password reset | Eksik | Token, mail ve sifre yenileme akisi yok |
 | Cloudflare Turnstile | Kismi | Client/server uygulamasi hazir; production key ve aktivasyon gerekiyor |
 | reCAPTCHA v3 | Kismi | Alternatif provider kodu hazir; key ve aktivasyon gerekiyor |
@@ -195,6 +195,8 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 3. Sifre unuttum/sifirlama yok.
 4. Admin MFA/WebAuthn yok.
 5. bcrypt'ten Argon2id'e kademeli rehash henuz yok.
+6. Profil e-posta degisikligi dogrulama durumunu sifirliyor ancak mevcut
+   parola ile step-up dogrulama henuz istemiyor.
 
 Uygulanan minimum:
 

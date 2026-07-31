@@ -184,6 +184,10 @@ const globalForGameSocket = globalThis as typeof globalThis & {
     __tabuGameSocketState?: {
         rooms: Map<string, RoomData>;
         wordActionTimestamps: Map<string, number>;
+        socketActionWindows: Map<
+            string,
+            { windowStartedAt: number; requestCount: number }
+        >;
         socketToRoom: Map<string, string>;
         registeredUserRoomIndex: Map<number, string>;
         roomRegisteredUsersIndex: Map<string, Set<number>>;
@@ -197,6 +201,7 @@ const sharedGameSocketState =
     (globalForGameSocket.__tabuGameSocketState = {
         rooms: new Map<string, RoomData>(),
         wordActionTimestamps: new Map<string, number>(),
+        socketActionWindows: new Map(),
         socketToRoom: new Map<string, string>(),
         registeredUserRoomIndex: new Map<number, string>(),
         roomRegisteredUsersIndex: new Map<string, Set<number>>(),
@@ -206,7 +211,12 @@ const sharedGameSocketState =
 
 const rooms = sharedGameSocketState.rooms;
 const wordActionTimestamps = sharedGameSocketState.wordActionTimestamps;
+const socketActionWindows =
+    sharedGameSocketState.socketActionWindows ??
+    (sharedGameSocketState.socketActionWindows = new Map());
 const WORD_ACTION_COOLDOWN_MS = 200;
+const SOCKET_ACTION_WINDOW_MS = 10_000;
+const SOCKET_ACTION_MAX_REQUESTS = 10;
 
 // Reverse index: socketId → roomCode (O(1) room lookup)
 const socketToRoom = sharedGameSocketState.socketToRoom;
@@ -234,6 +244,39 @@ const ROOM_UPDATE_DISPLAY_NAME_EVENT = "gorunen_ad_guncelle";
 
 function getClientIp(socket: Socket): string {
     return getSocketClientIp(socket);
+}
+
+function consumeSocketActionBurstLimit(
+    socketId: string,
+    action: string
+): boolean {
+    const now = Date.now();
+    const key = `${socketId}:${action}`;
+    const current = socketActionWindows.get(key);
+
+    if (!current || now - current.windowStartedAt >= SOCKET_ACTION_WINDOW_MS) {
+        socketActionWindows.set(key, {
+            windowStartedAt: now,
+            requestCount: 1,
+        });
+        return true;
+    }
+
+    if (current.requestCount >= SOCKET_ACTION_MAX_REQUESTS) {
+        return false;
+    }
+
+    current.requestCount += 1;
+    return true;
+}
+
+function clearSocketActionBurstLimits(socketId: string): void {
+    const prefix = `${socketId}:`;
+    for (const key of socketActionWindows.keys()) {
+        if (key.startsWith(prefix)) {
+            socketActionWindows.delete(key);
+        }
+    }
 }
 
 function clearSocketMembershipHeartbeat(socketId: string): void {
@@ -1906,6 +1949,19 @@ export function setupGameSocket(
                     displayName?: string;
                 }) => void
             ) => {
+                if (
+                    !consumeSocketActionBurstLimit(
+                        socket.id,
+                        ROOM_UPDATE_DISPLAY_NAME_EVENT
+                    )
+                ) {
+                    callback?.({
+                        ok: false,
+                        error: "Çok fazla isim değişikliği isteği gönderdin. Biraz bekleyip tekrar dene.",
+                    });
+                    return;
+                }
+
                 const parsed = DisplayNameUpdateSchema.safeParse(rawPayload);
                 if (!parsed.success) {
                     callback?.({ ok: false, error: "Gecerli bir gorunen ad girin." });
@@ -1999,6 +2055,7 @@ export function setupGameSocket(
         // ── Disconnect ──
         socket.on("disconnect", async () => {
             wordActionTimestamps.delete(socket.id);
+            clearSocketActionBurstLimits(socket.id);
             clearSocketMembershipHeartbeat(socket.id);
             const roomCode = socketToRoom.get(socket.id);
             const room = roomCode ? getRoom(roomCode) : undefined;
