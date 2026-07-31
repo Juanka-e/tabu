@@ -2,7 +2,10 @@ import { PrismaClient } from "@prisma/client";
 export {
     CosmeticRenderMode,
     EmailMessageClass,
+    EmailDeliveryEventType,
     EmailOutboxStatus,
+    EmailSuppressionReason,
+    EmailSuppressionScope,
     ItemRarity,
     MobileAuthTokenKind,
     Prisma,

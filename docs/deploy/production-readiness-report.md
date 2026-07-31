@@ -48,10 +48,10 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Web Socket.IO origin | Hazir | Exact allowlist, wildcard reddi ve production originless default-deny var |
 | Mobile/public API CORS | Hazir | Production default-deny ve exact `API_ALLOWED_ORIGINS` var |
 | HTTP CSRF/origin | Kismi | Same-origin kontrolu var; Origin ve Sec-Fetch-Site ikisi de yoksa istek kabul ediliyor |
-| Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn politikasi, HIBP kontrolu, bcrypt, captcha ve rate-limit var; email dogrulama bekliyor |
+| Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn, HIBP, bcrypt, captcha, rate-limit ve admin kontrollu e-posta dogrulama modu var |
 | Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
-| Email verification | Eksik/Planli | DB alani var; varsayilan `optional`, admin kontrollu `required_for_new_accounts` modu ve provider bagimsiz outbox akisi uygulanacak |
-| Password reset | Eksik | Token, mail ve sifre yenileme akisi yok |
+| Email verification | Hazir/Kismi | Token, provider bagimsiz outbox, atomik claim, suppression ve admin dead-letter akisi var; production provider smoke gerekir |
+| Password reset | Hazir/Kismi | Tek kullanimlik token, enumeration-safe request ve session revoke var; production provider smoke gerekir |
 | Cloudflare Turnstile | Kismi | Client/server uygulamasi hazir; production key ve aktivasyon gerekiyor |
 | reCAPTCHA v3 | Kismi | Alternatif provider kodu hazir; key ve aktivasyon gerekiyor |
 | Google Search Console | Hazir/Kismi | Sitemap, robots, canonical ve HTML verification env destegi var; dis dogrulama yapilacak |
@@ -191,8 +191,8 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 ### Acik riskler
 
 1. Captcha varsayilan olarak kapali ve adaptif step-up akisi henuz yok.
-2. Email dogrulama tokeni ve outbound email yok.
-3. Sifre unuttum/sifirlama yok.
+2. Production SMTP credential ve gercek teslimat smoke kaniti yok.
+3. SES imza dogrulamali bounce/complaint transport adaptoru yok.
 4. Admin MFA/WebAuthn yok.
 5. bcrypt'ten Argon2id'e kademeli rehash henuz yok.
 6. Parola kurtarma ve e-posta degisikligi uygulanmistir; production SMTP,
@@ -211,7 +211,7 @@ Uygulanan minimum:
 
 Siradaki minimum:
 
-- production SMTP/bounce operasyonu ve dead-letter admin gozlemi
+- production SMTP credential smoke ve SES imza doğrulamalı webhook adaptörü
 - native mobile recovery/change transport endpoint'leri
 - adminler icin Cloudflare Access MFA; daha sonra uygulama ici WebAuthn
 
@@ -406,7 +406,8 @@ Minimum onerilen:
 - [x] Login distributed basarisizlik rate-limit
 - [x] Guclu yeni parola ve compromised-password politikasi
 - [ ] Turnstile key ve aktif flow karari
-- [ ] Email verification + password reset veya yazili kapali-alpha istisnasi
+- [x] Email verification + password reset uygulama akisi
+- [ ] Production email provider credential ve teslimat smoke kaniti
 - [ ] Cloudflare Access/origin lock veya admin ayni-origin guvenlik karari
 - [ ] Production TLS/DNS/cookie/subdomain E2E
 - [ ] Offsite backup + restore smoke kaniti

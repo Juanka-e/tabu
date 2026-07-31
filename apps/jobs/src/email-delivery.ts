@@ -15,8 +15,10 @@ export async function runEmailDelivery(input: {
     if (input.dryRun) {
         const candidateCount = await prisma.emailOutboxMessage.count({
             where: {
-                status: "pending",
-                availableAt: { lte: now },
+                OR: [
+                    { status: "pending", availableAt: { lte: now } },
+                    { status: "processing", claimExpiresAt: { lte: now } },
+                ],
             },
         });
         return {

@@ -250,6 +250,7 @@ async function main(): Promise<void> {
 
     const emailRetentionCalls = {
         outbox: 0,
+        deliveryEvents: 0,
         tokens: 0,
         passwordResetTokens: 0,
         emailChangeTokens: 0,
@@ -262,6 +263,13 @@ async function main(): Promise<void> {
         },
         async deleteOutbox(ids) {
             emailRetentionCalls.outbox += ids.length;
+            return ids.length;
+        },
+        async findDeliveryEventIds() {
+            return ["delivery-event-1"];
+        },
+        async deleteDeliveryEvents(ids) {
+            emailRetentionCalls.deliveryEvents += ids.length;
             return ids.length;
         },
         async findTokenIds() {
@@ -306,8 +314,10 @@ async function main(): Promise<void> {
         store: emailRetentionStore,
     });
     assert.equal(emailRetentionDryRun.pendingAccountCandidateCount, 1);
+    assert.equal(emailRetentionDryRun.deliveryEventCandidateCount, 1);
     assert.deepEqual(emailRetentionCalls, {
         outbox: 0,
+        deliveryEvents: 0,
         tokens: 0,
         passwordResetTokens: 0,
         emailChangeTokens: 0,
@@ -320,6 +330,7 @@ async function main(): Promise<void> {
         store: emailRetentionStore,
     });
     assert.equal(emailRetentionExecute.deletedOutboxCount, 1);
+    assert.equal(emailRetentionExecute.deletedDeliveryEventCount, 1);
     assert.equal(emailRetentionExecute.deletedTokenCount, 1);
     assert.equal(emailRetentionExecute.deletedPasswordResetTokenCount, 1);
     assert.equal(emailRetentionExecute.deletedEmailChangeTokenCount, 1);
@@ -327,6 +338,7 @@ async function main(): Promise<void> {
     assert.equal(emailRetentionExecute.deletedPendingAccountCount, 1);
     assert.deepEqual(emailRetentionCalls, {
         outbox: 1,
+        deliveryEvents: 1,
         tokens: 1,
         passwordResetTokens: 1,
         emailChangeTokens: 1,

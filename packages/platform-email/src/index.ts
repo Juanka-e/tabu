@@ -6,8 +6,11 @@ import {
 } from "node:crypto";
 import nodemailer from "nodemailer";
 import {
+    EmailDeliveryEventType,
     EmailMessageClass,
     EmailOutboxStatus,
+    EmailSuppressionReason,
+    EmailSuppressionScope,
     Prisma,
     prisma,
 } from "@hushle/platform-db";
@@ -29,6 +32,7 @@ export const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60_000;
 export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60_000;
 export const EMAIL_CHANGE_TOKEN_TTL_MS = 24 * 60 * 60_000;
 export const EMAIL_OUTBOX_MAX_ATTEMPTS = 5;
+export const EMAIL_OUTBOX_CLAIM_TTL_MS = 5 * 60_000;
 
 const EMAIL_VERIFICATION_TEMPLATE = "email_verification";
 const PASSWORD_RESET_TEMPLATE = "password_reset";
@@ -994,6 +998,132 @@ function deliveryErrorLabel(error: unknown): string {
     return `Delivery failed (${name})`;
 }
 
+function normalizeEmailAddress(value: string): string {
+    return value.trim().toLowerCase();
+}
+
+export interface EmailDeliveryProviderEventInput {
+    provider: string;
+    providerEventId: string;
+    type: "delivered" | "hard_bounce" | "complaint";
+    recipient: string;
+    providerMessageId?: string | null;
+    occurredAt: Date;
+}
+
+export async function recordEmailDeliveryProviderEvent(
+    input: EmailDeliveryProviderEventInput
+): Promise<{ duplicate: boolean; suppressed: boolean }> {
+    if (
+        !(["delivered", "hard_bounce", "complaint"] as const).includes(
+            input.type
+        )
+    ) {
+        throw new TypeError("Provider event type is invalid");
+    }
+    if (
+        !(input.occurredAt instanceof Date) ||
+        Number.isNaN(input.occurredAt.getTime())
+    ) {
+        throw new TypeError("Provider event timestamp is invalid");
+    }
+    const provider = input.provider.trim().toLowerCase().slice(0, 40);
+    const providerEventId = input.providerEventId.trim().slice(0, 191);
+    const normalizedEmail = normalizeEmailAddress(input.recipient).slice(0, 191);
+    if (!provider || !providerEventId || !normalizedEmail) {
+        throw new TypeError("Provider event identity is invalid");
+    }
+
+    return prisma.$transaction(async (tx) => {
+        const inserted = await tx.emailDeliveryEvent.createMany({
+            data: {
+                provider,
+                providerEventId,
+                eventType: input.type as EmailDeliveryEventType,
+                normalizedEmail,
+                providerMessageId:
+                    input.providerMessageId?.trim().slice(0, 191) || null,
+                occurredAt: input.occurredAt,
+            },
+            skipDuplicates: true,
+        });
+        if (inserted.count === 0) {
+            return { duplicate: true, suppressed: false };
+        }
+
+        if (input.type === "delivered") {
+            return { duplicate: false, suppressed: false };
+        }
+
+        const user = await tx.user.findUnique({
+            where: { normalizedEmail },
+            select: { id: true },
+        });
+        await tx.emailSuppression.upsert({
+            where: { normalizedEmail },
+            create: {
+                normalizedEmail,
+                userId: user?.id ?? null,
+                reason:
+                    input.type === "complaint"
+                        ? EmailSuppressionReason.complaint
+                        : EmailSuppressionReason.hard_bounce,
+                scope: EmailSuppressionScope.all,
+                source: provider,
+            },
+            update: {
+                userId: user?.id ?? undefined,
+                reason:
+                    input.type === "complaint"
+                        ? EmailSuppressionReason.complaint
+                        : EmailSuppressionReason.hard_bounce,
+                scope: EmailSuppressionScope.all,
+                source: provider,
+            },
+        });
+        return { duplicate: false, suppressed: true };
+    });
+}
+
+async function claimEmailOutboxMessage(input: {
+    now: Date;
+    claimToken: string;
+}) {
+    const claimExpiresAt = new Date(input.now.getTime() + EMAIL_OUTBOX_CLAIM_TTL_MS);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        const candidate = await prisma.emailOutboxMessage.findFirst({
+            where: {
+                OR: [
+                    { status: EmailOutboxStatus.pending, availableAt: { lte: input.now } },
+                    { status: EmailOutboxStatus.processing, claimExpiresAt: { lte: input.now } },
+                ],
+            },
+            orderBy: [{ availableAt: "asc" }, { createdAt: "asc" }],
+        });
+        if (!candidate) return null;
+
+        const claimed = await prisma.emailOutboxMessage.updateMany({
+            where: {
+                id: candidate.id,
+                OR: [
+                    { status: EmailOutboxStatus.pending, availableAt: { lte: input.now } },
+                    { status: EmailOutboxStatus.processing, claimExpiresAt: { lte: input.now } },
+                ],
+            },
+            data: {
+                status: EmailOutboxStatus.processing,
+                claimToken: input.claimToken,
+                claimedAt: input.now,
+                claimExpiresAt,
+            },
+        });
+        if (claimed.count === 1) {
+            return prisma.emailOutboxMessage.findUnique({ where: { id: candidate.id } });
+        }
+    }
+    return null;
+}
+
 export interface EmailDeliveryResult {
     selected: number;
     sent: number;
@@ -1010,31 +1140,54 @@ export async function processEmailOutbox(input: {
     const env = input.env ?? process.env;
     const now = input.now ?? new Date();
     const batchSize = Math.max(1, Math.min(100, input.batchSize ?? 25));
-    const messages = await prisma.emailOutboxMessage.findMany({
-        where: {
-            status: EmailOutboxStatus.pending,
-            availableAt: { lte: now },
-        },
-        orderBy: [{ availableAt: "asc" }, { createdAt: "asc" }],
-        take: batchSize,
-    });
-
     const result: EmailDeliveryResult = {
-        selected: messages.length,
+        selected: 0,
         sent: 0,
         retried: 0,
         deadLettered: 0,
     };
 
-    for (const message of messages) {
+    for (let index = 0; index < batchSize; index += 1) {
+        const claimToken = randomUUID();
+        const message = await claimEmailOutboxMessage({ now, claimToken });
+        if (!message) break;
+        result.selected += 1;
+
+        const suppression = await prisma.emailSuppression.findUnique({
+            where: { normalizedEmail: normalizeEmailAddress(message.recipient) },
+            select: { scope: true, reason: true },
+        });
+        if (
+            suppression &&
+            (suppression.scope === EmailSuppressionScope.all ||
+                message.messageClass === EmailMessageClass.marketing)
+        ) {
+            await prisma.emailOutboxMessage.updateMany({
+                where: { id: message.id, status: EmailOutboxStatus.processing, claimToken },
+                data: {
+                    status: EmailOutboxStatus.dead_letter,
+                    lastAttemptAt: now,
+                    lastError: `Delivery suppressed (${suppression.reason})`,
+                    claimToken: null,
+                    claimedAt: null,
+                    claimExpiresAt: null,
+                },
+            });
+            result.deadLettered += 1;
+            continue;
+        }
+
         if (message.messageClass !== EmailMessageClass.transactional) {
-            await prisma.emailOutboxMessage.update({
-                where: { id: message.id },
+            await prisma.emailOutboxMessage.updateMany({
+                where: { id: message.id, status: EmailOutboxStatus.processing, claimToken },
                 data: {
                     status: EmailOutboxStatus.dead_letter,
                     lastAttemptAt: now,
                     lastError:
                         "Marketing delivery is disabled until consent enforcement exists",
+                    claimToken: null,
+                    claimedAt: null,
+                    claimExpiresAt: null,
                 },
             });
             result.deadLettered += 1;
@@ -1161,24 +1314,27 @@ export async function processEmailOutbox(input: {
             } else {
                 throw new TypeError("Unsupported transactional template");
             }
-            await prisma.emailOutboxMessage.update({
-                where: { id: message.id },
+            const transitioned = await prisma.emailOutboxMessage.updateMany({
+                where: { id: message.id, status: EmailOutboxStatus.processing, claimToken },
                 data: {
                     status: EmailOutboxStatus.sent,
                     sentAt: now,
                     lastAttemptAt: now,
                     attemptCount: { increment: 1 },
                     lastError: null,
+                    claimToken: null,
+                    claimedAt: null,
+                    claimExpiresAt: null,
                 },
             });
-            result.sent += 1;
+            if (transitioned.count === 1) result.sent += 1;
         } catch (error) {
             const nextAttemptCount = message.attemptCount + 1;
             const deadLetter =
                 nextAttemptCount >= EMAIL_OUTBOX_MAX_ATTEMPTS ||
                 error instanceof TypeError;
-            await prisma.emailOutboxMessage.update({
-                where: { id: message.id },
+            const transitioned = await prisma.emailOutboxMessage.updateMany({
+                where: { id: message.id, status: EmailOutboxStatus.processing, claimToken },
                 data: {
                     status: deadLetter
                         ? EmailOutboxStatus.dead_letter
@@ -1192,10 +1348,15 @@ export async function processEmailOutbox(input: {
                                   retryDelayMs(nextAttemptCount - 1)
                           ),
                     lastError: deliveryErrorLabel(error),
+                    claimToken: null,
+                    claimedAt: null,
+                    claimExpiresAt: null,
                 },
             });
-            if (deadLetter) result.deadLettered += 1;
-            else result.retried += 1;
+            if (transitioned.count === 1) {
+                if (deadLetter) result.deadLettered += 1;
+                else result.retried += 1;
+            }
         }
     }
 
