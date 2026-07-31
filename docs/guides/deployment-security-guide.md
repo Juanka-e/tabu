@@ -343,9 +343,9 @@ uretebilir.
 
 Bu tipik olarak engine dosyasinin bir baska process tarafindan kullaniliyor olmasindan kaynaklanir.
 
-Bu repo icin tercih edilen akim:
+Bu repo icin yalniz gecici local prototipte kullanilan akim:
 
-1. `npm run db:push`
+1. `npm run db:push:local`
    - `prisma db push --skip-generate`
 2. `npm run db:generate`
    - `prisma generate`
@@ -355,6 +355,11 @@ Toplu akim:
 ```bash
 npm run db:sync
 ```
+
+Merge edilecek kalici schema degisikliklerinde `db push` kullanilmaz. Migration
+`npm run db:migrate:dev -- --name <acik-ad>` ile uretilir; production'da
+`npm run db:migrate:deploy` ile uygulanir. Baseline ve release proseduru icin
+`docs/deploy/database-migrations.md` izlenir.
 
 Bu sayede:
 

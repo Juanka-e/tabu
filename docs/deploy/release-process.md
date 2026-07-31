@@ -14,7 +14,8 @@ Production deploy:
 4. Arsiv SHA-256 checksum ile transfer sonrasi dogrulanir.
 5. `.release-sha` dosyasi deploy edilen Git SHA'yi kaydeder.
 6. Arsiv mevcut deploy klasorunun ustune acilir.
-7. `scripts/ops/deploy.sh`, image'lari ceker ve Compose stack'ini yeniden kurar.
+7. `scripts/ops/deploy.sh`, migration'i ayri tek-seferlik container'da uygular.
+8. Migration basariliysa image'lari ve Compose stack'ini yeniden kurar.
 
 Bugunku akis:
 
@@ -22,7 +23,7 @@ Bugunku akis:
 - kaldirilan dosyalari hedef klasorden otomatik temizlemez
 - onceki release'i otomatik saklamaz
 - uygulama health sonucuna gore otomatik rollback yapmaz
-- production veritabani semasini otomatik degistirmez
+- migration basarisizliginda uygulama rollout'una devam etmez
 
 Bu sinirlar giderilene kadar deploy, dusuk trafik penceresinde ve operator
 gozetiminde yapilir.
@@ -61,20 +62,24 @@ Go/no-go karari:
 
 ## 3. Veritabani Kapi Kurali
 
-Repoda su anda `prisma/migrations` gecmisi yoktur. CI yalniz gecici test
-veritabanina `prisma db push` uygular. Production deploy scripti bilincli olarak
-`db push` veya `migrate deploy` calistirmaz.
+Repoda `prisma/migrations` gecmisi vardir. CI temiz test veritabanina
+`prisma migrate deploy` uygular. Production deploy scripti migration'i app
+startup'ina baglamadan ayri tek-seferlik Compose servisiyle calistirir.
 
 Kurallar:
 
 1. Schema degismediyse normal release akisi devam edebilir.
-2. Schema degistiyse release otomatik devam etmez.
+2. Schema degistiyse migration SQL'i review edilmeden release onaylanmaz.
 3. Degisiklik icin ileri ve geri uyumluluk analizi yapilir.
 4. Production backup ve restore smoke kaniti olmadan schema islemi yapilmaz.
 5. Destructive SQL veya otomatik `prisma db push --accept-data-loss`
    kullanilmaz.
-6. Migration gecmisi kurulana kadar schema degisikligi ayri, manuel onayli bir
-   operasyon planina sahip olmalidir.
+6. Mevcut production DB'nin ilk baseline kaydi otomatik yapilmaz; sifir drift,
+   backup ve restore smoke kanitiyla bir kez operator tarafindan kaydedilir.
+7. Normal release'te `prisma migrate deploy` basarisizsa app rollout'u durur.
+
+Komutlar ve ilk baseline proseduru
+[database-migrations.md](./database-migrations.md) icinde tanimlidir.
 
 Bu projede DB source of truth'tur. Uygulama deploy'u basarili olsa bile schema
 uyumsuzsa release basarili sayilmaz.
@@ -149,6 +154,7 @@ Beklenen minimum:
 7. Oda olusturma, guest join, WebSocket baglantisi ve lobiye donus basarili.
 8. Bir kisa mac tamamlanir; match finalize ve coin sonucu kontrol edilir.
 9. Yeni server error veya surekli artan telemetry drop/fallback yok.
+10. `npm run db:migrate:status` tum migration'lari uygulanmis gosterir.
 
 Release kaydina su kanitlar eklenir:
 

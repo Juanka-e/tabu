@@ -22,7 +22,8 @@ assert.match(workflow, /GITHUB_SHA.*\.release-sha/);
 assert.match(workflow, /sha256sum hushle-release\.tgz/);
 assert.match(workflow, /sha256sum -c hushle-release\.tgz\.sha256/);
 assert.doesNotMatch(`${workflow}\n${deployScript}`, /prisma\s+db\s+push/);
-assert.doesNotMatch(`${workflow}\n${deployScript}`, /prisma\s+migrate\s+deploy/);
+assert.match(deployScript, /--profile migration/);
+assert.match(deployScript, /run --rm migrate/);
 
 assert.match(compose, /REALTIME_TOPOLOGY:\s*\$\{REALTIME_TOPOLOGY:-single-writer\}/);
 assert.match(compose, /REALTIME_REPLICA_COUNT:\s*\$\{REALTIME_REPLICA_COUNT:-1\}/);
@@ -36,6 +37,7 @@ assert.doesNotMatch(
 assert.match(healthGuard, /x-health-token/);
 assert.match(releaseProcess, /atomik release directory gecisi yapmaz/);
 assert.match(releaseProcess, /prisma\/migrations/);
+assert.match(releaseProcess, /prisma migrate deploy/);
 assert.match(releaseProcess, /Destructive SQL/);
 assert.match(releaseProcess, /Release SHA:/);
 assert.match(releaseProcess, /Rollback adayi:/);

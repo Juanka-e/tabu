@@ -81,6 +81,22 @@ services:
     networks:
       - hushle-net
 
+  migrate:
+    profiles: ["migration"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["npm", "run", "db:migrate:deploy"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hushle-net
+
   app:
     build:
       context: .
