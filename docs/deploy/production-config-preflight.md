@@ -17,6 +17,7 @@ sınıfını gösterir. En az bir `BLOCKER` varsa deploy başlamaz.
 - `DATABASE_URL` kullanıcı/parolasının MySQL alanlarıyla eşleşmesi
 - exact HTTPS public/auth/CORS origin'leri; wildcard reddi
 - production Redis namespace'i, açık rate limit ve parola breach kontrolü
+- state-changing web API istekleri icin `STATE_CHANGE_ORIGIN_POLICY=strict`
 - `single-writer` ve tek realtime replica
 - originless Socket.IO istemcilerinin web açılışında kapalı olması
 - fail-closed admin gateway ve açık header/identity allowlist politikası

@@ -103,6 +103,7 @@
     "test:template-config": "tsx scripts/test-template-config.ts",
     "test:player-identity": "tsx scripts/test-player-identity.ts",
     "test:request-security": "tsx scripts/test-request-security.ts",
+    "test:request-origin-integration": "tsx scripts/test-state-change-origin-integration.ts",
     "test:client-ip-security": "tsx scripts/test-client-ip-security.ts",
     "test:room-membership": "tsx scripts/test-room-membership.ts",
     "test:active-room-presence": "tsx scripts/test-active-room-presence.ts",

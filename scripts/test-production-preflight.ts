@@ -21,6 +21,7 @@ function validEnvironment(): Record<string, string> {
         TRUSTED_WEB_ORIGINS: "https://play.example.test,https://admin.example.test",
         RATE_LIMIT_ENABLED: "true",
         PASSWORD_BREACH_CHECK_ENABLED: "true",
+        STATE_CHANGE_ORIGIN_POLICY: "strict",
         REALTIME_TOPOLOGY: "single-writer",
         REALTIME_REPLICA_COUNT: "1",
         ALLOW_ORIGINLESS_SOCKET_CLIENTS: "false",
@@ -59,11 +60,13 @@ unsafe.REALTIME_REPLICA_COUNT = "2";
 unsafe.ADMIN_ACCESS_MODE = "public_login";
 unsafe.ADMIN_ACCESS_ALLOW_LOCAL_DEV_BYPASS = "true";
 unsafe.BACKUP_REMOTE_ENABLED = "false";
+unsafe.STATE_CHANGE_ORIGIN_POLICY = "compatible";
 const rejected = validateProductionEnvironment(unsafe);
 assert.ok(rejected.errors.length >= 6);
 assert.ok(rejected.errors.some((error) => error.includes("AUTH_SECRET")));
 assert.ok(rejected.errors.some((error) => error.includes("single-writer")));
 assert.ok(rejected.errors.some((error) => error.includes("ADMIN_ACCESS_MODE")));
+assert.ok(rejected.errors.some((error) => error.includes("STATE_CHANGE_ORIGIN_POLICY")));
 assert.equal(rejected.errors.join("\n").includes(unsafe.MYSQL_PASSWORD), false);
 
 const acceptedRisk = validEnvironment();

@@ -177,6 +177,13 @@
 - tek realtime writer, rate limit, Redis namespace ve proxy trust guard'lari
 - deploy oncesi otomatik gate, fixture testleri ve operator runbook'u
 
+### 25. `fix/strict-state-change-origin-policy`
+- production cookie API'lerinde eksik Origin icin fail-closed davranis
+- exact trusted-origin allowlist ve cross-site Fetch Metadata reddi
+- production'da spoof edilebilir forwarded-host header'larindan guven uretmeme
+- development script uyumlulugu ile mobile bearer API ayriminin korunmasi
+- deploy preflight gate ve spoof/missing-header regresyon testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

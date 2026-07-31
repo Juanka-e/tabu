@@ -6,6 +6,7 @@ function read(path: string): string {
 }
 
 const workflow = read(".github/workflows/deploy-production.yml");
+const ciWorkflow = read(".github/workflows/ci.yml");
 const deployScript = read("scripts/ops/deploy.sh");
 const compose = read("docker-compose.yml");
 const releaseProcess = read("docs/deploy/release-process.md");
@@ -23,6 +24,7 @@ assert.match(workflow, /environment:\s*production/);
 assert.match(workflow, /group:\s*production-deploy/);
 assert.match(workflow, /cancel-in-progress:\s*false/);
 assert.match(workflow, /GITHUB_SHA.*\.release-sha/);
+assert.match(ciWorkflow, /test:request-origin-integration/);
 assert.match(workflow, /sha256sum hushle-release\.tgz/);
 assert.match(workflow, /sha256sum -c hushle-release\.tgz\.sha256/);
 assert.doesNotMatch(`${workflow}\n${deployScript}`, /prisma\s+db\s+push/);
@@ -32,6 +34,7 @@ assert.match(deployScript, /acquire_schema_ops_lock/);
 assert.match(deployScript, /production-preflight\.mjs/);
 assert.match(deployScript, /--network none/);
 assert.match(preflight, /Secret values were not printed|validateProductionEnvironment/);
+assert.match(preflight, /STATE_CHANGE_ORIGIN_POLICY must be strict/);
 assert.match(backupScript, /acquire_schema_ops_lock/);
 assert.match(restoreScript, /acquire_schema_ops_lock/);
 assert.match(schemaOpsLock, /flock -w/);
@@ -40,6 +43,7 @@ assert.match(restoreScript, /Refusing to restore over the active database/);
 
 assert.match(compose, /REALTIME_TOPOLOGY:\s*\$\{REALTIME_TOPOLOGY:-single-writer\}/);
 assert.match(compose, /REALTIME_REPLICA_COUNT:\s*\$\{REALTIME_REPLICA_COUNT:-1\}/);
+assert.match(compose, /STATE_CHANGE_ORIGIN_POLICY:\s*\$\{STATE_CHANGE_ORIGIN_POLICY:-strict\}/);
 assert.match(compose, /PRODUCT_ANALYTICS_ENABLED:\s*\$\{PRODUCT_ANALYTICS_ENABLED:-false\}/);
 assert.match(compose, /WORD_ANALYTICS_ENABLED:\s*\$\{WORD_ANALYTICS_ENABLED:-false\}/);
 assert.doesNotMatch(
