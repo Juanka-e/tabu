@@ -46,7 +46,8 @@ kaybı eski tokenları yeniden geçerli yapmaz.
 - production her zaman `hard_fail` uygular
 - captcha policy 15 saniye cache'lenir; yoğun login trafiği her istekte ayar
   sorgusu üretmez
-- login IP başına 30, IP + username başına 8 deneme / 10 dakika ile sınırlıdır
+- login yalnız başarısız parola denemelerini sayar; IP başına 30 / 10 dakika
+  ve IP'den bağımsız normalize hesap adı başına 8 / 15 dakika uygulanır
 - refresh IP başına 60 deneme / 10 dakika ile sınırlıdır
 - proxy header'ları yalnız `API_TRUST_PROXY=true` ise dikkate alınır
 - JSON body 16 KiB ile sınırlıdır

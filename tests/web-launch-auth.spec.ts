@@ -11,7 +11,7 @@ test.describe("registered web launch flow", () => {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 12);
   const username = `launch_${suffix}`;
   const email = `${username}@example.test`;
-  const password = "LaunchTest_2026";
+  const password = `Mercan-${suffix} vapuru 2026`;
 
   test.beforeAll(() => {
     expect(process.env.DATABASE_URL ?? "").toMatch(/tabu_test/);
@@ -28,10 +28,10 @@ test.describe("registered web launch flow", () => {
     await expect(page.getByRole("button", { name: /Giris Yap/i })).toBeVisible();
 
     await page.goto("/register");
-    await page.getByPlaceholder(/Kullanici Adi/i).fill(username);
+    await page.getByPlaceholder(/Kullanıcı adı/i).fill(username);
     await page.getByPlaceholder(/E-posta/i).fill(email);
-    await page.getByPlaceholder(/Sifre/i).fill(password);
-    await page.getByRole("button", { name: /^Kayit Ol$/i }).click();
+    await page.getByPlaceholder(/Parola/i).fill(password);
+    await page.getByRole("button", { name: /^Kayıt Ol$/i }).click();
 
     await expect(page).toHaveURL(/\/login$/, { timeout: 15_000 });
     await page.getByPlaceholder(/Kullanici Adi/i).fill(username);

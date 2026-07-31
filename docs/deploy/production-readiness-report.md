@@ -1,6 +1,6 @@
 # Production Readiness Report
 
-Tarih: 30 Temmuz 2026
+Tarih: 31 Temmuz 2026
 
 Kapsam:
 
@@ -20,14 +20,12 @@ Uygulamanin build, test, yetkilendirme, ekonomi guardrail, Docker, MySQL, Redis,
 audit arsivleme ve backup temeli guclu. Buna karsilik public kullanici trafigi
 almadan once asagidaki konular kapatilmalidir:
 
-1. login denemeleri icin Redis destekli rate-limit
-2. minimum 6 karakter olan parola politikasinin guclendirilmesi
-3. e-posta dogrulama, sifre sifirlama ve transactional email saglayicisi
-4. Turnstile production anahtarlari ve korunan akislarin bilincli aktivasyonu
-5. Cloudflare Access kullanilacaksa origin kilidi ve guvenilen header zinciri
-6. gercek production/staging TLS, DNS, cookie ve subdomain E2E testi
-7. offsite backup upload ve gecici veritabanina restore kaniti
-8. merkezi hata izleme ve alarm kanali
+1. e-posta dogrulama, sifre sifirlama ve transactional email saglayicisi
+2. Turnstile production anahtarlari ve adaptif koruma akislarinin aktivasyonu
+3. Cloudflare Access kullanilacaksa origin kilidi ve guvenilen header zinciri
+4. gercek production/staging TLS, DNS, cookie ve subdomain E2E testi
+5. offsite backup upload ve gecici veritabanina restore kaniti
+6. merkezi hata izleme ve alarm kanali
 
 Kapali alpha icin e-posta dogrulama/sifre sifirlama gecici olarak manuel destek
 akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
@@ -50,8 +48,8 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Web Socket.IO origin | Hazir | Exact allowlist, wildcard reddi ve production originless default-deny var |
 | Mobile/public API CORS | Hazir | Production default-deny ve exact `API_ALLOWED_ORIGINS` var |
 | HTTP CSRF/origin | Kismi | Same-origin kontrolu var; Origin ve Sec-Fetch-Site ikisi de yoksa istek kabul ediliyor |
-| Uye kayit | Kismi | Unique email/username, bcrypt, captcha ve rate-limit var; parola politikasi zayif |
-| Uye giris | Kismi | bcrypt, captcha, suspension ve 24 saat JWT var; login rate-limit yok |
+| Uye kayit | Hazir/Kismi | 12 karakter + zxcvbn politikasi, HIBP kontrolu, bcrypt, captcha ve rate-limit var; email dogrulama bekliyor |
+| Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
 | Email verification | Eksik | DB alani var, token/delivery/confirm akisi yok |
 | Password reset | Eksik | Token, mail ve sifre yenileme akisi yok |
 | Cloudflare Turnstile | Kismi | Client/server uygulamasi hazir; production key ve aktivasyon gerekiyor |
@@ -183,22 +181,30 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 - 24 saat JWT session
 - kritik server akislarinda kullaniciyi DB'den tekrar dogrulama
 - basarili kayit/giris sinyallerinin server tarafinda tutulmasi
+- web ve mobile API icin ortak Redis login basarisizlik limitleri
+- hesap icin 8 basarisizlik / 15 dakika, IP icin 30 basarisizlik / 10 dakika
+- ucuncu hesap hatasindan sonra 250 ms adimla artan, en fazla 1,5 saniye gecikme
+- yeni parolalarda minimum 12 karakter, zxcvbn score 3 ve 72 UTF-8 byte siniri
+- HIBP Pwned Passwords k-anonim compromised-password kontrolu
+- var olmayan kullanicida dummy bcrypt ile timing farkinin azaltilmasi
 
 ### Acik riskler
 
-1. Login endpointinde Redis destekli deneme limiti yok.
-2. Captcha varsayilan olarak kapali ve `onLogin=false`.
-3. Minimum parola uzunlugu 6; public servis icin yetersiz.
-4. Email dogrulama tokeni ve outbound email yok.
-5. Sifre unuttum/sifirlama yok.
-6. Admin MFA/WebAuthn yok.
-7. Credential stuffing ve compromised-password kontrolu yok.
+1. Captcha varsayilan olarak kapali ve adaptif step-up akisi henuz yok.
+2. Email dogrulama tokeni ve outbound email yok.
+3. Sifre unuttum/sifirlama yok.
+4. Admin MFA/WebAuthn yok.
+5. bcrypt'ten Argon2id'e kademeli rehash henuz yok.
 
-Onerilen minimum:
+Uygulanan minimum:
 
-- login icin IP + normalize username keyed rate-limit
-- en az 10-12 karakter parola veya uzun passphrase politikasi
+- login icin bagimsiz IP ve normalize username basarisizlik limitleri
+- minimum 12 karakter ve guc skorlu yeni parola politikasi
 - mevcut hesaplar icin zorunlu sifre migrasyonu yerine yeni sifrelerde politika
+- HIBP kesintisinde guclu yerel politikayla kontrollu devam
+
+Siradaki minimum:
+
 - tek kullanimlik, hash'li, sureli email verification/reset tokenlari
 - transactional email provider
 - adminler icin Cloudflare Access MFA; daha sonra uygulama ici WebAuthn
@@ -391,8 +397,8 @@ Minimum onerilen:
 
 - [ ] Production secret/env dosyasi secret store ile hazir
 - [ ] `AUTH_SECRET`, health token ve DB sifreleri uzun ve benzersiz
-- [ ] Login distributed rate-limit
-- [ ] Guclu yeni parola politikasi
+- [x] Login distributed basarisizlik rate-limit
+- [x] Guclu yeni parola ve compromised-password politikasi
 - [ ] Turnstile key ve aktif flow karari
 - [ ] Email verification + password reset veya yazili kapali-alpha istisnasi
 - [ ] Cloudflare Access/origin lock veya admin ayni-origin guvenlik karari
@@ -423,6 +429,8 @@ npm run test:csp
 npm run test:web-origin-policy
 npm run test:admin-access-gateway
 npm run test:auth-redirect-security
+npm run test:auth-password-policy
+npm run test:auth-login-rate-limit
 npm run test:branding-seo-settings
 npm audit --omit=dev --audit-level=high
 ```

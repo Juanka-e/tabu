@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcryptjs from "bcryptjs";
 import { z } from "zod";
+import { evaluatePasswordPolicy } from "@hushle/auth-policy";
 import {
     buildRateLimitHeaders,
     consumeDistributedRequestRateLimit,
@@ -20,11 +21,12 @@ import {
 } from "@/lib/users/email";
 import { recordUserRegistrationSignal } from "@/lib/security/user-access-signal";
 import { initializeWalletLedger } from "@/lib/wallet-ledger/service";
+import { checkPasswordBreach } from "@/lib/security/password-breach";
 
 const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
     email: z.email("Gecerli bir e-posta adresi girilmelidir."),
-    password: z.string().min(6, "Sifre en az 6 karakter olmalidir."),
+    password: z.string().max(256, "Parola çok uzun."),
     captchaToken: z.string().trim().min(1).optional().nullable(),
 });
 
@@ -46,6 +48,33 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { username, email, password, captchaToken } = registerSchema.parse(body);
         const settings = await getSystemSettings();
+        const passwordPolicy = evaluatePasswordPolicy(password, {
+            username,
+            email,
+            siteName: settings.branding.siteName,
+        });
+        if (!passwordPolicy.accepted) {
+            return NextResponse.json(
+                {
+                    error:
+                        passwordPolicy.issues[0] ??
+                        "Daha güçlü bir parola seçin.",
+                },
+                { status: 400 }
+            );
+        }
+
+        const breachCheck = await checkPasswordBreach(password);
+        if (breachCheck.status === "breached") {
+            return NextResponse.json(
+                {
+                    error:
+                        "Bu parola bilinen veri ihlallerinde kullanılmış. Lütfen farklı bir parola seçin.",
+                },
+                { status: 400 }
+            );
+        }
+
         const sanitizedEmail = sanitizeEmail(email);
         const normalizedEmail = normalizeEmail(email);
 

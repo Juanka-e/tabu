@@ -1,6 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcryptjs from "bcryptjs";
+import {
+    checkPasswordLoginRateLimit,
+    clearPasswordLoginAccountFailures,
+    recordPasswordLoginFailure,
+} from "@hushle/platform-auth";
 import { prisma } from "@/lib/prisma";
 import { sharedAuthConfig } from "@/lib/auth-shared";
 import { getSystemSettings } from "@/lib/system-settings/service";
@@ -8,6 +13,9 @@ import { verifyCaptchaForAction } from "@/lib/security/captcha";
 import { getRequestIp } from "@/lib/security/request-rate-limit";
 import { recordUserAccessSignal } from "@/lib/security/user-access-signal";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
+
+const DUMMY_PASSWORD_HASH =
+    "$2b$10$fZX8p9xEhu7surFIEeFgmectWV9l4AH.2tF2nIliwfWhnRLKK21nO";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...sharedAuthConfig,
@@ -35,7 +43,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         ? credentials.portal
                         : "user";
 
-                if (!username || !password) {
+                if (
+                    !username ||
+                    username.length > 50 ||
+                    !password ||
+                    password.length > 255
+                ) {
+                    return null;
+                }
+
+                const remoteIp = getRequestIp(request);
+                const loginLimit = await checkPasswordLoginRateLimit({
+                    remoteIp,
+                    username,
+                });
+                if (!loginLimit.allowed) {
                     return null;
                 }
 
@@ -43,7 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const captchaResult = await verifyCaptchaForAction({
                     action: "login",
                     token: typeof credentials.captchaToken === "string" ? credentials.captchaToken : null,
-                    remoteIp: getRequestIp(request),
+                    remoteIp,
                     settings,
                 });
                 if (!captchaResult.ok) {
@@ -61,20 +83,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         suspendedUntil: true,
                     },
                 });
-                if (!user) {
-                    return null;
-                }
-
-                await clearExpiredSuspensions();
-                if (isSuspensionActive(user)) {
-                    return null;
-                }
-
                 const isValid = await bcryptjs.compare(
                     password,
-                    user.password
+                    user?.password ?? DUMMY_PASSWORD_HASH
                 );
-                if (!isValid) {
+                if (!user || !isValid) {
+                    await recordPasswordLoginFailure({
+                        remoteIp,
+                        username,
+                    });
+                    return null;
+                }
+
+                await clearPasswordLoginAccountFailures(username);
+                await clearExpiredSuspensions();
+                if (isSuspensionActive(user)) {
                     return null;
                 }
 

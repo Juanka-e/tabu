@@ -1,10 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import {
     authenticateAccessToken,
+    checkPasswordLoginRateLimit,
+    clearPasswordLoginAccountFailures,
     consumeAuthRateLimit,
     listMobileSessions,
     loginWithPassword,
     MobileAuthError,
+    recordPasswordLoginFailure,
     revokeMobileSession,
     rotateRefreshToken,
     type MobileAuthOptions,
@@ -172,18 +175,22 @@ export async function handleAuthRoute(
                 };
             }
 
-            const ipLimit = await applyRateLimit(
-                "login-ip",
-                context.remoteIp,
-                30
-            );
-            if (ipLimit) return ipLimit;
-            const accountLimit = await applyRateLimit(
-                "login-account",
-                `${context.remoteIp}:${username.toLocaleLowerCase("en-US")}`,
-                8
-            );
-            if (accountLimit) return accountLimit;
+            const loginLimit = await checkPasswordLoginRateLimit({
+                remoteIp: context.remoteIp,
+                username,
+            });
+            if (!loginLimit.allowed) {
+                return {
+                    status: 429,
+                    headers: {
+                        "Retry-After": String(loginLimit.retryAfterSeconds),
+                    },
+                    error: {
+                        code: "rate_limited",
+                        message: "Too many attempts. Try again later.",
+                    },
+                };
+            }
 
             const captchaOk = await verifyMobileLoginCaptcha({
                 token:
@@ -202,16 +209,31 @@ export async function handleAuthRoute(
                 };
             }
 
-            const result = await loginWithPassword({
-                username,
-                password,
-                deviceName,
-                userAgent:
-                    typeof context.request.headers["user-agent"] === "string"
-                        ? context.request.headers["user-agent"]
-                        : null,
-                options: context.authOptions,
-            });
+            let result;
+            try {
+                result = await loginWithPassword({
+                    username,
+                    password,
+                    deviceName,
+                    userAgent:
+                        typeof context.request.headers["user-agent"] === "string"
+                            ? context.request.headers["user-agent"]
+                            : null,
+                    options: context.authOptions,
+                });
+            } catch (error) {
+                if (
+                    error instanceof MobileAuthError &&
+                    error.code === "invalid_credentials"
+                ) {
+                    await recordPasswordLoginFailure({
+                        remoteIp: context.remoteIp,
+                        username,
+                    });
+                }
+                throw error;
+            }
+            await clearPasswordLoginAccountFailures(username);
             const data: MobileAuthLoginData = {
                 user: result.user,
                 tokens: toTokenData(result.tokens),
