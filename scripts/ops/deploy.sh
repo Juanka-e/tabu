@@ -38,5 +38,7 @@ if ! grep -Eq '^REDIS_URL=.+$' "$ENV_FILE"; then
 fi
 
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull mysql redis nginx
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration build migrate
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration run --rm migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans
 docker image prune -f >/dev/null 2>&1 || true

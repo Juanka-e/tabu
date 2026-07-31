@@ -46,6 +46,7 @@
     "test:product-analytics": "tsx scripts/test-product-analytics.ts",
     "test:word-analytics": "tsx scripts/test-word-analytics-liveops.ts",
     "test:release-ops-docs": "tsx scripts/test-release-ops-docs.ts",
+    "test:prisma-migrations": "tsx scripts/test-prisma-migration-contract.ts",
     "test:encoding-integrity": "tsx scripts/test-encoding-integrity.ts",
     "test:wallet-ledger": "tsx scripts/test-wallet-ledger-foundation.ts",
     "test:wallet-ledger-integration": "tsx scripts/test-wallet-ledger-integration.ts",
@@ -153,9 +154,14 @@
     "test:admin-category-reorder-e2e": "playwright test tests/admin-categories-dnd.spec.ts",
     "test:csp": "tsx scripts/test-content-security-policy.ts",
     "test:web-origin-policy": "tsx scripts/test-web-origin-policy.ts",
-    "db:push": "npx prisma db push --skip-generate",
+    "db:push": "npm run db:push:local",
+    "db:push:local": "npx prisma db push --skip-generate",
     "db:generate": "npx prisma generate",
     "db:sync": "npm run db:push && npm run db:generate",
+    "db:migrate:dev": "npx prisma migrate dev",
+    "db:migrate:status": "npx prisma migrate status",
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "db:migrate:baseline:existing": "tsx scripts/baseline-existing-database.ts",
     "db:studio": "npx prisma studio"
   },
   "dependencies": {

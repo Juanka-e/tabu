@@ -26,8 +26,9 @@ Temel kural:
   olceklendirme izni vermez
 - bugunku deploy arsivi mevcut klasorun ustune acilir; atomik release ve
   otomatik rollback henuz yoktur
-- production schema degisikligi deploy scriptinin parcasi degildir; migration
-  gecmisi kurulana kadar ayri onayli operasyon gerektirir
+- production schema degisikligi ayri tek-seferlik migration container'inda,
+  app rollout'undan once uygulanir; ilk mevcut-DB baseline kaydi manuel ve
+  backup/drift kontrolludur
 
 Ilgili dosyalar:
 
@@ -35,6 +36,7 @@ Ilgili dosyalar:
 - `docker-compose.yml`
 - `scripts/ops/deploy.sh`
 - `docs/deploy/release-process.md`
+- `docs/deploy/database-migrations.md`
 - `docs/deploy/rollback-and-incident.md`
 - `docs/deploy/launch-day-checklist.md`
 - `docs/architecture/adr-003-single-realtime-writer-topology.md`

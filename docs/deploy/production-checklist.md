@@ -92,6 +92,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 12. Audit fallback sürekli artıyorsa Redis erişimini kontrol et.
 13. Integration Hub `Email Outbound` durumunun ready olduğunu kontrol et.
 14. Email delivery job sonucunda retry/dead-letter artışını izle.
+15. `npm run db:migrate:status` ile bekleyen veya hatalı migration olmadığını
+    doğrula.
 
 Web launch test katmanlari ve disposable DB siniri:
 `docs/guides/web-launch-readiness-guide.md`.
