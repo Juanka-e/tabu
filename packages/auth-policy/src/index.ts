@@ -1,7 +1,7 @@
 import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
 import * as common from "@zxcvbn-ts/language-common";
 
-export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_UTF8_BYTES = 72;
 export const PASSWORD_MIN_SCORE = 3;
 

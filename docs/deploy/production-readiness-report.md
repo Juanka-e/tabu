@@ -48,7 +48,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Web Socket.IO origin | Hazir | Exact allowlist, wildcard reddi ve production originless default-deny var |
 | Mobile/public API CORS | Hazir | Production default-deny ve exact `API_ALLOWED_ORIGINS` var |
 | HTTP CSRF/origin | Kismi | Same-origin kontrolu var; Origin ve Sec-Fetch-Site ikisi de yoksa istek kabul ediliyor |
-| Uye kayit | Hazir/Kismi | 12 karakter + zxcvbn politikasi, HIBP kontrolu, bcrypt, captcha ve rate-limit var; email dogrulama bekliyor |
+| Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn politikasi, HIBP kontrolu, bcrypt, captcha ve rate-limit var; email dogrulama bekliyor |
 | Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
 | Email verification | Eksik | DB alani var, token/delivery/confirm akisi yok |
 | Password reset | Eksik | Token, mail ve sifre yenileme akisi yok |
@@ -184,7 +184,7 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 - web ve mobile API icin ortak Redis login basarisizlik limitleri
 - hesap icin 8 basarisizlik / 15 dakika, IP icin 30 basarisizlik / 10 dakika
 - ucuncu hesap hatasindan sonra 250 ms adimla artan, en fazla 1,5 saniye gecikme
-- yeni parolalarda minimum 12 karakter, zxcvbn score 3 ve 72 UTF-8 byte siniri
+- yeni parolalarda minimum 8 karakter, zxcvbn score 3 ve 72 UTF-8 byte siniri
 - HIBP Pwned Passwords k-anonim compromised-password kontrolu
 - var olmayan kullanicida dummy bcrypt ile timing farkinin azaltilmasi
 
@@ -199,7 +199,7 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 Uygulanan minimum:
 
 - login icin bagimsiz IP ve normalize username basarisizlik limitleri
-- minimum 12 karakter ve guc skorlu yeni parola politikasi
+- minimum 8 karakter ve guc skorlu yeni parola politikasi
 - mevcut hesaplar icin zorunlu sifre migrasyonu yerine yeni sifrelerde politika
 - HIBP kesintisinde guclu yerel politikayla kontrollu devam
 

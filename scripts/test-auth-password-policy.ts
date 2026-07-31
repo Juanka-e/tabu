@@ -16,6 +16,15 @@ async function run(): Promise<void> {
     assert.equal(short.accepted, false);
     assert.match(short.issues[0] ?? "", new RegExp(String(PASSWORD_MIN_LENGTH)));
 
+    const minimumLengthButWeak = evaluatePasswordPolicy("abcdefgh");
+    assert.equal(minimumLengthButWeak.accepted, false);
+    assert.equal(
+        minimumLengthButWeak.issues.some((issue) =>
+            issue.includes(`en az ${PASSWORD_MIN_LENGTH} karakter`)
+        ),
+        false
+    );
+
     const common = evaluatePasswordPolicy("passwordpassword");
     assert.equal(common.accepted, false);
 

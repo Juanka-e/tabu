@@ -9,7 +9,7 @@
 Yeni hesap parolaları tarayıcı ve sunucunun ortak kullandığı
 `@hushle/auth-policy` paketiyle değerlendirilir:
 
-- minimum 12 karakter
+- minimum 8 karakter
 - bcrypt uyumluluğu için maksimum 72 UTF-8 byte
 - `zxcvbn-ts` skoru en az 3
 - kullanıcı adı, e-posta yerel kısmı ve ürün terimleri tahmin girdisi
