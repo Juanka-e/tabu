@@ -223,7 +223,8 @@ async function main(): Promise<void> {
             service: "hushle-api",
             event: "collector.second",
         });
-        await waitUntil(() => requests.length === 1);
+        await waitUntil(() => getObservabilityStatus().exporterDelivered === 2);
+        assert.equal(requests.length, 1);
         assert.equal(requests[0]?.authorization, "Bearer collector-test-token");
         assert.equal(requests[0]?.body.includes("player@example.test"), false);
         assert.equal(requests[0]?.body.includes("token=unsafe"), false);
