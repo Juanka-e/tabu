@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import bcryptjs from "bcryptjs";
-import {
-    getPlayerCore,
-    PlayerCoreError,
-    updatePlayerProfile,
-} from "@hushle/platform-player";
+import { getPlayerCore, updatePlayerProfile } from "@hushle/platform-player";
 import { prisma } from "@hushle/platform-db";
 
 async function run(): Promise<void> {
@@ -25,15 +21,6 @@ async function run(): Promise<void> {
             profile: { create: {} },
         },
     });
-    const second = await prisma.user.create({
-        data: {
-            username: `player_core_other_${suffix}`,
-            email: `owner_${suffix}@example.com`,
-            normalizedEmail: `owner_${suffix}@example.com`,
-            password,
-        },
-    });
-
     try {
         const initial = await getPlayerCore(first.id);
         assert.equal(initial.wallet.coinBalance, 345);
@@ -44,7 +31,6 @@ async function run(): Promise<void> {
             patch: {
                 displayName: "  Mobil Oyuncu  ",
                 bio: "  Profil testi  ",
-                email: `PLAYER_${suffix}@Example.com`,
             },
             auditContext: {
                 actorRole: "user",
@@ -55,12 +41,12 @@ async function run(): Promise<void> {
         assert.equal(updated.profile.displayName, "Mobil Oyuncu");
         assert.equal(updated.profile.bio, "Profil testi");
         assert.deepEqual(updated.changes, {
-            emailChanged: true,
+            emailChanged: false,
             displayNameChanged: true,
         });
 
         const core = await getPlayerCore(first.id);
-        assert.equal(core.email, `PLAYER_${suffix}@Example.com`);
+        assert.equal(core.email, null);
         assert.equal(core.emailVerifiedAt, null);
         assert.equal(core.profile.displayName, "Mobil Oyuncu");
 
@@ -99,22 +85,10 @@ async function run(): Promise<void> {
         });
         assert.equal((await getPlayerCore(first.id)).profile.displayName, null);
 
-        await assert.rejects(
-            () =>
-                updatePlayerProfile({
-                    userId: first.id,
-                    patch: { email: second.email },
-                    auditContext: { actorRole: "user" },
-                }),
-            (error: unknown) =>
-                error instanceof PlayerCoreError &&
-                error.code === "email_conflict"
-        );
-
         console.log("test:player-core-integration ok");
     } finally {
         await prisma.user.deleteMany({
-            where: { id: { in: [first.id, second.id] } },
+            where: { id: first.id },
         });
         await prisma.$disconnect();
     }

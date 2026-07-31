@@ -26,9 +26,14 @@ export const EMAIL_MESSAGE_CLASSES = [
 ] as const;
 
 export const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60_000;
+export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60_000;
+export const EMAIL_CHANGE_TOKEN_TTL_MS = 24 * 60 * 60_000;
 export const EMAIL_OUTBOX_MAX_ATTEMPTS = 5;
 
 const EMAIL_VERIFICATION_TEMPLATE = "email_verification";
+const PASSWORD_RESET_TEMPLATE = "password_reset";
+const EMAIL_CHANGE_TEMPLATE = "email_change_verification";
+const SECURITY_NOTICE_TEMPLATE = "security_notice";
 const TOKEN_ID_PATTERN =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -172,14 +177,19 @@ function requireTokenSecret(env: EmailEnvironment): string {
     return secret;
 }
 
-function deriveVerificationToken(
+function deriveActionToken(
+    namespace: string,
     tokenId: string,
     env: EmailEnvironment
 ): string {
     const signature = createHmac("sha256", requireTokenSecret(env))
-        .update(`email-verification:${tokenId}`, "utf8")
+        .update(`${namespace}:${tokenId}`, "utf8")
         .digest("base64url");
     return `${tokenId}.${signature}`;
+}
+
+function deriveVerificationToken(tokenId: string, env: EmailEnvironment): string {
+    return deriveActionToken("email-verification", tokenId, env);
 }
 
 export function hashEmailVerificationToken(token: string): string {
@@ -201,6 +211,36 @@ function hashesEqual(left: string, right: string): boolean {
         leftBuffer.length === rightBuffer.length &&
         timingSafeEqual(leftBuffer, rightBuffer)
     );
+}
+
+function enqueueSecurityNotice(
+    tx: Prisma.TransactionClient,
+    input: {
+        userId: number;
+        recipient: string;
+        siteName: string;
+        subject: string;
+        title: string;
+        message: string;
+        deduplicationKey: string;
+    }
+) {
+    return tx.emailOutboxMessage.create({
+        data: {
+            id: randomUUID(),
+            userId: input.userId,
+            deduplicationKey: input.deduplicationKey,
+            messageClass: EmailMessageClass.transactional,
+            template: SECURITY_NOTICE_TEMPLATE,
+            recipient: input.recipient,
+            subject: input.subject,
+            payload: {
+                siteName: input.siteName,
+                title: input.title,
+                message: input.message,
+            },
+        },
+    });
 }
 
 export async function enqueueEmailVerification(
@@ -397,6 +437,486 @@ export async function confirmEmailVerification(input: {
         : { ok: false, reason: "used" };
 }
 
+export async function enqueuePasswordReset(
+    tx: Prisma.TransactionClient,
+    input: {
+        userId: number;
+        email: string;
+        siteName: string;
+        now?: Date;
+        env?: EmailEnvironment;
+    }
+): Promise<{ tokenId: string; expiresAt: Date; outboxId: string }> {
+    const now = input.now ?? new Date();
+    const tokenId = randomUUID();
+    const outboxId = randomUUID();
+    const expiresAt = new Date(now.getTime() + PASSWORD_RESET_TOKEN_TTL_MS);
+    const rawToken = deriveActionToken(
+        "password-reset",
+        tokenId,
+        input.env ?? process.env
+    );
+
+    await tx.passwordResetToken.updateMany({
+        where: {
+            userId: input.userId,
+            consumedAt: null,
+            revokedAt: null,
+        },
+        data: { revokedAt: now },
+    });
+    await tx.emailOutboxMessage.updateMany({
+        where: {
+            userId: input.userId,
+            template: PASSWORD_RESET_TEMPLATE,
+            status: EmailOutboxStatus.pending,
+        },
+        data: {
+            status: EmailOutboxStatus.dead_letter,
+            lastError: "Superseded by a newer password reset request",
+        },
+    });
+    await tx.passwordResetToken.create({
+        data: {
+            id: tokenId,
+            userId: input.userId,
+            tokenHash: hashEmailVerificationToken(rawToken),
+            expiresAt,
+        },
+    });
+    await tx.emailOutboxMessage.create({
+        data: {
+            id: outboxId,
+            userId: input.userId,
+            deduplicationKey: `password-reset:${tokenId}`,
+            messageClass: EmailMessageClass.transactional,
+            template: PASSWORD_RESET_TEMPLATE,
+            recipient: input.email,
+            subject: `${input.siteName} parola sıfırlama`,
+            payload: {
+                passwordResetTokenId: tokenId,
+                siteName: input.siteName,
+            },
+        },
+    });
+
+    return { tokenId, expiresAt, outboxId };
+}
+
+export async function resetPasswordWithToken(input: {
+    token: string;
+    passwordHash: string;
+    siteName: string;
+    env?: EmailEnvironment;
+    now?: Date;
+}): Promise<
+    | { ok: true; userId: number }
+    | { ok: false; reason: "invalid" | "expired" | "used" }
+> {
+    const tokenId = parseVerificationTokenId(input.token);
+    if (!tokenId) return { ok: false, reason: "invalid" };
+
+    const record = await prisma.passwordResetToken.findUnique({
+        where: { id: tokenId },
+        include: {
+            user: {
+                select: { id: true, email: true },
+            },
+        },
+    });
+    if (!record) return { ok: false, reason: "invalid" };
+    if (
+        !hashesEqual(
+            hashEmailVerificationToken(input.token),
+            record.tokenHash
+        )
+    ) {
+        return { ok: false, reason: "invalid" };
+    }
+
+    const now = input.now ?? new Date();
+    if (record.consumedAt || record.revokedAt) {
+        return { ok: false, reason: "used" };
+    }
+    if (record.expiresAt.getTime() <= now.getTime()) {
+        return { ok: false, reason: "expired" };
+    }
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            const consumed = await tx.passwordResetToken.updateMany({
+                where: {
+                    id: record.id,
+                    tokenHash: record.tokenHash,
+                    consumedAt: null,
+                    revokedAt: null,
+                    expiresAt: { gt: now },
+                },
+                data: { consumedAt: now },
+            });
+            if (consumed.count !== 1) {
+                throw new EmailVerificationConflict();
+            }
+
+            await tx.user.update({
+                where: { id: record.userId },
+                data: {
+                    password: input.passwordHash,
+                    sessionVersion: { increment: 1 },
+                },
+            });
+            await tx.passwordResetToken.updateMany({
+                where: {
+                    userId: record.userId,
+                    id: { not: record.id },
+                    consumedAt: null,
+                    revokedAt: null,
+                },
+                data: { revokedAt: now },
+            });
+            const mobileSessions = await tx.mobileAuthSession.findMany({
+                where: { userId: record.userId, revokedAt: null },
+                select: { id: true },
+            });
+            const sessionIds = mobileSessions.map((session) => session.id);
+            if (sessionIds.length > 0) {
+                await tx.mobileAuthSession.updateMany({
+                    where: { id: { in: sessionIds }, revokedAt: null },
+                    data: {
+                        revokedAt: now,
+                        revokeReason: "password_reset",
+                    },
+                });
+                await tx.mobileAuthToken.updateMany({
+                    where: { sessionId: { in: sessionIds }, revokedAt: null },
+                    data: { revokedAt: now },
+                });
+            }
+            if (record.user.email) {
+                await enqueueSecurityNotice(tx, {
+                    userId: record.userId,
+                    recipient: record.user.email,
+                    siteName: input.siteName,
+                    subject: `${input.siteName} parolan değiştirildi`,
+                    title: "Parolan değiştirildi",
+                    message:
+                        "Hesabının parolası başarıyla sıfırlandı ve açık oturumlar kapatıldı. Bu işlemi sen yapmadıysan destek ekibiyle iletişime geç.",
+                    deduplicationKey: `password-reset-complete:${record.id}`,
+                });
+            }
+        });
+    } catch (error) {
+        if (error instanceof EmailVerificationConflict) {
+            return { ok: false, reason: "used" };
+        }
+        throw error;
+    }
+    return { ok: true, userId: record.userId };
+}
+
+export async function enqueueEmailChange(
+    tx: Prisma.TransactionClient,
+    input: {
+        userId: number;
+        currentEmail: string | null;
+        newEmail: string;
+        normalizedNewEmail: string;
+        siteName: string;
+        now?: Date;
+        env?: EmailEnvironment;
+    }
+): Promise<{ tokenId: string; expiresAt: Date; outboxId: string }> {
+    const now = input.now ?? new Date();
+    const tokenId = randomUUID();
+    const outboxId = randomUUID();
+    const expiresAt = new Date(now.getTime() + EMAIL_CHANGE_TOKEN_TTL_MS);
+    const rawToken = deriveActionToken(
+        "email-change",
+        tokenId,
+        input.env ?? process.env
+    );
+
+    await tx.emailChangeToken.updateMany({
+        where: {
+            userId: input.userId,
+            consumedAt: null,
+            revokedAt: null,
+        },
+        data: { revokedAt: now },
+    });
+    await tx.emailOutboxMessage.updateMany({
+        where: {
+            userId: input.userId,
+            template: EMAIL_CHANGE_TEMPLATE,
+            status: EmailOutboxStatus.pending,
+        },
+        data: {
+            status: EmailOutboxStatus.dead_letter,
+            lastError: "Superseded by a newer email change request",
+        },
+    });
+    await tx.user.update({
+        where: { id: input.userId },
+        data: {
+            pendingEmail: input.newEmail,
+            pendingNormalizedEmail: input.normalizedNewEmail,
+            pendingEmailRequestedAt: now,
+        },
+    });
+    await tx.emailChangeToken.create({
+        data: {
+            id: tokenId,
+            userId: input.userId,
+            tokenHash: hashEmailVerificationToken(rawToken),
+            emailSnapshot: input.newEmail,
+            normalizedEmailSnapshot: input.normalizedNewEmail,
+            expiresAt,
+        },
+    });
+    await tx.emailOutboxMessage.create({
+        data: {
+            id: outboxId,
+            userId: input.userId,
+            deduplicationKey: `email-change:${tokenId}`,
+            messageClass: EmailMessageClass.transactional,
+            template: EMAIL_CHANGE_TEMPLATE,
+            recipient: input.newEmail,
+            subject: `${input.siteName} yeni e-posta doğrulaması`,
+            payload: {
+                emailChangeTokenId: tokenId,
+                siteName: input.siteName,
+            },
+        },
+    });
+    if (input.currentEmail) {
+        await enqueueSecurityNotice(tx, {
+            userId: input.userId,
+            recipient: input.currentEmail,
+            siteName: input.siteName,
+            subject: `${input.siteName} e-posta değişikliği istendi`,
+            title: "E-posta değişikliği istendi",
+            message:
+                "Hesabın için yeni bir e-posta adresi doğrulama isteği oluşturuldu. Bu işlemi sen yapmadıysan Ayarlar bölümünden bekleyen isteği iptal et ve parolanı değiştir.",
+            deduplicationKey: `email-change-requested:${tokenId}`,
+        });
+    }
+
+    return { tokenId, expiresAt, outboxId };
+}
+
+export async function cancelPendingEmailChange(input: {
+    userId: number;
+    now?: Date;
+}): Promise<boolean> {
+    const now = input.now ?? new Date();
+    return prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+            where: { id: input.userId },
+            select: { pendingEmail: true },
+        });
+        if (!user?.pendingEmail) return false;
+        await tx.user.update({
+            where: { id: input.userId },
+            data: {
+                pendingEmail: null,
+                pendingNormalizedEmail: null,
+                pendingEmailRequestedAt: null,
+            },
+        });
+        await tx.emailChangeToken.updateMany({
+            where: {
+                userId: input.userId,
+                consumedAt: null,
+                revokedAt: null,
+            },
+            data: { revokedAt: now },
+        });
+        await tx.emailOutboxMessage.updateMany({
+            where: {
+                userId: input.userId,
+                template: EMAIL_CHANGE_TEMPLATE,
+                status: EmailOutboxStatus.pending,
+            },
+            data: {
+                status: EmailOutboxStatus.dead_letter,
+                lastError: "Email change request cancelled",
+            },
+        });
+        return true;
+    });
+}
+
+export async function confirmEmailChange(input: {
+    token: string;
+    siteName: string;
+    now?: Date;
+}): Promise<
+    | { ok: true; userId: number }
+    | {
+          ok: false;
+          reason:
+              | "invalid"
+              | "expired"
+              | "used"
+              | "request_changed"
+              | "email_unavailable";
+      }
+> {
+    const tokenId = parseVerificationTokenId(input.token);
+    if (!tokenId) return { ok: false, reason: "invalid" };
+    const record = await prisma.emailChangeToken.findUnique({
+        where: { id: tokenId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    pendingEmail: true,
+                    pendingNormalizedEmail: true,
+                },
+            },
+        },
+    });
+    if (!record) return { ok: false, reason: "invalid" };
+    if (
+        !hashesEqual(
+            hashEmailVerificationToken(input.token),
+            record.tokenHash
+        )
+    ) {
+        return { ok: false, reason: "invalid" };
+    }
+    const now = input.now ?? new Date();
+    if (record.consumedAt || record.revokedAt) {
+        return { ok: false, reason: "used" };
+    }
+    if (record.expiresAt.getTime() <= now.getTime()) {
+        return { ok: false, reason: "expired" };
+    }
+    if (
+        record.user.pendingEmail !== record.emailSnapshot ||
+        record.user.pendingNormalizedEmail !==
+            record.normalizedEmailSnapshot
+    ) {
+        return { ok: false, reason: "request_changed" };
+    }
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            const owner = await tx.user.findFirst({
+                where: {
+                    normalizedEmail: record.normalizedEmailSnapshot,
+                    id: { not: record.userId },
+                },
+                select: { id: true },
+            });
+            if (owner) throw new EmailVerificationConflict("email_unavailable");
+
+            const consumed = await tx.emailChangeToken.updateMany({
+                where: {
+                    id: record.id,
+                    tokenHash: record.tokenHash,
+                    consumedAt: null,
+                    revokedAt: null,
+                    expiresAt: { gt: now },
+                },
+                data: { consumedAt: now },
+            });
+            if (consumed.count !== 1) {
+                throw new EmailVerificationConflict("used");
+            }
+            const updated = await tx.user.updateMany({
+                where: {
+                    id: record.userId,
+                    pendingEmail: record.emailSnapshot,
+                    pendingNormalizedEmail:
+                        record.normalizedEmailSnapshot,
+                },
+                data: {
+                    email: record.emailSnapshot,
+                    normalizedEmail: record.normalizedEmailSnapshot,
+                    emailVerifiedAt: now,
+                    accountStatus: "active",
+                    pendingEmail: null,
+                    pendingNormalizedEmail: null,
+                    pendingEmailRequestedAt: null,
+                    sessionVersion: { increment: 1 },
+                },
+            });
+            if (updated.count !== 1) {
+                throw new EmailVerificationConflict("request_changed");
+            }
+            await tx.emailChangeToken.updateMany({
+                where: {
+                    userId: record.userId,
+                    id: { not: record.id },
+                    consumedAt: null,
+                    revokedAt: null,
+                },
+                data: { revokedAt: now },
+            });
+            await tx.emailVerificationToken.updateMany({
+                where: {
+                    userId: record.userId,
+                    consumedAt: null,
+                    revokedAt: null,
+                },
+                data: { revokedAt: now },
+            });
+            const mobileSessions = await tx.mobileAuthSession.findMany({
+                where: { userId: record.userId, revokedAt: null },
+                select: { id: true },
+            });
+            const sessionIds = mobileSessions.map((session) => session.id);
+            if (sessionIds.length > 0) {
+                await tx.mobileAuthSession.updateMany({
+                    where: { id: { in: sessionIds }, revokedAt: null },
+                    data: {
+                        revokedAt: now,
+                        revokeReason: "email_changed",
+                    },
+                });
+                await tx.mobileAuthToken.updateMany({
+                    where: { sessionId: { in: sessionIds }, revokedAt: null },
+                    data: { revokedAt: now },
+                });
+            }
+            if (record.user.email) {
+                await enqueueSecurityNotice(tx, {
+                    userId: record.userId,
+                    recipient: record.user.email,
+                    siteName: input.siteName,
+                    subject: `${input.siteName} e-posta adresin değiştirildi`,
+                    title: "E-posta adresin değiştirildi",
+                    message:
+                        "Hesabının e-posta adresi doğrulanmış yeni adresle değiştirildi ve açık oturumlar kapatıldı. Bu işlemi sen yapmadıysan destek ekibiyle iletişime geç.",
+                    deduplicationKey: `email-change-complete:${record.id}`,
+                });
+            }
+        });
+    } catch (error) {
+        if (error instanceof EmailVerificationConflict) {
+            const reason = error.message;
+            if (
+                reason === "email_unavailable" ||
+                reason === "request_changed" ||
+                reason === "used"
+            ) {
+                return { ok: false, reason };
+            }
+            return { ok: false, reason: "used" };
+        }
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
+            return { ok: false, reason: "email_unavailable" };
+        }
+        throw error;
+    }
+    return { ok: true, userId: record.userId };
+}
+
 function escapeHtml(value: string): string {
     return value
         .replaceAll("&", "&amp;")
@@ -419,6 +939,46 @@ function buildVerificationMessage(input: {
         subject: input.subject,
         text: `${input.siteName} hesabını doğrulamak için bağlantıyı aç: ${input.verificationUrl}\n\nBu isteği sen yapmadıysan e-postayı yok sayabilirsin.`,
         html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#172033"><h1 style="font-size:24px">${siteName}</h1><p>E-posta adresini doğrulamak için aşağıdaki bağlantıyı aç.</p><p><a href="${verificationUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">E-postamı doğrula</a></p><p style="font-size:13px;color:#64748b">Bu isteği sen yapmadıysan e-postayı yok sayabilirsin.</p></div>`,
+    };
+}
+
+function buildActionMessage(input: {
+    recipient: string;
+    subject: string;
+    siteName: string;
+    title: string;
+    message: string;
+    actionLabel: string;
+    actionUrl: string;
+}): TransactionalEmailMessage {
+    const siteName = escapeHtml(input.siteName);
+    const title = escapeHtml(input.title);
+    const message = escapeHtml(input.message);
+    const actionLabel = escapeHtml(input.actionLabel);
+    const actionUrl = escapeHtml(input.actionUrl);
+    return {
+        to: input.recipient,
+        subject: input.subject,
+        text: `${input.title}\n\n${input.message}\n\n${input.actionUrl}\n\nBu isteği sen yapmadıysan e-postayı yok sayabilirsin.`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#172033"><h1 style="font-size:24px">${siteName}</h1><h2 style="font-size:20px">${title}</h2><p>${message}</p><p><a href="${actionUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">${actionLabel}</a></p><p style="font-size:13px;color:#64748b">Bu isteği sen yapmadıysan e-postayı yok sayabilirsin.</p></div>`,
+    };
+}
+
+function buildSecurityNoticeMessage(input: {
+    recipient: string;
+    subject: string;
+    siteName: string;
+    title: string;
+    message: string;
+}): TransactionalEmailMessage {
+    const siteName = escapeHtml(input.siteName);
+    const title = escapeHtml(input.title);
+    const message = escapeHtml(input.message);
+    return {
+        to: input.recipient,
+        subject: input.subject,
+        text: `${input.title}\n\n${input.message}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#172033"><h1 style="font-size:24px">${siteName}</h1><h2 style="font-size:20px">${title}</h2><p>${message}</p></div>`,
     };
 }
 
@@ -482,45 +1042,125 @@ export async function processEmailOutbox(input: {
         }
 
         try {
-            if (message.template !== EMAIL_VERIFICATION_TEMPLATE) {
-                throw new TypeError("Unsupported transactional template");
-            }
-            const payload = message.payload as {
-                verificationTokenId?: unknown;
-                siteName?: unknown;
-            };
-            if (
-                typeof payload.verificationTokenId !== "string" ||
-                typeof payload.siteName !== "string"
-            ) {
-                throw new TypeError("Invalid email verification payload");
-            }
-            const tokenRecord =
-                await prisma.emailVerificationToken.findUnique({
-                    where: { id: payload.verificationTokenId },
-                });
-            if (
-                !tokenRecord ||
-                tokenRecord.consumedAt ||
-                tokenRecord.revokedAt ||
-                tokenRecord.expiresAt.getTime() <= now.getTime() ||
-                tokenRecord.emailSnapshot !== message.recipient
-            ) {
-                throw new TypeError("Email verification token is unavailable");
-            }
-
-            const token = deriveVerificationToken(tokenRecord.id, env);
             const baseUrl = env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
             if (!baseUrl) throw new TypeError("Public site URL is unavailable");
-            const verificationUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
-            await input.provider.send(
-                buildVerificationMessage({
-                    recipient: message.recipient,
-                    subject: message.subject,
-                    siteName: payload.siteName,
-                    verificationUrl,
-                })
-            );
+            const payload = message.payload as Record<string, unknown>;
+            if (typeof payload.siteName !== "string") {
+                throw new TypeError("Email payload site name is invalid");
+            }
+
+            if (message.template === EMAIL_VERIFICATION_TEMPLATE) {
+                if (typeof payload.verificationTokenId !== "string") {
+                    throw new TypeError("Invalid email verification payload");
+                }
+                const tokenRecord =
+                    await prisma.emailVerificationToken.findUnique({
+                        where: { id: payload.verificationTokenId },
+                    });
+                if (
+                    !tokenRecord ||
+                    tokenRecord.consumedAt ||
+                    tokenRecord.revokedAt ||
+                    tokenRecord.expiresAt.getTime() <= now.getTime() ||
+                    tokenRecord.emailSnapshot !== message.recipient
+                ) {
+                    throw new TypeError(
+                        "Email verification token is unavailable"
+                    );
+                }
+                const token = deriveVerificationToken(tokenRecord.id, env);
+                await input.provider.send(
+                    buildVerificationMessage({
+                        recipient: message.recipient,
+                        subject: message.subject,
+                        siteName: payload.siteName,
+                        verificationUrl: `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`,
+                    })
+                );
+            } else if (message.template === PASSWORD_RESET_TEMPLATE) {
+                if (typeof payload.passwordResetTokenId !== "string") {
+                    throw new TypeError("Invalid password reset payload");
+                }
+                const tokenRecord = await prisma.passwordResetToken.findUnique({
+                    where: { id: payload.passwordResetTokenId },
+                });
+                if (
+                    !tokenRecord ||
+                    tokenRecord.consumedAt ||
+                    tokenRecord.revokedAt ||
+                    tokenRecord.expiresAt.getTime() <= now.getTime()
+                ) {
+                    throw new TypeError("Password reset token is unavailable");
+                }
+                const token = deriveActionToken(
+                    "password-reset",
+                    tokenRecord.id,
+                    env
+                );
+                await input.provider.send(
+                    buildActionMessage({
+                        recipient: message.recipient,
+                        subject: message.subject,
+                        siteName: payload.siteName,
+                        title: "Parolanı sıfırla",
+                        message:
+                            "Hesabın için parola sıfırlama isteği alındı. Bağlantı bir saat geçerlidir.",
+                        actionLabel: "Parolamı sıfırla",
+                        actionUrl: `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`,
+                    })
+                );
+            } else if (message.template === EMAIL_CHANGE_TEMPLATE) {
+                if (typeof payload.emailChangeTokenId !== "string") {
+                    throw new TypeError("Invalid email change payload");
+                }
+                const tokenRecord = await prisma.emailChangeToken.findUnique({
+                    where: { id: payload.emailChangeTokenId },
+                });
+                if (
+                    !tokenRecord ||
+                    tokenRecord.consumedAt ||
+                    tokenRecord.revokedAt ||
+                    tokenRecord.expiresAt.getTime() <= now.getTime() ||
+                    tokenRecord.emailSnapshot !== message.recipient
+                ) {
+                    throw new TypeError("Email change token is unavailable");
+                }
+                const token = deriveActionToken(
+                    "email-change",
+                    tokenRecord.id,
+                    env
+                );
+                await input.provider.send(
+                    buildActionMessage({
+                        recipient: message.recipient,
+                        subject: message.subject,
+                        siteName: payload.siteName,
+                        title: "Yeni e-posta adresini doğrula",
+                        message:
+                            "Bu adres doğrulandıktan sonra hesabının e-posta adresi değiştirilecek.",
+                        actionLabel: "Yeni adresi doğrula",
+                        actionUrl: `${baseUrl}/verify-email-change?token=${encodeURIComponent(token)}`,
+                    })
+                );
+            } else if (message.template === SECURITY_NOTICE_TEMPLATE) {
+                if (
+                    typeof payload.title !== "string" ||
+                    typeof payload.message !== "string"
+                ) {
+                    throw new TypeError("Invalid security notice payload");
+                }
+                await input.provider.send(
+                    buildSecurityNoticeMessage({
+                        recipient: message.recipient,
+                        subject: message.subject,
+                        siteName: payload.siteName,
+                        title: payload.title,
+                        message: payload.message,
+                    })
+                );
+            } else {
+                throw new TypeError("Unsupported transactional template");
+            }
             await prisma.emailOutboxMessage.update({
                 where: { id: message.id },
                 data: {

@@ -7,12 +7,16 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { writeAuditLog } from "@/lib/security/audit-log";
+import { isTrustedStateChangeRequest } from "@/lib/security/request-origin";
 
 const confirmSchema = z.object({
     token: z.string().trim().min(40).max(160),
 });
 
 export async function POST(request: Request) {
+    if (!isTrustedStateChangeRequest(request)) {
+        return NextResponse.json({ error: "Geçersiz istek." }, { status: 403 });
+    }
     const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "email-verification-confirm",
         key: `ip:${getRequestIp(request)}`,

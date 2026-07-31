@@ -47,6 +47,7 @@ export function isCaptchaRequiredForAction(
         case "register":
             return settings.security.captcha.onRegister;
         case "login":
+        case "password_reset":
             return settings.security.captcha.onLogin;
         case "room_create":
             return settings.security.captcha.onRoomCreate;

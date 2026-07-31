@@ -251,6 +251,9 @@ async function main(): Promise<void> {
     const emailRetentionCalls = {
         outbox: 0,
         tokens: 0,
+        passwordResetTokens: 0,
+        emailChangeTokens: 0,
+        pendingEmails: 0,
         accounts: 0,
     };
     const emailRetentionStore: EmailRetentionStore = {
@@ -266,6 +269,27 @@ async function main(): Promise<void> {
         },
         async deleteTokens(ids) {
             emailRetentionCalls.tokens += ids.length;
+            return ids.length;
+        },
+        async findPasswordResetTokenIds() {
+            return ["password-reset-1"];
+        },
+        async deletePasswordResetTokens(ids) {
+            emailRetentionCalls.passwordResetTokens += ids.length;
+            return ids.length;
+        },
+        async findEmailChangeTokenIds() {
+            return ["email-change-1"];
+        },
+        async deleteEmailChangeTokens(ids) {
+            emailRetentionCalls.emailChangeTokens += ids.length;
+            return ids.length;
+        },
+        async findStalePendingEmailUserIds() {
+            return [72];
+        },
+        async clearStalePendingEmails(ids) {
+            emailRetentionCalls.pendingEmails += ids.length;
             return ids.length;
         },
         async findPendingAccountIds() {
@@ -285,6 +309,9 @@ async function main(): Promise<void> {
     assert.deepEqual(emailRetentionCalls, {
         outbox: 0,
         tokens: 0,
+        passwordResetTokens: 0,
+        emailChangeTokens: 0,
+        pendingEmails: 0,
         accounts: 0,
     });
     const emailRetentionExecute = await runEmailRetention({
@@ -294,10 +321,16 @@ async function main(): Promise<void> {
     });
     assert.equal(emailRetentionExecute.deletedOutboxCount, 1);
     assert.equal(emailRetentionExecute.deletedTokenCount, 1);
+    assert.equal(emailRetentionExecute.deletedPasswordResetTokenCount, 1);
+    assert.equal(emailRetentionExecute.deletedEmailChangeTokenCount, 1);
+    assert.equal(emailRetentionExecute.clearedStalePendingEmailCount, 1);
     assert.equal(emailRetentionExecute.deletedPendingAccountCount, 1);
     assert.deepEqual(emailRetentionCalls, {
         outbox: 1,
         tokens: 1,
+        passwordResetTokens: 1,
+        emailChangeTokens: 1,
+        pendingEmails: 1,
         accounts: 1,
     });
 

@@ -10,6 +10,12 @@ export interface EmailRetentionStore {
     deleteOutbox(ids: string[]): Promise<number>;
     findTokenIds(cutoff: Date, limit: number): Promise<string[]>;
     deleteTokens(ids: string[]): Promise<number>;
+    findPasswordResetTokenIds?(cutoff: Date, limit: number): Promise<string[]>;
+    deletePasswordResetTokens?(ids: string[]): Promise<number>;
+    findEmailChangeTokenIds?(cutoff: Date, limit: number): Promise<string[]>;
+    deleteEmailChangeTokens?(ids: string[]): Promise<number>;
+    findStalePendingEmailUserIds?(cutoff: Date, limit: number): Promise<number[]>;
+    clearStalePendingEmails?(ids: number[], cutoff: Date): Promise<number>;
     findPendingAccountIds(cutoff: Date, limit: number): Promise<number[]>;
     deletePendingAccounts(ids: number[]): Promise<number>;
 }
@@ -55,6 +61,63 @@ const prismaEmailRetentionStore: EmailRetentionStore = {
     async deleteTokens(ids) {
         const result = await prisma.emailVerificationToken.deleteMany({
             where: { id: { in: ids } },
+        });
+        return result.count;
+    },
+    async findPasswordResetTokenIds(cutoff, limit) {
+        const rows = await prisma.passwordResetToken.findMany({
+            where: { expiresAt: { lt: cutoff } },
+            orderBy: [{ expiresAt: "asc" }, { id: "asc" }],
+            take: limit,
+            select: { id: true },
+        });
+        return rows.map((row) => row.id);
+    },
+    async deletePasswordResetTokens(ids) {
+        const result = await prisma.passwordResetToken.deleteMany({
+            where: { id: { in: ids } },
+        });
+        return result.count;
+    },
+    async findEmailChangeTokenIds(cutoff, limit) {
+        const rows = await prisma.emailChangeToken.findMany({
+            where: { expiresAt: { lt: cutoff } },
+            orderBy: [{ expiresAt: "asc" }, { id: "asc" }],
+            take: limit,
+            select: { id: true },
+        });
+        return rows.map((row) => row.id);
+    },
+    async deleteEmailChangeTokens(ids) {
+        const result = await prisma.emailChangeToken.deleteMany({
+            where: { id: { in: ids } },
+        });
+        return result.count;
+    },
+    async findStalePendingEmailUserIds(cutoff, limit) {
+        const rows = await prisma.user.findMany({
+            where: {
+                pendingEmail: { not: null },
+                pendingEmailRequestedAt: { lt: cutoff },
+            },
+            orderBy: [{ pendingEmailRequestedAt: "asc" }, { id: "asc" }],
+            take: limit,
+            select: { id: true },
+        });
+        return rows.map((row) => row.id);
+    },
+    async clearStalePendingEmails(ids, cutoff) {
+        const result = await prisma.user.updateMany({
+            where: {
+                id: { in: ids },
+                pendingEmail: { not: null },
+                pendingEmailRequestedAt: { lt: cutoff },
+            },
+            data: {
+                pendingEmail: null,
+                pendingNormalizedEmail: null,
+                pendingEmailRequestedAt: null,
+            },
         });
         return result.count;
     },
@@ -106,14 +169,34 @@ export async function runEmailRetention(input: {
     const pendingAccountCutoff = new Date(
         now.getTime() - input.config.pendingAccountRetentionDays * dayMs
     );
+    const stalePendingEmailCutoff = new Date(now.getTime() - 2 * dayMs);
     const store = input.store ?? prismaEmailRetentionStore;
-    const [outboxIds, tokenIds, pendingAccountIds] = await Promise.all([
+    const [
+        outboxIds,
+        tokenIds,
+        passwordResetTokenIds,
+        emailChangeTokenIds,
+        stalePendingEmailUserIds,
+        pendingAccountIds,
+    ] = await Promise.all([
         store.findOutboxIds({
             sentCutoff,
             deadLetterCutoff,
             limit: input.config.batchSize,
         }),
         store.findTokenIds(tokenCutoff, input.config.batchSize),
+        store.findPasswordResetTokenIds?.(
+            tokenCutoff,
+            input.config.batchSize
+        ) ?? [],
+        store.findEmailChangeTokenIds?.(
+            tokenCutoff,
+            input.config.batchSize
+        ) ?? [],
+        store.findStalePendingEmailUserIds?.(
+            stalePendingEmailCutoff,
+            input.config.batchSize
+        ) ?? [],
         store.findPendingAccountIds(
             pendingAccountCutoff,
             input.config.batchSize
@@ -123,12 +206,30 @@ export async function runEmailRetention(input: {
     const [
         deletedOutboxCount,
         deletedTokenCount,
+        deletedPasswordResetTokenCount,
+        deletedEmailChangeTokenCount,
+        clearedStalePendingEmailCount,
         deletedPendingAccountCount,
     ] = input.dryRun
-        ? [0, 0, 0]
+        ? [0, 0, 0, 0, 0, 0]
         : await Promise.all([
               outboxIds.length > 0 ? store.deleteOutbox(outboxIds) : 0,
               tokenIds.length > 0 ? store.deleteTokens(tokenIds) : 0,
+              passwordResetTokenIds.length > 0 &&
+              store.deletePasswordResetTokens
+                  ? store.deletePasswordResetTokens(passwordResetTokenIds)
+                  : 0,
+              emailChangeTokenIds.length > 0 &&
+              store.deleteEmailChangeTokens
+                  ? store.deleteEmailChangeTokens(emailChangeTokenIds)
+                  : 0,
+              stalePendingEmailUserIds.length > 0 &&
+              store.clearStalePendingEmails
+                  ? store.clearStalePendingEmails(
+                        stalePendingEmailUserIds,
+                        stalePendingEmailCutoff
+                    )
+                  : 0,
               pendingAccountIds.length > 0
                   ? store.deletePendingAccounts(pendingAccountIds)
                   : 0,
@@ -138,13 +239,22 @@ export async function runEmailRetention(input: {
         dryRun: input.dryRun,
         outboxCandidateCount: outboxIds.length,
         tokenCandidateCount: tokenIds.length,
+        passwordResetTokenCandidateCount: passwordResetTokenIds.length,
+        emailChangeTokenCandidateCount: emailChangeTokenIds.length,
+        stalePendingEmailCandidateCount: stalePendingEmailUserIds.length,
         pendingAccountCandidateCount: pendingAccountIds.length,
         deletedOutboxCount,
         deletedTokenCount,
+        deletedPasswordResetTokenCount,
+        deletedEmailChangeTokenCount,
+        clearedStalePendingEmailCount,
         deletedPendingAccountCount,
         hasMore:
             outboxIds.length === input.config.batchSize ||
             tokenIds.length === input.config.batchSize ||
+            passwordResetTokenIds.length === input.config.batchSize ||
+            emailChangeTokenIds.length === input.config.batchSize ||
+            stalePendingEmailUserIds.length === input.config.batchSize ||
             pendingAccountIds.length === input.config.batchSize,
     };
 }

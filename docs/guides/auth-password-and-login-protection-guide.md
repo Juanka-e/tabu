@@ -85,7 +85,7 @@ maç coin'i kazanabilir ve mağazayı kullanabilir. E-posta doğrulaması ekonom
 guardrail'inin yerine geçmez. Gelecekte aşağıdaki yüksek riskli işlemler
 doğrulama gerektirebilir:
 
-- parola kurtarma ve e-posta değiştirme
+- native mobile parola kurtarma ve e-posta değiştirme transport yüzeyi
 - oyuncular arası coin veya eşya transferi
 - hediye, takas ve gerçek para işlemleri
 - yüksek değerli promosyonlar
@@ -121,7 +121,8 @@ npx tsc --noEmit -p tsconfig.json
 
 ## Sonraki Güvenlik Dilimleri
 
-1. Tek kullanımlık parola kurtarma ve güvenli e-posta değiştirme akışı
+1. Parola kurtarma ve güvenli e-posta değişimi tamamlandı; production SMTP ve
+   retention scheduler operasyonunu doğrula
 2. Adaptif Turnstile `CAPTCHA_REQUIRED` step-up akışı
 3. Admin için Cloudflare Access MFA
 4. Mevcut bcrypt hashlerinin başarılı login sırasında Argon2id'e kademeli

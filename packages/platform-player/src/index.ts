@@ -1,8 +1,6 @@
 import { Prisma, prisma } from "@hushle/platform-db";
 import { z } from "zod";
 
-const EMAIL_MAX_LENGTH = 191;
-
 const profilePatchSchema = z
     .object({
         displayName: z.preprocess(
@@ -14,20 +12,12 @@ const profilePatchSchema = z
             z.string().trim().min(1).max(60).nullable().optional()
         ),
         bio: z.string().trim().max(300).optional(),
-        email: z.preprocess(
-            (value) => {
-                if (typeof value !== "string") return value;
-                const trimmed = value.trim();
-                return trimmed.length === 0 ? undefined : trimmed;
-            },
-            z.email().max(EMAIL_MAX_LENGTH).optional()
-        ),
     })
+    .strict()
     .refine(
         (value) =>
             value.displayName !== undefined ||
-            value.bio !== undefined ||
-            value.email !== undefined,
+            value.bio !== undefined,
         { message: "At least one profile field is required." }
     );
 
@@ -61,7 +51,6 @@ export class PlayerCoreError extends Error {
     constructor(
         public readonly code:
             | "invalid_profile"
-            | "email_conflict"
             | "user_not_found",
         message: string = code
     ) {
@@ -79,16 +68,6 @@ export function parsePlayerProfilePatch(input: unknown): PlayerProfilePatch {
         );
     }
     return parsed.data;
-}
-
-function normalizeEmail(email: string): string {
-    return email.trim().toLocaleLowerCase("en-US");
-}
-
-function emailsEqual(left: string | null, right: string | null): boolean {
-    if (!left && !right) return true;
-    if (!left || !right) return false;
-    return normalizeEmail(left) === normalizeEmail(right);
 }
 
 export async function getPlayerCore(userId: number): Promise<PlayerCoreView> {
@@ -160,12 +139,6 @@ export async function updatePlayerProfile(input: {
     auditContext: PlayerAuditContext;
 }) {
     const patch = parsePlayerProfilePatch(input.patch);
-    const sanitizedEmail =
-        patch.email !== undefined ? patch.email.trim() : undefined;
-    const normalizedEmail =
-        sanitizedEmail !== undefined
-            ? normalizeEmail(sanitizedEmail)
-            : undefined;
 
     const currentUser = await prisma.user.findUnique({
         where: { id: input.userId },
@@ -177,19 +150,6 @@ export async function updatePlayerProfile(input: {
     });
     if (!currentUser) throw new PlayerCoreError("user_not_found");
 
-    const emailChanged =
-        normalizedEmail !== undefined &&
-        !emailsEqual(currentUser.email, sanitizedEmail ?? null);
-    if (emailChanged) {
-        const owner = await prisma.user.findUnique({
-            where: { normalizedEmail },
-            select: { id: true },
-        });
-        if (owner && owner.id !== input.userId) {
-            throw new PlayerCoreError("email_conflict");
-        }
-    }
-
     const requestedDisplayName =
         patch.displayName === undefined
             ? undefined
@@ -200,90 +160,65 @@ export async function updatePlayerProfile(input: {
         requestedDisplayName !== undefined &&
         requestedDisplayName !== previousDisplayName;
 
-    try {
-        const profile = await prisma.$transaction(async (tx) => {
-            if (emailChanged) {
-                await tx.user.update({
-                    where: { id: input.userId },
-                    data: {
-                        email: sanitizedEmail,
-                        normalizedEmail,
-                        emailVerifiedAt: null,
-                    },
-                });
-            }
+    const profile = await prisma.$transaction(async (tx) => {
+        const updated = await tx.userProfile.upsert({
+            where: { userId: input.userId },
+            create: {
+                userId: input.userId,
+                ...(patch.displayName !== undefined
+                    ? { displayName: patch.displayName }
+                    : {}),
+                ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
+            },
+            update: {
+                ...(patch.displayName !== undefined
+                    ? { displayName: patch.displayName }
+                    : {}),
+                ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
+            },
+            include: {
+                avatarItem: true,
+                frameItem: true,
+                cardBackItem: true,
+                cardFaceItem: true,
+            },
+        });
 
-            const updated = await tx.userProfile.upsert({
-                where: { userId: input.userId },
-                create: {
-                    userId: input.userId,
-                    ...(patch.displayName !== undefined
-                        ? { displayName: patch.displayName }
-                        : {}),
-                    ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
+        const auditRows: Prisma.AuditLogCreateManyInput[] = [
+            buildAuditData({
+                userId: input.userId,
+                role: input.auditContext.actorRole,
+                action: "user.profile.update",
+                summary: `Updated user profile ${input.userId}`,
+                metadata: {
+                    hasDisplayName: updated.displayName !== null,
+                    hasBio: updated.bio !== null,
+                    hasEmail: currentUser.email !== null,
                 },
-                update: {
-                    ...(patch.displayName !== undefined
-                        ? { displayName: patch.displayName }
-                        : {}),
-                    ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
-                },
-                include: {
-                    avatarItem: true,
-                    frameItem: true,
-                    cardBackItem: true,
-                    cardFaceItem: true,
-                },
-            });
-
-            const auditRows: Prisma.AuditLogCreateManyInput[] = [
+                context: input.auditContext,
+            }),
+        ];
+        if (displayNameChanged) {
+            auditRows.push(
                 buildAuditData({
                     userId: input.userId,
                     role: input.auditContext.actorRole,
-                    action: "user.profile.update",
-                    summary: `Updated user profile ${input.userId}`,
+                    action: "user.profile.display_name_update",
+                    summary: `Updated display name for user ${currentUser.username}`,
                     metadata: {
-                        hasDisplayName: updated.displayName !== null,
-                        hasBio: updated.bio !== null,
-                        hasEmail:
-                            normalizedEmail !== undefined
-                                ? true
-                                : currentUser.email !== null,
-                        emailChanged,
+                        previousDisplayName,
+                        nextDisplayName: updated.displayName,
                     },
                     context: input.auditContext,
-                }),
-            ];
-            if (displayNameChanged) {
-                auditRows.push(
-                    buildAuditData({
-                        userId: input.userId,
-                        role: input.auditContext.actorRole,
-                        action: "user.profile.display_name_update",
-                        summary: `Updated display name for user ${currentUser.username}`,
-                        metadata: {
-                            previousDisplayName,
-                            nextDisplayName: updated.displayName,
-                        },
-                        context: input.auditContext,
-                    })
-                );
-            }
-            await tx.auditLog.createMany({ data: auditRows });
-            return updated;
-        });
-
-        return {
-            profile,
-            changes: { emailChanged, displayNameChanged },
-        };
-    } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === "P2002"
-        ) {
-            throw new PlayerCoreError("email_conflict");
+                })
+            );
         }
-        throw error;
-    }
+        await tx.auditLog.createMany({ data: auditRows });
+        return updated;
+    });
+
+    return {
+        profile,
+        changes: { emailChanged: false, displayNameChanged },
+    };
 }

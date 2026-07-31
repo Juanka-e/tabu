@@ -11,8 +11,12 @@ import {
     consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import { isTrustedStateChangeRequest } from "@/lib/security/request-origin";
 
 export async function POST(request: Request) {
+    if (!isTrustedStateChangeRequest(request)) {
+        return NextResponse.json({ error: "Geçersiz istek." }, { status: 403 });
+    }
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
