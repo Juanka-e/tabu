@@ -16,9 +16,11 @@ Ubuntu 24.04 üzerinde hedef sade model:
 3. `/srv/hushle/app` klasörünü hazırla.
 4. `.env.production` dosyasını sunucuda oluştur.
 5. Cloudflare Origin Certificate `.pem` ve key dosyalarını kalıcı konuma koy.
-6. `docker compose --env-file .env.production -f docker-compose.yml config`
+6. `npm run ops:preflight -- --env-file .env.production` ile secret ve politika
+   kontratını doğrula.
+7. `docker compose --env-file .env.production -f docker-compose.yml config`
    komutuyla compose yapılandırmasını doğrula.
-7. İlk ayağa kaldırmayı manuel yap.
+8. İlk ayağa kaldırmayı manuel yap.
 
 ## GitHub Actions Secrets
 
@@ -51,28 +53,33 @@ Ubuntu 24.04 üzerinde hedef sade model:
 19. `EMAIL_FROM`, `EMAIL_TOKEN_SECRET`, `SMTP_HOST`, `SMTP_PORT`
 20. SMTP auth gerekiyorsa yalnız jobs container için `SMTP_USER`, `SMTP_PASS`
 21. `JOBS_ENABLED=true` ve email delivery/retention scheduler
+22. `PRODUCTION_CAPTCHA_POLICY=turnstile` veya yazili risk kabul karari
+23. `PRODUCTION_EMAIL_POLICY=smtp` veya yazili risk kabul karari
+24. `ADMIN_ACCESS_MODE`, fail-closed gateway header/identity allowlist'i
+25. `BACKUP_REMOTE_ENABLED=true` ve S3-compatible hedef bilgileri
 
 ## Deploy Öncesi
 
-1. `main` branch temiz ve build alıyor mu kontrol et.
-2. `npm run build`
-3. `npm run test:realtime-topology`
-4. `npm run test:telemetry-rollup`
-5. Kritik smoke testleri çalıştır:
+1. Production preflight blocker olmadan geçiyor mu kontrol et.
+2. `main` branch temiz ve build alıyor mu kontrol et.
+3. `npm run build`
+4. `npm run test:realtime-topology`
+5. `npm run test:telemetry-rollup`
+6. Kritik smoke testleri çalıştır:
    - `npm run test:web-launch-readiness`
    - `npm run test:distributed-coordination`
    - `npm run test:room-capacity-controls`
    - `npm run test:economy-guardrails`
    - `npm run test:word-category-selection-ui`
    - `npm run test:card-flip-settings`
-6. Nginx upstream'inin yalnız `app:3000` içerdiğini doğrula.
-7. Compose tarafında tek `app` container çalıştığını doğrula.
-8. MySQL backup cron aktif mi kontrol et.
-9. `email-delivery` dry-run provider ready ve bekleyen mesaj sayısını doğruluyor mu kontrol et.
-10. Mail provider production smoke hesabına doğrulama e-postası ulaştırıyor mu kontrol et.
-11. Parola reset ve e-posta değişim bağlantıları tek kullanımdan sonra reddediliyor mu kontrol et.
-12. Güvenlik işlemi sonrası web, mobile ve Redis adapter üzerinden aktif oyun socket'leri kapanıyor mu kontrol et.
-13. `npm run test:account-recovery-e2e` ve local MySQL üzerinde
+7. Nginx upstream'inin yalnız `app:3000` içerdiğini doğrula.
+8. Compose tarafında tek `app` container çalıştığını doğrula.
+9. MySQL backup cron aktif mi kontrol et.
+10. `email-delivery` dry-run provider ready ve bekleyen mesaj sayısını doğruluyor mu kontrol et.
+11. Mail provider production smoke hesabına doğrulama e-postası ulaştırıyor mu kontrol et.
+12. Parola reset ve e-posta değişim bağlantıları tek kullanımdan sonra reddediliyor mu kontrol et.
+13. Güvenlik işlemi sonrası web, mobile ve Redis adapter üzerinden aktif oyun socket'leri kapanıyor mu kontrol et.
+14. `npm run test:account-recovery-e2e` ve local MySQL üzerinde
     `ACCOUNT_RECOVERY_INTEGRATION=true npm run test:account-recovery-integration`
     geçti mi kontrol et.
 

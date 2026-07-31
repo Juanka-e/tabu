@@ -15,6 +15,7 @@ const healthGuard = read("apps/web/src/lib/security/health-check.ts");
 const backupScript = read("scripts/ops/mysql-backup.sh");
 const restoreScript = read("scripts/ops/mysql-restore.sh");
 const schemaOpsLock = read("scripts/ops/lib/schema-ops-lock.sh");
+const preflight = read("scripts/lib/production-preflight.mjs");
 
 assert.match(workflow, /branches:\s*\n\s*-\s*main/);
 assert.doesNotMatch(workflow, /branches:\s*\[[^\]]*develop/);
@@ -28,6 +29,9 @@ assert.doesNotMatch(`${workflow}\n${deployScript}`, /prisma\s+db\s+push/);
 assert.match(deployScript, /--profile migration/);
 assert.match(deployScript, /run --rm migrate/);
 assert.match(deployScript, /acquire_schema_ops_lock/);
+assert.match(deployScript, /production-preflight\.mjs/);
+assert.match(deployScript, /--network none/);
+assert.match(preflight, /Secret values were not printed|validateProductionEnvironment/);
 assert.match(backupScript, /acquire_schema_ops_lock/);
 assert.match(restoreScript, /acquire_schema_ops_lock/);
 assert.match(schemaOpsLock, /flock -w/);

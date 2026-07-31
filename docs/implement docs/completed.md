@@ -170,6 +170,13 @@
 - admin dead-letter gorunumu, kontrollu retry ve audit
 - MySQL concurrency, statik guvenlik ve admin Playwright dogrulamalari
 
+### 24. `feature/production-config-preflight`
+- secret degerlerini loglamayan fail-closed production env preflight
+- secret kalite/benzersizlik, HTTPS origin ve DB credential parity kontrolleri
+- captcha, e-posta, admin gateway ve offsite backup icin acik politika kararlari
+- tek realtime writer, rate limit, Redis namespace ve proxy trust guard'lari
+- deploy oncesi otomatik gate, fixture testleri ve operator runbook'u
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

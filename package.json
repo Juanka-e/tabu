@@ -28,6 +28,8 @@
     "infra:down": "docker compose -f docker-compose.dev.yml down",
     "infra:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "infra:status": "docker compose -f docker-compose.dev.yml ps",
+    "ops:preflight": "node scripts/production-preflight.mjs",
+    "test:production-preflight": "tsx scripts/test-production-preflight.ts",
     "test:offsite-backups": "bash scripts/test-offsite-backups.sh",
     "test:offsite-backups-integration": "bash scripts/test-offsite-backups-integration.sh --run",
     "test:redis": "tsx scripts/test-redis-connection.ts",

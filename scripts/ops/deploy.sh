@@ -21,6 +21,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2
   exit 1
 fi
+ENV_FILE="$(cd "$(dirname "$ENV_FILE")" && pwd)/$(basename "$ENV_FILE")"
 
 if [[ ! -f "$COMPOSE_FILE" ]]; then
   echo "Missing compose file: $COMPOSE_FILE" >&2
@@ -28,6 +29,13 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
 fi
 
 cd "$ROOT_DIR"
+
+docker run --rm --network none \
+  -v "$ROOT_DIR:/app:ro" \
+  -v "$ENV_FILE:/run/production.env:ro" \
+  -w /app \
+  node:20-alpine \
+  node scripts/production-preflight.mjs /run/production.env
 
 for key in "${REQUIRED_ENV_KEYS[@]}"; do
   if ! grep -Eq "^${key}=.+$" "$ENV_FILE"; then
