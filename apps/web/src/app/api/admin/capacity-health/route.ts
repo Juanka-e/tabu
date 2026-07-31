@@ -13,6 +13,10 @@ import { getSystemSettings } from "@/lib/system-settings/service";
 import { getCapacityClusterSnapshot } from "@/lib/socket/room-capacity";
 import { evaluateCapacityAdmission } from "@/lib/socket/room-capacity-policy";
 import { getRoomMetrics } from "@/lib/socket/room-metrics";
+import {
+    getObservabilityStatus,
+    reportError,
+} from "@hushle/platform-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +65,7 @@ export async function GET(request: NextRequest) {
                 checkedAt: new Date().toISOString(),
                 redis,
                 cache: getJsonCacheMetrics(),
+                observability: getObservabilityStatus(),
                 cluster,
                 admission,
                 limits: {
@@ -83,7 +88,12 @@ export async function GET(request: NextRequest) {
             }
         );
     } catch (error) {
-        console.error("Capacity health could not be read", error);
+        await reportError({
+            service: "hushle-web",
+            event: "admin.capacity_health.failed",
+            requestId: request.headers.get("x-request-id"),
+            error,
+        });
         return NextResponse.json(
             { error: "Kapasite durumu okunamadı." },
             { status: 500 }

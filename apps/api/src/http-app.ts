@@ -1,5 +1,8 @@
-import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+    getOrCreateRequestId,
+    reportError,
+} from "@hushle/platform-observability";
 import {
     buildMobileApiError,
     buildMobileApiSuccess,
@@ -19,7 +22,6 @@ import {
     isPlayerRoute,
 } from "./player-routes.js";
 
-const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const MAX_JSON_BODY_BYTES = 16 * 1024;
 
@@ -33,10 +35,9 @@ export interface MobileApiHttpOptions {
 
 function getRequestId(request: IncomingMessage): string {
     const candidate = request.headers["x-request-id"];
-    return typeof candidate === "string" &&
-        REQUEST_ID_PATTERN.test(candidate)
-        ? candidate
-        : randomUUID();
+    return getOrCreateRequestId(
+        typeof candidate === "string" ? candidate : undefined
+    );
 }
 
 function appendVary(response: ServerResponse, value: string): void {
@@ -354,7 +355,16 @@ export function createMobileApiHttpHandler(options: MobileApiHttpOptions) {
                 )
             );
         } catch (error) {
-            console.error(`[api] request ${requestId} failed`, error);
+            await reportError({
+                service: "hushle-api",
+                event: "http.request.failed",
+                requestId,
+                error,
+                context: {
+                    method: request.method ?? "unknown",
+                    path: url.pathname,
+                },
+            });
             if (!response.headersSent) {
                 sendJson(
                     response,

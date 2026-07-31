@@ -184,6 +184,13 @@
 - development script uyumlulugu ile mobile bearer API ayriminin korunmasi
 - deploy preflight gate ve spoof/missing-header regresyon testleri
 
+### 26. `feature/central-observability-foundation`
+- web, API ve jobs icin ortak provider-neutral observability paketi
+- format kontrollu request ID ve web response/downstream korelasyonu
+- PII/secret redaksiyonlu bounded structured JSON event kontrati
+- gameplay'i bozmayan exporter failure izolasyonu ve aggregate status
+- runtime health/admin capacity gorunumu, regresyon testleri ve operator rehberi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

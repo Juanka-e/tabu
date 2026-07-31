@@ -1,3 +1,9 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   api:
     profiles: ["api"]
@@ -6,6 +12,7 @@ services:
       dockerfile: Dockerfile
     container_name: hushle-api
     restart: unless-stopped
+    logging: *default-logging
     command: ["npm", "run", "api:start"]
     environment:
       NODE_ENV: production
@@ -40,6 +47,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: "no"
+    logging: *default-logging
     command: ["npm", "run", "jobs:run", "--", "audit-retention", "execute"]
     environment:
       NODE_ENV: production
@@ -87,6 +95,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: "no"
+    logging: *default-logging
     command: ["npm", "run", "db:migrate:deploy"]
     environment:
       NODE_ENV: production
@@ -103,6 +112,7 @@ services:
       dockerfile: Dockerfile
     container_name: hushle-app
     restart: unless-stopped
+    logging: *default-logging
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -173,6 +183,7 @@ services:
     image: mysql:8.4
     container_name: hushle-mysql
     restart: unless-stopped
+    logging: *default-logging
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -195,6 +206,7 @@ services:
     image: redis:7-alpine
     container_name: hushle-redis
     restart: unless-stopped
+    logging: *default-logging
     command:
       - redis-server
       - --appendonly
@@ -215,6 +227,7 @@ services:
     image: nginx:1.27-alpine
     container_name: hushle-nginx
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - app
     ports:

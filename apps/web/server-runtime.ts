@@ -44,6 +44,14 @@ import {
 } from "./src/lib/security/telemetry-rollup";
 import { getProductAnalyticsStatus } from "./src/lib/analytics/product-events";
 import { getWordAnalyticsStatus } from "./src/lib/analytics/word-analytics";
+import {
+    emitObservabilityEvent,
+    flushObservabilityExporter,
+    getObservabilityStatus,
+    getOrCreateRequestId,
+    reportError,
+    reportWarning,
+} from "@hushle/platform-observability";
 
 const appDirectory = fileURLToPath(new URL(".", import.meta.url));
 process.chdir(appDirectory);
@@ -68,6 +76,15 @@ app.prepare().then(async () => {
     const socketRedisAdapterConfig = getSocketRedisAdapterConfig();
     const roomOwnershipConfig = getRoomOwnershipConfig();
     const httpServer = createServer(async (req, res) => {
+        const incomingRequestId = req.headers["x-request-id"];
+        const requestId = getOrCreateRequestId(
+            typeof incomingRequestId === "string"
+                ? incomingRequestId
+                : undefined
+        );
+        req.headers["x-request-id"] = requestId;
+        res.setHeader("X-Request-Id", requestId);
+
         if (req.url !== "/api/health" || req.method !== "GET") {
             await handler(req, res);
             return;
@@ -158,6 +175,7 @@ app.prepare().then(async () => {
                     productAnalytics: getProductAnalyticsStatus(),
                     wordAnalytics: getWordAnalyticsStatus(),
                 },
+                observability: getObservabilityStatus(),
                 ...metrics,
             })
         );
@@ -182,13 +200,17 @@ app.prepare().then(async () => {
     });
     socketRedisAdapter = await configureSocketRedisAdapter(io);
     if (socketRedisAdapter.getStatus().enabled) {
-        console.warn(
-            "Socket.IO Redis adapter enabled. Room state remains process-local; do not scale realtime replicas yet."
-        );
+        void reportWarning({
+            service: "hushle-web",
+            event: "realtime.redis_adapter.enabled",
+            message: "Room state remains process-local; realtime replicas must not scale yet.",
+        });
         if (!socketRedisAdapter.getStatus().stickySessionsConfigured) {
-            console.warn(
-                "Socket.IO polling requires sticky sessions before traffic can be distributed across realtime instances."
-            );
+            void reportWarning({
+                service: "hushle-web",
+                event: "realtime.sticky_sessions.missing",
+                message: "Socket.IO polling requires sticky sessions for multiple instances.",
+            });
         }
     }
     roomOwnership = await createRoomOwnershipCoordinator({
@@ -198,6 +220,12 @@ app.prepare().then(async () => {
 
     // Resolve auth when present, but keep guest socket access open.
     io.use(async (socket, nextMiddleware) => {
+        const requestId = getOrCreateRequestId(
+            typeof socket.request.headers["x-request-id"] === "string"
+                ? socket.request.headers["x-request-id"]
+                : undefined
+        );
+        socket.data.requestId = requestId;
         try {
             const token = process.env.AUTH_SECRET
                 ? await getToken({
@@ -210,7 +238,12 @@ app.prepare().then(async () => {
             socket.data.userId = token?.sub ?? null;
             nextMiddleware();
         } catch (error) {
-            console.error("Socket authentication failed, continuing as guest:", error);
+            void reportError({
+                service: "hushle-web",
+                event: "socket.authentication.failed",
+                requestId,
+                error,
+            });
             socket.data.userId = null;
             nextMiddleware();
         }
@@ -220,7 +253,11 @@ app.prepare().then(async () => {
     const publishCurrentCapacity = () => {
         void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(
             (error) => {
-                console.error("Capacity heartbeat could not be published", error);
+                void reportError({
+                    service: "hushle-web",
+                    event: "capacity.heartbeat.failed",
+                    error,
+                });
             }
         );
     };
@@ -230,24 +267,40 @@ app.prepare().then(async () => {
     const ownershipHeartbeat = roomOwnership.getConfig().enabled
         ? setInterval(() => {
               void roomOwnership?.renewOwnedRooms().catch((error) => {
-                  console.error("Room ownership heartbeat failed", error);
+                  void reportError({
+                      service: "hushle-web",
+                      event: "room_ownership.heartbeat.failed",
+                      error,
+                  });
               });
           }, roomOwnership.getConfig().renewIntervalMs)
         : null;
     ownershipHeartbeat?.unref();
 
     httpServer.listen(port, hostname, () => {
-        console.log(`> Ready on http://${hostname}:${port}`);
-        console.log(
-            `> Realtime topology: ${realtimeTopologyConfig.mode}, replicas=${realtimeTopologyConfig.declaredReplicaCount}, transports=${realtimeTopologyConfig.transports.join(",")}`
-        );
+        void emitObservabilityEvent({
+            level: "info",
+            service: "hushle-web",
+            event: "runtime.started",
+            context: {
+                host: hostname,
+                port,
+                realtimeTopology: realtimeTopologyConfig.mode,
+                realtimeReplicas: realtimeTopologyConfig.declaredReplicaCount,
+                transports: realtimeTopologyConfig.transports,
+            },
+        });
     });
 
     let shuttingDown = false;
     const shutdown = async () => {
         if (shuttingDown) return;
         shuttingDown = true;
-        console.log("Shutting down...");
+        void emitObservabilityEvent({
+            level: "info",
+            service: "hushle-web",
+            event: "runtime.shutdown.requested",
+        });
         clearInterval(capacityHeartbeat);
         if (ownershipHeartbeat) clearInterval(ownershipHeartbeat);
         await new Promise<void>((resolve) => {
@@ -256,6 +309,7 @@ app.prepare().then(async () => {
         await socketRedisAdapter?.close();
         await roomOwnership?.close();
         await removeCapacityHeartbeat();
+        await flushObservabilityExporter();
         await closeRedisClient();
         if (!httpServer.listening) {
             process.exit(0);
@@ -266,7 +320,12 @@ app.prepare().then(async () => {
 
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
-}).catch((error) => {
-    console.error("Web runtime startup failed", error);
+}).catch(async (error) => {
+    await reportError({
+        service: "hushle-web",
+        event: "runtime.startup.failed",
+        error,
+    });
+    await flushObservabilityExporter();
     process.exit(1);
 });

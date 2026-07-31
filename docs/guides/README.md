@@ -108,3 +108,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 23. `web-multiplayer-launch-readiness.md`
 - iki guest browser context ile lobby, start ve hazirlik senkronunu tanimlar
 - disposable kategori/kelime fixture yasam dongusunu ve kapsam sinirini belirler
+
+24. `oauth-provider-strategy.md`
+- Google ve Apple login zamanlamasi, email verification ve guvenli account
+  linking sinirlarini tanimlar

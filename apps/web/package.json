@@ -20,6 +20,7 @@
     "@hushle/platform-db": "0.1.0",
     "@hushle/platform-email": "0.1.0",
     "@hushle/platform-inventory": "0.1.0",
+    "@hushle/platform-observability": "0.1.0",
     "@hushle/platform-player": "0.1.0",
     "@hushle/platform-store": "0.1.0",
     "@next/env": "^16.2.12",

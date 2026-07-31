@@ -1,5 +1,9 @@
 import { closeRedisClient } from "@hushle/platform-cache";
 import { prisma } from "@hushle/platform-db";
+import {
+    flushObservabilityExporter,
+    reportError,
+} from "@hushle/platform-observability";
 import { areJobsEnabled } from "./config";
 import { acquireJobLease } from "./lease";
 import {
@@ -69,14 +73,18 @@ async function main(): Promise<void> {
 }
 
 main()
-    .catch((error) => {
-        console.error(
-            error instanceof Error ? error.message : "Unknown jobs runtime error"
-        );
+    .catch(async (error) => {
+        await reportError({
+            service: "hushle-jobs",
+            event: "job.run.failed",
+            error,
+            context: { job: process.argv.slice(2, 4) },
+        });
         process.exitCode = 1;
     })
     .finally(async () => {
         await Promise.allSettled([
+            flushObservabilityExporter(),
             prisma.$disconnect(),
             closeRedisClient(),
         ]);
