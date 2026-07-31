@@ -161,6 +161,9 @@ export function validateProductionEnvironment(env) {
     if (!isTrue(env.PASSWORD_BREACH_CHECK_ENABLED)) {
         result.errors.push("PASSWORD_BREACH_CHECK_ENABLED must be true.");
     }
+    if (env.STATE_CHANGE_ORIGIN_POLICY !== "strict") {
+        result.errors.push("STATE_CHANGE_ORIGIN_POLICY must be strict.");
+    }
 
     if (env.REALTIME_TOPOLOGY !== "single-writer" || env.REALTIME_REPLICA_COUNT !== "1") {
         result.errors.push("Realtime topology must remain single-writer with exactly one replica.");

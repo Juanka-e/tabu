@@ -57,6 +57,7 @@ Ubuntu 24.04 üzerinde hedef sade model:
 23. `PRODUCTION_EMAIL_POLICY=smtp` veya yazili risk kabul karari
 24. `ADMIN_ACCESS_MODE`, fail-closed gateway header/identity allowlist'i
 25. `BACKUP_REMOTE_ENABLED=true` ve S3-compatible hedef bilgileri
+26. `STATE_CHANGE_ORIGIN_POLICY=strict` ve exact `TRUSTED_WEB_ORIGINS`
 
 ## Deploy Öncesi
 

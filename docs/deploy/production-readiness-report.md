@@ -47,7 +47,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Admin subdomain | Kismi | Exact origin/CSP temeli var; cift-host auth/cookie E2E tamamlanmadi |
 | Web Socket.IO origin | Hazir | Exact allowlist, wildcard reddi ve production originless default-deny var |
 | Mobile/public API CORS | Hazir | Production default-deny ve exact `API_ALLOWED_ORIGINS` var |
-| HTTP CSRF/origin | Kismi | Same-origin kontrolu var; Origin ve Sec-Fetch-Site ikisi de yoksa istek kabul ediliyor |
+| HTTP CSRF/origin | Hazir | Production state-change istekleri allowlisted exact Origin ister; eksik header ve cross-site Fetch Metadata fail-closed reddedilir |
 | Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn, HIBP, bcrypt, captcha, rate-limit ve admin kontrollu e-posta dogrulama modu var |
 | Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
 | Email verification | Hazir/Kismi | Token, provider bagimsiz outbox, atomik claim, suppression ve admin dead-letter akisi var; production provider smoke gerekir |
@@ -145,17 +145,16 @@ Ilk public surum icin onerilen model:
 
 ### HTTP state-changing istekler
 
-`POST`, `PUT`, `PATCH` ve `DELETE` isteklerinde Origin/Sec-Fetch-Site kontrolu
-vardir. Ancak iki header da yoksa mevcut politika istegi kabul eder. Bu,
-server-to-server ve test istemcilerini destekler; cookie tabanli public API'lerde
-korumayi tamamen origin kontrolune birakmamak gerekir.
+`POST`, `PUT`, `PATCH` ve `DELETE` web API isteklerinde production politikasi
+fail-closed'dur. Gecerli `Origin`, exact `TRUSTED_WEB_ORIGINS` allowlist'inde
+olmalidir. Header yoksa veya `Sec-Fetch-Site` degeri `cross-site`/`same-site`
+ise istek reddedilir. `X-Forwarded-Host` production'da tek basina guven kaynagi
+degildir; spoof regresyonu test edilir.
 
-Public acilis oncesi karar:
-
-1. browser cookie endpointlerinde Origin yoksa fail-closed davranis veya
-   Auth.js CSRF token kontrati zorunlu kilinmali
-2. gercek proxy arkasinda `Host`, `X-Forwarded-Host` ve
-   `X-Forwarded-Proto` spoof senaryolari test edilmeli
+Development ve kontrollu script istemcileri `compatible` modda header'siz
+calisabilir. Bu istisna production'da etkisizdir. Native mobile bearer API
+transportu web cookie proxy politikasindan ayridir ve kendi CORS/token
+kontratini kullanir.
 
 ### CSP
 
