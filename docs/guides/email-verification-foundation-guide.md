@@ -140,7 +140,7 @@ değiştirmediği kontrol edilir.
 ## Bilinçli Olarak Sonraya Bırakılanlar
 
 - native mobile parola kurtarma ve e-posta değiştirme transport yüzeyi
-- SES API adaptörü ve webhook/bounce işleme
+- SES API adaptörü ve imza doğrulamalı webhook transport'u
 - marketing consent modeli, segmentleme ve unsubscribe
-- admin outbox/dead-letter gözlem ve kontrollü retry ekranı
+- suppression kaldırma için ayrı admin yetkisi ve inceleme akışı
 - native mobile verification request/confirm transport yüzeyi

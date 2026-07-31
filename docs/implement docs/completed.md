@@ -163,6 +163,13 @@
 - backup sonrasi kayip veri araligi ile Redis/process-local state sinirinin kaydi
 - lock contention ve gercek dump/restore entegrasyon testleri
 
+### 23. `feature/email-delivery-operations-and-bounce-handling`
+- sureli, atomik DB outbox claim ve coken worker recovery akisi
+- idempotent provider event ve hard-bounce/complaint suppression temeli
+- suppression-aware fail-closed teslimat davranisi
+- admin dead-letter gorunumu, kontrollu retry ve audit
+- MySQL concurrency, statik guvenlik ve admin Playwright dogrulamalari
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

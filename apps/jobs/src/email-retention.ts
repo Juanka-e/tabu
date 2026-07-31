@@ -8,6 +8,8 @@ export interface EmailRetentionStore {
         limit: number;
     }): Promise<string[]>;
     deleteOutbox(ids: string[]): Promise<number>;
+    findDeliveryEventIds?(cutoff: Date, limit: number): Promise<string[]>;
+    deleteDeliveryEvents?(ids: string[]): Promise<number>;
     findTokenIds(cutoff: Date, limit: number): Promise<string[]>;
     deleteTokens(ids: string[]): Promise<number>;
     findPasswordResetTokenIds?(cutoff: Date, limit: number): Promise<string[]>;
@@ -43,6 +45,21 @@ const prismaEmailRetentionStore: EmailRetentionStore = {
     },
     async deleteOutbox(ids) {
         const result = await prisma.emailOutboxMessage.deleteMany({
+            where: { id: { in: ids } },
+        });
+        return result.count;
+    },
+    async findDeliveryEventIds(cutoff, limit) {
+        const rows = await prisma.emailDeliveryEvent.findMany({
+            where: { occurredAt: { lt: cutoff } },
+            orderBy: [{ occurredAt: "asc" }, { id: "asc" }],
+            take: limit,
+            select: { id: true },
+        });
+        return rows.map((row) => row.id);
+    },
+    async deleteDeliveryEvents(ids) {
+        const result = await prisma.emailDeliveryEvent.deleteMany({
             where: { id: { in: ids } },
         });
         return result.count;
@@ -173,6 +190,7 @@ export async function runEmailRetention(input: {
     const store = input.store ?? prismaEmailRetentionStore;
     const [
         outboxIds,
+        deliveryEventIds,
         tokenIds,
         passwordResetTokenIds,
         emailChangeTokenIds,
@@ -184,6 +202,10 @@ export async function runEmailRetention(input: {
             deadLetterCutoff,
             limit: input.config.batchSize,
         }),
+        store.findDeliveryEventIds?.(
+            deadLetterCutoff,
+            input.config.batchSize
+        ) ?? [],
         store.findTokenIds(tokenCutoff, input.config.batchSize),
         store.findPasswordResetTokenIds?.(
             tokenCutoff,
@@ -205,15 +227,19 @@ export async function runEmailRetention(input: {
 
     const [
         deletedOutboxCount,
+        deletedDeliveryEventCount,
         deletedTokenCount,
         deletedPasswordResetTokenCount,
         deletedEmailChangeTokenCount,
         clearedStalePendingEmailCount,
         deletedPendingAccountCount,
     ] = input.dryRun
-        ? [0, 0, 0, 0, 0, 0]
+        ? [0, 0, 0, 0, 0, 0, 0]
         : await Promise.all([
               outboxIds.length > 0 ? store.deleteOutbox(outboxIds) : 0,
+              deliveryEventIds.length > 0 && store.deleteDeliveryEvents
+                  ? store.deleteDeliveryEvents(deliveryEventIds)
+                  : 0,
               tokenIds.length > 0 ? store.deleteTokens(tokenIds) : 0,
               passwordResetTokenIds.length > 0 &&
               store.deletePasswordResetTokens
@@ -238,12 +264,14 @@ export async function runEmailRetention(input: {
     return {
         dryRun: input.dryRun,
         outboxCandidateCount: outboxIds.length,
+        deliveryEventCandidateCount: deliveryEventIds.length,
         tokenCandidateCount: tokenIds.length,
         passwordResetTokenCandidateCount: passwordResetTokenIds.length,
         emailChangeTokenCandidateCount: emailChangeTokenIds.length,
         stalePendingEmailCandidateCount: stalePendingEmailUserIds.length,
         pendingAccountCandidateCount: pendingAccountIds.length,
         deletedOutboxCount,
+        deletedDeliveryEventCount,
         deletedTokenCount,
         deletedPasswordResetTokenCount,
         deletedEmailChangeTokenCount,
@@ -251,6 +279,7 @@ export async function runEmailRetention(input: {
         deletedPendingAccountCount,
         hasMore:
             outboxIds.length === input.config.batchSize ||
+            deliveryEventIds.length === input.config.batchSize ||
             tokenIds.length === input.config.batchSize ||
             passwordResetTokenIds.length === input.config.batchSize ||
             emailChangeTokenIds.length === input.config.batchSize ||

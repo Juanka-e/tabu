@@ -129,8 +129,26 @@ enum EmailMessageClass {
 
 enum EmailOutboxStatus {
   pending
+  processing
   sent
   dead_letter
+}
+
+enum EmailSuppressionReason {
+  hard_bounce
+  complaint
+  manual
+}
+
+enum EmailSuppressionScope {
+  all
+  marketing
+}
+
+enum EmailDeliveryEventType {
+  delivered
+  hard_bounce
+  complaint
 }
 
 model User {
@@ -181,6 +199,7 @@ model User {
   passwordResetTokens      PasswordResetToken[]
   emailChangeTokens        EmailChangeToken[]
   emailOutboxMessages      EmailOutboxMessage[]
+  emailSuppressions        EmailSuppression[]
 
   @@index([emailVerifiedAt])
   @@index([accountStatus, emailVerificationRequiredAt])
@@ -289,10 +308,15 @@ model EmailOutboxMessage {
   payload          Json              @db.Json
   status           EmailOutboxStatus @default(pending)
   attemptCount     Int               @default(0) @map("attempt_count")
+  manualRetryCount Int               @default(0) @map("manual_retry_count")
   availableAt      DateTime          @default(now()) @map("available_at")
   lastAttemptAt    DateTime?         @map("last_attempt_at")
   sentAt           DateTime?         @map("sent_at")
   lastError        String?           @map("last_error") @db.VarChar(255)
+  claimToken       String?           @map("claim_token") @db.Char(36)
+  claimedAt        DateTime?         @map("claimed_at")
+  claimExpiresAt   DateTime?         @map("claim_expires_at")
+  lastManualRetryAt DateTime?        @map("last_manual_retry_at")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
@@ -301,7 +325,42 @@ model EmailOutboxMessage {
   @@index([status, availableAt, createdAt])
   @@index([userId, createdAt])
   @@index([messageClass, status, createdAt])
+  @@index([status, claimExpiresAt])
   @@map("email_outbox_messages")
+}
+
+model EmailSuppression {
+  id              String                 @id @default(uuid()) @db.Char(36)
+  userId          Int?                   @map("user_id")
+  normalizedEmail String                 @unique @map("normalized_email") @db.VarChar(191)
+  reason          EmailSuppressionReason
+  scope           EmailSuppressionScope  @default(all)
+  source          String                 @db.VarChar(40)
+  note            String?                @db.VarChar(255)
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([reason, createdAt])
+  @@index([userId, createdAt])
+  @@map("email_suppressions")
+}
+
+model EmailDeliveryEvent {
+  id                String                 @id @default(uuid()) @db.Char(36)
+  provider          String                 @db.VarChar(40)
+  providerEventId   String                 @map("provider_event_id") @db.VarChar(191)
+  eventType         EmailDeliveryEventType @map("event_type")
+  normalizedEmail   String                 @map("normalized_email") @db.VarChar(191)
+  providerMessageId String?                @map("provider_message_id") @db.VarChar(191)
+  occurredAt        DateTime               @map("occurred_at")
+  createdAt         DateTime               @default(now()) @map("created_at")
+
+  @@unique([provider, providerEventId])
+  @@index([normalizedEmail, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("email_delivery_events")
 }
 
 model UserModerationEvent {

@@ -19,10 +19,10 @@ duraklatildi. Tamamlananlar ve yeniden baslama sirasi
 `apps/api/MOBILE_ROADMAP.md` icinde tutulur. Web'in mobil responsive testleri
 bu ertelemenin disindadir.
 
-E-posta doğrulama temeli tamamlandı. Parola kurtarma, güvenli e-posta değiştirme,
-provider bounce webhook'ları ve consent tabanlı marketing gönderimi ayrı dar
-branch'lerde ele alınacaktır. Referans:
-`docs/guides/email-verification-foundation-guide.md`.
+E-posta doğrulama, hesap kurtarma ve teslimat operasyon temeli tamamlandı.
+Provider'a özel doğrulanmış SES webhook adaptörü ile consent tabanlı marketing
+gönderimi ayrı dar branch'lerde ele alınacaktır. Referans:
+`docs/guides/email-delivery-operations-guide.md`.
 
 ## Aktif Release Kapisi
 

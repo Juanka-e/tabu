@@ -77,6 +77,7 @@ Mevcut `email-retention` job şu kayıtları bounded batch ile temizler:
 - e-posta değişim tokenları
 - iki günden eski pending e-posta rezervasyonları
 - sent/dead-letter outbox kayıtları
+- 90 günden eski provider delivery event kayıtları; suppression kayıtları korunur
 
 Production önerisi:
 
@@ -112,7 +113,7 @@ npm run test:account-recovery-integration
 - Native mobile reset/e-posta değişim transport endpoint'leri web stabilitesinden
   sonra eklenecek. Mobile profil PATCH'i e-posta değiştiremez.
 - MFA/passkey ve recovery code bu branch'in kapsamı değildir.
-- SES bounce/complaint webhook'u ve admin dead-letter retry görünümü sonraki
-  e-posta operasyon branch'ine aittir.
+- Admin dead-letter retry ve provider-bağımsız suppression temeli tamamlandı.
+  SES imza doğrulamalı webhook adaptörü ayrı provider branch'ine aittir.
 - Pazarlama consent, segmentasyon ve unsubscribe transactional güvenlik
   e-postalarından ayrı tutulacaktır.
