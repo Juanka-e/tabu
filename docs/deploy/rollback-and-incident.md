@@ -90,6 +90,11 @@ Uygulama rollback'i DB rollback'i anlamina gelmez.
 4. Production veritabanina restore smoke scripti hedeflenmez; o script gecici
    test veritabani icindir.
 5. MySQL volume'u silinmez veya sifirdan olusturulmaz.
+6. Aktif production DB'ye in-place restore yapilmaz. Backup izole restore DB'ye
+   acilir, guncel migration'larla ileri alinir ve smoke sonrasinda kontrollu
+   `DATABASE_URL` cutover yapilir.
+7. Restore noktasi sonrasindaki wallet, email outbox ve admin mutasyonlari kayip
+   veri araligi olarak ayrica hesaplanir; restore bunlari otomatik birlestirmez.
 
 ## 6. Kanit Toplama
 

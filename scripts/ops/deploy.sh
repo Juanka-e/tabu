@@ -14,6 +14,9 @@ REQUIRED_ENV_KEYS=(
   HEALTHCHECK_TOKEN
 )
 
+# shellcheck source=scripts/ops/lib/schema-ops-lock.sh
+source "$ROOT_DIR/scripts/ops/lib/schema-ops-lock.sh"
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2
   exit 1
@@ -39,6 +42,7 @@ fi
 
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull mysql redis nginx
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration build migrate
+acquire_schema_ops_lock "$ROOT_DIR" "production-deploy"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration run --rm migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans
 docker image prune -f >/dev/null 2>&1 || true

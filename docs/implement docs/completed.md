@@ -156,6 +156,13 @@
 - bilinmeyen snapshot version'inda v1 fallback metadata'si
 - desteklenmeyen render version'ini yeni item'a yazmayi engelleyen admin API gate
 
+### 22. `fix/restore-cutover-and-schema-ops-lock`
+- aktif production DB'ye in-place restore'u fail-closed kapatma
+- backup, restore ve migration icin ortak host-level schema operation lock
+- izole restore, migration-forward, smoke ve kontrollu DB cutover runbook'u
+- backup sonrasi kayip veri araligi ile Redis/process-local state sinirinin kaydi
+- lock contention ve gercek dump/restore entegrasyon testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

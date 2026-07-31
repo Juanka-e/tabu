@@ -15,6 +15,38 @@ BACKUP_REQUIRE_CHECKSUM="${BACKUP_REQUIRE_CHECKSUM:-true}"
 
 # shellcheck source=scripts/ops/lib/backup-env.sh
 source "$ROOT_DIR/scripts/ops/lib/backup-env.sh"
+# shellcheck source=scripts/ops/lib/schema-ops-lock.sh
+source "$ROOT_DIR/scripts/ops/lib/schema-ops-lock.sh"
+
+if [[ -z "${RESTORE_DATABASE:-}" ]]; then
+  echo "RESTORE_DATABASE is required. In-place restore to the active database is disabled." >&2
+  exit 1
+fi
+
+if ! [[ "$RESTORE_DATABASE" =~ ^[A-Za-z0-9_]+$ ]]; then
+  echo "RESTORE_DATABASE contains unsupported characters." >&2
+  exit 1
+fi
+
+ACTIVE_DATABASE="$(read_backup_env_value MYSQL_DATABASE)"
+if [[ -z "$ACTIVE_DATABASE" ]]; then
+  ACTIVE_DATABASE_URL="$(read_backup_env_value DATABASE_URL)"
+  ACTIVE_DATABASE_URL="${ACTIVE_DATABASE_URL%%\?*}"
+  ACTIVE_DATABASE="${ACTIVE_DATABASE_URL##*/}"
+fi
+if [[ -z "$ACTIVE_DATABASE" || ! "$ACTIVE_DATABASE" =~ ^[A-Za-z0-9_]+$ ]]; then
+  echo "Could not determine the active database name safely." >&2
+  exit 1
+fi
+if [[ "$RESTORE_DATABASE" == "$ACTIVE_DATABASE" ]]; then
+  echo "Refusing to restore over the active database. Restore to an isolated database and use controlled cutover." >&2
+  exit 1
+fi
+
+if [[ "$RESTORE_DATABASE" != hushle_restore_* && "${RESTORE_TARGET_CONFIRM:-}" != "I_ACCEPT_AN_ISOLATED_RESTORE_TARGET" ]]; then
+  echo "Non-standard restore target requires RESTORE_TARGET_CONFIRM=I_ACCEPT_AN_ISOLATED_RESTORE_TARGET." >&2
+  exit 1
+fi
 
 if [[ "$BACKUP_SOURCE" == s3://* ]]; then
   REMOTE_BUCKET_AND_KEY="${BACKUP_SOURCE#s3://}"
@@ -57,21 +89,16 @@ else
   echo "WARNING: restoring legacy backup without checksum verification." >&2
 fi
 
+acquire_schema_ops_lock "$ROOT_DIR" "mysql-restore:$RESTORE_DATABASE"
+
 cd "$ROOT_DIR"
 
 if [[ "${RESTORE_USE_ROOT:-false}" == "true" ]]; then
-  if [[ -z "${RESTORE_DATABASE:-}" ]]; then
-    echo "RESTORE_USE_ROOT requires an explicit RESTORE_DATABASE." >&2
-    exit 1
-  fi
   gunzip -c "$BACKUP_FILE" | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
     -e RESTORE_DATABASE="$RESTORE_DATABASE" mysql \
     sh -lc 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$RESTORE_DATABASE"'
-elif [[ -n "${RESTORE_DATABASE:-}" ]]; then
+else
   gunzip -c "$BACKUP_FILE" | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
     -e RESTORE_DATABASE="$RESTORE_DATABASE" mysql \
     sh -lc 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$RESTORE_DATABASE"'
-else
-  gunzip -c "$BACKUP_FILE" | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T mysql \
-    sh -lc 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"'
 fi
