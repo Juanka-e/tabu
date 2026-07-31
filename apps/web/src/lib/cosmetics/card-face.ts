@@ -2,6 +2,10 @@ import {
     getTemplateNumber,
     getTemplateString,
 } from "@/lib/cosmetics/template-config";
+import {
+    resolveCosmeticRenderSpecVersion,
+    type CosmeticRenderSpecResolution,
+} from "@/lib/cosmetics/render-spec-version";
 import type {
     CosmeticMotionPreset,
     CosmeticPattern,
@@ -11,6 +15,7 @@ import type {
 } from "@/types/economy";
 
 export interface CardFaceThemeSource {
+    renderSpecVersion?: number;
     renderMode: StoreItemRenderMode;
     imageUrl: string;
     templateKey: string | null;
@@ -19,6 +24,9 @@ export interface CardFaceThemeSource {
 }
 
 export interface ResolvedCardFaceTheme {
+    renderSpecVersion: number;
+    requestedRenderSpecVersion: number;
+    usedRenderSpecFallback: boolean;
     accentColor: string;
     secondaryColor: string;
     surfaceColor: string;
@@ -38,6 +46,15 @@ export interface ResolvedCardFaceTheme {
     overlayOpacity: number;
 }
 
+type CardFaceVisualTheme = Omit<
+    ResolvedCardFaceTheme,
+    | "renderSpecVersion"
+    | "requestedRenderSpecVersion"
+    | "usedRenderSpecFallback"
+    | "overlayImageUrl"
+    | "overlayOpacity"
+>;
+
 const safeHexColorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const supportedPatterns = new Set<CosmeticPattern>([
     "none",
@@ -50,10 +67,7 @@ const supportedPatterns = new Set<CosmeticPattern>([
 ]);
 const supportedMotions = new Set<CosmeticMotionPreset>(["none", "pulse", "drift", "shimmer"]);
 
-const rarityThemes: Record<
-    StoreItemRarity,
-    Omit<ResolvedCardFaceTheme, "overlayImageUrl" | "overlayOpacity">
-> = {
+const rarityThemes: Record<StoreItemRarity, CardFaceVisualTheme> = {
     common: {
         accentColor: "#64748b",
         secondaryColor: "#cbd5e1",
@@ -155,7 +169,7 @@ function getSafeRange(value: number | undefined, fallback: number, min: number, 
     return Math.min(max, Math.max(min, value));
 }
 
-function applyTemplateKey(baseTheme: Omit<ResolvedCardFaceTheme, "overlayImageUrl" | "overlayOpacity">, templateKey: string | null) {
+function applyTemplateKey(baseTheme: CardFaceVisualTheme, templateKey: string | null): CardFaceVisualTheme {
     switch (templateKey) {
         case "signal_grid":
             return {
@@ -189,11 +203,17 @@ function applyTemplateKey(baseTheme: Omit<ResolvedCardFaceTheme, "overlayImageUr
     }
 }
 
-export function resolveCardFaceTheme(source: CardFaceThemeSource | null): ResolvedCardFaceTheme {
+function resolveCardFaceThemeV1(
+    source: CardFaceThemeSource | null,
+    spec: CosmeticRenderSpecResolution
+): ResolvedCardFaceTheme {
     const fallbackBase = rarityThemes.rare;
 
     if (!source) {
         return {
+            renderSpecVersion: spec.effectiveVersion,
+            requestedRenderSpecVersion: spec.requestedVersion,
+            usedRenderSpecFallback: spec.usedFallback,
             ...fallbackBase,
             overlayImageUrl: null,
             overlayOpacity: 0,
@@ -205,6 +225,9 @@ export function resolveCardFaceTheme(source: CardFaceThemeSource | null): Resolv
     const config = source.templateConfig ?? {};
 
     return {
+        renderSpecVersion: spec.effectiveVersion,
+        requestedRenderSpecVersion: spec.requestedVersion,
+        usedRenderSpecFallback: spec.usedFallback,
         accentColor: getSafeColor(
             getTemplateString(config, ["palette", "primary"]) ?? getTemplateString(config, ["accentColor"]),
             keyedTheme.accentColor
@@ -282,4 +305,13 @@ export function resolveCardFaceTheme(source: CardFaceThemeSource | null): Resolv
                 0.35
             ),
     };
+}
+
+export function resolveCardFaceTheme(source: CardFaceThemeSource | null): ResolvedCardFaceTheme {
+    const spec = resolveCosmeticRenderSpecVersion(source?.renderSpecVersion);
+
+    switch (spec.effectiveVersion) {
+        case 1:
+            return resolveCardFaceThemeV1(source, spec);
+    }
 }

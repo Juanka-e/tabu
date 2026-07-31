@@ -131,6 +131,15 @@ Ornek:
 
 Bu sayede eski urunler `v1` gibi kalir, yeni urunler `v2/v3` ile calisir.
 
+Bugunku implementasyon durumu:
+
+- yalniz v1 parser'i desteklenir
+- resolver requested/effective version ve fallback bilgisini tasir
+- bilinmeyen snapshot version'i oyunu bozmak yerine v1'e duser
+- admin API, renderer eklenmeden v2/v3 item kaydetmez
+- yeni version acma sirasi
+  `docs/architecture/release-compatibility-and-versioning.md` icindedir
+
 ## Neden Versiyonlama Sart
 
 Asagidaki durumlar ileride kesin olacak:

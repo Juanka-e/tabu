@@ -18,6 +18,10 @@ import type { ResolvedCardFaceTheme } from "@/lib/cosmetics/card-face";
 import type { ResolvedCardBackTheme } from "@/lib/cosmetics/card-back";
 import { ROOM_ROLE_GUESSER } from "@/lib/game/room-display";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    SOCKET_CLIENT_AUTH,
+    getSocketProtocolErrorMessage,
+} from "@/lib/socket/protocol-version";
 import { GameView } from "@/types/game";
 import type {
     Player,
@@ -387,6 +391,7 @@ export default function RoomPage() {
 
                 const socket = io({
                     path: "/api/socketio",
+                    auth: SOCKET_CLIENT_AUTH,
                     transports: ["websocket", "polling"],
                     tryAllTransports: true,
                 });
@@ -405,6 +410,14 @@ export default function RoomPage() {
                 });
 
                 socket.on("disconnect", () => setIsConnected(false));
+
+                socket.on("connect_error", (error) => {
+                    setIsConnected(false);
+                    setEntryError(
+                        getSocketProtocolErrorMessage(error) ??
+                            "Sunucuya bağlanılamadı. Lütfen tekrar deneyin."
+                    );
+                });
 
                 socket.on("kimlikAta", ({ playerId, guestToken: assignedGuestToken }: SocketIdentityPayload) => {
                     window.sessionStorage.setItem("tabu_playerId", playerId);

@@ -9,6 +9,7 @@ import {
     type ReactNode,
 } from "react";
 import { io, Socket } from "socket.io-client";
+import { SOCKET_CLIENT_AUTH } from "@/lib/socket/protocol-version";
 
 interface SocketContextValue {
     socket: Socket | null;
@@ -29,6 +30,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         // Connect to the Socket.IO server
         const socketInstance = io({
             path: "/api/socketio",
+            auth: SOCKET_CLIENT_AUTH,
             transports: ["websocket", "polling"],
             tryAllTransports: true,
         });
