@@ -21,11 +21,6 @@ function mapPlayerError(error: PlayerCoreError) {
                 { error: "Gecersiz profil bilgisi." },
                 { status: 422 }
             );
-        case "email_conflict":
-            return NextResponse.json(
-                { error: "Bu e-posta adresi zaten kullaniliyor." },
-                { status: 409 }
-            );
         case "user_not_found":
             return NextResponse.json(
                 { error: "Kullanici bulunamadi." },

@@ -140,8 +140,12 @@ model User {
   normalizedEmail String? @unique @map("normalized_email") @db.VarChar(191)
   emailVerifiedAt DateTime? @map("email_verified_at")
   emailVerificationRequiredAt DateTime? @map("email_verification_required_at")
+  pendingEmail String? @map("pending_email") @db.VarChar(191)
+  pendingNormalizedEmail String? @unique @map("pending_normalized_email") @db.VarChar(191)
+  pendingEmailRequestedAt DateTime? @map("pending_email_requested_at")
   accountStatus UserAccountStatus @default(active) @map("account_status")
   password  String   @db.VarChar(255)
+  sessionVersion Int @default(0) @map("session_version")
   role      String   @default("user") @db.VarChar(20)
   isSuspended Boolean @default(false) @map("is_suspended")
   suspendedAt DateTime? @map("suspended_at")
@@ -174,6 +178,8 @@ model User {
   notifications            Notification[]
   mobileAuthSessions       MobileAuthSession[]
   emailVerificationTokens  EmailVerificationToken[]
+  passwordResetTokens      PasswordResetToken[]
+  emailChangeTokens        EmailChangeToken[]
   emailOutboxMessages      EmailOutboxMessage[]
 
   @@index([emailVerifiedAt])
@@ -235,6 +241,41 @@ model EmailVerificationToken {
   @@index([userId, consumedAt, revokedAt, expiresAt])
   @@index([expiresAt])
   @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id         String    @id @db.Char(36)
+  userId     Int       @map("user_id")
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model EmailChangeToken {
+  id                      String    @id @db.Char(36)
+  userId                  Int       @map("user_id")
+  tokenHash               String    @unique @map("token_hash") @db.Char(64)
+  emailSnapshot           String    @map("email_snapshot") @db.VarChar(191)
+  normalizedEmailSnapshot String    @map("normalized_email_snapshot") @db.VarChar(191)
+  expiresAt               DateTime  @map("expires_at")
+  consumedAt              DateTime? @map("consumed_at")
+  revokedAt               DateTime? @map("revoked_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt, revokedAt, expiresAt])
+  @@index([normalizedEmailSnapshot, expiresAt])
+  @@index([expiresAt])
+  @@map("email_change_tokens")
 }
 
 model EmailOutboxMessage {

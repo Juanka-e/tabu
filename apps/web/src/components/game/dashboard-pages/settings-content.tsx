@@ -32,6 +32,11 @@ export function SettingsContent() {
     "off" | "optional" | "required_for_new_accounts"
   >("off");
   const [emailProviderReady, setEmailProviderReady] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+  const [emailChangeMessage, setEmailChangeMessage] = useState("");
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [bio, setBio] = useState("");
@@ -56,9 +61,10 @@ export function SettingsContent() {
 
     const load = async () => {
       try {
-        const [response, verificationResponse] = await Promise.all([
+        const [response, verificationResponse, emailChangeResponse] = await Promise.all([
           fetch("/api/user/me", { cache: "no-store" }),
           fetch("/api/auth/email-verification/status", { cache: "no-store" }),
+          fetch("/api/auth/email-change/status", { cache: "no-store" }),
         ]);
         if (!response.ok) {
           return;
@@ -81,6 +87,12 @@ export function SettingsContent() {
           setEmailVerificationMode(verification.mode);
           setEmailProviderReady(verification.providerReady);
           setEmailVerifiedAt(verification.emailVerifiedAt);
+        }
+        if (emailChangeResponse.ok) {
+          const emailChange = (await emailChangeResponse.json()) as {
+            pendingEmail: string | null;
+          };
+          setPendingEmail(emailChange.pendingEmail);
         }
       } catch {
         // Keep local fallbacks.
@@ -105,13 +117,11 @@ export function SettingsContent() {
     setSaveError("");
 
     try {
-      const trimmedEmail = email.trim();
       const response = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName,
-          email: trimmedEmail.length > 0 ? trimmedEmail : undefined,
           bio,
         }),
       });
@@ -142,6 +152,65 @@ export function SettingsContent() {
       setSaveError("Profil güncellenemedi.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEmailChange = async () => {
+    setEmailChangeLoading(true);
+    setEmailChangeMessage("");
+    try {
+      const response = await fetch("/api/auth/email-change/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newEmail, currentPassword }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        pendingEmail?: string;
+      } | null;
+      setEmailChangeMessage(
+        response.ok
+          ? payload?.message || "Doğrulama bağlantısı gönderildi."
+          : payload?.error || "E-posta değişikliği başlatılamadı."
+      );
+      if (response.ok) {
+        setPendingEmail(payload?.pendingEmail || newEmail.trim());
+        setNewEmail("");
+        setCurrentPassword("");
+      }
+    } catch {
+      setEmailChangeMessage("E-posta değişikliği servisine ulaşılamadı.");
+    } finally {
+      setEmailChangeLoading(false);
+    }
+  };
+
+  const handleCancelEmailChange = async () => {
+    setEmailChangeLoading(true);
+    setEmailChangeMessage("");
+    try {
+      const response = await fetch("/api/auth/email-change/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      setEmailChangeMessage(
+        response.ok
+          ? "Bekleyen e-posta değişikliği iptal edildi."
+          : payload?.error || "İstek iptal edilemedi."
+      );
+      if (response.ok) {
+        setPendingEmail(null);
+        setCurrentPassword("");
+      }
+    } catch {
+      setEmailChangeMessage("İptal servisine ulaşılamadı.");
+    } finally {
+      setEmailChangeLoading(false);
     }
   };
 
@@ -227,8 +296,8 @@ export function SettingsContent() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  readOnly
+                  className="w-full cursor-default rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   maxLength={191}
                   autoComplete="email"
                 />
@@ -265,6 +334,74 @@ export function SettingsContent() {
                     ) : null}
                   </div>
                 ) : null}
+                <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/40">
+                  <div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">
+                      E-posta adresini değiştir
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                      Mevcut adresin, yeni adres doğrulanana kadar değişmez. Doğrulama tamamlanınca güvenlik için açık oturumların kapatılır.
+                    </p>
+                  </div>
+                  {pendingEmail ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                      <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                        Doğrulama bekleniyor: {pendingEmail}
+                      </p>
+                      <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-300/80">
+                        İptal etmek için mevcut parolanı aşağıya gir.
+                      </p>
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(event) => setNewEmail(event.target.value)}
+                      placeholder="Yeni e-posta adresi"
+                      autoComplete="email"
+                      maxLength={191}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition-all focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                    />
+                  )}
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    placeholder="Mevcut parola"
+                    autoComplete="current-password"
+                    maxLength={256}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition-all focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void (pendingEmail
+                        ? handleCancelEmailChange()
+                        : handleEmailChange())
+                    }
+                    disabled={
+                      emailChangeLoading ||
+                      currentPassword.length === 0 ||
+                      (!pendingEmail && newEmail.trim().length === 0)
+                    }
+                    className={`inline-flex min-h-10 items-center justify-center rounded-xl px-4 text-xs font-black text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      pendingEmail
+                        ? "bg-rose-600 hover:bg-rose-700"
+                        : "bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900"
+                    }`}
+                  >
+                    {emailChangeLoading
+                      ? "İşleniyor..."
+                      : pendingEmail
+                        ? "Bekleyen değişikliği iptal et"
+                        : "Yeni adresi doğrula"}
+                  </button>
+                  {emailChangeMessage ? (
+                    <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">
+                      {emailChangeMessage}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div>
@@ -367,11 +504,14 @@ export function SettingsContent() {
           >
             <div className="space-y-3">
               <button
+                onClick={() => {
+                  window.location.href = "/forgot-password";
+                }}
                 className="group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                 type="button"
               >
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Şifre Değiştir
+                  Parolayı Sıfırla
                 </span>
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-500" />
               </button>

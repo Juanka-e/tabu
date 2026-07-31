@@ -195,8 +195,9 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 3. Sifre unuttum/sifirlama yok.
 4. Admin MFA/WebAuthn yok.
 5. bcrypt'ten Argon2id'e kademeli rehash henuz yok.
-6. Profil e-posta degisikligi dogrulama durumunu sifirliyor ancak mevcut
-   parola ile step-up dogrulama henuz istemiyor.
+6. Parola kurtarma ve e-posta degisikligi uygulanmistir; production SMTP,
+   retention scheduler ve cluster Socket.IO Redis adapter smoke testi deploy
+   oncesi zorunludur.
 
 Uygulanan minimum:
 
@@ -204,11 +205,14 @@ Uygulanan minimum:
 - minimum 8 karakter ve guc skorlu yeni parola politikasi
 - mevcut hesaplar icin zorunlu sifre migrasyonu yerine yeni sifrelerde politika
 - HIBP kesintisinde guclu yerel politikayla kontrollu devam
+- tek kullanimlik, hash'li parola reset ve e-posta degisim tokenlari
+- mevcut parola step-up ve yeni adres dogrulanana kadar canonical adresi koruma
+- web, mobile ve aktif oyun socket oturumlarini guvenlik isleminde iptal etme
 
 Siradaki minimum:
 
-- tek kullanimlik, hash'li, sureli email verification/reset tokenlari
-- transactional email provider
+- production SMTP/bounce operasyonu ve dead-letter admin gozlemi
+- native mobile recovery/change transport endpoint'leri
 - adminler icin Cloudflare Access MFA; daha sonra uygulama ici WebAuthn
 
 ## Cloudflare Turnstile

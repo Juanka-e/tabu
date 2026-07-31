@@ -12,6 +12,7 @@ export const sharedAuthConfig = {
             if (user) {
                 token.sub = user.id;
                 token.role = user.role;
+                token.sessionVersion = user.sessionVersion;
             }
             return token;
         },
@@ -19,6 +20,10 @@ export const sharedAuthConfig = {
             if (session.user) {
                 session.user.id = token.sub || "";
                 session.user.role = (token.role as string) || "user";
+                session.user.sessionVersion =
+                    typeof token.sessionVersion === "number"
+                        ? token.sessionVersion
+                        : -1;
             }
             return session;
         },

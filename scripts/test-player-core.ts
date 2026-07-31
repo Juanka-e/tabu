@@ -10,12 +10,10 @@ import { MOBILE_API_ROUTES } from "@hushle/api-contracts";
 const parsed = parsePlayerProfilePatch({
     displayName: "  Oyuncu  ",
     bio: "  Merhaba  ",
-    email: "  Test@Example.com  ",
 });
 assert.deepEqual(parsed, {
     displayName: "Oyuncu",
     bio: "Merhaba",
-    email: "Test@Example.com",
 });
 assert.equal(parsePlayerProfilePatch({ displayName: "  " }).displayName, null);
 
@@ -23,7 +21,8 @@ for (const invalid of [
     {},
     { displayName: "x".repeat(61) },
     { bio: "x".repeat(301) },
-    { email: "not-an-email" },
+    { email: "test@example.com" },
+    { displayName: "Oyuncu", email: "test@example.com" },
 ]) {
     assert.throws(
         () => parsePlayerProfilePatch(invalid),

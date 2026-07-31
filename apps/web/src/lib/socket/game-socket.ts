@@ -67,6 +67,10 @@ import {
     recordWordAnalytics,
     type WordAnalyticsOutcome,
 } from "@/lib/analytics/word-analytics";
+import {
+    joinUserSessionRoom,
+    registerSocketServer,
+} from "./user-session-control";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -394,6 +398,7 @@ export function setupGameSocket(
     roomOwnership: RoomOwnershipCoordinator,
     roomRouting: RoomRouteResolver
 ): void {
+    registerSocketServer(io);
     connectedSocketCountGetter = () => io.engine.clientsCount;
     registerMetricsProvider(getRoomMetrics);
 
@@ -1160,7 +1165,7 @@ export function setupGameSocket(
 
                 try {
                     const socketAuthState = await getSocketAuthState(socket);
-                    const socketAuthRole = await getSocketAuthRole(socket);
+                    const socketAuthRole = socketAuthState.role;
                     if (socketAuthState.isSuspended) {
                         socket.emit(
                             "hata",
@@ -1169,6 +1174,9 @@ export function setupGameSocket(
                         return;
                     }
                     const effectiveAuthUserId = socketAuthState.userId ?? null;
+                    if (effectiveAuthUserId) {
+                        joinUserSessionRoom(socket, effectiveAuthUserId);
+                    }
                     const requestedDisplayName = sanitizePlayerName(kullaniciAdi);
                     const registeredIdentity = effectiveAuthUserId
                         ? await resolveRegisteredIdentity(effectiveAuthUserId)
@@ -2265,6 +2273,7 @@ function isTrustedSocketOrigin(socket: Socket): boolean {
 
 async function getSocketAuthState(socket: Socket): Promise<{
     userId: number | null;
+    role: string | null;
     isSuspended: boolean;
     emailVerificationRequired: boolean;
 }> {
@@ -2272,6 +2281,7 @@ async function getSocketAuthState(socket: Socket): Promise<{
     if (!cookieHeader || !process.env.AUTH_SECRET) {
         return {
             userId: null,
+            role: null,
             isSuspended: false,
             emailVerificationRequired: false,
         };
@@ -2291,6 +2301,7 @@ async function getSocketAuthState(socket: Socket): Promise<{
     if (!Number.isInteger(userId) || userId <= 0) {
         return {
             userId: null,
+            role: null,
             isSuspended: false,
             emailVerificationRequired: false,
         };
@@ -2301,6 +2312,8 @@ async function getSocketAuthState(socket: Socket): Promise<{
         where: { id: userId },
         select: {
             id: true,
+            role: true,
+            sessionVersion: true,
             isSuspended: true,
             suspendedUntil: true,
             accountStatus: true,
@@ -2309,9 +2322,14 @@ async function getSocketAuthState(socket: Socket): Promise<{
         },
     });
 
-    if (!user) {
+    if (
+        !user ||
+        typeof token?.sessionVersion !== "number" ||
+        token.sessionVersion !== user.sessionVersion
+    ) {
         return {
             userId: null,
+            role: null,
             isSuspended: false,
             emailVerificationRequired: false,
         };
@@ -2319,29 +2337,11 @@ async function getSocketAuthState(socket: Socket): Promise<{
 
     return {
         userId: isSuspensionActive(user) ? null : user.id,
+        role: isSuspensionActive(user) ? null : user.role,
         isSuspended: isSuspensionActive(user),
         emailVerificationRequired:
             isEmailVerificationRestrictionActive(user),
     };
-}
-
-async function getSocketAuthRole(socket: Socket): Promise<string | null> {
-    const cookieHeader = socket.handshake.headers.cookie;
-    if (!cookieHeader || !process.env.AUTH_SECRET) {
-        return null;
-    }
-
-    const token = await getToken({
-        req: {
-            headers: {
-                cookie: cookieHeader,
-            },
-        },
-        secret: process.env.AUTH_SECRET,
-        secureCookie: isSecureSocketHandshake(socket),
-    });
-
-    return typeof token?.role === "string" ? token.role : null;
 }
 
 async function hydrateNarratorCardThemes(userId: number | null): Promise<RoomCardThemePayload> {

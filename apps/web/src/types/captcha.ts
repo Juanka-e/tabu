@@ -4,6 +4,7 @@ import type { CaptchaTurnstileMode } from "@/types/system-settings";
 export const CAPTCHA_ACTIONS = [
     "register",
     "login",
+    "password_reset",
     "room_create",
     "guest_join",
 ] as const;

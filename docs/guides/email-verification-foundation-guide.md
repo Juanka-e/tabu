@@ -139,7 +139,7 @@ değiştirmediği kontrol edilir.
 
 ## Bilinçli Olarak Sonraya Bırakılanlar
 
-- parola kurtarma ve step-up e-posta değiştirme
+- native mobile parola kurtarma ve e-posta değiştirme transport yüzeyi
 - SES API adaptörü ve webhook/bounce işleme
 - marketing consent modeli, segmentleme ve unsubscribe
 - admin outbox/dead-letter gözlem ve kontrollü retry ekranı

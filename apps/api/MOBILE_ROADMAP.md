@@ -27,6 +27,8 @@ explicit olarak açılmayacak.
 - sürümlü response/error kontratları ve request ID
 - exact CORS allowlist ve native istemciler için originless transport desteği
 - opaque access/refresh token, rotation ve session revoke
+- Web parola kurtarma ve doğrulamalı e-posta değişimi hazırdır. Native mobile
+  request/confirm endpoint'leri eklenene kadar `/v1/profile` e-posta değiştirmez.
 - `/v1/me` ve profile read/write
 - cursor tabanlı `/v1/inventory`
 - server-side doğrulamalı equip/unequip

@@ -70,6 +70,11 @@ Ubuntu 24.04 üzerinde hedef sade model:
 8. MySQL backup cron aktif mi kontrol et.
 9. `email-delivery` dry-run provider ready ve bekleyen mesaj sayısını doğruluyor mu kontrol et.
 10. Mail provider production smoke hesabına doğrulama e-postası ulaştırıyor mu kontrol et.
+11. Parola reset ve e-posta değişim bağlantıları tek kullanımdan sonra reddediliyor mu kontrol et.
+12. Güvenlik işlemi sonrası web, mobile ve Redis adapter üzerinden aktif oyun socket'leri kapanıyor mu kontrol et.
+13. `npm run test:account-recovery-e2e` ve local MySQL üzerinde
+    `ACCOUNT_RECOVERY_INTEGRATION=true npm run test:account-recovery-integration`
+    geçti mi kontrol et.
 
 ## Deploy Sonrası
 

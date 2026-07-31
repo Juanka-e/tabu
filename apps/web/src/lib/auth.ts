@@ -79,6 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         username: true,
                         password: true,
                         role: true,
+                        sessionVersion: true,
                         isSuspended: true,
                         suspendedUntil: true,
                     },
@@ -114,6 +115,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     id: String(user.id),
                     name: user.username,
                     role: user.role,
+                    sessionVersion: user.sessionVersion,
                 };
             },
         }),

@@ -123,9 +123,7 @@ function mapPlayerError(error: unknown): AuthRouteResult {
         const status =
             error.code === "invalid_profile"
                 ? 422
-                : error.code === "email_conflict"
-                  ? 409
-                  : 404;
+                : 404;
         return {
             status,
             error: {
@@ -133,9 +131,7 @@ function mapPlayerError(error: unknown): AuthRouteResult {
                 message:
                     error.code === "invalid_profile"
                         ? error.message
-                        : error.code === "email_conflict"
-                          ? "Email address is already in use."
-                          : "User was not found.",
+                        : "User was not found.",
             },
         };
     }

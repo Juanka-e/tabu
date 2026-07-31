@@ -47,7 +47,6 @@ export interface MobileApiError {
             | "auth_unavailable"
             | "session_not_found"
             | "invalid_profile"
-            | "email_conflict"
             | "user_not_found"
             | "inventory_item_not_found"
             | "inventory_item_not_owned"
