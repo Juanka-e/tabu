@@ -1,4 +1,9 @@
 import { createServer } from "node:http";
+import {
+    emitObservabilityEvent,
+    flushObservabilityExporter,
+    reportError,
+} from "@hushle/platform-observability";
 import { getMobileApiRuntimeConfig } from "./config";
 import { createMobileApiHttpHandler } from "./http-app";
 
@@ -14,18 +19,31 @@ const server = createServer(
 );
 
 server.listen(config.port, config.host, () => {
-    console.log(
-        `[api] listening on http://${config.host}:${config.port}`
-    );
+    void emitObservabilityEvent({
+        level: "info",
+        service: "hushle-api",
+        event: "runtime.started",
+        context: { host: config.host, port: config.port },
+    });
 });
 
 function shutdown(signal: string): void {
-    console.log(`[api] received ${signal}; shutting down`);
-    server.close((error) => {
+    void emitObservabilityEvent({
+        level: "info",
+        service: "hushle-api",
+        event: "runtime.shutdown.requested",
+        context: { signal },
+    });
+    server.close(async (error) => {
         if (error) {
-            console.error("[api] shutdown failed", error);
+            void reportError({
+                service: "hushle-api",
+                event: "runtime.shutdown.failed",
+                error,
+            });
             process.exitCode = 1;
         }
+        await flushObservabilityExporter();
     });
 }
 

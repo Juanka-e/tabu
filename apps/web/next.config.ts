@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "@hushle/platform-cache",
     "@hushle/platform-db",
     "@hushle/platform-inventory",
+    "@hushle/platform-observability",
     "@hushle/platform-player",
     "@hushle/platform-store",
   ],

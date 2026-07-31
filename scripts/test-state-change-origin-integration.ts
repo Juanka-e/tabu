@@ -74,12 +74,23 @@ async function main(): Promise<void> {
 
         const missingOrigin = await request();
         assert.equal(missingOrigin.status, 403);
+        assert.equal(
+            /^[A-Za-z0-9._:-]{1,64}$/.test(
+                missingOrigin.headers.get("x-request-id") ?? ""
+            ),
+            true
+        );
 
         const allowlistedOrigin = await request({
             origin: baseUrl,
             "sec-fetch-site": "same-origin",
+            "x-request-id": "origin-integration-1",
         });
         assert.notEqual(allowlistedOrigin.status, 403);
+        assert.equal(
+            allowlistedOrigin.headers.get("x-request-id"),
+            "origin-integration-1"
+        );
 
         const crossSite = await request({
             origin: baseUrl,

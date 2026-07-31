@@ -30,6 +30,7 @@ Bu liste ilk public acilis ve buyuk release pencereleri icindir.
 - [ ] Product/word analytics bayraklari bilincli olarak acik veya kapali.
 - [ ] Maintenance mesaji ve acilis duyurusu hazir.
 - [ ] Support ve admin audit yuzeyleri erisilebilir.
+- [ ] Structured error loglari collector'a ulasiyor; exporter failure `0`.
 
 ## Kontrollu Smoke
 

@@ -28,6 +28,15 @@ interface CapacityHealth {
         available: boolean;
         latencyMs: number | null;
     };
+    observability: {
+        emitted: number;
+        errors: number;
+        warnings: number;
+        exporterConfigured: boolean;
+        exporterFailures: number;
+        droppedContextFields: number;
+        lastErrorAt: string | null;
+    };
     cluster: {
         source: "redis" | "local";
         activeInstances: number;
@@ -286,6 +295,35 @@ export default function AdminDashboardPage() {
                         <span>Heap: {formatBytes(capacity?.cluster.heapUsedBytes ?? 0)}</span>
                         <span>Event loop: {capacity?.cluster.maxEventLoopLagMs ?? 0} ms</span>
                         <span>Mod: {capacity?.limits.admissionMode ?? "-"}</span>
+                    </div>
+
+                    <div className="grid gap-3 border-t border-border/50 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-xl bg-muted/20 px-4 py-3">
+                            <p className="text-xs text-muted-foreground">Runtime hatalari</p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                                {capacity?.observability.errors ?? 0}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-muted/20 px-4 py-3">
+                            <p className="text-xs text-muted-foreground">Uyarilar</p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                                {capacity?.observability.warnings ?? 0}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-muted/20 px-4 py-3">
+                            <p className="text-xs text-muted-foreground">Merkezi exporter</p>
+                            <p className="mt-1 text-sm font-bold text-foreground">
+                                {capacity?.observability.exporterConfigured
+                                    ? "Bagli"
+                                    : "Henuz bagli degil"}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-muted/20 px-4 py-3">
+                            <p className="text-xs text-muted-foreground">Exporter hatasi</p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                                {capacity?.observability.exporterFailures ?? 0}
+                            </p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

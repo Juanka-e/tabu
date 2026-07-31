@@ -52,6 +52,7 @@ assert.match(dockerfile, /packages\/platform-auth\/package\.json/);
 assert.match(dockerfile, /packages\/platform-cache\/package\.json/);
 assert.match(dockerfile, /packages\/platform-db\/package\.json/);
 assert.match(dockerfile, /packages\/platform-inventory\/package\.json/);
+assert.match(dockerfile, /packages\/platform-observability\/package\.json/);
 assert.match(dockerfile, /packages\/platform-player\/package\.json/);
 assert.match(dockerfile, /packages\/platform-store\/package\.json/);
 assert.match(dockerfile, /apps\/web\/package\.json/);
@@ -71,6 +72,18 @@ assert.match(
 assert.match(
     readFileSync(join(root, "apps/api/package.json"), "utf8"),
     /"@hushle\/api-contracts": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/web/package.json"), "utf8"),
+    /"@hushle\/platform-observability": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/api/package.json"), "utf8"),
+    /"@hushle\/platform-observability": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/jobs/package.json"), "utf8"),
+    /"@hushle\/platform-observability": "0\.1\.0"/
 );
 
 console.log("package boundary smoke test passed");

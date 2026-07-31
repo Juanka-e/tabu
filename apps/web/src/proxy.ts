@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { getOrCreateRequestId } from "@hushle/platform-observability";
 import { sharedAuthConfig } from "@/lib/auth-shared";
 import {
     evaluateAdminAccess,
@@ -31,7 +32,12 @@ function shouldApplyPageCsp(req: NextRequest): boolean {
     return acceptHeader?.includes("text/html") ?? false;
 }
 
-function createPageResponse(req: NextRequest): NextResponse {
+function withRequestId(response: NextResponse, requestId: string): NextResponse {
+    response.headers.set("X-Request-Id", requestId);
+    return response;
+}
+
+function createPageResponse(req: NextRequest, requestId: string): NextResponse {
     const nonce = generateCspNonce();
     const isDev = process.env.NODE_ENV !== "production";
     const csp = buildContentSecurityPolicy({
@@ -43,6 +49,7 @@ function createPageResponse(req: NextRequest): NextResponse {
 
     requestHeaders.set("x-nonce", nonce);
     requestHeaders.set("x-pathname", req.nextUrl.pathname);
+    requestHeaders.set("x-request-id", requestId);
     requestHeaders.set("Content-Security-Policy", csp);
 
     const response = NextResponse.next({
@@ -54,11 +61,14 @@ function createPageResponse(req: NextRequest): NextResponse {
     response.headers.set("Content-Security-Policy", csp);
     response.headers.set("x-nonce", nonce);
     response.headers.set("x-pathname", req.nextUrl.pathname);
+    response.headers.set("X-Request-Id", requestId);
 
     return response;
 }
 
 export default auth((req) => {
+    const requestId = getOrCreateRequestId(req.headers.get("x-request-id"));
+    const respond = (response: NextResponse) => withRequestId(response, requestId);
     const { pathname } = req.nextUrl;
     const role = (req.auth?.user as { role?: string } | undefined)?.role;
     const adminAccess = evaluateAdminAccess(req);
@@ -72,14 +82,14 @@ export default auth((req) => {
         pathname.startsWith("/api/") &&
         !isTrustedStateChangeRequest(requestLike)
     ) {
-        return NextResponse.json(
+        return respond(NextResponse.json(
             { error: "Origin dogrulamasi basarisiz." },
             { status: 403 }
-        );
+        ));
     }
 
     if (pathname === "/admin" && !isAuthed(req)) {
-        return NextResponse.redirect(new URL("/", req.url));
+        return respond(NextResponse.redirect(new URL("/", req.url)));
     }
 
     if (
@@ -90,41 +100,41 @@ export default auth((req) => {
         !adminAccess.allowed
     ) {
         if (pathname.startsWith("/api/admin")) {
-            return NextResponse.json(
+            return respond(NextResponse.json(
                 { error: getAdminAccessFailureMessage(adminAccess) },
                 { status: 403 }
-            );
+            ));
         }
 
-        return NextResponse.redirect(new URL("/", req.url));
+        return respond(NextResponse.redirect(new URL("/", req.url)));
     }
 
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
         if (!isAuthed(req)) {
             const loginUrl = new URL("/admin/login", req.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
-            return NextResponse.redirect(loginUrl);
+            return respond(NextResponse.redirect(loginUrl));
         }
 
         if (role !== "admin") {
-            return NextResponse.redirect(new URL("/dashboard", req.url));
+            return respond(NextResponse.redirect(new URL("/dashboard", req.url)));
         }
     }
 
     if (pathname.startsWith("/admin/login") && isAuthed(req)) {
         if (role === "admin") {
-            return NextResponse.redirect(new URL("/admin", req.url));
+            return respond(NextResponse.redirect(new URL("/admin", req.url)));
         }
 
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        return respond(NextResponse.redirect(new URL("/dashboard", req.url)));
     }
 
     if (pathname.startsWith("/api/admin")) {
         if (!isAuthed(req) || role !== "admin") {
-            return NextResponse.json(
+            return respond(NextResponse.json(
                 { error: "Yetkisiz erisim." },
                 { status: 401 }
-            );
+            ));
         }
     }
 
@@ -136,7 +146,7 @@ export default auth((req) => {
         if (!isAuthed(req)) {
             const loginUrl = new URL("/login", req.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
-            return NextResponse.redirect(loginUrl);
+            return respond(NextResponse.redirect(loginUrl));
         }
     }
 
@@ -147,18 +157,20 @@ export default auth((req) => {
         pathname.startsWith("/api/game")
     ) {
         if (!isAuthed(req)) {
-            return NextResponse.json(
+            return respond(NextResponse.json(
                 { error: "Giris gerekli." },
                 { status: 401 }
-            );
+            ));
         }
     }
 
     if (shouldApplyPageCsp(req)) {
-        return createPageResponse(req);
+        return createPageResponse(req, requestId);
     }
 
-    return NextResponse.next();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", requestId);
+    return respond(NextResponse.next({ request: { headers: requestHeaders } }));
 });
 
 export const config = {
