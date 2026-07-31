@@ -165,6 +165,7 @@ app.prepare().then(async () => {
 
     const io = new Server(httpServer, {
         path: "/api/socketio",
+        maxHttpBufferSize: 16 * 1024,
         cors: {
             origin(origin, callback) {
                 const allowed = isTrustedWebOrigin({

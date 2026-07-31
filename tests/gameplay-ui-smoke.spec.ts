@@ -49,10 +49,10 @@ test("login page renders credentials form", async ({ page }) => {
 test("register page renders complete account form", async ({ page }) => {
   await page.goto("/register");
 
-  await expect(page.getByRole("button", { name: /Kayit Ol/i })).toBeVisible();
-  await expect(page.getByPlaceholder(/Kullanici Adi/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Kayıt Ol/i })).toBeVisible();
+  await expect(page.getByPlaceholder(/Kullanıcı adı/i)).toBeVisible();
   await expect(page.getByPlaceholder(/E-posta/i)).toBeVisible();
-  await expect(page.getByPlaceholder(/Sifre/i)).toBeVisible();
+  await expect(page.getByPlaceholder(/Parola/i)).toBeVisible();
 });
 
 test("room page prompts guest username before joining", async ({ page }) => {

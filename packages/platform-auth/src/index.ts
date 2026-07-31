@@ -12,6 +12,10 @@ const REFRESH_PREFIX = "hmr_";
 const LAST_SEEN_WRITE_INTERVAL_MS = 5 * 60_000;
 const MAX_LOCAL_RATE_LIMIT_ENTRIES = 10_000;
 const MAX_ACTIVE_MOBILE_SESSIONS = 10;
+const PASSWORD_LOGIN_IP_LIMIT = 30;
+const PASSWORD_LOGIN_IP_WINDOW_MS = 10 * 60_000;
+const PASSWORD_LOGIN_ACCOUNT_LIMIT = 8;
+const PASSWORD_LOGIN_ACCOUNT_WINDOW_MS = 15 * 60_000;
 
 export type MobileTokenPair = {
     accessToken: string;
@@ -62,6 +66,18 @@ type LocalRateLimitEntry = {
 };
 
 const localRateLimits = new Map<string, LocalRateLimitEntry>();
+
+export type PasswordLoginRateLimitResult = {
+    allowed: boolean;
+    retryAfterSeconds: number;
+    blockedBy: "ip" | "account" | null;
+};
+
+type AuthRateLimitCounterResult = {
+    allowed: boolean;
+    retryAfterSeconds: number;
+    count: number;
+};
 
 function createOpaqueToken(prefix: string): string {
     return `${prefix}${randomBytes(32).toString("base64url")}`;
@@ -517,16 +533,161 @@ function pruneLocalRateLimits(now: number): void {
     }
 }
 
+function getAuthRateLimitKey(scope: string, identifier: string): string {
+    const digest = createHash("sha256")
+        .update(identifier, "utf8")
+        .digest("hex");
+    return getRedisKey("auth", scope, digest);
+}
+
+async function readAuthRateLimit(input: {
+    scope: string;
+    identifier: string;
+    limit: number;
+}): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+    const key = getAuthRateLimitKey(input.scope, input.identifier);
+    const client = await getRedisClient();
+    if (client) {
+        try {
+            const [rawCount, ttlMs] = await Promise.all([
+                client.get(key),
+                client.pTTL(key),
+            ]);
+            const count = Number.parseInt(rawCount ?? "0", 10);
+            return {
+                allowed: !Number.isFinite(count) || count < input.limit,
+                retryAfterSeconds:
+                    count >= input.limit
+                        ? Math.max(1, Math.ceil(Math.max(ttlMs, 0) / 1000))
+                        : 0,
+            };
+        } catch {
+            // Preserve protection with the bounded process-local fallback below.
+        }
+    }
+
+    const now = Date.now();
+    pruneLocalRateLimits(now);
+    const entry = localRateLimits.get(key);
+    if (!entry || entry.expiresAt <= now || entry.count < input.limit) {
+        return { allowed: true, retryAfterSeconds: 0 };
+    }
+    return {
+        allowed: false,
+        retryAfterSeconds: Math.max(
+            1,
+            Math.ceil((entry.expiresAt - now) / 1000)
+        ),
+    };
+}
+
+function normalizePasswordLoginAccount(username: string): string {
+    return username.trim().toLocaleLowerCase("en-US");
+}
+
+export async function checkPasswordLoginRateLimit(input: {
+    remoteIp: string;
+    username: string;
+}): Promise<PasswordLoginRateLimitResult> {
+    const [ip, account] = await Promise.all([
+        readAuthRateLimit({
+            scope: "password-login-ip",
+            identifier: input.remoteIp,
+            limit: PASSWORD_LOGIN_IP_LIMIT,
+        }),
+        readAuthRateLimit({
+            scope: "password-login-account",
+            identifier: normalizePasswordLoginAccount(input.username),
+            limit: PASSWORD_LOGIN_ACCOUNT_LIMIT,
+        }),
+    ]);
+
+    if (!account.allowed) {
+        return {
+            allowed: false,
+            retryAfterSeconds: account.retryAfterSeconds,
+            blockedBy: "account",
+        };
+    }
+    if (!ip.allowed) {
+        return {
+            allowed: false,
+            retryAfterSeconds: ip.retryAfterSeconds,
+            blockedBy: "ip",
+        };
+    }
+    return { allowed: true, retryAfterSeconds: 0, blockedBy: null };
+}
+
+export async function recordPasswordLoginFailure(input: {
+    remoteIp: string;
+    username: string;
+}): Promise<PasswordLoginRateLimitResult> {
+    const [ip, account] = await Promise.all([
+        consumeAuthRateLimit({
+            scope: "password-login-ip",
+            identifier: input.remoteIp,
+            limit: PASSWORD_LOGIN_IP_LIMIT,
+            windowMs: PASSWORD_LOGIN_IP_WINDOW_MS,
+        }),
+        consumeAuthRateLimit({
+            scope: "password-login-account",
+            identifier: normalizePasswordLoginAccount(input.username),
+            limit: PASSWORD_LOGIN_ACCOUNT_LIMIT,
+            windowMs: PASSWORD_LOGIN_ACCOUNT_WINDOW_MS,
+        }),
+    ]);
+
+    const penaltyDelayMs = Math.min(
+        1_500,
+        Math.max(0, account.count - 2) * 250
+    );
+    if (penaltyDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, penaltyDelayMs));
+    }
+
+    if (!account.allowed) {
+        return {
+            allowed: false,
+            retryAfterSeconds: account.retryAfterSeconds,
+            blockedBy: "account",
+        };
+    }
+    if (!ip.allowed) {
+        return {
+            allowed: false,
+            retryAfterSeconds: ip.retryAfterSeconds,
+            blockedBy: "ip",
+        };
+    }
+    return { allowed: true, retryAfterSeconds: 0, blockedBy: null };
+}
+
+export async function clearPasswordLoginAccountFailures(
+    username: string
+): Promise<void> {
+    const key = getAuthRateLimitKey(
+        "password-login-account",
+        normalizePasswordLoginAccount(username)
+    );
+    localRateLimits.delete(key);
+
+    const client = await getRedisClient();
+    if (!client) return;
+    try {
+        await client.del(key);
+    } catch {
+        // A successful login must not fail because cleanup telemetry is unavailable.
+    }
+}
+
 export async function consumeAuthRateLimit(input: {
     scope: string;
     identifier: string;
     limit: number;
     windowMs: number;
-}): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
-    const digest = createHash("sha256")
-        .update(input.identifier, "utf8")
-        .digest("hex");
-    const key = getRedisKey("mobile-auth", input.scope, digest);
+}): Promise<AuthRateLimitCounterResult> {
+    const key = getAuthRateLimitKey(input.scope, input.identifier);
     const client = await getRedisClient();
     if (client) {
         try {
@@ -543,6 +704,7 @@ export async function consumeAuthRateLimit(input: {
                     1,
                     Math.ceil(Number(result[1]) / 1000)
                 ),
+                count: Number(result[0]),
             };
         } catch {
             // Preserve protection with a bounded process-local fallback.
@@ -564,5 +726,6 @@ export async function consumeAuthRateLimit(input: {
             1,
             Math.ceil((entry.expiresAt - now) / 1000)
         ),
+        count: entry.count,
     };
 }
