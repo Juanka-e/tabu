@@ -16,6 +16,8 @@ hangi sirayla ulasilacaginin kalici gecmisidir.
 5. `migrate deploy` yalniz version control'deki migration'lari uygular; schema
    tahmini yapmaz ve veritabanini sifirlamaz.
 6. Baseline islemi normal deploy adimi degildir ve otomatik calismaz.
+7. Backup, restore ve production migration ortak schema-ops lock'u altinda
+   calisir; birbirleriyle ayni anda baslamaz.
 
 ## Mevcut Veritabanini Baseline Etme
 
@@ -101,3 +103,5 @@ ve sonraki migration'larin sifirdan kurulabildigini denetler.
 5. Uygulama rollback'i migration rollback'i anlamina gelmez. Bu nedenle schema
    degisiklikleri mumkun oldugunca once genislet, sonra kodu gecir, en son eski
    alani kaldir sirasi ile yapilir.
+6. Eski backup aktif DB ustune import edilmez. Izole DB'ye restore edilir,
+   mevcut migration'larla ileri alinir ve ancak smoke sonrasi cutover edilir.

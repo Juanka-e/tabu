@@ -66,6 +66,7 @@ EOF
 chmod +x "$MOCK_CLI"
 
 export ENV_FILE="$TEMP_DIR/missing.env"
+export MYSQL_DATABASE=hushle
 export BACKUP_S3_BUCKET="test-bucket"
 export BACKUP_S3_ENDPOINT="https://example.invalid"
 export BACKUP_S3_REGION="auto"
@@ -105,11 +106,55 @@ test "$("$ROOT_DIR/scripts/ops/object-storage.sh" size "test/mysql/backup.sql.gz
   "$(wc -c < "$TEMP_DIR/backup.sql.gz" | tr -d '[:space:]')"
 
 printf 'invalid checksum\n' > "$TEMP_DIR/backup.sql.gz.sha256"
-if BACKUP_REQUIRE_CHECKSUM=true "$ROOT_DIR/scripts/ops/mysql-restore.sh" \
+if BACKUP_REQUIRE_CHECKSUM=true \
+  RESTORE_DATABASE=hushle_restore_checksum_test \
+  RESTORE_USE_ROOT=true \
+  "$ROOT_DIR/scripts/ops/mysql-restore.sh" \
   "$TEMP_DIR/backup.sql.gz" >"$TEMP_DIR/restore.log" 2>&1; then
   echo "Corrupt checksum unexpectedly passed." >&2
   exit 1
 fi
+
+if RESTORE_DATABASE=hushle "$ROOT_DIR/scripts/ops/mysql-restore.sh" \
+  "$TEMP_DIR/backup.sql.gz" >"$TEMP_DIR/in-place.log" 2>&1; then
+  echo "In-place restore unexpectedly passed." >&2
+  exit 1
+fi
+grep -qi 'active database' "$TEMP_DIR/in-place.log"
+
+cat > "$TEMP_DIR/database-url.env" <<EOF
+DATABASE_URL="mysql://user:pass@mysql:3306/hushle_active?connection_limit=5"
+EOF
+unset MYSQL_DATABASE
+if ENV_FILE="$TEMP_DIR/database-url.env" \
+  RESTORE_DATABASE=hushle_active \
+  "$ROOT_DIR/scripts/ops/mysql-restore.sh" \
+  "$TEMP_DIR/backup.sql.gz" >"$TEMP_DIR/database-url-target.log" 2>&1; then
+  echo "DATABASE_URL-derived active database restore unexpectedly passed." >&2
+  exit 1
+fi
+grep -qi 'active database' "$TEMP_DIR/database-url-target.log"
+export MYSQL_DATABASE=hushle
+
+LOCK_ROOT="$TEMP_DIR/lock-root"
+mkdir -p "$LOCK_ROOT"
+SCHEMA_OPS_LOCK_DIR="$LOCK_ROOT/locks" bash -c '
+  source "$1/scripts/ops/lib/schema-ops-lock.sh"
+  acquire_schema_ops_lock "$2" "holder"
+  sleep 2
+' _ "$ROOT_DIR" "$LOCK_ROOT" &
+LOCK_HOLDER_PID=$!
+sleep 0.2
+if SCHEMA_OPS_LOCK_DIR="$LOCK_ROOT/locks" SCHEMA_OPS_LOCK_TIMEOUT_SECONDS=0 \
+  bash -c '
+    source "$1/scripts/ops/lib/schema-ops-lock.sh"
+    acquire_schema_ops_lock "$2" "contender"
+  ' _ "$ROOT_DIR" "$LOCK_ROOT"; then
+  echo "Concurrent schema operation unexpectedly acquired the lock." >&2
+  exit 1
+fi
+wait "$LOCK_HOLDER_PID"
+unset MYSQL_DATABASE
 if ! grep -qi 'checksum' "$TEMP_DIR/restore.log"; then
   cat "$TEMP_DIR/restore.log" >&2
   echo "Restore did not fail at checksum validation." >&2

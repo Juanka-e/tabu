@@ -12,11 +12,15 @@ TEMP_FILE="$OUTPUT_FILE.partial.$$"
 
 # shellcheck source=scripts/ops/lib/backup-env.sh
 source "$ROOT_DIR/scripts/ops/lib/backup-env.sh"
+# shellcheck source=scripts/ops/lib/schema-ops-lock.sh
+source "$ROOT_DIR/scripts/ops/lib/schema-ops-lock.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2
   exit 1
 fi
+
+acquire_schema_ops_lock "$ROOT_DIR" "mysql-backup"
 
 mkdir -p "$BACKUP_DIR"
 trap 'rm -f "$TEMP_FILE"' EXIT
@@ -35,6 +39,8 @@ trap - EXIT
   cd "$BACKUP_DIR"
   sha256sum "$(basename "$OUTPUT_FILE")" > "$(basename "$OUTPUT_FILE").sha256"
 )
+
+release_schema_ops_lock
 
 if [[ "$(read_backup_env_value BACKUP_REMOTE_ENABLED false)" == "true" ]]; then
   REMOTE_PREFIX="$(read_backup_env_value BACKUP_S3_PREFIX hushle)"

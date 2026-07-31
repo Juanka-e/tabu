@@ -23,17 +23,26 @@ Elle backup:
 ./scripts/ops/mysql-backup.sh
 ```
 
-Elle local restore:
+Restore dogrudan aktif veritabaninin ustune yapilmaz. Once izole bir hedef DB
+olusturulur:
 
 ```bash
-./scripts/ops/mysql-restore.sh \
+docker compose --env-file .env.production -f docker-compose.yml exec -T mysql \
+  sh -lc 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e \
+  "CREATE DATABASE hushle_restore_incident_YYYYMMDD CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"'
+
+RESTORE_DATABASE=hushle_restore_incident_YYYYMMDD \
+RESTORE_USE_ROOT=true \
+  ./scripts/ops/mysql-restore.sh \
   backups/mysql/hushle-mysql-YYYYMMDDTHHMMSSZ.sql.gz
 ```
 
 Remote restore:
 
 ```bash
-./scripts/ops/mysql-restore.sh \
+RESTORE_DATABASE=hushle_restore_incident_YYYYMMDD \
+RESTORE_USE_ROOT=true \
+  ./scripts/ops/mysql-restore.sh \
   s3://bucket-name/production/mysql/hushle-mysql-YYYYMMDDTHHMMSSZ.sql.gz
 ```
 
@@ -51,6 +60,56 @@ Haftalik, gecici veritabanina restore smoke testi:
 Smoke scripti benzersiz bir test veritabani olusturur, restore edilen tablo
 sayisini kontrol eder ve basarili/basarisiz her cikista test veritabanini siler.
 Production veritabaninin adini hedef olarak kullanmaz.
+
+## Race Ve Cutover Guvenligi
+
+`mysql-backup.sh`, `mysql-restore.sh` ve `deploy.sh` ayni
+`backups/.locks/mysql-schema-ops.lock` kilidini kullanir. Sonuc:
+
+- migration ve backup ayni anda calismaz
+- restore ve deploy ayni anda calismaz
+- ikinci operasyon varsayilan 15 dakika bekler, sonra fail eder
+- lock process kapaninca kernel tarafindan serbest birakilir; stale PID lock'u
+  kalmaz
+
+`mysqldump --single-transaction` InnoDB satirlari icin tutarli snapshot alir.
+Ortak lock ayrica dump sirasinda schema migration baslamasini engeller. Uzun
+sureli DDL veya elle calistirilan SQL bu kontratin disindadir ve production'da
+yasaktir.
+
+Schema-ops lock uygulama transaction'larini durdurmaz. Normal migration'lar bu
+nedenle expand/contract ve eski app surumuyle uyumlu tasarlanir. Destructive veya
+uzun lock alan migration icin ayrica maintenance, job durdurma ve dusuk trafik
+penceresi gerekir.
+
+Restore/cutover sirasi:
+
+1. Yeni oda girisini ve DB yazan job'lari maintenance proseduruyle durdur.
+2. Mevcut aktif DB'nin yeni backup ve checksum'unu al.
+3. Backup'i `hushle_restore_*` adli izole DB'ye yukle.
+4. Restore DB icin ayri `DATABASE_URL` ile `prisma migrate deploy` calistir.
+   Backup baseline oncesinden geliyorsa once sifir drift kosuluyla mevcut-DB
+   baseline prosedurunu uygula; tablo varken baseline SQL'i tekrar calistirma.
+5. `prisma migrate status`, drift, tablo/satir sanity ve uygulama smoke yap.
+6. Restore DB backup tarihinden sonra olusan wallet/email/admin yazilarinin kayip
+   etkisini incident kaydinda hesapla.
+7. Production `DATABASE_URL` degerini izole DB'ye kontrollu cevir ve stack'i
+   restart et.
+8. Health, login, room, finalize ve admin smoke gecmeden admission'i acma.
+9. Eski DB'yi hemen silme; rollback penceresi boyunca read-only tut.
+
+Aktif DB adiyla `RESTORE_DATABASE` verilirse script fail-closed davranir.
+Standart `hushle_restore_*` disinda izole hedef kullanmak icin ek olarak
+`RESTORE_TARGET_CONFIRM=I_ACCEPT_AN_ISOLATED_RESTORE_TARGET` gerekir.
+
+Backup uygulama kodunu, Socket.IO protokolunu veya renderer dosyalarini tasimaz;
+yalniz DB snapshot'idir. Kod surumu Git SHA ile deploy edilir. Eski backup'in
+schema version'i cutover oncesi migration ile ileri alinir. Daha yeni schema'dan
+daha eski koda rollback ise otomatik guvenli kabul edilmez.
+
+Redis cache/lease/counter verisi ve process-local aktif odalar MySQL backup'ina
+dahil degildir. Restore, devam eden odalari veya backup sonrasindaki event'leri
+geri getirmez.
 
 ## Offsite Object Storage
 
