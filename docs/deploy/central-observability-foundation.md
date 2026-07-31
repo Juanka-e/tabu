@@ -28,8 +28,9 @@ Varsayilan sink container stdout/stderr'idir. Production'da Docker loglari
 collector yine gereklidir; raw log retention, erisim ve silme suresi production
 operator kararidir.
 
-`ObservabilityExporter` daha sonra Sentry veya OpenTelemetry adapter'i ile
-configure edilebilir. Exporter hata verirse business request basarisiz olmaz;
+`ObservabilityExporter`, bounded HTTP batch exporter ile merkezi collector'a
+baglanabilir. Sentry veya OpenTelemetry icin ince bir collector adapter'i
+kullanilabilir. Exporter hata verirse business request basarisiz olmaz;
 `exporterFailures` artar. Capture istek yolunda beklenmez; shutdown ve job
 sonundaki flush en fazla iki saniye bekler. Redis bu akis icin kalici cozum degildir: merkezi
 provider veya collector process restartindan bagimsiz kayit ve alarm saglar.
@@ -47,10 +48,9 @@ collector/provider tarafinda yapilmalidir.
 
 ## Bilinen Sinirlar
 
-- harici exporter henuz bagli degil
+- production collector endpoint/token operator tarafinda yapilandirilacak
 - external uptime probe ve on-call kanali operasyonel olarak kurulacak
 - beklenen hatalari yakalayan tum legacy `console.error` cagrilari ilk dilimde tasinmadi
 - CPU/RAM/disk/DB connection host dashboard'u bu paketin kapsami degil
 
-Siradaki dar branch, production provider karari verildiginde Sentry adapter veya
-OTLP exporter ile external uptime alarm kontratini tamamlamalidir.
+Operasyon ve alarm kontrati `observability-exporter-operations.md` icindedir.

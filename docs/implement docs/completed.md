@@ -191,6 +191,12 @@
 - gameplay'i bozmayan exporter failure izolasyonu ve aggregate status
 - runtime health/admin capacity gorunumu, regresyon testleri ve operator rehberi
 
+### 27. `feature/observability-exporter-and-alerting`
+- HTTPS bearer-auth collector icin bounded batch/queue exporter
+- web, API, jobs ve Next instrumentation runtime konfigurasyonu
+- exporter teslim, kuyruk, drop ve failure aggregate admin/health gorunumu
+- production preflight, Docker env, alarm esikleri ve incident runbook'u
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

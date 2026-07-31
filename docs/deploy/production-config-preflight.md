@@ -7,6 +7,16 @@ dosyasını fail-closed doğrular:
 npm run ops:preflight -- --env-file .env.production
 ```
 
+Observability icin production karari da zorunludur:
+
+- `PRODUCTION_OBSERVABILITY_POLICY=http`: HTTPS collector URL'i ve bagimsiz
+  ingest-only token gerekir.
+- `PRODUCTION_OBSERVABILITY_POLICY=disabled_risk_accepted`: exporter kapali
+  kalir, URL/token bos olmak zorundadir ve preflight acik risk uyarisi verir.
+
+Queue/batch/timeout ayarlari ve alarm esikleri
+`observability-exporter-operations.md` belgesindedir.
+
 Preflight secret değerlerini hiçbir zaman yazdırmaz. Yalnız alan adı ve hata
 sınıfını gösterir. En az bir `BLOCKER` varsa deploy başlamaz.
 

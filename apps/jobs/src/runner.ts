@@ -1,6 +1,7 @@
 import { closeRedisClient } from "@hushle/platform-cache";
 import { prisma } from "@hushle/platform-db";
 import {
+    configureObservabilityFromEnvironment,
     flushObservabilityExporter,
     reportError,
 } from "@hushle/platform-observability";
@@ -16,6 +17,8 @@ interface RunnerArguments {
     job: JobName;
     execute: boolean;
 }
+
+configureObservabilityFromEnvironment();
 
 function parseArguments(args: string[]): RunnerArguments {
     let job: RunnerArguments["job"] | null = null;

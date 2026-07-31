@@ -63,7 +63,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Audit retention | Hazir/Kismi | Hot-to-archive job var; archive purge politikasi operasyonel karar bekliyor |
 | Offsite backup | Hazir/Kismi | R2/S3-compatible kod hazir; production upload/restore kaniti gerekiyor |
 | Production config preflight | Hazir | Secret, origin, topology, gateway, captcha, email ve backup kontrati deploy oncesi fail-closed kontrol edilir |
-| Merkezi error tracking | Hazir/Kismi | PII-safe structured event, request ID, exporter adapter ve admin aggregate hazir; production provider/collector ve alarm kanali bagli degil |
+| Merkezi error tracking | Hazir/Kismi | PII-safe event, request ID, bounded HTTP exporter ve admin delivery aggregate hazir; production collector ve alarm kanali baglanmali |
 
 ## Admin Paneli
 
@@ -386,14 +386,14 @@ Mevcut:
 
 Eksik:
 
-- production Sentry/OTLP exporter veya merkezi log collector
+- production collector endpoint/token ve alarm kanali konfigurasyonu
 - uptime probe ve alarm escalation
 - CPU/RAM/disk/DB connection dashboard
 - on-call bildirim kanali
 
 Minimum onerilen:
 
-- mevcut adapter'a Sentry veya OpenTelemetry exporter baglama
+- HTTP ingest collector'u Sentry/OpenTelemetry veya log platformuna baglama
 - Uptime Kuma/Better Stack benzeri external probe
 - host ve container metricleri
 - disk ve backup failure alarmi
