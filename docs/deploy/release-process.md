@@ -102,6 +102,7 @@ Sunucu tarafinda:
 
 ```bash
 cd "$PROD_DEPLOY_PATH"
+npm run ops:preflight -- --env-file .env.production
 docker compose --env-file .env.production -f docker-compose.yml config --quiet
 docker compose --env-file .env.production -f docker-compose.yml ps
 df -h
@@ -110,13 +111,14 @@ docker system df
 
 Kontrol:
 
-1. `app` replica sayisi `1`.
-2. MySQL ve Redis healthy.
-3. Yeterli disk alani var.
-4. `.env.production` ve `nginx/ssl` kalici, repo arsivinden bagimsiz.
-5. Backup ve checksum mevcut.
-6. Beklenmeyen admission/maintenance ayari yok.
-7. Product ve word analytics varsayilan olarak kapali; acilacaksa env degeri
+1. Production config preflight blocker olmadan gecti.
+2. `app` replica sayisi `1`.
+3. MySQL ve Redis healthy.
+4. Yeterli disk alani var.
+5. `.env.production` ve `nginx/ssl` kalici, repo arsivinden bagimsiz.
+6. Backup ve checksum mevcut.
+7. Beklenmeyen admission/maintenance ayari yok.
+8. Product ve word analytics varsayilan olarak kapali; acilacaksa env degeri
    bilincli verilmis.
 
 ## 5. Deploy

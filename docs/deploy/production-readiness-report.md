@@ -62,6 +62,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | Realtime yatay olcek | Kismi | Tek writer production icin uygun; cok replica room-state henuz desteklenmiyor |
 | Audit retention | Hazir/Kismi | Hot-to-archive job var; archive purge politikasi operasyonel karar bekliyor |
 | Offsite backup | Hazir/Kismi | R2/S3-compatible kod hazir; production upload/restore kaniti gerekiyor |
+| Production config preflight | Hazir | Secret, origin, topology, gateway, captcha, email ve backup kontrati deploy oncesi fail-closed kontrol edilir |
 | Merkezi error tracking | Eksik | Sentry/OpenTelemetry benzeri bir servis bagli degil |
 
 ## Admin Paneli

@@ -18,6 +18,7 @@ Bu liste ilk public acilis ve buyuk release pencereleri icindir.
 
 ## Acilistan Once
 
+- [ ] `npm run ops:preflight -- --env-file .env.production` blocker olmadan basarili.
 - [ ] `docker compose config --quiet` basarili.
 - [ ] Tek `app` replica calisiyor.
 - [ ] MySQL ve Redis healthy.
