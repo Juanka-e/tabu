@@ -1,8 +1,13 @@
 import type { Instrumentation } from "next";
 import {
+    configureObservabilityFromEnvironment,
     isValidRequestId,
     reportError,
 } from "@hushle/platform-observability";
+
+export function register(): void {
+    configureObservabilityFromEnvironment();
+}
 
 export const onRequestError: Instrumentation.onRequestError = async (
     error,

@@ -32,6 +32,10 @@ function validEnvironment(): Record<string, string> {
         ADMIN_ACCESS_ALLOWED_EMAIL_DOMAINS: "example.test",
         AUTH_TRUST_HOST: "true",
         TRUST_PROXY: "true",
+        PRODUCTION_OBSERVABILITY_POLICY: "http",
+        OBSERVABILITY_EXPORT_MODE: "http",
+        OBSERVABILITY_EXPORT_URL: "https://collector.example.test/v1/events",
+        OBSERVABILITY_EXPORT_TOKEN: "observe_P8vN3qR7xL2mT9sK5wD1cF6hJ4yA0zB",
         PRODUCTION_CAPTCHA_POLICY: "turnstile",
         TURNSTILE_SITE_KEY: "site-key",
         TURNSTILE_SECRET_KEY: "turnstile_R8mQ2vN7xL4pT9sK5wD1cF6h",
@@ -74,9 +78,29 @@ acceptedRisk.PRODUCTION_CAPTCHA_POLICY = "disabled_risk_accepted";
 acceptedRisk.PRODUCTION_EMAIL_POLICY = "disabled_risk_accepted";
 acceptedRisk.EMAIL_PROVIDER = "disabled";
 acceptedRisk.JOBS_ENABLED = "false";
+acceptedRisk.PRODUCTION_OBSERVABILITY_POLICY = "disabled_risk_accepted";
+acceptedRisk.OBSERVABILITY_EXPORT_MODE = "disabled";
+acceptedRisk.OBSERVABILITY_EXPORT_URL = "";
+acceptedRisk.OBSERVABILITY_EXPORT_TOKEN = "";
 const riskResult = validateProductionEnvironment(acceptedRisk);
 assert.deepEqual(riskResult.errors, []);
-assert.equal(riskResult.warnings.length, 2);
+assert.equal(riskResult.warnings.length, 3);
+
+const staleDisabledExporter = { ...acceptedRisk };
+staleDisabledExporter.OBSERVABILITY_EXPORT_TOKEN = "stale-token";
+assert.ok(
+    validateProductionEnvironment(staleDisabledExporter).errors.some((error) =>
+        error.includes("must not retain")
+    )
+);
+
+const unsafeExporter = validEnvironment();
+unsafeExporter.OBSERVABILITY_EXPORT_URL = "http://collector.example.test/events?token=unsafe";
+assert.ok(
+    validateProductionEnvironment(unsafeExporter).errors.some((error) =>
+        error.includes("OBSERVABILITY_EXPORT_URL")
+    )
+);
 
 const wildcard = validEnvironment();
 wildcard.TRUSTED_WEB_ORIGINS = "*";

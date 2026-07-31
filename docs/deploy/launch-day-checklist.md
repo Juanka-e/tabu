@@ -31,6 +31,7 @@ Bu liste ilk public acilis ve buyuk release pencereleri icindir.
 - [ ] Maintenance mesaji ve acilis duyurusu hazir.
 - [ ] Support ve admin audit yuzeyleri erisilebilir.
 - [ ] Structured error loglari collector'a ulasiyor; exporter failure `0`.
+- [ ] Exporter queue/dropped `0`; test alarmi on-call kanalina ulasiyor.
 
 ## Kontrollu Smoke
 

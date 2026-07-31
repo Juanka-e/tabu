@@ -24,9 +24,15 @@ Provider'a özel doğrulanmış SES webhook adaptörü ile consent tabanlı mark
 gönderimi ayrı dar branch'lerde ele alınacaktır. Referans:
 `docs/guides/email-delivery-operations-guide.md`.
 
-OAuth karari: Google login web acilisi stabil olduktan sonra ayri migration ve
-account-linking branch'inde ele alinacak; Apple login native iOS plani aktif
-olana kadar ertelendi. Referans: `docs/guides/oauth-provider-strategy.md`.
+OAuth karari: Google login launch blocker degildir fakat gercek kullanici verisi
+olusmadan ayri migration ve explicit account-linking branch'inde eklenebilir.
+Sessiz email-linking kullanilmayacak; Apple login native iOS plani aktif olana
+kadar ertelendi. Referans: `docs/guides/oauth-provider-strategy.md`.
+
+Merkezi observability kodu HTTP exporter'a kadar hazirdir. Production'da gercek
+collector endpoint/token, external uptime monitor ve on-call kanali operator
+tarafinda baglanip test alarmiyla kanitlanmalidir. Referans:
+`docs/deploy/observability-exporter-operations.md`.
 
 ## Aktif Release Kapisi
 

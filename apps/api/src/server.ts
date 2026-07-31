@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import {
+    configureObservabilityFromEnvironment,
     emitObservabilityEvent,
     flushObservabilityExporter,
     reportError,
@@ -7,6 +8,7 @@ import {
 import { getMobileApiRuntimeConfig } from "./config";
 import { createMobileApiHttpHandler } from "./http-app";
 
+configureObservabilityFromEnvironment();
 const config = getMobileApiRuntimeConfig();
 const server = createServer(
     createMobileApiHttpHandler({

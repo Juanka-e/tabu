@@ -33,7 +33,12 @@ interface CapacityHealth {
         errors: number;
         warnings: number;
         exporterConfigured: boolean;
+        exporterMode: "disabled" | "custom" | "http";
         exporterFailures: number;
+        exporterQueued: number;
+        exporterDelivered: number;
+        exporterDropped: number;
+        lastExportAt: string | null;
         droppedContextFields: number;
         lastErrorAt: string | null;
     };
@@ -314,7 +319,7 @@ export default function AdminDashboardPage() {
                             <p className="text-xs text-muted-foreground">Merkezi exporter</p>
                             <p className="mt-1 text-sm font-bold text-foreground">
                                 {capacity?.observability.exporterConfigured
-                                    ? "Bagli"
+                                    ? `${capacity.observability.exporterMode} bagli`
                                     : "Henuz bagli degil"}
                             </p>
                         </div>
@@ -324,6 +329,11 @@ export default function AdminDashboardPage() {
                                 {capacity?.observability.exporterFailures ?? 0}
                             </p>
                         </div>
+                    </div>
+                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                        <span>Kuyruk: {capacity?.observability.exporterQueued ?? 0}</span>
+                        <span>Teslim: {capacity?.observability.exporterDelivered ?? 0}</span>
+                        <span>Dusurulen: {capacity?.observability.exporterDropped ?? 0}</span>
                     </div>
                 </CardContent>
             </Card>

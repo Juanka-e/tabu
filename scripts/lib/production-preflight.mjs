@@ -112,7 +112,13 @@ export function validateProductionEnvironment(env) {
     validateSecret(env, "HEALTHCHECK_TOKEN", 32, result);
     validateSecret(env, "MYSQL_ROOT_PASSWORD", 20, result);
     validateSecret(env, "MYSQL_PASSWORD", 20, result);
-    const secretKeys = ["AUTH_SECRET", "HEALTHCHECK_TOKEN", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD"];
+    const secretKeys = [
+        "AUTH_SECRET",
+        "HEALTHCHECK_TOKEN",
+        "MYSQL_ROOT_PASSWORD",
+        "MYSQL_PASSWORD",
+        "OBSERVABILITY_EXPORT_TOKEN",
+    ];
     const populatedSecrets = secretKeys.map((key) => env[key]?.trim()).filter(Boolean);
     if (new Set(populatedSecrets).size !== populatedSecrets.length) {
         result.errors.push("Production secrets must be unique and independently generated.");
@@ -195,6 +201,40 @@ export function validateProductionEnvironment(env) {
     if (hasHeaderPolicy) validateSecret(env, "ADMIN_ACCESS_HEADER_VALUE", 24, result);
     if (!isTrue(env.AUTH_TRUST_HOST)) result.errors.push("AUTH_TRUST_HOST must be true behind the production proxy.");
     if (!isTrue(env.TRUST_PROXY)) result.errors.push("TRUST_PROXY must be true behind the production proxy.");
+
+    const observabilityPolicy = env.PRODUCTION_OBSERVABILITY_POLICY;
+    if (observabilityPolicy === "http") {
+        if (env.OBSERVABILITY_EXPORT_MODE !== "http") {
+            result.errors.push("OBSERVABILITY_EXPORT_MODE must be http.");
+        }
+        validateSecret(env, "OBSERVABILITY_EXPORT_TOKEN", 32, result);
+        try {
+            const exporterUrl = new URL(env.OBSERVABILITY_EXPORT_URL ?? "");
+            if (
+                exporterUrl.protocol !== "https:" ||
+                exporterUrl.username ||
+                exporterUrl.password ||
+                exporterUrl.search ||
+                exporterUrl.hash
+            ) {
+                result.errors.push("OBSERVABILITY_EXPORT_URL must be an HTTPS URL without credentials, query, or hash.");
+            } else {
+                result.checks.push("observability HTTPS exporter");
+            }
+        } catch {
+            result.errors.push("OBSERVABILITY_EXPORT_URL is invalid.");
+        }
+    } else if (observabilityPolicy === "disabled_risk_accepted") {
+        if (env.OBSERVABILITY_EXPORT_MODE !== "disabled") {
+            result.errors.push("OBSERVABILITY_EXPORT_MODE must be disabled when observability risk is accepted.");
+        }
+        if (env.OBSERVABILITY_EXPORT_URL?.trim() || env.OBSERVABILITY_EXPORT_TOKEN?.trim()) {
+            result.errors.push("Disabled observability must not retain exporter URL or token.");
+        }
+        result.warnings.push("Central observability export is explicitly disabled for public launch.");
+    } else {
+        result.errors.push("PRODUCTION_OBSERVABILITY_POLICY must be http or disabled_risk_accepted.");
+    }
 
     const captchaPolicy = env.PRODUCTION_CAPTCHA_POLICY;
     if (captchaPolicy === "turnstile") {
