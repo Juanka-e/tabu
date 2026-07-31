@@ -86,4 +86,9 @@ assert.equal(
     ""
 );
 
+const unsupportedRenderSpec = shopItemUpdateSchema.safeParse({
+    renderSpecVersion: 2,
+});
+assert.equal(unsupportedRenderSpec.success, false);
+
 console.log("shop item schema smoke test passed");

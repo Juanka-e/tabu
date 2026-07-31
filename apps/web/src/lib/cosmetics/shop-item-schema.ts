@@ -5,6 +5,7 @@ import {
     ShopItemType as PrismaShopItemType,
 } from "@hushle/platform-db";
 import { z } from "zod";
+import { isSupportedCosmeticRenderSpecVersion } from "@/lib/cosmetics/render-spec-version";
 import {
     SHOP_ITEM_AVAILABILITY_MODES,
     STORE_ITEM_RARITIES,
@@ -108,7 +109,14 @@ const shopItemBaseSchema = z.object({
     name: z.string().trim().min(1).max(120),
     rarity: z.enum(STORE_ITEM_RARITIES).default("common"),
     renderMode: z.enum(STORE_ITEM_RENDER_MODES).default("image"),
-    renderSpecVersion: z.number().int().min(1).max(999).default(1),
+    renderSpecVersion: z
+        .number()
+        .int()
+        .refine(
+            isSupportedCosmeticRenderSpecVersion,
+            "Render spec version is not supported by this release."
+        )
+        .default(1),
     priceCoin: z.number().int().min(0).max(1_000_000),
     imageUrl: safeImageUrlSchema.default(""),
     thumbnailUrl: safeImageUrlSchema.optional().nullable(),

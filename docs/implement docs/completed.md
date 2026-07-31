@@ -141,6 +141,21 @@
 - bounded outbox, token ve pending hesap retention
 - admin readiness gorunumu ve zorunlu mod icin fail-closed config kontrolu
 
+### 20. `chore/prisma-migration-baseline-and-deploy-gates`
+- mevcut MySQL semasindan version-controlled Prisma baseline
+- mevcut DB icin backup, restore smoke ve sifir drift zorunlu baseline komutu
+- app startup'ina bagli olmayan tek-seferlik Compose migration servisi
+- migration basarisizliginda app rollout'unu durduran deploy gate
+- CI'da temiz DB uzerinde `prisma migrate deploy` kontrati
+
+### 21. `feature/release-compatibility-and-render-versioning`
+- legacy v0 ve current v1 icin Socket.IO handshake compatibility penceresi
+- desteklenmeyen istemciyi room handler'larindan once reddeden server gate
+- yeni istemcide kontrollu sayfa yenileme mesaji
+- card face/back icin gercek render spec registry ve v1 parser dispatch
+- bilinmeyen snapshot version'inda v1 fallback metadata'si
+- desteklenmeyen render version'ini yeni item'a yazmayi engelleyen admin API gate
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

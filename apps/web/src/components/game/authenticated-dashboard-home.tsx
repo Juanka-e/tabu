@@ -29,6 +29,10 @@ import type { DashboardTab } from "@/components/game/dashboard-nav";
 import { useBranding } from "@/components/providers/branding-provider";
 import { getFreshActiveRoomCodeFromPresence } from "@/lib/client/active-room-presence";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+  SOCKET_CLIENT_AUTH,
+  getSocketProtocolErrorMessage,
+} from "@/lib/socket/protocol-version";
 import type { PendingAdminHandoffState } from "@/types/game";
 
 interface SocketIdentityPayload {
@@ -169,6 +173,7 @@ export function AuthenticatedDashboardHome({
 
       const socket: Socket = io({
         path: "/api/socketio",
+        auth: SOCKET_CLIENT_AUTH,
         transports: ["websocket", "polling"],
         tryAllTransports: true,
       });
@@ -203,8 +208,11 @@ export function AuthenticatedDashboardHome({
         socket.disconnect();
       });
 
-      socket.on("connect_error", () => {
-        setError("Sunucuya baglanilamadi. Lutfen tekrar dene.");
+      socket.on("connect_error", (error) => {
+        setError(
+          getSocketProtocolErrorMessage(error) ??
+            "Sunucuya baglanilamadi. Lutfen tekrar dene."
+        );
         setIsConnecting(false);
       });
     } catch {

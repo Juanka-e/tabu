@@ -36,6 +36,7 @@ import {
     getCosmeticAuthoringPresets,
     serializeCosmeticAuthoringPreset,
 } from "@/lib/cosmetics/authoring-presets";
+import { CURRENT_COSMETIC_RENDER_SPEC_VERSION } from "@/lib/cosmetics/render-spec-version";
 
 type ItemType = "avatar" | "frame" | "card_back" | "card_face";
 type Rarity = "common" | "rare" | "epic" | "legendary";
@@ -1024,7 +1025,7 @@ export default function ShopItemsPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Render Spec Versiyon</label>
-                                        <input type="number" min={1} max={999} value={form.renderSpecVersion} onChange={(event) => setForm((current) => ({ ...current, renderSpecVersion: Math.max(1, Number.parseInt(event.target.value, 10) || 1) }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
+                                        <input type="number" min={1} max={CURRENT_COSMETIC_RENDER_SPEC_VERSION} value={form.renderSpecVersion} onChange={(event) => setForm((current) => ({ ...current, renderSpecVersion: Math.min(CURRENT_COSMETIC_RENDER_SPEC_VERSION, Math.max(1, Number.parseInt(event.target.value, 10) || 1)) }))} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Sıralama</label>

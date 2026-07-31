@@ -29,6 +29,11 @@ import {
 import { evaluateRoomRequestPolicy } from "@/lib/system-settings/policies";
 import { getSystemSettings } from "@/lib/system-settings/service";
 import { clearExpiredSuspensions, isSuspensionActive } from "@/lib/moderation/service";
+import {
+    SOCKET_PROTOCOL_ERROR_CODE,
+    evaluateSocketProtocolVersion,
+    readSocketProtocolVersionFromAuth,
+} from "@/lib/socket/protocol-version";
 import { getNextWord, clearWordPool } from "./word-service";
 import { getVisibleCategories } from "./category-service";
 import {
@@ -401,6 +406,29 @@ export function setupGameSocket(
     registerSocketServer(io);
     connectedSocketCountGetter = () => io.engine.clientsCount;
     registerMetricsProvider(getRoomMetrics);
+
+    io.use((socket, next) => {
+        const decision = evaluateSocketProtocolVersion(
+            readSocketProtocolVersionFromAuth(socket.handshake.auth)
+        );
+        if (!decision.accepted) {
+            const error = new Error(
+                "Yeni bir oyun surumu hazir. Devam etmek icin sayfayi yenileyin."
+            ) as Error & { data?: Record<string, unknown> };
+            error.data = {
+                code: SOCKET_PROTOCOL_ERROR_CODE,
+                clientVersion: decision.clientVersion,
+                serverVersion: decision.serverVersion,
+                minimumVersion: decision.minimumVersion,
+                reason: decision.reason,
+            };
+            next(error);
+            return;
+        }
+
+        socket.data.clientProtocolVersion = decision.effectiveClientVersion;
+        next();
+    });
 
     function publishCurrentCapacity(): void {
         void publishCapacityHeartbeat(getLocalRoomCapacityMetrics()).catch(

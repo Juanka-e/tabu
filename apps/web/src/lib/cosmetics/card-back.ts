@@ -2,6 +2,10 @@ import {
     getTemplateNumber,
     getTemplateString,
 } from "@/lib/cosmetics/template-config";
+import {
+    resolveCosmeticRenderSpecVersion,
+    type CosmeticRenderSpecResolution,
+} from "@/lib/cosmetics/render-spec-version";
 import type {
     CosmeticMotionPreset,
     CosmeticPattern,
@@ -11,6 +15,7 @@ import type {
 } from "@/types/economy";
 
 export interface CardBackThemeSource {
+    renderSpecVersion?: number;
     renderMode: StoreItemRenderMode;
     imageUrl: string;
     templateKey: string | null;
@@ -19,6 +24,9 @@ export interface CardBackThemeSource {
 }
 
 export interface ResolvedCardBackTheme {
+    renderSpecVersion: number;
+    requestedRenderSpecVersion: number;
+    usedRenderSpecFallback: boolean;
     surfaceColor: string;
     borderColor: string;
     accentColor: string;
@@ -37,6 +45,15 @@ export interface ResolvedCardBackTheme {
     overlayOpacity: number;
 }
 
+type CardBackVisualTheme = Omit<
+    ResolvedCardBackTheme,
+    | "renderSpecVersion"
+    | "requestedRenderSpecVersion"
+    | "usedRenderSpecFallback"
+    | "overlayImageUrl"
+    | "overlayOpacity"
+>;
+
 const safeHexColorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const supportedPatterns = new Set<CosmeticPattern>([
     "none",
@@ -49,7 +66,7 @@ const supportedPatterns = new Set<CosmeticPattern>([
 ]);
 const supportedMotions = new Set<CosmeticMotionPreset>(["none", "pulse", "drift", "shimmer"]);
 
-const rarityThemes: Record<StoreItemRarity, Omit<ResolvedCardBackTheme, "overlayImageUrl" | "overlayOpacity">> = {
+const rarityThemes: Record<StoreItemRarity, CardBackVisualTheme> = {
     common: {
         surfaceColor: "#0f172a",
         borderColor: "#475569",
@@ -149,9 +166,9 @@ function getSafeMotion(value: string | undefined, fallback: CosmeticMotionPreset
 }
 
 function applyTemplateKey(
-    baseTheme: Omit<ResolvedCardBackTheme, "overlayImageUrl" | "overlayOpacity">,
+    baseTheme: CardBackVisualTheme,
     templateKey: string | null
-): Omit<ResolvedCardBackTheme, "overlayImageUrl" | "overlayOpacity"> {
+): CardBackVisualTheme {
     switch (templateKey) {
         case "midnight_mesh":
             return {
@@ -185,11 +202,17 @@ function applyTemplateKey(
     }
 }
 
-export function resolveCardBackTheme(source: CardBackThemeSource | null): ResolvedCardBackTheme {
+function resolveCardBackThemeV1(
+    source: CardBackThemeSource | null,
+    spec: CosmeticRenderSpecResolution
+): ResolvedCardBackTheme {
     const fallbackBase = rarityThemes.rare;
 
     if (!source) {
         return {
+            renderSpecVersion: spec.effectiveVersion,
+            requestedRenderSpecVersion: spec.requestedVersion,
+            usedRenderSpecFallback: spec.usedFallback,
             ...fallbackBase,
             overlayImageUrl: null,
             overlayOpacity: 0,
@@ -201,6 +224,9 @@ export function resolveCardBackTheme(source: CardBackThemeSource | null): Resolv
     const config = source.templateConfig ?? {};
 
     return {
+        renderSpecVersion: spec.effectiveVersion,
+        requestedRenderSpecVersion: spec.requestedVersion,
+        usedRenderSpecFallback: spec.usedFallback,
         surfaceColor: getSafeColor(
             getTemplateString(config, ["palette", "surface"]) ?? getTemplateString(config, ["surfaceColor"]),
             keyedTheme.surfaceColor
@@ -274,4 +300,13 @@ export function resolveCardBackTheme(source: CardBackThemeSource | null): Resolv
                 0.45
             ),
     };
+}
+
+export function resolveCardBackTheme(source: CardBackThemeSource | null): ResolvedCardBackTheme {
+    const spec = resolveCosmeticRenderSpecVersion(source?.renderSpecVersion);
+
+    switch (spec.effectiveVersion) {
+        case 1:
+            return resolveCardBackThemeV1(source, spec);
+    }
 }

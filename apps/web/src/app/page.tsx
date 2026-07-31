@@ -23,6 +23,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    SOCKET_CLIENT_AUTH,
+    getSocketProtocolErrorMessage,
+} from "@/lib/socket/protocol-version";
 
 interface SocketIdentityPayload {
     playerId: string;
@@ -71,6 +75,7 @@ export default function HomePage() {
 
             const socket = io({
                 path: "/api/socketio",
+                auth: SOCKET_CLIENT_AUTH,
                 transports: ["websocket", "polling"],
                 tryAllTransports: true,
             });
@@ -112,8 +117,11 @@ export default function HomePage() {
                 socket.disconnect();
             });
 
-            socket.on("connect_error", () => {
-                setError("Sunucuya baglanilamadi. Lutfen tekrar deneyin.");
+            socket.on("connect_error", (error) => {
+                setError(
+                    getSocketProtocolErrorMessage(error) ??
+                        "Sunucuya baglanilamadi. Lutfen tekrar deneyin."
+                );
                 setIsConnecting(false);
             });
         } catch {

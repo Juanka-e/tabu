@@ -254,6 +254,7 @@ function FramePreview({ draft }: { draft: CosmeticPreviewDraft }) {
 
 function CardFacePreview({ draft }: { draft: CosmeticPreviewDraft }) {
     const theme = resolveCardFaceTheme({
+        renderSpecVersion: draft.renderSpecVersion,
         renderMode: draft.renderMode,
         imageUrl: draft.imageUrl,
         templateKey: draft.templateKey,
@@ -322,6 +323,7 @@ function CardFacePreview({ draft }: { draft: CosmeticPreviewDraft }) {
 
 function CardBackPreview({ draft }: { draft: CosmeticPreviewDraft }) {
     const theme = resolveCardBackTheme({
+        renderSpecVersion: draft.renderSpecVersion,
         renderMode: draft.renderMode,
         imageUrl: draft.imageUrl,
         templateKey: draft.templateKey,

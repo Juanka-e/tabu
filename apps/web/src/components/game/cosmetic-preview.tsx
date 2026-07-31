@@ -85,7 +85,7 @@ export const CosmeticThumbnail = memo(function CosmeticThumbnail({
 
 function CosmeticStaticCardThumbnail({ item }: { item: CosmeticPreviewItem }) {
     if (item.type === "card_back") {
-        const theme = resolveCardBackTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+        const theme = resolveCardBackTheme({ renderSpecVersion: item.renderSpecVersion, renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
         const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
         return (
             <div className="relative h-24 w-[74px] overflow-hidden rounded-[18px] bg-slate-950 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]" data-cosmetic-thumbnail="fallback">
@@ -97,7 +97,7 @@ function CosmeticStaticCardThumbnail({ item }: { item: CosmeticPreviewItem }) {
         );
     }
 
-    const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+    const theme = resolveCardFaceTheme({ renderSpecVersion: item.renderSpecVersion, renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
     const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
     return (
         <div className="relative h-24 w-[74px] overflow-hidden rounded-[18px] bg-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.5)]" data-cosmetic-thumbnail="fallback">
@@ -247,12 +247,12 @@ function createCardSidePreviewItem(item: CosmeticPreviewItem, side: "front" | "b
 
 function CosmeticCardPreviewSurface({ item, compact = false }: { item: CosmeticPreviewItem; compact?: boolean }) {
     if (item.type === "card_back") {
-        const theme = resolveCardBackTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+        const theme = resolveCardBackTheme({ renderSpecVersion: item.renderSpecVersion, renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
         const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
         return <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.98))]">{theme.overlayImageUrl ? <Image loader={passthroughImageLoader} unoptimized src={theme.overlayImageUrl} alt={item.name} fill className="object-cover opacity-90" /> : null}<div className={cn("absolute inset-0", getCosmeticMotionClass(theme.motionPreset))} style={{ ...patternStyle, ...getCosmeticMotionStyle(theme.motionSpeedMs) }} /><div className="absolute inset-[10%] rounded-[22px] border-2" style={{ borderColor: theme.borderColor }} /><div className="absolute inset-[20%] rounded-[16px] border" style={{ borderColor: theme.secondaryColor }} />{!compact ? <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">Kart Arkası</div> : null}</div>;
     }
 
-    const theme = resolveCardFaceTheme({ renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
+    const theme = resolveCardFaceTheme({ renderSpecVersion: item.renderSpecVersion, renderMode: item.renderMode, imageUrl: item.imageUrl, templateKey: item.templateKey, templateConfig: item.templateConfig, rarity: item.rarity });
     const patternStyle = buildCosmeticPatternStyle({ pattern: theme.pattern, primaryColor: theme.borderColor, secondaryColor: theme.secondaryColor, scale: theme.patternScale, opacity: theme.patternOpacity });
     const overlayStyle = theme.overlayImageUrl ? { backgroundImage: `linear-gradient(rgba(255,255,255,${theme.overlayOpacity * 0.7}), rgba(255,255,255,${theme.overlayOpacity * 0.7})), url(${theme.overlayImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined;
     const difficultyIcon = item.rarity === "legendary" ? Flame : item.rarity === "epic" ? Target : Sparkles;
