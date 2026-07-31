@@ -1,6 +1,6 @@
 # Tamamlanan Isler
 
-> Son guncelleme: 29 July 2026
+> Son guncelleme: 31 July 2026
 > Durum: aktif completed log
 
 ## Yayinda Olan Temel Sistemler
@@ -130,6 +130,16 @@
   listeleme/revoke ve mobile auth retention temeli
 - ortak player-core servisi, `/v1/me`, profile update ve transaction icinde
   web/mobile audit parity
+
+### 19. `feature/email-verification-foundation`
+- `off | optional | required_for_new_accounts` runtime modu
+- provider bagimsiz transactional outbox ve Nodemailer SMTP adaptoru
+- hash'li, 24 saatlik, tek kullanimlik token ve resend invalidation
+- verification-only session icin ortak web/mobile/socket capability politikasi
+- Mailpit local gelistirme servisi ve SES SMTP uyumlu production env kontrati
+- Redis lease zorunlu delivery/retention job'lari
+- bounded outbox, token ve pending hesap retention
+- admin readiness gorunumu ve zorunlu mod icin fail-closed config kontrolu
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

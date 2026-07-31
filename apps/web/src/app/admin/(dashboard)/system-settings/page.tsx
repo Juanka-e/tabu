@@ -286,6 +286,24 @@ export default function SystemSettingsPage() {
         });
     };
 
+    const updateEmailVerification = (
+        mode: SystemSettingsResponse["settings"]["security"]["emailVerification"]["mode"]
+    ) => {
+        setPayload((currentPayload) => {
+            if (!currentPayload) return currentPayload;
+            return {
+                ...currentPayload,
+                settings: {
+                    ...currentPayload.settings,
+                    security: {
+                        ...currentPayload.settings.security,
+                        emailVerification: { mode },
+                    },
+                },
+            };
+        });
+    };
+
     const handleSave = async () => {
         if (!payload) {
             return;
@@ -1081,6 +1099,97 @@ export default function SystemSettingsPage() {
             ) : null}
 
             {activeSection === "security" ? (
+            <div className="space-y-5">
+            <Card className="overflow-hidden border-teal-500/20">
+                <CardHeader className="border-b border-border/70 bg-gradient-to-r from-teal-500/10 via-background to-amber-500/5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <ShieldCheck className="h-5 w-5 text-teal-600" />
+                                E-posta Doğrulama
+                            </CardTitle>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                                Yeni hesapların doğrulama davranışını yönetir. Mevcut
+                                doğrulanmamış hesaplar mod değişikliğinden geriye dönük
+                                etkilenmez.
+                            </p>
+                        </div>
+                        <ProviderBadge
+                            enabled={payload.emailReadiness.configured}
+                            label={`SMTP ${payload.emailReadiness.provider}`}
+                        />
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-5">
+                    <div className="grid gap-4 lg:grid-cols-[minmax(240px,0.7fr)_1.3fr]">
+                        <div className="space-y-2">
+                            <FieldLabel
+                                label="Doğrulama Modu"
+                                helper="Zorunlu mod yalnız bu ayar açıldıktan sonra kaydolan hesaplara uygulanır."
+                            />
+                            <select
+                                className={inputClassName}
+                                value={payload.settings.security.emailVerification.mode}
+                                onChange={(event) =>
+                                    updateEmailVerification(
+                                        event.target.value as SystemSettingsResponse["settings"]["security"]["emailVerification"]["mode"]
+                                    )
+                                }
+                            >
+                                <option value="off">Kapalı</option>
+                                <option value="optional">İsteğe bağlı</option>
+                                <option
+                                    value="required_for_new_accounts"
+                                    disabled={!payload.emailReadiness.configured}
+                                >
+                                    Yeni hesaplarda zorunlu
+                                </option>
+                            </select>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            {[
+                                {
+                                    title: "Kapalı",
+                                    text: "Doğrulama çağrısı ve gönderim kapalıdır.",
+                                },
+                                {
+                                    title: "İsteğe bağlı",
+                                    text: "Hesap hemen açılır; oyuncu Ayarlar'dan isterse doğrular.",
+                                },
+                                {
+                                    title: "Zorunlu",
+                                    text: "Yeni hesap pending açılır; doğrulanana kadar oda, mağaza mutasyonu ve ödül kapalıdır.",
+                                },
+                            ].map((item) => (
+                                <div
+                                    key={item.title}
+                                    className="rounded-2xl border border-border/70 bg-muted/25 p-4"
+                                >
+                                    <div className="text-sm font-black text-foreground">
+                                        {item.title}
+                                    </div>
+                                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                                        {item.text}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {!payload.emailReadiness.configured ? (
+                        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
+                            Zorunlu mod kilitli. Önce `EMAIL_PROVIDER`, SMTP,
+                            `NEXT_PUBLIC_SITE_URL`, `EMAIL_FROM` ve ayrı
+                            `EMAIL_TOKEN_SECRET` yapılandırılmalı. Secret değerleri
+                            admin panelinde saklanmaz.
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm leading-6 text-emerald-800 dark:text-emerald-200">
+                            Provider hazır. Zorunlu kayıtta kullanıcı ve doğrulama
+                            outbox kaydı aynı transaction içinde oluşturulur.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
             <Card className="border-border/70">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck className="h-5 w-5" />Captcha Hazirligi</CardTitle>
@@ -1150,6 +1259,7 @@ export default function SystemSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            </div>
             ) : null}
         </div>
     );

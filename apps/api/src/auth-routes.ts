@@ -17,6 +17,7 @@ import {
     MOBILE_API_ROUTES,
     type MobileApiError,
     type MobileAuthLoginData,
+    type MobileAuthUserData,
     type MobileAuthSessionData,
     type MobileAuthTokenData,
 } from "@hushle/api-contracts";
@@ -68,6 +69,18 @@ function toTokenData(tokens: MobileTokenPair): MobileAuthTokenData {
         refreshToken: tokens.refreshToken,
         refreshTokenExpiresAt: tokens.refreshTokenExpiresAt.toISOString(),
         sessionId: tokens.sessionId,
+    };
+}
+
+function toUserData(user: {
+    id: number;
+    username: string;
+    role: string;
+}): MobileAuthUserData {
+    return {
+        id: user.id,
+        username: user.username,
+        role: user.role,
     };
 }
 
@@ -235,7 +248,7 @@ export async function handleAuthRoute(
             }
             await clearPasswordLoginAccountFailures(username);
             const data: MobileAuthLoginData = {
-                user: result.user,
+                user: toUserData(result.user),
                 tokens: toTokenData(result.tokens),
             };
             return { status: 200, data };
@@ -267,7 +280,7 @@ export async function handleAuthRoute(
                 options: context.authOptions,
             });
             const data: MobileAuthLoginData = {
-                user: result.user,
+                user: toUserData(result.user),
                 tokens: toTokenData(result.tokens),
             };
             return { status: 200, data };

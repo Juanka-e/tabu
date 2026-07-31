@@ -1,3 +1,8 @@
+import type {
+    EmailProviderReadiness,
+    EmailVerificationMode,
+} from "@hushle/platform-email";
+
 export const CAPTCHA_PROVIDERS = ["none", "turnstile", "recaptcha_v3"] as const;
 export type CaptchaProvider = (typeof CAPTCHA_PROVIDERS)[number];
 
@@ -93,8 +98,13 @@ export interface CaptchaSettings {
     turnstileInteractiveFallback: boolean;
 }
 
+export interface EmailVerificationSettings {
+    mode: EmailVerificationMode;
+}
+
 export interface SecuritySettings {
     captcha: CaptchaSettings;
+    emailVerification: EmailVerificationSettings;
 }
 
 export interface SystemSettings {
@@ -114,5 +124,6 @@ export interface CaptchaProviderReadiness {
 export interface SystemSettingsResponse {
     settings: SystemSettings;
     captchaReadiness: CaptchaProviderReadiness;
+    emailReadiness: EmailProviderReadiness;
     namespaces: Array<keyof SystemSettings>;
 }

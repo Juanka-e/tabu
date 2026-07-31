@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 export {
     CosmeticRenderMode,
+    EmailMessageClass,
+    EmailOutboxStatus,
     ItemRarity,
     MobileAuthTokenKind,
     Prisma,
@@ -8,6 +10,7 @@ export {
     PromotionDiscountType,
     PromotionTargetType,
     ShopItemType,
+    UserAccountStatus,
     WalletLedgerSource,
 } from "@prisma/client";
 

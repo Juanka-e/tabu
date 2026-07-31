@@ -117,12 +117,30 @@ enum MobileAuthTokenKind {
   refresh
 }
 
+enum UserAccountStatus {
+  active
+  pending_email_verification
+}
+
+enum EmailMessageClass {
+  transactional
+  marketing
+}
+
+enum EmailOutboxStatus {
+  pending
+  sent
+  dead_letter
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
   email     String?  @db.VarChar(191)
   normalizedEmail String? @unique @map("normalized_email") @db.VarChar(191)
   emailVerifiedAt DateTime? @map("email_verified_at")
+  emailVerificationRequiredAt DateTime? @map("email_verification_required_at")
+  accountStatus UserAccountStatus @default(active) @map("account_status")
   password  String   @db.VarChar(255)
   role      String   @default("user") @db.VarChar(20)
   isSuspended Boolean @default(false) @map("is_suspended")
@@ -155,8 +173,11 @@ model User {
   supportMessagesAuthored  SupportTicketMessage[] @relation("SupportMessageAuthor")
   notifications            Notification[]
   mobileAuthSessions       MobileAuthSession[]
+  emailVerificationTokens  EmailVerificationToken[]
+  emailOutboxMessages      EmailOutboxMessage[]
 
   @@index([emailVerifiedAt])
+  @@index([accountStatus, emailVerificationRequiredAt])
   @@index([isSuspended, suspendedUntil])
   @@index([lastSeenAt])
   @@map("users")
@@ -197,6 +218,49 @@ model MobileAuthToken {
   @@index([sessionId, kind, revokedAt, expiresAt])
   @@index([expiresAt])
   @@map("mobile_auth_tokens")
+}
+
+model EmailVerificationToken {
+  id            String    @id @db.Char(36)
+  userId        Int       @map("user_id")
+  tokenHash     String    @unique @map("token_hash") @db.Char(64)
+  emailSnapshot String    @map("email_snapshot") @db.VarChar(191)
+  expiresAt     DateTime  @map("expires_at")
+  consumedAt    DateTime? @map("consumed_at")
+  revokedAt     DateTime? @map("revoked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
+}
+
+model EmailOutboxMessage {
+  id               String            @id @db.Char(36)
+  userId           Int?              @map("user_id")
+  deduplicationKey String            @unique @map("deduplication_key") @db.VarChar(191)
+  messageClass     EmailMessageClass @map("message_class")
+  template         String            @db.VarChar(80)
+  recipient        String            @db.VarChar(191)
+  subject          String            @db.VarChar(191)
+  payload          Json              @db.Json
+  status           EmailOutboxStatus @default(pending)
+  attemptCount     Int               @default(0) @map("attempt_count")
+  availableAt      DateTime          @default(now()) @map("available_at")
+  lastAttemptAt    DateTime?         @map("last_attempt_at")
+  sentAt           DateTime?         @map("sent_at")
+  lastError        String?           @map("last_error") @db.VarChar(255)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, availableAt, createdAt])
+  @@index([userId, createdAt])
+  @@index([messageClass, status, createdAt])
+  @@map("email_outbox_messages")
 }
 
 model UserModerationEvent {

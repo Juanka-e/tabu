@@ -55,7 +55,20 @@ export default function LoginPage() {
             if (res?.error) {
                 setError("Giris basarisiz. Kullanici adi veya sifre hatali.");
             } else {
-                router.push(callbackUrl);
+                const verificationResponse = await fetch(
+                    "/api/auth/email-verification/status",
+                    { cache: "no-store" }
+                ).catch(() => null);
+                const verification = verificationResponse?.ok
+                    ? ((await verificationResponse.json()) as {
+                          restricted?: boolean;
+                      })
+                    : null;
+                router.push(
+                    verification?.restricted
+                        ? "/verify-email?required=1"
+                        : callbackUrl
+                );
                 router.refresh();
             }
         } catch {

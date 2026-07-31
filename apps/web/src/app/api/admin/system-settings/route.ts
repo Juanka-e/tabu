@@ -6,6 +6,7 @@ import {
 } from "@/lib/system-settings/schema";
 import {
     getCaptchaProviderReadiness,
+    getOutboundEmailReadiness,
     getSystemSettings,
     updateSystemSettings,
 } from "@/lib/system-settings/service";
@@ -28,6 +29,7 @@ export async function GET() {
     return NextResponse.json({
         settings,
         captchaReadiness: getCaptchaProviderReadiness(),
+        emailReadiness: getOutboundEmailReadiness(),
         namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
     });
 }
@@ -58,6 +60,24 @@ export async function PUT(req: NextRequest) {
     try {
         const body = await req.json();
         const nextSettings = systemSettingsWriteSchema.parse(body);
+        const emailReadiness = getOutboundEmailReadiness();
+        if (
+            nextSettings.security.emailVerification.mode ===
+                "required_for_new_accounts" &&
+            !emailReadiness.configured
+        ) {
+            return NextResponse.json(
+                {
+                    error:
+                        "Zorunlu e-posta doğrulaması açılmadan önce SMTP, public site URL ve email token secret eksiksiz olmalıdır.",
+                    emailReadiness,
+                },
+                {
+                    status: 422,
+                    headers: buildRateLimitHeaders(rateLimit),
+                }
+            );
+        }
         const updatedSettings = await updateSystemSettings(nextSettings, adminSession.id);
 
         await writeAuditLog({
@@ -99,6 +119,8 @@ export async function PUT(req: NextRequest) {
                     updatedSettings.capacity.warningThresholdPercent,
                 capacityCriticalThresholdPercent:
                     updatedSettings.capacity.criticalThresholdPercent,
+                emailVerificationMode:
+                    updatedSettings.security.emailVerification.mode,
             },
             request: req,
         });
@@ -106,6 +128,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({
             settings: updatedSettings,
             captchaReadiness: getCaptchaProviderReadiness(),
+            emailReadiness: getOutboundEmailReadiness(),
             namespaces: [...SYSTEM_SETTINGS_NAMESPACES],
         }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {

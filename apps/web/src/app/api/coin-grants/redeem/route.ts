@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { enforceAccountCapability } from "@/lib/auth/account-capability";
 import { coinGrantRedeemSchema } from "@/lib/coin-grants/schema";
 import { redeemCoinGrantCode } from "@/lib/coin-grants/service";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
     if (!sessionUser) {
         return NextResponse.json({ error: "Giris gerekli." }, { status: 401 });
     }
+    const capabilityError = enforceAccountCapability(sessionUser, "reward");
+    if (capabilityError) return capabilityError;
 
     const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "coin-grant-redeem",

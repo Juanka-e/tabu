@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Gamepad2,
   LogOut,
+  MailCheck,
   Music,
   Save,
   User,
@@ -27,6 +28,12 @@ export function SettingsContent() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
+  const [emailVerificationMode, setEmailVerificationMode] = useState<
+    "off" | "optional" | "required_for_new_accounts"
+  >("off");
+  const [emailProviderReady, setEmailProviderReady] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
   const [bio, setBio] = useState("");
   const [settings, setSettings] = useState<DashboardSettingsState>(defaultDashboardSettings);
   const [saving, setSaving] = useState(false);
@@ -49,7 +56,10 @@ export function SettingsContent() {
 
     const load = async () => {
       try {
-        const response = await fetch("/api/user/me", { cache: "no-store" });
+        const [response, verificationResponse] = await Promise.all([
+          fetch("/api/user/me", { cache: "no-store" }),
+          fetch("/api/auth/email-verification/status", { cache: "no-store" }),
+        ]);
         if (!response.ok) {
           return;
         }
@@ -62,6 +72,16 @@ export function SettingsContent() {
         setEmail(payload.email || "");
         setEmailVerifiedAt(payload.emailVerifiedAt);
         setBio(payload.profile.bio || "");
+        if (verificationResponse.ok) {
+          const verification = (await verificationResponse.json()) as {
+            mode: "off" | "optional" | "required_for_new_accounts";
+            providerReady: boolean;
+            emailVerifiedAt: string | null;
+          };
+          setEmailVerificationMode(verification.mode);
+          setEmailProviderReady(verification.providerReady);
+          setEmailVerifiedAt(verification.emailVerifiedAt);
+        }
       } catch {
         // Keep local fallbacks.
       }
@@ -122,6 +142,33 @@ export function SettingsContent() {
       setSaveError("Profil güncellenemedi.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendVerification = async () => {
+    setSendingVerification(true);
+    setVerificationMessage("");
+    try {
+      const response = await fetch("/api/auth/email-verification/request", {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        status?: string;
+      } | null;
+      setVerificationMessage(
+        response.ok
+          ? payload?.message || "Doğrulama bağlantısı gönderim kuyruğuna alındı."
+          : payload?.error || "Doğrulama bağlantısı gönderilemedi."
+      );
+      if (payload?.status === "already_verified") {
+        setEmailVerifiedAt(new Date().toISOString());
+      }
+    } catch {
+      setVerificationMessage("Doğrulama servisine ulaşılamadı.");
+    } finally {
+      setSendingVerification(false);
     }
   };
 
@@ -189,9 +236,35 @@ export function SettingsContent() {
                   {email
                     ? emailVerifiedAt
                       ? "E-posta doğrulandı."
-                      : "E-posta kayıtlı, doğrulama akışı daha sonra eklenecek."
+                      : emailVerificationMode === "off"
+                        ? "E-posta doğrulaması şu anda kapalı."
+                        : emailProviderReady
+                          ? "Hesap güvenliği için e-posta adresini doğrulayabilirsin."
+                          : "Doğrulama servisi şu anda hazır değil."
                     : "Bu hesapta henüz e-posta tanımlı değil."}
                 </div>
+                {email &&
+                !emailVerifiedAt &&
+                emailVerificationMode !== "off" ? (
+                  <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
+                    <button
+                      type="button"
+                      onClick={() => void handleSendVerification()}
+                      disabled={!emailProviderReady || sendingVerification}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-black text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <MailCheck size={15} />
+                      {sendingVerification
+                        ? "Gönderiliyor..."
+                        : "E-postamı doğrula"}
+                    </button>
+                    {verificationMessage ? (
+                      <p className="mt-2 text-xs leading-5 text-teal-800 dark:text-teal-200">
+                        {verificationMessage}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               <div>

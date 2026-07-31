@@ -4,6 +4,7 @@ import {
     type JsonCacheMetrics,
     type RedisHealth,
 } from "@hushle/platform-cache";
+import { getEmailProviderReadiness } from "@hushle/platform-email";
 import { getAdminAccessPolicy } from "@/lib/admin/access-policy";
 import { shouldTrustAuthHost } from "@/lib/auth-host";
 import { getCaptchaProviderReadiness, getSystemSettings } from "@/lib/system-settings/service";
@@ -166,17 +167,24 @@ function buildAccessItems(): IntegrationItem[] {
 }
 
 function buildMessagingItems(): IntegrationItem[] {
+    const email = getEmailProviderReadiness();
+
     return [
         {
             id: "email-outbound",
             category: "messaging",
             title: "Email Outbound",
-            status: "planned",
-            summary: "Kullanici email foundation var, ancak outbound provider henuz bagli degil.",
+            status: email.configured ? "ready" : "missing",
+            summary: email.configured
+                ? "Transactional SMTP provider ve outbox delivery hazir."
+                : "Transactional email provider yapilandirmasi eksik.",
             details: [
-                "Email identity and profile fields are implemented.",
-                "SMTP / transactional mail provider wiring is not implemented yet.",
-                "This should move into Integration Hub once outbound delivery is added.",
+                `Provider: ${email.provider}`,
+                `Configured: ${email.configured ? "yes" : "no"}`,
+                email.issues.length > 0
+                    ? `Issues: ${email.issues.join(", ")}`
+                    : "Outbox delivery: ready",
+                "Marketing delivery remains disabled until explicit consent enforcement is implemented.",
             ],
         },
     ];

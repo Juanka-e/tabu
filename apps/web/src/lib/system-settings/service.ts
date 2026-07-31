@@ -1,4 +1,8 @@
 import { Prisma } from "@hushle/platform-db";
+import {
+    getEmailProviderReadiness,
+    type EmailProviderReadiness,
+} from "@hushle/platform-email";
 import { getOrSetJsonCache } from "@hushle/platform-cache";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
@@ -52,6 +56,10 @@ export function getCaptchaProviderReadiness(): CaptchaProviderReadiness {
             process.env.RECAPTCHA_SECRET_KEY
         ),
     };
+}
+
+export function getOutboundEmailReadiness(): EmailProviderReadiness {
+    return getEmailProviderReadiness();
 }
 
 export async function clearSystemSettingsCache(): Promise<void> {

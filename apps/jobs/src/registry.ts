@@ -2,8 +2,19 @@ import { runAuditRetention } from "./audit-retention";
 import { getAuditRetentionConfig } from "./config";
 import { getMobileAuthRetentionConfig } from "./config";
 import { runMobileAuthRetention } from "./mobile-auth-retention";
+import {
+    getEmailDeliveryConfig,
+    getEmailRetentionConfig,
+} from "./config";
+import { runEmailDelivery } from "./email-delivery";
+import { runEmailRetention } from "./email-retention";
 
-export const JOB_NAMES = ["audit-retention", "mobile-auth-retention"] as const;
+export const JOB_NAMES = [
+    "audit-retention",
+    "mobile-auth-retention",
+    "email-delivery",
+    "email-retention",
+] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
 export interface JobDefinition {
@@ -30,6 +41,22 @@ export function getJobDefinition(job: JobName): JobDefinition {
                 leaseTtlMs: config.leaseTtlMs,
                 run: ({ dryRun }) =>
                     runMobileAuthRetention({ config, dryRun }),
+            };
+        }
+        case "email-delivery": {
+            const config = getEmailDeliveryConfig();
+            return {
+                leaseTtlMs: config.leaseTtlMs,
+                run: ({ dryRun }) =>
+                    runEmailDelivery({ config, dryRun }),
+            };
+        }
+        case "email-retention": {
+            const config = getEmailRetentionConfig();
+            return {
+                leaseTtlMs: config.leaseTtlMs,
+                run: ({ dryRun }) =>
+                    runEmailRetention({ config, dryRun }),
             };
         }
     }

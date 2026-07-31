@@ -47,6 +47,10 @@ Ubuntu 24.04 üzerinde hedef sade model:
 15. `PRODUCT_ANALYTICS_RETENTION_DAYS=45`
 16. Kelime liveops olcumu acilacaksa `WORD_ANALYTICS_ENABLED=true`
 17. `WORD_ANALYTICS_RETENTION_DAYS=45`
+18. Zorunlu e-posta doğrulama açılacaksa `EMAIL_PROVIDER=smtp`
+19. `EMAIL_FROM`, `EMAIL_TOKEN_SECRET`, `SMTP_HOST`, `SMTP_PORT`
+20. SMTP auth gerekiyorsa yalnız jobs container için `SMTP_USER`, `SMTP_PASS`
+21. `JOBS_ENABLED=true` ve email delivery/retention scheduler
 
 ## Deploy Öncesi
 
@@ -64,6 +68,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 6. Nginx upstream'inin yalnız `app:3000` içerdiğini doğrula.
 7. Compose tarafında tek `app` container çalıştığını doğrula.
 8. MySQL backup cron aktif mi kontrol et.
+9. `email-delivery` dry-run provider ready ve bekleyen mesaj sayısını doğruluyor mu kontrol et.
+10. Mail provider production smoke hesabına doğrulama e-postası ulaştırıyor mu kontrol et.
 
 ## Deploy Sonrası
 
@@ -79,6 +85,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 10. Admission `closed` iken mevcut oyuncunun reconnect olabildiğini kontrol et.
 11. `telemetry.matchFinalize` altında recorded ve audit fallback sayaçlarını izle.
 12. Audit fallback sürekli artıyorsa Redis erişimini kontrol et.
+13. Integration Hub `Email Outbound` durumunun ready olduğunu kontrol et.
+14. Email delivery job sonucunda retry/dead-letter artışını izle.
 
 Web launch test katmanlari ve disposable DB siniri:
 `docs/guides/web-launch-readiness-guide.md`.
