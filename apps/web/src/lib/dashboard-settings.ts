@@ -1,10 +1,6 @@
-export type DashboardLanguage = "tr" | "en" | "es";
-
 export interface DashboardSettingsState {
     soundOn: boolean;
     musicOn: boolean;
-    language: DashboardLanguage;
-    showOnline: boolean;
 }
 
 const DASHBOARD_SETTINGS_STORAGE_KEY = "tabu_dashboard_settings_v1";
@@ -12,8 +8,6 @@ const DASHBOARD_SETTINGS_STORAGE_KEY = "tabu_dashboard_settings_v1";
 export const defaultDashboardSettings: DashboardSettingsState = {
     soundOn: true,
     musicOn: false,
-    language: "tr",
-    showOnline: true,
 };
 
 export function readDashboardSettings(): DashboardSettingsState {
@@ -31,10 +25,6 @@ export function readDashboardSettings(): DashboardSettingsState {
         return {
             soundOn: typeof parsed.soundOn === "boolean" ? parsed.soundOn : defaultDashboardSettings.soundOn,
             musicOn: typeof parsed.musicOn === "boolean" ? parsed.musicOn : defaultDashboardSettings.musicOn,
-            language: parsed.language === "en" || parsed.language === "es" || parsed.language === "tr"
-                ? parsed.language
-                : defaultDashboardSettings.language,
-            showOnline: typeof parsed.showOnline === "boolean" ? parsed.showOnline : defaultDashboardSettings.showOnline,
         };
     } catch {
         return defaultDashboardSettings;

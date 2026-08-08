@@ -138,6 +138,7 @@ async function main() {
             select: { password: true, sessionVersion: true },
         });
         assert.equal(afterReset.sessionVersion, 3);
+        assert.ok(afterReset.password);
         assert.equal(await bcryptjs.compare(nextPassword, afterReset.password), true);
         assert.ok(
             (

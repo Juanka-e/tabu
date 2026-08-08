@@ -217,6 +217,13 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ## Yakin Sonraki Branch'ler
 
+### `feature/google-oauth-account-linking-foundation` - tamamlandi
+- Google ile giris ve Settings icinden explicit hesap baglama
+- mevcut ayni e-postayi otomatik birlestirmeyen provider-neutral adapter
+- token saklamayan `OAuthAccount` modeli ve son giris yontemi korumasi
+- Apple ve diger provider'lar icin registry/preflight genisleme noktasi
+- referans: `docs/auth/oauth-account-linking.md`
+
 ### `feature/admin-match-history-review` - tamamlandi
 - admin kullanici inceleme akisina mac gecmisi yuzeyi
 - mac suresi, skor tipi, takim dagilimi, anlatici rotasyonu ve ekonomi etkisi gorunurlugu

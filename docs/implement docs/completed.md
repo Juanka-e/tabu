@@ -197,6 +197,13 @@
 - exporter teslim, kuyruk, drop ve failure aggregate admin/health gorunumu
 - production preflight, Docker env, alarm esikleri ve incident runbook'u
 
+### 28. `feature/google-oauth-account-linking-foundation`
+- token saklamayan provider-neutral OAuth account modeli ve Auth.js adapter'i
+- Google verified-email kontrolu ve otomatik ayni-email link reddi
+- Settings icinden explicit link/unlink ve son giris yontemi korumasi
+- nullable parola icin web/mobile guvenli fallback davranisi
+- Apple ve yeni provider'lar icin registry, env ve production preflight kontrati
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

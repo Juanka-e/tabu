@@ -162,7 +162,7 @@ model User {
   pendingNormalizedEmail String? @unique @map("pending_normalized_email") @db.VarChar(191)
   pendingEmailRequestedAt DateTime? @map("pending_email_requested_at")
   accountStatus UserAccountStatus @default(active) @map("account_status")
-  password  String   @db.VarChar(255)
+  password  String?  @db.VarChar(255)
   sessionVersion Int @default(0) @map("session_version")
   role      String   @default("user") @db.VarChar(20)
   isSuspended Boolean @default(false) @map("is_suspended")
@@ -200,12 +200,30 @@ model User {
   emailChangeTokens        EmailChangeToken[]
   emailOutboxMessages      EmailOutboxMessage[]
   emailSuppressions        EmailSuppression[]
+  oauthAccounts            OAuthAccount[]
 
   @@index([emailVerifiedAt])
   @@index([accountStatus, emailVerificationRequiredAt])
   @@index([isSuspended, suspendedUntil])
   @@index([lastSeenAt])
   @@map("users")
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid()) @db.Char(36)
+  userId            Int      @map("user_id")
+  type              String   @db.VarChar(16)
+  provider          String   @db.VarChar(32)
+  providerAccountId String   @map("provider_account_id") @db.VarChar(191)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId, createdAt])
+  @@map("oauth_accounts")
 }
 
 model MobileAuthSession {

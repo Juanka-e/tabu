@@ -41,9 +41,9 @@ test("announcements modal opens and closes accessibly", async ({ page }) => {
 test("login page renders credentials form", async ({ page }) => {
   await page.goto("/login");
 
-  await expect(page.getByRole("button", { name: /Giris Yap/i })).toBeVisible();
-  await expect(page.getByPlaceholder(/Kullanici Adi/i)).toBeVisible();
-  await expect(page.getByPlaceholder(/Sifre/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Giriş Yap/i })).toBeVisible();
+  await expect(page.getByPlaceholder(/Kullanıcı Adı/i)).toBeVisible();
+  await expect(page.getByPlaceholder(/Parola/i)).toBeVisible();
 });
 
 test("register page renders complete account form", async ({ page }) => {

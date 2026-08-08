@@ -202,6 +202,25 @@ export function validateProductionEnvironment(env) {
     if (!isTrue(env.AUTH_TRUST_HOST)) result.errors.push("AUTH_TRUST_HOST must be true behind the production proxy.");
     if (!isTrue(env.TRUST_PROXY)) result.errors.push("TRUST_PROXY must be true behind the production proxy.");
 
+    const oauthPolicy = env.PRODUCTION_OAUTH_POLICY;
+    if (oauthPolicy === "google") {
+        if (!isTrue(env.GOOGLE_OAUTH_ENABLED)) {
+            result.errors.push("GOOGLE_OAUTH_ENABLED must be true when Google OAuth is selected.");
+        }
+        requireConfiguredValue(env, "AUTH_GOOGLE_ID", result);
+        validateSecret(env, "AUTH_GOOGLE_SECRET", 24, result);
+    } else if (oauthPolicy === "disabled_risk_accepted") {
+        if (isTrue(env.GOOGLE_OAUTH_ENABLED)) {
+            result.errors.push("GOOGLE_OAUTH_ENABLED must be false when OAuth is disabled.");
+        }
+        if (env.AUTH_GOOGLE_ID?.trim() || env.AUTH_GOOGLE_SECRET?.trim()) {
+            result.errors.push("Disabled OAuth must not retain Google client credentials.");
+        }
+        result.warnings.push("OAuth sign-in is explicitly disabled for public launch.");
+    } else {
+        result.errors.push("PRODUCTION_OAUTH_POLICY must be google or disabled_risk_accepted.");
+    }
+
     const observabilityPolicy = env.PRODUCTION_OBSERVABILITY_POLICY;
     if (observabilityPolicy === "http") {
         if (env.OBSERVABILITY_EXPORT_MODE !== "http") {

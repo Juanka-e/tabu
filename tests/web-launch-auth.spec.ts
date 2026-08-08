@@ -25,7 +25,7 @@ test.describe("registered web launch flow", () => {
   test("registers, logs in, opens a room and reaches the lobby", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login(?:\?|$)/);
-    await expect(page.getByRole("button", { name: /Giris Yap/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Giriş Yap/i })).toBeVisible();
 
     await page.goto("/register");
     await page.getByPlaceholder(/Kullanıcı adı/i).fill(username);
@@ -34,9 +34,9 @@ test.describe("registered web launch flow", () => {
     await page.getByRole("button", { name: /^Kayıt Ol$/i }).click();
 
     await expect(page).toHaveURL(/\/login$/, { timeout: 15_000 });
-    await page.getByPlaceholder(/Kullanici Adi/i).fill(username);
-    await page.getByPlaceholder(/Sifre/i).fill(password);
-    await page.getByRole("button", { name: /^Giris Yap$/i }).click();
+    await page.getByPlaceholder(/Kullanıcı Adı/i).fill(username);
+    await page.getByPlaceholder(/Parola/i).fill(password);
+    await page.getByRole("button", { name: /^Giriş Yap$/i }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
     await page.setViewportSize({ width: 390, height: 844 });

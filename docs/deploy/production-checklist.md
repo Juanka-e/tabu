@@ -58,6 +58,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 24. `ADMIN_ACCESS_MODE`, fail-closed gateway header/identity allowlist'i
 25. `BACKUP_REMOTE_ENABLED=true` ve S3-compatible hedef bilgileri
 26. `STATE_CHANGE_ORIGIN_POLICY=strict` ve exact `TRUSTED_WEB_ORIGINS`
+27. `PRODUCTION_OAUTH_POLICY=google` ise `GOOGLE_OAUTH_ENABLED=true`,
+    `AUTH_GOOGLE_ID` ve `AUTH_GOOGLE_SECRET`
 
 ## Deploy Öncesi
 

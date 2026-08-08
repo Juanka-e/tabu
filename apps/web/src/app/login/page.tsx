@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
@@ -25,25 +25,43 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [googleEnabled, setGoogleEnabled] = useState(false);
     const router = useRouter();
     const branding = useBranding();
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    useEffect(() => {
+        const authError = new URLSearchParams(window.location.search).get("error");
+        if (authError === "OAuthAccountNotLinked") {
+            setError(
+                "Bu e-posta mevcut bir hesaba ait. Kullanıcı adı ve parolanla giriş yapıp Ayarlar > Bağlı Hesaplar bölümünden Google'ı bağla."
+            );
+        } else if (authError) {
+            setError("Google ile giriş tamamlanamadı. Lütfen tekrar dene.");
+        }
+
+        void fetch("/api/auth/providers", { cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((providers: Record<string, unknown> | null) =>
+                setGoogleEnabled(Boolean(providers?.google))
+            )
+            .catch(() => setGoogleEnabled(false));
+    }, []);
+
+    const getCallbackUrl = () =>
+        resolveSafeCallbackUrl(
+            new URLSearchParams(window.location.search).get("callbackUrl"),
+            "/dashboard"
+        );
+
+    const handleLogin = async (event: React.FormEvent) => {
+        event.preventDefault();
         setLoading(true);
         setError("");
-
-        const callbackUrl =
-            typeof window !== "undefined"
-                ? resolveSafeCallbackUrl(
-                      new URLSearchParams(window.location.search).get("callbackUrl"),
-                      "/dashboard"
-                  )
-                : "/dashboard";
+        const callbackUrl = getCallbackUrl();
 
         try {
             const { token } = await getCaptchaTokenForAction("login");
-            const res = await signIn("credentials", {
+            const response = await signIn("credentials", {
                 username,
                 password,
                 portal: "user",
@@ -52,8 +70,8 @@ export default function LoginPage() {
                 redirect: false,
             });
 
-            if (res?.error) {
-                setError("Giris basarisiz. Kullanici adi veya sifre hatali.");
+            if (response?.error) {
+                setError("Giriş başarısız. Kullanıcı adı veya parola hatalı.");
             } else {
                 const verificationResponse = await fetch(
                     "/api/auth/email-verification/status",
@@ -72,7 +90,7 @@ export default function LoginPage() {
                 router.refresh();
             }
         } catch {
-            setError("Bir hata olustu.");
+            setError("Bir hata oluştu.");
         } finally {
             setLoading(false);
         }
@@ -102,10 +120,10 @@ export default function LoginPage() {
                         <div className="space-y-1">
                             <CardTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
                                 <LogIn className="h-5 w-5 text-primary" />
-                                Giris Yap
+                                Giriş Yap
                             </CardTitle>
                             {!branding.logoUrl ? (
-                                <CardDescription>Hesabina giris yap.</CardDescription>
+                                <CardDescription>Hesabına giriş yap.</CardDescription>
                             ) : null}
                         </div>
                     </div>
@@ -114,16 +132,16 @@ export default function LoginPage() {
                     <form onSubmit={handleLogin} className="space-y-4">
                         <Input
                             type="text"
-                            placeholder="Kullanici Adi"
+                            placeholder="Kullanıcı Adı"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={(event) => setUsername(event.target.value)}
                             required
                         />
                         <Input
                             type="password"
-                            placeholder="Sifre"
+                            placeholder="Parola"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(event) => setPassword(event.target.value)}
                             required
                         />
                         <div className="text-right">
@@ -138,15 +156,38 @@ export default function LoginPage() {
                             <div className="text-sm font-medium text-red-500">{error}</div>
                         ) : null}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "Giris yapiliyor..." : "Giris Yap"}
+                            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
                         </Button>
                     </form>
+                    {googleEnabled ? (
+                        <div className="mt-5 space-y-4">
+                            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                                <span className="h-px flex-1 bg-border" />
+                                veya
+                                <span className="h-px flex-1 bg-border" />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                disabled={loading}
+                                onClick={() =>
+                                    void signIn("google", {
+                                        callbackUrl: getCallbackUrl(),
+                                    })
+                                }
+                            >
+                                <span className="text-base font-black">G</span>
+                                Google ile devam et
+                            </Button>
+                        </div>
+                    ) : null}
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Hesabin yok mu?{" "}
+                        Hesabın yok mu?{" "}
                         <Link href="/register" className="text-primary hover:underline">
-                            Kayit Ol
+                            Kayıt Ol
                         </Link>
                     </p>
                 </CardFooter>
