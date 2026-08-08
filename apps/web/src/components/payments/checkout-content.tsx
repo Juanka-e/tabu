@@ -85,13 +85,19 @@ function statusLabel(status: string): string {
 export function CheckoutContent() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get("order");
+    const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
     const [data, setData] = useState<OffersResponse | null>(null);
     const [selectedCode, setSelectedCode] = useState<string | null>(null);
     const [accepted, setAccepted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [order, setOrder] = useState<OrderView | null>(null);
+    const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+    const [fullName, setFullName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [address, setAddress] = useState("");
     const idempotencyKey = useRef(`web:${crypto.randomUUID()}`);
+    const activeOrderId = orderId ?? createdOrderId;
 
     useEffect(() => {
         let active = true;
@@ -115,18 +121,22 @@ export function CheckoutContent() {
     }, []);
 
     const loadOrder = useCallback(async () => {
-        if (!orderId) return null;
-        const response = await fetch(`/api/payments/orders/${encodeURIComponent(orderId)}`, {
+        if (!activeOrderId) return null;
+        const response = await fetch(`/api/payments/orders/${encodeURIComponent(activeOrderId)}`, {
             cache: "no-store",
         });
         if (!response.ok) return null;
-        const payload = (await response.json()) as { order: OrderView };
+        const payload = (await response.json()) as {
+            order: OrderView;
+            paymentSession?: { iframeUrl: string } | null;
+        };
         setOrder(payload.order);
+        if (payload.paymentSession?.iframeUrl) setIframeUrl(payload.paymentSession.iframeUrl);
         return payload.order;
-    }, [orderId]);
+    }, [activeOrderId]);
 
     useEffect(() => {
-        if (!orderId) return;
+        if (!activeOrderId) return;
         let cancelled = false;
         let timer: ReturnType<typeof setTimeout> | null = null;
         const delays = [2_000, 3_000, 5_000, 8_000, 12_000, 20_000];
@@ -142,15 +152,18 @@ export function CheckoutContent() {
             cancelled = true;
             if (timer) clearTimeout(timer);
         };
-    }, [loadOrder, orderId]);
+    }, [activeOrderId, loadOrder]);
 
     const selectedOffer = useMemo(
         () => data?.offers.find((offer) => offer.code === selectedCode) ?? null,
         [data, selectedCode]
     );
+    const contactReady = fullName.trim().length >= 2
+        && phone.replace(/\D/g, "").length >= 7
+        && address.trim().length >= 10;
 
     const startCheckout = async () => {
-        if (!data || !selectedOffer || !accepted || submitting) return;
+        if (!data || !selectedOffer || !accepted || !contactReady || submitting) return;
         setSubmitting(true);
         try {
             const response = await fetch("/api/payments/checkout/session", {
@@ -165,17 +178,22 @@ export function CheckoutContent() {
                         privacyNoticeVersion: data.checkout.legalDocuments.privacyNotice.version,
                         distanceSalesNoticeVersion: data.checkout.legalDocuments.distanceSalesNotice.version,
                     },
+                    contact: { fullName, phone, address },
                 }),
             });
             const payload = (await response.json()) as {
                 error?: string;
-                redirectUrl?: string;
+                orderId?: string;
+                iframeUrl?: string;
             };
-            if (!response.ok || !payload.redirectUrl) {
+            if (!response.ok || !payload.orderId || !payload.iframeUrl) {
                 toast.error(payload.error || "Ödeme başlatılamadı.");
                 return;
             }
-            window.location.assign(payload.redirectUrl);
+            setCreatedOrderId(payload.orderId);
+            setIframeUrl(payload.iframeUrl);
+            window.history.replaceState(null, "", `/checkout?order=${encodeURIComponent(payload.orderId)}`);
+            void loadOrder();
         } catch {
             toast.error("Ödeme isteği tamamlanamadı.");
         } finally {
@@ -218,6 +236,25 @@ export function CheckoutContent() {
                     </section>
                 ) : null}
 
+                {iframeUrl && (!order || order.status === "awaiting_payment") ? (
+                    <section className="mt-6 overflow-hidden rounded-[28px] border border-sky-200 bg-white shadow-[0_24px_70px_-45px_rgba(2,132,199,0.65)] dark:border-sky-900 dark:bg-slate-950">
+                        <div className="flex flex-col gap-2 border-b border-slate-200 bg-sky-50 px-5 py-4 dark:border-slate-800 dark:bg-sky-950/35 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="font-black">PayTR güvenli ödeme alanı</p>
+                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Kart bilgileri PayTR tarafından işlenir ve Hushle sistemlerine yazılmaz.</p>
+                            </div>
+                            <span className="w-fit rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-950">SANDBOX TEST</span>
+                        </div>
+                        <iframe
+                            src={iframeUrl}
+                            title="PayTR güvenli ödeme"
+                            className="h-[680px] w-full bg-white sm:h-[720px]"
+                            allow="payment"
+                            referrerPolicy="no-referrer"
+                        />
+                    </section>
+                ) : null}
+
                 <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
                     <section className="rounded-[30px] border border-white/70 bg-white/85 p-5 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.6)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/75 md:p-7">
                         <h2 className="text-xl font-black">Teklif seç</h2>
@@ -254,6 +291,24 @@ export function CheckoutContent() {
                             <strong className="text-2xl">{selectedOffer ? formatMoney(selectedOffer.unitAmountMinor, selectedOffer.currency) : "-"}</strong>
                         </div>
 
+                        <div className="mt-5 space-y-3">
+                            <div>
+                                <label htmlFor="payment-full-name" className="text-xs font-bold text-slate-300">Ad ve soyad</label>
+                                <input id="payment-full-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={60} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="Ad Soyad" />
+                            </div>
+                            <div>
+                                <label htmlFor="payment-phone" className="text-xs font-bold text-slate-300">Telefon</label>
+                                <input id="payment-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={20} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="05xx xxx xx xx" />
+                            </div>
+                            <div>
+                                <label htmlFor="payment-address" className="text-xs font-bold text-slate-300">Fatura/iletişim adresi</label>
+                                <textarea id="payment-address" autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} maxLength={400} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="Mahalle, sokak, ilçe ve il" />
+                            </div>
+                            <p className="rounded-xl border border-sky-300/15 bg-sky-300/10 p-3 text-xs leading-5 text-sky-100">
+                                Bu iletişim bilgileri yalnız ödeme oturumu için PayTR’ye iletilir; Hushle sipariş, audit veya log kayıtlarına kopyalanmaz.
+                            </p>
+                        </div>
+
                         {data ? (
                             <div className="mt-5 space-y-3 text-sm leading-6 text-slate-300">
                                 <p>
@@ -272,7 +327,7 @@ export function CheckoutContent() {
                             <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-200">{data.checkout.unavailableReason}</p>
                         ) : null}
 
-                        <button type="button" onClick={() => void startCheckout()} disabled={!selectedOffer || !accepted || !data?.checkout.available || submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-400 px-4 py-3.5 text-sm font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
+                        <button type="button" onClick={() => void startCheckout()} disabled={!selectedOffer || !accepted || !contactReady || !data?.checkout.available || submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-400 px-4 py-3.5 text-sm font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
                             {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                             Ödeme yükümlülüğü doğuran siparişi ver
                         </button>

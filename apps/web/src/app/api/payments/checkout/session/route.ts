@@ -2,8 +2,14 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+    PaytrCheckoutError,
+    PaymentOrderConflictError,
+    createPaymentCheckoutOrderRecord,
+    createPaytrSandboxCheckoutSession,
     getActivePaymentOffer,
     getPaymentRuntimeReadiness,
+    normalizePaymentGrantSnapshot,
+    paytrCheckoutContactSchema,
 } from "@hushle/platform-payments";
 import { enforceAccountCapability } from "@/lib/auth/account-capability";
 import {
@@ -25,7 +31,25 @@ const checkoutRequestSchema = z.object({
         privacyNoticeVersion: z.string().trim().min(1).max(80),
         distanceSalesNoticeVersion: z.string().trim().min(1).max(80),
     }),
+    contact: paytrCheckoutContactSchema,
 });
+
+function getPublicSiteOrigin(): string | null {
+    try {
+        const url = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+        const localHttp = url.protocol === "http:"
+            && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+        if (url.protocol !== "https:" && !localHttp) return null;
+        return url.origin;
+    } catch {
+        return null;
+    }
+}
+
+function getBoundedRequestId(request: Request): string | null {
+    const value = request.headers.get("x-request-id")?.trim();
+    return value && /^[A-Za-z0-9._:-]{1,80}$/.test(value) ? value : null;
+}
 
 export async function POST(request: Request) {
     const sessionUser = await getSessionUser();
@@ -34,6 +58,12 @@ export async function POST(request: Request) {
     }
     const capabilityError = enforceAccountCapability(sessionUser, "store_mutation");
     if (capabilityError) return capabilityError;
+    if (!sessionUser.email || !sessionUser.emailVerifiedAt) {
+        return NextResponse.json(
+            { error: "Ödeme için doğrulanmış bir e-posta adresi gerekli.", code: "VERIFIED_EMAIL_REQUIRED" },
+            { status: 403 }
+        );
+    }
 
     const ip = getRequestIp(request);
     const [userLimit, ipLimit] = await Promise.all([
@@ -89,16 +119,130 @@ export async function POST(request: Request) {
     }
 
     const runtime = getPaymentRuntimeReadiness();
-    if (!runtime.ready) {
+    if (!runtime.ready || runtime.activeProvider !== "paytr") {
         return NextResponse.json(
             { error: "Ödeme altyapısı şu anda kullanıma hazır değil.", code: "CHECKOUT_UNAVAILABLE" },
             { status: 503, headers: { "Retry-After": "60" } }
         );
     }
 
-    // Provider session creation is deliberately enabled only by a concrete adapter branch.
-    return NextResponse.json(
-        { error: "Ödeme sağlayıcısı henüz kullanıma hazır değil.", code: "PROVIDER_ADAPTER_UNAVAILABLE" },
-        { status: 503, headers: { "Retry-After": "60" } }
-    );
+    if (offer.productKind === "coin_pack") {
+        return NextResponse.json(
+            { error: "Coin paketleri henüz satışa açık değil.", code: "PRODUCT_NOT_SELLABLE" },
+            { status: 409 }
+        );
+    }
+    try {
+        normalizePaymentGrantSnapshot({
+            productKind: offer.productKind,
+            quantity: 1,
+            grantSnapshot: offer.grantSnapshot,
+        });
+    } catch {
+        return NextResponse.json(
+            { error: "Bu teklif şu anda teslimata hazır değil.", code: "INVALID_GRANT_SNAPSHOT" },
+            { status: 409 }
+        );
+    }
+
+    const publicOrigin = getPublicSiteOrigin();
+    if (!publicOrigin) {
+        return NextResponse.json(
+            { error: "Ödeme altyapısı şu anda kullanıma hazır değil.", code: "CHECKOUT_UNAVAILABLE" },
+            { status: 503, headers: { "Retry-After": "60" } }
+        );
+    }
+    const requestIp = getRequestIp(request);
+    const userIp = requestIp === "unknown"
+        ? process.env.PAYTR_SANDBOX_USER_IP?.trim() ?? ""
+        : requestIp;
+
+    try {
+        const orderResult = await createPaymentCheckoutOrderRecord({
+            userId: sessionUser.id,
+            provider: "paytr",
+            providerConfigVersion: 1,
+            idempotencyKey: body.idempotencyKey,
+            quote: {
+                productKind: offer.productKind,
+                productReference: offer.productReference,
+                productVersion: offer.productVersion,
+                productName: offer.productName,
+                quantity: 1,
+                unitAmountMinor: offer.unitAmountMinor,
+                currency: offer.currency,
+                grantSnapshot: offer.grantSnapshot as Record<string, unknown>,
+            },
+            legalAcceptance: {
+                checkoutTermsVersion: body.legalAcceptance.checkoutTermsVersion,
+                privacyNoticeVersion: body.legalAcceptance.privacyNoticeVersion,
+                distanceSalesNoticeVersion: body.legalAcceptance.distanceSalesNoticeVersion,
+                acceptedAt: new Date(),
+                requestId: getBoundedRequestId(request),
+                userAgentHash: request.headers.get("user-agent")
+                    ? createHash("sha256").update(request.headers.get("user-agent")!).digest("hex")
+                    : null,
+            },
+        });
+        const successUrl = new URL("/checkout", publicOrigin);
+        successUrl.searchParams.set("order", orderResult.order.id);
+        successUrl.searchParams.set("result", "provider-return");
+        const failureUrl = new URL("/checkout", publicOrigin);
+        failureUrl.searchParams.set("order", orderResult.order.id);
+        failureUrl.searchParams.set("result", "provider-error");
+
+        const checkout = await createPaytrSandboxCheckoutSession({
+            orderId: orderResult.order.id,
+            email: sessionUser.email,
+            userIp,
+            contact: body.contact,
+            successUrl: successUrl.toString(),
+            failureUrl: failureUrl.toString(),
+            credentials: {
+                merchantId: process.env.PAYTR_MERCHANT_ID ?? "",
+                merchantKey: process.env.PAYTR_MERCHANT_KEY ?? "",
+                merchantSalt: process.env.PAYTR_MERCHANT_SALT ?? "",
+            },
+        });
+        return NextResponse.json(
+            {
+                orderId: checkout.orderId,
+                iframeUrl: checkout.iframeUrl,
+                sandbox: true,
+            },
+            {
+                status: orderResult.reused || checkout.duplicate ? 200 : 201,
+                headers: {
+                    ...buildRateLimitHeaders(limit),
+                    "Cache-Control": "private, no-store",
+                },
+            }
+        );
+    } catch (error) {
+        if (error instanceof PaymentOrderConflictError) {
+            return NextResponse.json(
+                { error: "Bu ödeme isteği farklı bir sipariş için daha önce kullanıldı.", code: "IDEMPOTENCY_CONFLICT" },
+                { status: 409 }
+            );
+        }
+        if (error instanceof PaytrCheckoutError) {
+            const status = error.code === "checkout_in_progress" ? 409 : 502;
+            return NextResponse.json(
+                {
+                    error: error.code === "checkout_in_progress"
+                        ? "Ödeme hazırlanıyor. Lütfen kısa süre sonra tekrar dene."
+                        : "Ödeme sağlayıcısına şu anda ulaşılamıyor.",
+                    code: error.code.toUpperCase(),
+                },
+                {
+                    status,
+                    headers: error.retryable ? { "Retry-After": "5" } : undefined,
+                }
+            );
+        }
+        return NextResponse.json(
+            { error: "Ödeme başlatılamadı.", code: "CHECKOUT_FAILED" },
+            { status: 500 }
+        );
+    }
 }

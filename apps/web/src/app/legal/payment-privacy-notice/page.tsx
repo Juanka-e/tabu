@@ -15,6 +15,7 @@ export default function PaymentPrivacyNoticePage() {
             </LegalSection>
             <LegalSection title="İşlenen veriler ve amaçlar">
                 <p>Hesap kimliği, sipariş ve ürün bilgileri, işlem zamanı, ödeme sağlayıcısı referansları, sınırlı teknik güvenlik kayıtları ile ödeme sonucu; siparişin kurulması, tahsilatın doğrulanması, ürünün teslimi, iade/itiraz süreçleri, dolandırıcılığın önlenmesi ve yasal yükümlülüklerin yerine getirilmesi amacıyla işlenir.</p>
+                <p>PayTR ödeme oturumu oluşturulurken ad-soyad, telefon, adres ve doğrulanmış hesap e-postası işlem için PayTR’ye iletilir. Ad-soyad, telefon ve adres Hushle sipariş, audit veya uygulama log kayıtlarına kopyalanmaz.</p>
                 <p>Kart numarası ve kart güvenlik kodu Hushle sistemlerinde tutulmaz; bu bilgiler seçilen ödeme sağlayıcısının güvenli ödeme yüzeyinde işlenir.</p>
             </LegalSection>
             <LegalSection title="Hukuki sebep, toplama yöntemi ve aktarım">

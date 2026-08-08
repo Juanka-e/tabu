@@ -17,7 +17,7 @@ assert.match(
 assert.match(prodPolicy, /script-src-attr 'none'/);
 assert.match(
     prodPolicy,
-    /frame-src 'self' https:\/\/challenges\.cloudflare\.com https:\/\/www\.youtube\.com https:\/\/www\.youtube-nocookie\.com/
+    /frame-src 'self' https:\/\/challenges\.cloudflare\.com https:\/\/www\.paytr\.com https:\/\/www\.youtube\.com https:\/\/www\.youtube-nocookie\.com/
 );
 assert.match(
     prodPolicy,

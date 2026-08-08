@@ -45,9 +45,12 @@ assert.doesNotMatch(migration, /FLOAT|DOUBLE|DECIMAL/);
 assert.match(route, /payment-checkout-user/);
 assert.match(route, /payment-checkout-ip/);
 assert.match(route, /LEGAL_VERSION_MISMATCH/);
-assert.match(route, /PROVIDER_ADAPTER_UNAVAILABLE/);
+assert.match(route, /createPaytrSandboxCheckoutSession/);
+assert.match(route, /VERIFIED_EMAIL_REQUIRED/);
+assert.match(route, /contact: paytrCheckoutContactSchema/);
 assert.match(checkout, /Ödeme Aydınlatma Metni/);
 assert.match(checkout, /Ödeme yükümlülüğü doğuran siparişi ver/);
+assert.match(checkout, /Fatura\/iletişim adresi/);
 assert.doesNotMatch(checkout, /pazarlama|ticari ileti/i);
 
 console.log("payment checkout foundation checks passed");

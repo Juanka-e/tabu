@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { PAYTR_IFRAME_URL_PREFIX } from "@hushle/platform-payments";
 import { prisma } from "@/lib/prisma";
 import {
     buildRateLimitHeaders,
@@ -32,6 +33,8 @@ export async function GET(
         where: { id, userId: sessionUser.id },
         select: {
             id: true,
+            provider: true,
+            providerSessionReference: true,
             status: true,
             productKind: true,
             productNameSnapshot: true,
@@ -48,9 +51,21 @@ export async function GET(
     if (!order) {
         return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
     }
+    const { providerSessionReference, provider, ...publicOrder } = order;
+    const paymentSession =
+        provider === "paytr"
+        && order.status === "awaiting_payment"
+        && providerSessionReference
+        && process.env.PAYTR_CHECKOUT_MODE?.trim().toLowerCase() === "sandbox"
+            ? {
+                provider: "paytr" as const,
+                sandbox: true,
+                iframeUrl: `${PAYTR_IFRAME_URL_PREFIX}${encodeURIComponent(providerSessionReference)}`,
+            }
+            : null;
 
     return NextResponse.json(
-        { order },
+        { order: publicOrder, paymentSession },
         { headers: { ...buildRateLimitHeaders(rateLimit), "Cache-Control": "private, no-store" } }
     );
 }

@@ -44,9 +44,14 @@ const providers = {
     paytr: {
         id: "paytr",
         title: "PayTR",
-        requiredEnvironment: ["PAYTR_MERCHANT_ID", "PAYTR_MERCHANT_KEY", "PAYTR_MERCHANT_SALT"],
+        requiredEnvironment: [
+            "PAYTR_MERCHANT_ID",
+            "PAYTR_MERCHANT_KEY",
+            "PAYTR_MERCHANT_SALT",
+            "PAYTR_CHECKOUT_MODE",
+        ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP", "RUB"],
-        adapterAvailable: false,
+        adapterAvailable: true,
     },
     stripe: {
         id: "stripe",
@@ -84,6 +89,13 @@ export function getPaymentProviderReadiness(
     const missingEnvironment = descriptor.requiredEnvironment.filter(
         (name) => !hasUsableSecret(environment[name])
     );
+    if (
+        provider === "paytr"
+        && environment.PAYTR_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"
+        && !missingEnvironment.includes("PAYTR_CHECKOUT_MODE")
+    ) {
+        missingEnvironment.push("PAYTR_CHECKOUT_MODE");
+    }
     const credentialsConfigured = missingEnvironment.length === 0;
 
     return {
