@@ -71,7 +71,7 @@ assert.throws(
 );
 assert.equal(PAYMENT_ORDER_STATUSES.length, 9);
 
-const emptyEnvironment = {} as NodeJS.ProcessEnv;
+const emptyEnvironment = {};
 const readiness = listPaymentProviderReadiness(emptyEnvironment);
 assert.deepEqual(readiness.map((item) => item.id), PAYMENT_PROVIDER_IDS);
 assert.equal(readiness.every((item) => !item.ready), true);

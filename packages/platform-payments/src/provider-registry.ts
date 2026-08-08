@@ -24,6 +24,8 @@ export interface PaymentRuntimeReadiness {
     issues: string[];
 }
 
+export type PaymentEnvironment = Readonly<Record<string, string | undefined>>;
+
 const providers = {
     shopier_v2: {
         id: "shopier_v2",
@@ -76,7 +78,7 @@ export function getPaymentProviderDescriptor(
 
 export function getPaymentProviderReadiness(
     provider: PaymentProviderId,
-    environment: NodeJS.ProcessEnv = process.env
+    environment: PaymentEnvironment = process.env
 ): PaymentProviderReadiness {
     const descriptor = getPaymentProviderDescriptor(provider);
     const missingEnvironment = descriptor.requiredEnvironment.filter(
@@ -93,7 +95,7 @@ export function getPaymentProviderReadiness(
 }
 
 export function listPaymentProviderReadiness(
-    environment: NodeJS.ProcessEnv = process.env
+    environment: PaymentEnvironment = process.env
 ): PaymentProviderReadiness[] {
     return PAYMENT_PROVIDER_IDS.map((provider) =>
         getPaymentProviderReadiness(provider, environment)
@@ -101,7 +103,7 @@ export function listPaymentProviderReadiness(
 }
 
 export function getPaymentRuntimeReadiness(
-    environment: NodeJS.ProcessEnv = process.env
+    environment: PaymentEnvironment = process.env
 ): PaymentRuntimeReadiness {
     const enabled = environment.PAYMENTS_ENABLED?.trim().toLowerCase() === "true";
     const configuredProvider = environment.PAYMENT_ACTIVE_PROVIDER?.trim();
@@ -131,7 +133,7 @@ export function getPaymentRuntimeReadiness(
 export function assertPaymentProviderReady(
     provider: PaymentProviderId,
     currency: string,
-    environment: NodeJS.ProcessEnv = process.env
+    environment: PaymentEnvironment = process.env
 ): void {
     const readiness = getPaymentProviderReadiness(provider, environment);
     const normalizedCurrency = currency.trim().toUpperCase();
