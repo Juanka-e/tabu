@@ -34,6 +34,8 @@
     "test:payment-fulfillment-integration": "tsx scripts/test-payment-fulfillment-integration.ts",
     "test:payment-paytr-checkout": "tsx scripts/test-paytr-checkout-orchestration.ts",
     "test:payment-paytr-checkout-integration": "tsx scripts/test-paytr-checkout-orchestration-integration.ts",
+    "test:payment-paytr-webhook": "tsx scripts/test-paytr-webhook-processor.ts",
+    "test:payment-paytr-webhook-integration": "tsx scripts/test-paytr-webhook-processor-integration.ts",
     "pretypecheck:web": "npm run db:generate",
     "typecheck:web": "npm run typecheck --workspace @hushle/web",
     "infra:up": "docker compose -f docker-compose.dev.yml up -d",

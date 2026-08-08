@@ -261,6 +261,15 @@
 - coin pack ürünlerini reversal politikası tamamlanana kadar gizleme
 - production Compose env parity ve live modu reddeden preflight gate
 
+### 37. `feature/paytr-webhook-order-processor`
+- sandbox credential gate'li PayTR webhook verifier registry bağlantısı
+- row-lock altında order referansı, tutar, currency, sandbox ve state doğrulaması
+- durable inbox worker üzerinden idempotent paid/failed geçişleri ve fulfillment
+- worker retry/restart durumunda tek grant ve tek bildirim garantisi
+- notification cache invalidation ve kalıcı notification delivery işareti
+- checkout için jobs runtime ve scheduler zorunlu production preflight kapısı
+- imzalı callback zincirini zorlayan disposable MySQL entegrasyon testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

@@ -15,8 +15,8 @@ PAYTR_MERCHANT_SALT=...
 ```
 
 `PAYTR_CHECKOUT_MODE=live` bilinçli olarak fail-closed kalır. Kod token isteğinde
-`test_mode=1` değerini sabit gönderir. Callback processor, refund ve chargeback
-tamamlanmadan gerçek tahsilat açılmaz.
+`test_mode=1` değerini sabit gönderir. Sandbox callback processor tamamlanmıştır;
+refund, chargeback ve live operasyonlar bitmeden gerçek tahsilat açılmaz.
 
 ## Checkout Akışı
 
@@ -56,11 +56,8 @@ cevabı, secret, iletişim alanları ve kart verisi log/audit/veritabanına yaz�
 
 ## Kalan Aktivasyon İşleri
 
-- PayTR verifier'ını webhook registry'ye bağlamak,
-- duplicate ve out-of-order callback'leri işleyen idempotent order processor,
-- başarılı fulfillment sonrası notification ve cache invalidation,
 - expiry, refund ve chargeback state/reversal davranışı,
-- sandbox callback entegrasyon testleri ve reconciliation yolu,
+- provider reconciliation ve admin dead-letter operasyon yolu,
 - Cloudflare callback no-challenge smoke testi,
 - hukuk onaylı işletme, aydınlatma ve mesafeli satış metinleri,
 - en son düşük tutarlı canlı ödeme ve iade smoke testi.
@@ -71,6 +68,8 @@ cevabı, secret, iletişim alanları ve kart verisi log/audit/veritabanına yaz�
 npm run test:payment-paytr-adapter
 npm run test:payment-paytr-checkout
 npm run test:payment-paytr-checkout-integration
+npm run test:payment-paytr-webhook
+npm run test:payment-paytr-webhook-integration
 npm run test:payment-checkout-e2e
 ```
 

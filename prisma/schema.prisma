@@ -378,6 +378,7 @@ model PaymentFulfillment {
   grantResult    Json?                    @map("grant_result") @db.Json
   errorCode      String?                  @map("error_code") @db.VarChar(80)
   completedAt    DateTime?                @map("completed_at")
+  notificationSentAt DateTime?            @map("notification_sent_at")
   reversedAt     DateTime?                @map("reversed_at")
   createdAt      DateTime                 @default(now()) @map("created_at")
   updatedAt      DateTime                 @updatedAt @map("updated_at")

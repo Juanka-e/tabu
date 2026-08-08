@@ -71,6 +71,21 @@ yalnız sandbox için eklendi:
 - redirect yine ödeme kanıtı değildir; webhook processor tamamlanmadan sipariş
   `paid` durumuna geçemez.
 
+`feature/paytr-webhook-order-processor` ile sandbox callback teslim zinciri
+tamamlandı:
+
+- PayTR verifier yalnız sandbox credential hazırken webhook registry'ye bağlanır,
+- imzalı callback hızlıca MySQL inbox'a yazılır; fulfillment jobs runtime'da çalışır,
+- worker provider order referansı, exact tutar, currency, sandbox işareti ve state'i
+  row lock altında doğrular,
+- success callback order'ı `paid` yapıp atomik fulfillment çalıştırır; failed callback
+  order'ı terminal `failed` durumuna alır,
+- duplicate event, worker restart ve claim expiry ikinci grant veya bildirim üretmez,
+- fulfillment bildirimi kalıcı `notificationSentAt` işaretiyle idempotenttir,
+- production preflight checkout için aktif jobs runtime ve gerçek scheduler beyanı
+  ister,
+- refund/chargeback reversal ve live PayTR hâlâ fail-closed kapsam dışıdır.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.

@@ -76,14 +76,6 @@ export class PaymentWebhookProcessingError extends Error {
     }
 }
 
-export function getPaymentWebhookVerifier(
-    provider: PaymentProviderId
-): PaymentWebhookVerifier | null {
-    // Provider adapters are enabled one-by-one after sandbox and live webhook smoke tests.
-    void provider;
-    return null;
-}
-
 export async function ingestVerifiedPaymentWebhook(input: {
     provider: PaymentProviderId;
     rawBody: Uint8Array;

@@ -233,6 +233,12 @@ export function validateProductionEnvironment(env) {
         for (const key of ["PAYTR_MERCHANT_ID", "PAYTR_MERCHANT_KEY", "PAYTR_MERCHANT_SALT"]) {
             requireConfiguredValue(env, key, result);
         }
+        if (!isTrue(env.JOBS_ENABLED)) {
+            result.errors.push("JOBS_ENABLED must be true before checkout is enabled.");
+        }
+        if (!isTrue(env.PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED)) {
+            result.errors.push("PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED must confirm the durable processor schedule before checkout is enabled.");
+        }
         result.checks.push("payment legal and sandbox provider readiness");
     }
 
