@@ -150,6 +150,45 @@ enum EmailDeliveryEventType {
   hard_bounce
   complaint
 }
+enum PaymentProvider {
+  shopier_v2
+  iyzico
+  paytr
+  stripe
+  lemonsqueezy
+}
+
+enum PaymentOrderStatus {
+  created
+  pending_provider
+  awaiting_payment
+  paid
+  fulfilled
+  failed
+  expired
+  refunded
+  chargeback
+}
+
+enum PaymentProductKind {
+  cosmetic_item
+  cosmetic_bundle
+  coin_pack
+}
+
+enum PaymentAttemptStatus {
+  created
+  requested
+  succeeded
+  failed
+}
+
+enum PaymentFulfillmentStatus {
+  pending
+  completed
+  failed
+  reversed
+}
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -201,6 +240,7 @@ model User {
   emailOutboxMessages      EmailOutboxMessage[]
   emailSuppressions        EmailSuppression[]
   oauthAccounts            OAuthAccount[]
+  paymentOrders            PaymentOrder[]
 
   @@index([emailVerifiedAt])
   @@index([accountStatus, emailVerificationRequiredAt])
@@ -209,6 +249,85 @@ model User {
   @@map("users")
 }
 
+model PaymentOrder {
+  id                       String             @id @default(uuid()) @db.Char(36)
+  userId                   Int                @map("user_id")
+  provider                 PaymentProvider
+  providerConfigVersion    Int                @default(1) @map("provider_config_version")
+  status                   PaymentOrderStatus @default(created)
+  idempotencyKey           String             @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint       String             @map("request_fingerprint") @db.Char(64)
+  productKind              PaymentProductKind @map("product_kind")
+  productReference         String             @map("product_reference") @db.VarChar(120)
+  productVersion           Int                @map("product_version")
+  productNameSnapshot      String             @map("product_name_snapshot") @db.VarChar(160)
+  quantity                 Int                @default(1)
+  unitAmountMinor          Int                @map("unit_amount_minor")
+  totalAmountMinor         Int                @map("total_amount_minor")
+  currency                 String             @db.Char(3)
+  grantSnapshot            Json               @map("grant_snapshot") @db.Json
+  providerOrderReference   String?            @map("provider_order_reference") @db.VarChar(191)
+  providerSessionReference String?            @map("provider_session_reference") @db.VarChar(191)
+  version                  Int                @default(1)
+  expiresAt                DateTime?          @map("expires_at")
+  paidAt                   DateTime?          @map("paid_at")
+  fulfilledAt              DateTime?          @map("fulfilled_at")
+  failedAt                 DateTime?          @map("failed_at")
+  refundedAt               DateTime?          @map("refunded_at")
+  chargebackAt             DateTime?          @map("chargeback_at")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  attempts    PaymentAttempt[]
+  fulfillment PaymentFulfillment?
+
+  @@unique([userId, idempotencyKey])
+  @@unique([provider, providerOrderReference])
+  @@unique([provider, providerSessionReference])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([provider, status, createdAt])
+  @@map("payment_orders")
+}
+
+model PaymentAttempt {
+  id                 String               @id @default(uuid()) @db.Char(36)
+  orderId            String               @map("order_id") @db.Char(36)
+  attemptNumber      Int                  @map("attempt_number")
+  status             PaymentAttemptStatus @default(created)
+  requestFingerprint String               @map("request_fingerprint") @db.Char(64)
+  providerRequestId  String?              @map("provider_request_id") @db.VarChar(191)
+  errorCode          String?              @map("error_code") @db.VarChar(80)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, attemptNumber])
+  @@unique([orderId, providerRequestId])
+  @@index([status, createdAt])
+  @@map("payment_attempts")
+}
+
+model PaymentFulfillment {
+  id             String                   @id @default(uuid()) @db.Char(36)
+  orderId        String                   @unique @map("order_id") @db.Char(36)
+  status         PaymentFulfillmentStatus @default(pending)
+  fulfillmentKey String                   @unique @map("fulfillment_key") @db.VarChar(191)
+  attemptCount   Int                      @default(0) @map("attempt_count")
+  grantResult    Json?                    @map("grant_result") @db.Json
+  errorCode      String?                  @map("error_code") @db.VarChar(80)
+  completedAt    DateTime?                @map("completed_at")
+  reversedAt     DateTime?                @map("reversed_at")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("payment_fulfillments")
+}
 model OAuthAccount {
   id                String   @id @default(uuid()) @db.Char(36)
   userId            Int      @map("user_id")

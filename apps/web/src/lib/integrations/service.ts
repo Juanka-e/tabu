@@ -5,6 +5,10 @@ import {
     type RedisHealth,
 } from "@hushle/platform-cache";
 import { getEmailProviderReadiness } from "@hushle/platform-email";
+import {
+    getPaymentRuntimeReadiness,
+    listPaymentProviderReadiness,
+} from "@hushle/platform-payments";
 import { getAdminAccessPolicy } from "@/lib/admin/access-policy";
 import { shouldTrustAuthHost } from "@/lib/auth-host";
 import { getCaptchaProviderReadiness, getSystemSettings } from "@/lib/system-settings/service";
@@ -14,7 +18,7 @@ export type IntegrationStatus = "ready" | "partial" | "missing" | "planned";
 
 export interface IntegrationItem {
     id: string;
-    category: "runtime" | "security" | "access" | "messaging" | "storage";
+    category: "runtime" | "security" | "access" | "messaging" | "storage" | "commerce";
     title: string;
     status: IntegrationStatus;
     summary: string;
@@ -190,6 +194,52 @@ function buildMessagingItems(): IntegrationItem[] {
     ];
 }
 
+function buildCommerceItems(): IntegrationItem[] {
+    const runtime = getPaymentRuntimeReadiness();
+    const checkoutGate: IntegrationItem = {
+        id: "payment-checkout-gate",
+        category: "commerce",
+        title: "Payment Checkout Gate",
+        status: runtime.ready ? "ready" : runtime.enabled ? "missing" : "planned",
+        summary: runtime.ready
+            ? `Checkout is enabled with ${runtime.activeProvider}.`
+            : runtime.enabled
+              ? "Checkout was requested but the selected provider is not ready."
+              : "Checkout is fail-closed and does not accept payments.",
+        details: [
+            `Enabled: ${runtime.enabled ? "yes" : "no"}`,
+            `Active provider: ${runtime.activeProvider ?? "none"}`,
+            `Issues: ${runtime.issues.length > 0 ? runtime.issues.join(", ") : "none"}`,
+        ],
+    };
+    const providers: IntegrationItem[] = listPaymentProviderReadiness().map((provider) => ({
+        id: `payment-${provider.id}`,
+        category: "commerce" as const,
+        title: provider.title,
+        status: provider.ready
+            ? "ready"
+            : provider.credentialsConfigured
+              ? "partial"
+              : provider.adapterAvailable
+                ? "missing"
+                : "planned",
+        summary: provider.ready
+            ? "Checkout adapter and credentials are ready."
+            : provider.adapterAvailable
+              ? "Adapter exists, but provider credentials are incomplete."
+              : "Provider registry is ready; checkout adapter is not enabled yet.",
+        details: [
+            `Adapter: ${provider.adapterAvailable ? "available" : "not_implemented"}`,
+            `Credentials: ${provider.credentialsConfigured ? "configured" : "missing"}`,
+            `Missing env: ${provider.missingEnvironment.length > 0 ? provider.missingEnvironment.join(", ") : "none"}`,
+            `Currencies: ${provider.supportedCurrencies.join(", ")}`,
+            "Secret values are read from the runtime secret store and are never shown here.",
+        ],
+    }));
+
+    return [checkoutGate, ...providers];
+}
+
 function buildStorageItems(
     redis: RedisHealth,
     cache: JsonCacheMetrics
@@ -253,6 +303,7 @@ export async function getIntegrationHubSnapshot(
             ...buildCaptchaItems(settings),
             ...buildAccessItems(),
             ...buildMessagingItems(),
+            ...buildCommerceItems(),
             ...buildStorageItems(redis, cache),
         ],
     };
