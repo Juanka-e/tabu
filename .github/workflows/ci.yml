@@ -108,6 +108,11 @@ jobs:
         env:
           PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
 
+      - name: Test PayTR webhook processor
+        run: npm run test:payment-paytr-webhook-integration
+        env:
+          PAYTR_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build
 

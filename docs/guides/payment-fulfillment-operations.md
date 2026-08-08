@@ -2,66 +2,54 @@
 
 ## Kapsam
 
-Bu katman, imzalı provider doğrulamasıyla `paid` durumuna geçmiş bir siparişin
-ürününü oyuncuya atomik ve idempotent biçimde teslim eder. Tahsilat başlatmaz ve
-PayTR webhook processor'ına henüz bağlı değildir.
+İmzalı PayTR sandbox callback'i tarafından `paid` yapılan siparişin ürününü atomik
+ve idempotent teslim eder. Desteklenen grant snapshot sürümü `1`:
 
-Desteklenen server-owned grant snapshot sürümü `1`:
+- `coin_pack`: pozitif `coinAmount`,
+- `cosmetic_item`: tek item ve immutable render snapshot,
+- `cosmetic_bundle`: benzersiz item listesi ve render snapshot'ları.
 
-- `coin_pack`: paket başına pozitif `coinAmount`,
-- `cosmetic_item`: tam bir kozmetik item ve immutable render snapshot,
-- `cosmetic_bundle`: benzersiz item listesi ve her item için render snapshot.
-
-Kozmetik siparişlerinde quantity yalnız `1` olabilir. Coin pack quantity,
-snapshot tutarıyla güvenli integer sınırında çarpılır.
+Coin pack ürünleri reversal politikası tamamlanana kadar checkout kataloğunda
+gizlidir; çekirdek fulfillment desteği gelecekteki kontrollü aktivasyon içindir.
 
 ## Transaction Değişmezleri
 
-1. Sipariş satırı `SELECT ... FOR UPDATE` ile kilitlenir.
+1. Sipariş `SELECT ... FOR UPDATE` ile kilitlenir.
 2. Sipariş `paid` olmalı ve `paidAt` taşımalıdır.
 3. Grant snapshot ürün türüyle eşleşmelidir.
-4. Fulfillment kaydı, wallet/envanter grant'i ve siparişin `fulfilled` geçişi
-   aynı MySQL transaction'ında tamamlanır.
-5. `PaymentFulfillment.orderId` ve `fulfillmentKey` unique constraint'leri ile
-   wallet ledger idempotency anahtarı ikinci grant'i engeller.
-6. Redis/Valkey fulfillment, bakiye veya envanter için source of truth değildir.
-7. Tamamlanmış grant sonucu yeniden okunurken schema ile tekrar doğrulanır.
+4. Fulfillment, wallet/envanter grant'i ve `fulfilled` geçişi aynı transaction'dadır.
+5. Order, fulfillment key ve wallet ledger unique anahtarları ikinci grant'i engeller.
+6. Tamamlanmış grant sonucu yeniden okunurken schema ile doğrulanır.
+7. Redis bakiye, envanter veya fulfillment source of truth değildir.
 
-Coin pack hareketleri `payment_topup` ledger kaynağını kullanır. Böylece maç
-ödülü, coin kodu, admin düzeltmesi ve gerçek para coin'i audit/reconciliation
-tarafında birbirine karışmaz.
+Coin pack hareketleri `payment_topup` kaynağını kullanır; maç ödülü, coin kodu ve
+admin düzeltmesiyle karışmaz.
+
+## Bildirim
+
+Başarılı fulfillment sonrasında ekonomi bildirimi ayrı row-lock transaction'ında
+oluşturulur. `notificationSentAt` aynı transaction'da yazıldığı için event retry veya
+worker restart ikinci bildirim üretmez. Bildirim cache invalidation başarısız olsa
+bile ürün teslimi geri alınmaz; kısa TTL sonrası MySQL değeri okunur.
 
 ## Hata Davranışı
 
-Geçersiz snapshot, silinmiş item veya oyuncunun ödeme sırasında ürünü başka bir
-yoldan edinmesi sessiz başarı sayılmaz. Sipariş `paid` kalır,
-`PaymentFulfillment.status=failed` ve bounded `errorCode` yazılır. Operatör bu
-durumda retry, alternatif teslimat veya refund kararı verir.
+Geçersiz snapshot, eksik item veya zaten sahip olunan item sessiz başarı sayılmaz.
+Sipariş `paid` kalır, fulfillment bounded failure taşır ve webhook dead-letter olur.
+Operatör retry, alternatif teslimat veya refund kararını reconciliation yüzeyinde
+verir. Bundle kısmi teslim edilmez.
 
-Bundle içinde tek sahip olunan item varsa transaction tüm bundle'ı reddeder;
-diğer item'lar kısmen yazılmaz. Ham provider cevabı, secret, iletişim bilgisi
-veya render payload'ı hata alanına yazılmaz.
+## Kalanlar
 
-## Bu Branch Dışında Kalanlar
-
-- PayTR callback processor bağlantısı,
-- başarılı fulfillment sonrası notification ve cache invalidation,
 - refund/chargeback reversal ledger ve entitlement freeze/revoke politikası,
-- admin retry/refund operasyon ekranı,
-- provider reconciliation job'u.
-
-Bu işler tamamlanmadan `PAYMENTS_ENABLED=true` yapılmaz. Özellikle coin pack
-satışı, harcanmış paid coin'in chargeback durumunda nasıl ele alınacağı
-onaylanmadan kataloğa açılmaz.
+- admin dead-letter retry/refund/reconciliation ekranı,
+- provider reconciliation job'ı,
+- düşük tutarlı canlı ödeme ve iade smoke testi.
 
 ## Testler
 
 ```bash
 npm run test:payment-fulfillment
 npm run test:payment-fulfillment-integration
+npm run test:payment-paytr-webhook-integration
 ```
-
-Integration testi yalnız disposable `tabu_test*` MySQL veritabanında çalışır.
-Eşzamanlı duplicate coin fulfillment, kozmetik tekrar teslimi, ödenmemiş
-sipariş, geçersiz snapshot ve bundle partial-grant rollback senaryolarını
-doğrular.

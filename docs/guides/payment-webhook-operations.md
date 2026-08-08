@@ -1,43 +1,93 @@
 # Payment Webhook Operations
 
+## Mevcut Durum
+
+PayTR sandbox callback zinciri aktiftir. Web route imzayı doğrular, normalize olayı
+MySQL durable inbox'a yazar ve PayTR'ye yalnız bundan sonra `OK` döner. Ürün teslimi
+request thread'inde değil, lease korumalı `apps/jobs` worker'ında yapılır.
+
 ## Veri Ayrımı
 
-- MySQL: doğrulanmış webhook inbox, delivery/attempt sayıları, retry ve dead-letter durumu.
-- Redis/Valkey: yalnız jobs runtime global lease ve geçici koordinasyon.
-- Redis kaybı webhook event kaybına yol açmaz. En fazla worker geçici olarak çalışmaz; event MySQL'de bekler.
-- Upstash REST SDK kullanılmaz. İleride managed Redis gerekirse standart `REDIS_URL` protokolü korunur.
+- MySQL: webhook inbox, delivery/attempt sayıları, retry/dead-letter, order ve
+  fulfillment source of truth.
+- Redis/Valkey: yalnız global job lease ve cache invalidation koordinasyonu.
+- Redis kaybı event kaybettirmez; worker geçici durursa event MySQL'de bekler.
+- Raw body, imza, kart verisi ve iletişim alanları saklanmaz. Yalnız body SHA-256
+  ve bounded normalize metadata tutulur.
 
 ## Güvenlik Kontratı
 
 1. Endpoint session, CSRF, Origin/Referer veya captcha beklemez.
-2. Body en fazla `PAYMENT_WEBHOOK_MAX_BODY_BYTES` kadar okunur.
-3. Provider adapter raw byte ve gerekli header üzerinden signature/replay doğrulaması yapar.
-4. Doğrulama başarısızsa genel `400`; verifier/adapter yoksa `404` dönülür.
-5. Yalnız normalize edilmiş bounded alanlar saklanır. Raw body için yalnız SHA-256 tutulur.
-6. Durable insert başarısızsa `5xx` dönülerek provider retry yapmaya zorlanır.
-7. Inbox yazıldıktan sonra provider'a kendi adapter'ının beklediği hızlı acknowledgement döner.
+2. Body `PAYMENT_WEBHOOK_MAX_BODY_BYTES` sınırıyla stream edilir.
+3. PayTR HMAC raw byte üzerinden constant-time karşılaştırmayla doğrulanır.
+4. Hatalı imza genel `400`, kapalı/eksik verifier `404` döndürür.
+5. Durable insert başarısızsa `5xx` dönerek provider retry yapmaya zorlanır.
+6. Worker callback'in order referansı, sandbox işareti, exact minor-unit tutarı,
+   para birimi ve mevcut order state'ini tekrar doğrular.
+7. Redirect veya browser sonucu hiçbir zaman `paid` kanıtı değildir.
 
 ## Worker
 
-- Dry-run: `npm run jobs:payment-webhook`
-- Execute ancak `JOBS_ENABLED=true` ve explicit `execute` ile çalışır.
-- İlk provider processor'ı eklenene kadar execute fail-closed durur ve event claim etmez.
-- Expired DB claim başka worker tarafından geri alınabilir.
-- Retry gecikmesi bounded exponential backoff kullanır; varsayılan maksimum deneme `8`.
-- Dead-letter otomatik fulfillment yapmaz. Admin inceleme/reconcile aracı sonraki operasyon dilimidir.
+Dry-run:
 
-## Adapter Açma Kapısı
+```bash
+npm run jobs:run -- payment-webhook dry-run
+```
 
-Bir provider ancak şu testler tamamlanınca registry'de webhook-ready yapılır:
+Execute:
 
-- resmi sandbox signature fixture,
-- bozuk imza, eski timestamp/replay ve body mutation testleri,
-- duplicate ve out-of-order delivery testi,
-- provider-specific acknowledgement testi,
-- canlı düşük tutarlı ödeme + refund smoke,
-- Cloudflare/WAF üzerinde challenge olmadan callback doğrulaması.
+```bash
+JOBS_ENABLED=true npm run jobs:run -- payment-webhook execute
+```
 
-PayTR verifier temeli mevcuttur ancak bilinçli olarak registry'ye bağlı değildir.
-PayTR callback URL'si session/CSRF/captcha beklemez; HMAC doğrulamasından sonra
-durable inbox'a yazılır. Order processor ve atomik fulfillment tamamlanmadan
-verifier açılmaz. Ayrıntı: `docs/guides/paytr-iframe-adapter.md`.
+Production scheduler en fazla bir dakikalık aralıkla bu one-shot job'ı çağırmalıdır.
+Global Redis lease aynı anda iki scheduler çağrısının aynı batch'i çalıştırmasını
+engeller; DB claim token ise event seviyesindeki ikinci korumadır.
+
+Checkout açılmadan önce:
+
+```env
+JOBS_ENABLED=true
+PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED=true
+```
+
+`PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED` otomatik scheduler değildir; operatorün cron,
+container scheduler veya platform job tanımını gerçekten kurduğunu preflight'a
+beyan eden production gate'tir.
+
+## İşleme Davranışı
+
+- `awaiting_payment + payment_succeeded`: order `paid`, ardından atomik fulfillment.
+- `awaiting_payment + payment_failed`: order `failed`, session token temizlenir.
+- `paid/fulfilled + aynı success`: idempotent tekrar; ikinci grant oluşmaz.
+- `created/pending_provider`: bounded retry; checkout finalize yarışına tolerans.
+- tutar, currency, sandbox veya order uyuşmazlığı: non-retryable dead-letter.
+- refund/chargeback: reversal uygulanmaz; ayrı reversal altyapısı tamamlanana kadar
+  güvenli biçimde otomatik işlem dışı kalır.
+
+Fulfillment sonrası oyuncuya tek ekonomi bildirimi oluşturulur. Bildirim teslim
+işareti `PaymentFulfillment.notificationSentAt` üzerinde transaction ile tutulur;
+worker crash/retry ikinci bildirim üretmez. Unread notification cache best-effort
+invalidate edilir, MySQL yine source of truth'tür.
+
+## Operasyon
+
+- Retry gecikmesi bounded exponential backoff kullanır.
+- Expired claim başka worker tarafından geri alınabilir.
+- Dead-letter otomatik ürün vermez veya para iadesi yapmaz.
+- Dead-letter kayıtları order, bounded error ve callback evidence ile manuel
+  reconciliation için korunur.
+- Checkout geçici kapatılırken `PAYMENTS_ENABLED=false` yapılır; bekleyen callback'ler
+  için PayTR credential ve sandbox webhook verifier erişimi korunur.
+
+## Testler
+
+```bash
+npm run test:payment-webhook
+npm run test:payment-paytr-webhook
+npm run test:payment-paytr-webhook-integration
+```
+
+Entegrasyon testi disposable MySQL üzerinde imzalı callback, duplicate delivery,
+success/failed state, tek fulfillment, tek notification, invalid signature ve
+amount mismatch dead-letter senaryolarını doğrular.

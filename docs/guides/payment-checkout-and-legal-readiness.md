@@ -4,8 +4,8 @@
 
 Server-priced teklif kataloğu, owner-only sipariş durumu, immutable legal consent,
 atomik fulfillment ve PayTR sandbox iFrame orchestration hazırdır. Gerçek tahsilat
-kapalıdır. Callback processor, refund/chargeback ve operasyon smoke testleri
-tamamlanmadan live moda geçilmez.
+kapalıdır. Sandbox callback processor hazırdır; refund/chargeback, reconciliation
+ve operasyon smoke testleri tamamlanmadan live moda geçilmez.
 
 ## Hukuki Yüzey Ayrımı
 
@@ -28,6 +28,8 @@ ve yetkili merci bilgileri hukuk danışmanı tarafından onaylanmalıdır.
 PAYMENTS_ENABLED=true
 PAYMENT_ACTIVE_PROVIDER=paytr
 PAYTR_CHECKOUT_MODE=sandbox
+JOBS_ENABLED=true
+PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED=true
 PAYMENT_LEGAL_APPROVED=true
 PAYMENT_LEGAL_BUSINESS_NAME=...
 PAYMENT_LEGAL_BUSINESS_ADDRESS=...
@@ -61,7 +63,6 @@ bilgileri onaylandıktan sonra kullanılır.
 
 ## Sonraki Branch
 
-`feature/paytr-webhook-order-processor` PayTR callback verifier registry bağlantısı,
-durable inbox processor, amount/currency/order doğrulaması, atomik fulfillment,
-notification/cache invalidation ve duplicate/out-of-order sandbox testlerini
-tamamlayacaktır.
+`feature/payment-reconciliation-and-reversal-foundation` refund/chargeback state,
+ledger veya entitlement reversal, dead-letter inceleme/retry ve provider
+reconciliation sınırlarını tamamlayacaktır.
