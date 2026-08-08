@@ -20,6 +20,11 @@ Create two private npm workspace packages:
 - `@hushle/platform-db`
 - `@hushle/platform-cache`
 
+Payment fulfillment çalışması ortak wallet transaction primitive'ini de
+`@hushle/platform-wallet` paketine taşır. Web'deki eski wallet service yolu
+compatibility re-export olarak kalır; yeni payment/jobs kodu web runtime'a
+bağımlı olmaz.
+
 `platform-db` owns the Prisma client lifecycle and re-exports generated Prisma
 types and enums. `platform-cache` owns Redis connectivity, retry, health, key
 construction, and test-client contracts.

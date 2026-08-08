@@ -98,6 +98,11 @@ jobs:
         env:
           WALLET_LEDGER_INTEGRATION_TEST: "true"
 
+      - name: Test payment fulfillment concurrency
+        run: npm run test:payment-fulfillment-integration
+        env:
+          PAYMENT_FULFILLMENT_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build
 

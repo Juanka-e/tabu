@@ -24,6 +24,7 @@
     "@hushle/platform-player": "0.1.0",
     "@hushle/platform-payments": "0.1.0",
     "@hushle/platform-store": "0.1.0",
+    "@hushle/platform-wallet": "0.1.0",
     "@next/env": "^16.2.12",
     "@prisma/client": "^6.19.2",
     "@socket.io/redis-adapter": "^8.3.0",

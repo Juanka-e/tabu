@@ -1,5 +1,5 @@
 {
-  "name": "@hushle/platform-payments",
+  "name": "@hushle/platform-wallet",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,9 +10,7 @@
     }
   },
   "dependencies": {
-    "@hushle/platform-db": "0.1.0",
-    "@hushle/platform-wallet": "0.1.0",
-    "zod": "^4.3.6"
+    "@hushle/platform-db": "0.1.0"
   },
   "engines": {
     "node": ">=20"

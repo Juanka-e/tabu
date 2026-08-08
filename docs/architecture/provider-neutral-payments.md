@@ -45,6 +45,15 @@ Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Provider signature adapter'ı
 - checkout orchestration, order processor ve fulfillment bitmediği için adapter
   registry'ye bağlanmaz ve tahsilat fail-closed kalır.
 
+`feature/payment-fulfillment-foundation` ile teslimat çekirdeği eklendi:
+
+- ortak wallet mutation kodu `@hushle/platform-wallet` paketine taşındı,
+- `payment_topup` coin kaynağı earned/admin/grant coin'den ayrıldı,
+- paid order row lock altında strict grant snapshot ile işlenir,
+- fulfillment, coin/envanter grant'i ve order state aynı transaction'da yazılır,
+- duplicate ve concurrent çağrılar ikinci grant üretmez,
+- invalid/already-owned/missing item durumları bounded failure olarak tutulur.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.
@@ -80,12 +89,16 @@ packages/platform-payments/
   src/orders.ts
   src/provider-registry.ts
   src/webhook-inbox.ts
+  src/fulfillment.ts
   src/adapters/
     shopier-v2.ts
     iyzico.ts
     paytr.ts
     stripe.ts
     lemonsqueezy.ts
+
+packages/platform-wallet/
+  src/index.ts
 
 apps/web/src/app/api/payments/
   checkout/session/route.ts

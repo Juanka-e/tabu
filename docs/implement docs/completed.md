@@ -244,6 +244,14 @@
 - kalici modele iletisim verisi eklemeyen veri minimizasyonu karari
 - checkout processor ve fulfillment bitene kadar fail-closed aktivasyon siniri
 
+### 35. `feature/payment-fulfillment-foundation`
+- ortak `@hushle/platform-wallet` transaction paketi ve web compatibility export'u
+- earned/grant/admin coin'den ayrilan `payment_topup` ledger kaynagi
+- paid order row lock altinda atomik coin ve kozmetik fulfillment
+- duplicate/concurrent retry icin order, fulfillment ve ledger idempotency zinciri
+- invalid, missing ve already-owned grant icin bounded failure kaydi
+- disposable MySQL migration, race ve partial bundle rollback testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

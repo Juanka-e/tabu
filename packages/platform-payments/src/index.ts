@@ -5,3 +5,4 @@ export * from "./offers";
 export * from "./provider-registry";
 export * from "./webhook-inbox";
 export * from "./adapters/paytr";
+export * from "./fulfillment";

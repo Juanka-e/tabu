@@ -25,6 +25,7 @@ for (const source of [
     "store_bundle_purchase",
     "coin_grant",
     "admin_adjustment",
+    "payment_topup",
 ]) {
     assert.match(schema, new RegExp(`\\b${source}\\b`));
 }
