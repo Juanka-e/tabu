@@ -35,6 +35,7 @@ uzlaştırılabilir bir hareket zinciriyle kaydetmek.
 | `store_bundle_purchase` | eksi | `Purchase` |
 | `coin_grant` | artı | `CoinGrantClaim` |
 | `admin_adjustment` | artı/eksi | `WalletAdjustment` |
+| `payment_topup` | artı | `PaymentOrder` / `PaymentFulfillment` |
 
 Sıfır fiyatlı alışveriş ve sıfır maç ödülü finansal hareket üretmez. Kaynak
 tablosundaki işlem kaydı yine saklanır.
@@ -100,10 +101,14 @@ Eski uygulama sürümü yeni nullable kolon ve ek tabloyla çalışabildiği iç
 rollback'i schema rollback'ini zorunlu kılmaz. Ledger tablosu incident sırasında
 silinmez.
 
+Wallet mutation servisi `@hushle/platform-wallet` paketine taşınmıştır. Web
+runtime eski import yolları için yalnız compatibility re-export tutar; jobs ve
+payment domain aynı transaction primitive'ini doğrudan paketten kullanır.
+
 ## Sonraki Adımlar
 
 - refund/reversal işlemini ters işaretli yeni ledger kaydı olarak eklemek
-- ödeme siparişlerini ayrı payment domain'iyle ledger'a bağlamak
+- paid coin refund/reversal işlemini özgün payment ledger referansına bağlamak
 - periyodik reconciliation job ve mismatch alarmı eklemek
 - yüksek hacimde admin reader için read replica veya cache kullanmak
 

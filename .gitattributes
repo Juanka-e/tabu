@@ -6,3 +6,4 @@ scripts/ops/lib/backup-env.sh text eol=lf
 scripts/test-offsite-backups.sh text eol=lf
 scripts/test-offsite-backups-integration.sh text eol=lf
 scripts/design-prototypes/*.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package-lock.json whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

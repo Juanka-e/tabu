@@ -56,6 +56,7 @@ assert.match(dockerfile, /packages\/platform-observability\/package\.json/);
 assert.match(dockerfile, /packages\/platform-player\/package\.json/);
 assert.match(dockerfile, /packages\/platform-payments\/package\.json/);
 assert.match(dockerfile, /packages\/platform-store\/package\.json/);
+assert.match(dockerfile, /packages\/platform-wallet\/package\.json/);
 assert.match(dockerfile, /apps\/web\/package\.json/);
 assert.match(dockerfile, /SKIP_DATABASE_DURING_BUILD=true npm run build/);
 assert.match(
@@ -81,6 +82,10 @@ assert.match(
 assert.match(
     readFileSync(join(root, "apps/web/package.json"), "utf8"),
     /"@hushle\/platform-payments": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "apps/web/package.json"), "utf8"),
+    /"@hushle\/platform-wallet": "0\.1\.0"/
 );
 assert.match(
     readFileSync(join(root, "apps/api/package.json"), "utf8"),

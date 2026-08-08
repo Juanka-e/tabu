@@ -17,6 +17,7 @@ const sourceLabels: Record<AdminWalletLedgerSource, string> = {
     match_reward: "Maç ödülü",
     store_item_purchase: "Mağaza ürünü",
     store_bundle_purchase: "Mağaza paketi",
+    payment_topup: "Ücretli coin paketi",
     coin_grant: "Coin kodu",
     admin_adjustment: "Admin düzeltmesi",
 };

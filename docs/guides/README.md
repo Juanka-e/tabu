@@ -116,3 +116,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 25. `paytr-iframe-adapter.md`
 - PayTR token/callback HMAC kontratini ve veri minimizasyonu sinirini tanimlar
 - checkout aktivasyonu, processor, fulfillment ve sandbox smoke kapilarini ayirir
+
+26. `payment-fulfillment-operations.md`
+- paid order icin atomik coin/kozmetik teslimati ve duplicate korumasini tanimlar
+- failure, partial rollback ve refund/chargeback kapsam sinirini aciklar

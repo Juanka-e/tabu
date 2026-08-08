@@ -75,6 +75,7 @@ enum WalletLedgerSource {
   store_bundle_purchase
   coin_grant
   admin_adjustment
+  payment_topup
 }
 
 enum CoinGrantClaimStatus {
