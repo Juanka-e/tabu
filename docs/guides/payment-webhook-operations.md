@@ -36,3 +36,8 @@ Bir provider ancak şu testler tamamlanınca registry'de webhook-ready yapılır
 - provider-specific acknowledgement testi,
 - canlı düşük tutarlı ödeme + refund smoke,
 - Cloudflare/WAF üzerinde challenge olmadan callback doğrulaması.
+
+PayTR verifier temeli mevcuttur ancak bilinçli olarak registry'ye bağlı değildir.
+PayTR callback URL'si session/CSRF/captcha beklemez; HMAC doğrulamasından sonra
+durable inbox'a yazılır. Order processor ve atomik fulfillment tamamlanmadan
+verifier açılmaz. Ayrıntı: `docs/guides/paytr-iframe-adapter.md`.

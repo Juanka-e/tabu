@@ -237,6 +237,13 @@
 - aydinlatma, on bilgilendirme ve satin alma kosullarinin ayri sunumu
 - siparise bagli immutable legal consent snapshot ve mobile API roadmap parity
 
+### 34. `feature/paytr-iframe-adapter`
+- resmi alan sirasini kullanan PayTR iFrame token HMAC adapter temeli
+- callback HMAC dogrulamasi, constant-time karsilastirma ve provider `OK` kontrati
+- minor-unit sepet/tutar esligi ve bounded provider transport/hata davranisi
+- kalici modele iletisim verisi eklemeyen veri minimizasyonu karari
+- checkout processor ve fulfillment bitene kadar fail-closed aktivasyon siniri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
