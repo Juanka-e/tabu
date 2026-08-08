@@ -13,6 +13,7 @@ import { getAdminAccessPolicy } from "@/lib/admin/access-policy";
 import { shouldTrustAuthHost } from "@/lib/auth-host";
 import { getCaptchaProviderReadiness, getSystemSettings } from "@/lib/system-settings/service";
 import type { CaptchaSettings, SystemSettings } from "@/types/system-settings";
+import { getPaymentLegalReadiness } from "@/lib/payments/legal";
 
 export type IntegrationStatus = "ready" | "partial" | "missing" | "planned";
 
@@ -196,6 +197,7 @@ function buildMessagingItems(): IntegrationItem[] {
 
 function buildCommerceItems(): IntegrationItem[] {
     const runtime = getPaymentRuntimeReadiness();
+    const legal = getPaymentLegalReadiness();
     const checkoutGate: IntegrationItem = {
         id: "payment-checkout-gate",
         category: "commerce",
@@ -210,6 +212,22 @@ function buildCommerceItems(): IntegrationItem[] {
             `Enabled: ${runtime.enabled ? "yes" : "no"}`,
             `Active provider: ${runtime.activeProvider ?? "none"}`,
             `Issues: ${runtime.issues.length > 0 ? runtime.issues.join(", ") : "none"}`,
+        ],
+    };
+    const legalGate: IntegrationItem = {
+        id: "payment-legal-gate",
+        category: "commerce",
+        title: "Payment Legal Readiness",
+        status: legal.ready ? "ready" : "missing",
+        summary: legal.ready
+            ? "Checkout legal documents and operator identity are approved."
+            : "Checkout remains blocked until legal documents and operator identity are approved.",
+        details: [
+            `Issues: ${legal.issues.length > 0 ? legal.issues.join(", ") : "none"}`,
+            `Checkout terms: ${legal.checkoutTermsVersion}`,
+            `Privacy notice: ${legal.privacyNoticeVersion}`,
+            `Distance sales notice: ${legal.distanceSalesNoticeVersion}`,
+            "Document text changes require a new version before checkout is enabled.",
         ],
     };
     const providers: IntegrationItem[] = listPaymentProviderReadiness().map((provider) => ({
@@ -237,7 +255,7 @@ function buildCommerceItems(): IntegrationItem[] {
         ],
     }));
 
-    return [checkoutGate, ...providers];
+    return [checkoutGate, legalGate, ...providers];
 }
 
 function buildStorageItems(

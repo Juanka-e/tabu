@@ -122,6 +122,28 @@ const wildcard = validEnvironment();
 wildcard.TRUSTED_WEB_ORIGINS = "*";
 assert.ok(validateProductionEnvironment(wildcard).errors.some((error) => error.includes("wildcard")));
 
+const checkoutWithoutLegalApproval = validEnvironment();
+checkoutWithoutLegalApproval.PAYMENTS_ENABLED = "true";
+checkoutWithoutLegalApproval.PAYMENT_LEGAL_APPROVED = "false";
+assert.ok(
+    validateProductionEnvironment(checkoutWithoutLegalApproval).errors.some((error) =>
+        error.includes("PAYMENT_LEGAL_APPROVED")
+    )
+);
+
+const checkoutWithLegalApproval = validEnvironment();
+Object.assign(checkoutWithLegalApproval, {
+    PAYMENTS_ENABLED: "true",
+    PAYMENT_LEGAL_APPROVED: "true",
+    PAYMENT_LEGAL_BUSINESS_NAME: "Hushle Teknoloji A.S.",
+    PAYMENT_LEGAL_BUSINESS_ADDRESS: "Maslak Mahallesi, Istanbul",
+    PAYMENT_LEGAL_CONTACT_EMAIL: "odeme@hushle.com",
+    PAYMENT_CHECKOUT_TERMS_VERSION: "terms-v1",
+    PAYMENT_PRIVACY_NOTICE_VERSION: "privacy-v1",
+    PAYMENT_DISTANCE_SALES_NOTICE_VERSION: "distance-v1",
+});
+assert.deepEqual(validateProductionEnvironment(checkoutWithLegalApproval).errors, []);
+
 const missingTurnstileHostname = validEnvironment();
 missingTurnstileHostname.TURNSTILE_ALLOWED_HOSTNAMES = "";
 assert.ok(

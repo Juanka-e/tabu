@@ -265,6 +265,29 @@ model User {
   @@map("users")
 }
 
+model PaymentOffer {
+  id                 Int                @id @default(autoincrement())
+  code               String             @unique @db.VarChar(80)
+  productKind        PaymentProductKind @map("product_kind")
+  productReference   String             @map("product_reference") @db.VarChar(120)
+  productVersion     Int                @map("product_version")
+  productName        String             @map("product_name") @db.VarChar(160)
+  description        String?            @db.VarChar(500)
+  unitAmountMinor    Int                @map("unit_amount_minor")
+  currency           String             @db.Char(3)
+  grantSnapshot      Json               @map("grant_snapshot") @db.Json
+  isActive           Boolean            @default(false) @map("is_active")
+  sortOrder          Int                @default(0) @map("sort_order")
+  startsAt           DateTime?           @map("starts_at")
+  endsAt             DateTime?           @map("ends_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@index([startsAt, endsAt])
+  @@map("payment_offers")
+}
+
 model PaymentOrder {
   id                       String             @id @default(uuid()) @db.Char(36)
   userId                   Int                @map("user_id")
@@ -298,6 +321,7 @@ model PaymentOrder {
   attempts    PaymentAttempt[]
   fulfillment PaymentFulfillment?
   webhookEvents PaymentWebhookEvent[]
+  checkoutConsent PaymentCheckoutConsent?
 
   @@unique([userId, idempotencyKey])
   @@unique([provider, providerOrderReference])
@@ -306,6 +330,23 @@ model PaymentOrder {
   @@index([status, createdAt])
   @@index([provider, status, createdAt])
   @@map("payment_orders")
+}
+
+model PaymentCheckoutConsent {
+  id                           String   @id @default(uuid()) @db.Char(36)
+  orderId                      String   @unique @map("order_id") @db.Char(36)
+  checkoutTermsVersion         String   @map("checkout_terms_version") @db.VarChar(80)
+  privacyNoticeVersion         String   @map("privacy_notice_version") @db.VarChar(80)
+  distanceSalesNoticeVersion   String   @map("distance_sales_notice_version") @db.VarChar(80)
+  acceptedAt                   DateTime @map("accepted_at")
+  requestId                    String?  @map("request_id") @db.VarChar(80)
+  userAgentHash                String?  @map("user_agent_hash") @db.Char(64)
+  createdAt                    DateTime @default(now()) @map("created_at")
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([acceptedAt])
+  @@map("payment_checkout_consents")
 }
 
 model PaymentAttempt {

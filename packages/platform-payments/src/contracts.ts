@@ -69,3 +69,25 @@ export interface PaymentOrderCreationResult<TOrder> {
     order: TOrder;
     reused: boolean;
 }
+
+export interface PaymentCheckoutLegalAcceptance {
+    checkoutTermsVersion: string;
+    privacyNoticeVersion: string;
+    distanceSalesNoticeVersion: string;
+    acceptedAt: Date;
+    requestId?: string | null;
+    userAgentHash?: string | null;
+}
+
+export interface CreatePaymentCheckoutOrderInput extends CreatePaymentOrderInput {
+    legalAcceptance: PaymentCheckoutLegalAcceptance;
+}
+
+export const paymentCheckoutLegalAcceptanceSchema = z.object({
+    checkoutTermsVersion: z.string().trim().min(1).max(80),
+    privacyNoticeVersion: z.string().trim().min(1).max(80),
+    distanceSalesNoticeVersion: z.string().trim().min(1).max(80),
+    acceptedAt: z.date(),
+    requestId: z.string().trim().min(1).max(80).nullable().optional(),
+    userAgentHash: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
+});
