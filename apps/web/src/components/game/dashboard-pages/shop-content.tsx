@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
     BadgePercent,
     Check,
+    CreditCard,
     Eye,
     Frame,
     Gift,
@@ -513,6 +515,9 @@ export function ShopContent({ layout = "dashboard" }: ShopContentProps) {
                             <StatusChip label={`Maç x${catalog.liveops.activeMatchCoinMultiplier.toFixed(2)}`} />
                             {catalog.liveops.weekendBoostApplied ? <StatusChip label="Hafta Sonu Bonusu" tone="warning" /> : null}
                             {!catalog.liveops.discountCampaignsEnabled ? <StatusChip label="Kampanyalar Durduruldu" tone="danger" /> : null}
+                            <Link href="/checkout" className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700 transition hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/35 dark:text-sky-300 dark:hover:bg-sky-950/60">
+                                <CreditCard className="h-3.5 w-3.5" /> Güvenli ödeme
+                            </Link>
                         </div>
                         {discountedOffers.length > 0 ? (
                             <div className="mt-4 flex flex-wrap gap-2">

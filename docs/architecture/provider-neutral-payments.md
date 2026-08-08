@@ -23,6 +23,18 @@
 
 Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Provider signature adapter'ı ve idempotent order processor tamamlanmadan gerçek checkout açılmaz.
 
+`feature/payment-checkout-ui` ile tahsilat yapmayan üçüncü katman tamamlandı:
+
+- gerçek para teklifleri coin kataloğundan ayrı, sürümlü `PaymentOffer` kayıtlarıdır,
+- checkout ve sipariş durumu UI/API sözleşmesi web için hazırdır,
+- fiyat, para birimi ve grant verisi yalnız sunucu teklifinden alınır,
+- sipariş sahibi dışındaki kullanıcı order status okuyamaz,
+- checkout create kullanıcı ve hash'lenmiş IP için ayrı Redis/Valkey rate limit kullanır,
+- KVKK aydınlatması onay kutusuna dönüştürülmez; ön bilgilendirme ve satın alma koşulu kabulü ayrı biçimde gösterilir,
+- belge sürümleri ve kabul zamanı siparişe bağlı `PaymentCheckoutConsent` kaydında değiştirilemez biçimde tutulur,
+- işletme bilgileri ve hukuk onayı tamamlanmadıkça legal readiness fail-closed kalır,
+- adapter bulunmadığı için bu branch gerçek provider session veya tahsilat oluşturmaz.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.
@@ -158,7 +170,7 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 
 1. `feature/payment-orders-foundation`: şema, state machine, provider registry, idempotency ve admin readiness.
 2. `feature/payment-webhook-inbox`: raw-body signature contract, durable inbox, jobs/retry/reconciliation.
-3. `feature/payment-checkout-ui`: kayıtlı kullanıcı checkout/order status UI; mobile API contract parity.
+3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
 4. İlk Türkiye adapter'ı: merchant hesabına göre `iyzico` veya `paytr`.
 5. `shopier_v2` adapter'ı: güncel merchant V2 dokümanı ve sandbox erişimi doğrulandıktan sonra.
 6. `stripe` adapter'ı.

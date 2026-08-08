@@ -5,8 +5,10 @@ import {
     PAYMENT_PROVIDER_IDS,
     paymentOrderQuoteSchema,
     type CreatePaymentOrderInput,
+    type CreatePaymentCheckoutOrderInput,
     type PaymentOrderCreationResult,
     type PaymentOrderQuote,
+    paymentCheckoutLegalAcceptanceSchema,
 } from "./contracts";
 
 const createOrderInputSchema = z.object({
@@ -17,6 +19,12 @@ const createOrderInputSchema = z.object({
     quote: paymentOrderQuoteSchema,
     expiresAt: z.date().nullable().optional(),
 });
+
+const createCheckoutOrderInputSchema = createOrderInputSchema.extend({
+    legalAcceptance: paymentCheckoutLegalAcceptanceSchema,
+});
+
+type PaymentOrderDatabase = Pick<typeof prisma, "paymentOrder">;
 
 export class PaymentOrderConflictError extends Error {
     constructor(
@@ -83,9 +91,10 @@ export function fingerprintPaymentOrderRequest(input: {
 async function resolveExistingOrder(
     userId: number,
     idempotencyKey: string,
-    requestFingerprint: string
+    requestFingerprint: string,
+    database: PaymentOrderDatabase = prisma
 ) {
-    const existing = await prisma.paymentOrder.findUnique({
+    const existing = await database.paymentOrder.findUnique({
         where: { userId_idempotencyKey: { userId, idempotencyKey } },
     });
     if (!existing) return null;
@@ -96,7 +105,8 @@ async function resolveExistingOrder(
 }
 
 export async function createPaymentOrderRecord(
-    input: CreatePaymentOrderInput
+    input: CreatePaymentOrderInput,
+    database: PaymentOrderDatabase = prisma
 ): Promise<PaymentOrderCreationResult<PaymentOrder>> {
     const parsed = createOrderInputSchema.parse(input);
     const quote = normalizePaymentOrderQuote(parsed.quote);
@@ -104,12 +114,13 @@ export async function createPaymentOrderRecord(
     const existing = await resolveExistingOrder(
         parsed.userId,
         parsed.idempotencyKey,
-        requestFingerprint
+        requestFingerprint,
+        database
     );
     if (existing) return { order: existing, reused: true };
 
     const candidateId = randomUUID();
-    const inserted = await prisma.paymentOrder.createMany({
+    const inserted = await database.paymentOrder.createMany({
         data: [
             {
                 id: candidateId,
@@ -135,10 +146,63 @@ export async function createPaymentOrderRecord(
     const order = await resolveExistingOrder(
         parsed.userId,
         parsed.idempotencyKey,
-        requestFingerprint
+        requestFingerprint,
+        database
     );
     if (!order) {
         throw new PaymentOrderConflictError("idempotency_race_unresolved");
     }
     return { order, reused: inserted.count === 0 };
+}
+
+
+export async function createPaymentCheckoutOrderRecord(
+    input: CreatePaymentCheckoutOrderInput
+): Promise<PaymentOrderCreationResult<PaymentOrder>> {
+    const parsed = createCheckoutOrderInputSchema.parse(input);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            return await prisma.$transaction(async (transaction) => {
+                const result = await createPaymentOrderRecord(parsed, transaction);
+                await transaction.paymentCheckoutConsent.createMany({
+                    data: [
+                        {
+                            orderId: result.order.id,
+                            checkoutTermsVersion: parsed.legalAcceptance.checkoutTermsVersion,
+                            privacyNoticeVersion: parsed.legalAcceptance.privacyNoticeVersion,
+                            distanceSalesNoticeVersion: parsed.legalAcceptance.distanceSalesNoticeVersion,
+                            acceptedAt: parsed.legalAcceptance.acceptedAt,
+                            requestId: parsed.legalAcceptance.requestId,
+                            userAgentHash: parsed.legalAcceptance.userAgentHash,
+                        },
+                    ],
+                    skipDuplicates: true,
+                });
+                const existingConsent = await transaction.paymentCheckoutConsent.findUnique({
+                    where: { orderId: result.order.id },
+                });
+                const acceptance = parsed.legalAcceptance;
+                if (!existingConsent) {
+                    throw new PaymentOrderConflictError("idempotency_race_unresolved");
+                }
+                if (
+                    existingConsent.checkoutTermsVersion !== acceptance.checkoutTermsVersion ||
+                    existingConsent.privacyNoticeVersion !== acceptance.privacyNoticeVersion ||
+                    existingConsent.distanceSalesNoticeVersion !== acceptance.distanceSalesNoticeVersion
+                ) {
+                    throw new PaymentOrderConflictError("idempotency_payload_mismatch");
+                }
+
+                return result;
+            });
+        } catch (error) {
+            const retryableRace =
+                (error instanceof PaymentOrderConflictError &&
+                    error.code === "idempotency_race_unresolved") ||
+                (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034");
+            if (!retryableRace || attempt === 2) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+        }
+    }
+    throw new PaymentOrderConflictError("idempotency_race_unresolved");
 }

@@ -230,6 +230,13 @@
 - retry, claim lease, exponential backoff ve dead-letter worker temeli
 - Redis/Valkey'i yalniz job koordinasyonunda tutan kalici veri ayrimi
 
+### 33. `feature/payment-checkout-ui`
+- coin magazasindan ayri server-priced ve surumlu payment offer modeli
+- responsive checkout, fail-closed readiness ve owner-only order status yuzeyi
+- user + hash'lenmis IP distributed rate limit ve stale legal version reddi
+- aydinlatma, on bilgilendirme ve satin alma kosullarinin ayri sunumu
+- siparise bagli immutable legal consent snapshot ve mobile API roadmap parity
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

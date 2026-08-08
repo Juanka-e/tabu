@@ -210,6 +210,23 @@ export function validateProductionEnvironment(env) {
         result.errors.push("STATE_CHANGE_ORIGIN_POLICY must be strict.");
     }
 
+    if (isTrue(env.PAYMENTS_ENABLED)) {
+        if (!isTrue(env.PAYMENT_LEGAL_APPROVED)) {
+            result.errors.push("PAYMENT_LEGAL_APPROVED must be true before checkout is enabled.");
+        }
+        for (const key of [
+            "PAYMENT_LEGAL_BUSINESS_NAME",
+            "PAYMENT_LEGAL_BUSINESS_ADDRESS",
+            "PAYMENT_LEGAL_CONTACT_EMAIL",
+            "PAYMENT_CHECKOUT_TERMS_VERSION",
+            "PAYMENT_PRIVACY_NOTICE_VERSION",
+            "PAYMENT_DISTANCE_SALES_NOTICE_VERSION",
+        ]) {
+            requireConfiguredValue(env, key, result);
+        }
+        result.checks.push("payment legal readiness");
+    }
+
     if (env.REALTIME_TOPOLOGY !== "single-writer" || env.REALTIME_REPLICA_COUNT !== "1") {
         result.errors.push("Realtime topology must remain single-writer with exactly one replica.");
     }

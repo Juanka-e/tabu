@@ -50,6 +50,20 @@ yeniden kopyalanmaz.
 5. shared presence hazır olduğunda active-room read
 6. bağımsız, owner-aware realtime mimari hazır olduğunda oyun bağlantısı
 
+### Ertelenen Payment Checkout Parity
+
+Web tarafında server-priced `PaymentOffer`, owner-only order status ve sürümlü
+legal acceptance sözleşmesi hazırdır. Native mobile ödeme eklenirken bunlar yeniden
+tasarlanmayacak; `packages/platform-payments` çekirdeği kullanılacaktır.
+
+- native istemci tutar, currency veya grant snapshot gönderemez,
+- checkout create mobile user + trusted remote IP için ayrı distributed limit kullanır,
+- idempotency key kullanıcıya bağlanır,
+- provider SDK/hosted checkout dönüşü ödeme kanıtı değildir,
+- legal belge sürümleri API cevabından alınır ve stale acceptance reddedilir,
+- App Store / Google Play dijital ürün ödeme kuralları ayrıca doğrulanmadan web
+  provider'ı native uygulamaya taşınmaz.
+
 XP, level, görev, event claim ve night market mobil API'ye web ürününde
 kanıtlanmadan eklenmez.
 

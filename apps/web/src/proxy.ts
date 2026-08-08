@@ -142,6 +142,7 @@ export default auth((req) => {
         pathname.startsWith("/dashboard") ||
         pathname.startsWith("/profile") ||
         pathname.startsWith("/store")
+        || pathname.startsWith("/checkout")
     ) {
         if (!isAuthed(req)) {
             const loginUrl = new URL("/login", req.url);
@@ -190,6 +191,9 @@ export const config = {
         "/api/user/:path*",
         "/api/store/:path*",
         "/api/game/:path*",
+        "/api/payments/offers",
+        "/api/payments/checkout/:path*",
+        "/api/payments/orders/:path*",
         "/api/auth/register",
         "/api/auth/email-verification/:path*",
     ],

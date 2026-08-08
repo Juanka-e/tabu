@@ -217,6 +217,13 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ## Yakin Sonraki Branch'ler
 
+### Ilk payment provider adapter'i
+- merchant hesabi ve sandbox erisimine gore iyzico veya PayTR secilecek
+- checkout session create, webhook signature adapter ve order processor birlikte tamamlanacak
+- provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak
+- fulfillment ve refund/chargeback davranisi sandbox testleri olmadan production'a acilmayacak
+- referans: `docs/guides/payment-checkout-and-legal-readiness.md`
+
 ### `feature/google-oauth-account-linking-foundation` - tamamlandi
 - Google ile giris ve Settings icinden explicit hesap baglama
 - mevcut ayni e-postayi otomatik birlestirmeyen provider-neutral adapter

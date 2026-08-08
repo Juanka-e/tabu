@@ -23,7 +23,7 @@ export {
     UserAccountStatus,
     WalletLedgerSource,
 } from "@prisma/client";
-export type { PaymentOrder, PaymentWebhookEvent } from "@prisma/client";
+export type { PaymentOffer, PaymentOrder, PaymentWebhookEvent } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
