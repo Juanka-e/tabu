@@ -40,7 +40,7 @@ const checkout = readFileSync(
 assert.match(schema, /model PaymentOffer/);
 assert.match(schema, /model PaymentCheckoutConsent/);
 assert.match(schema, /orderId\s+String\s+@unique/);
-assert.match(migration, /FOREIGN KEY \(`order_id`\).*REFERENCES `payment_orders`/s);
+assert.match(migration, /FOREIGN KEY \(`order_id`\)[\s\S]*REFERENCES `payment_orders`/);
 assert.doesNotMatch(migration, /FLOAT|DOUBLE|DECIMAL/);
 assert.match(route, /payment-checkout-user/);
 assert.match(route, /payment-checkout-ip/);
