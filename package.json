@@ -29,6 +29,7 @@
     "test:payment-checkout": "tsx scripts/test-payment-checkout-foundation.ts",
     "test:payment-checkout-integration": "tsx scripts/test-payment-checkout-integration.ts",
     "test:payment-checkout-e2e": "playwright test tests/payment-checkout-ui.spec.ts",
+    "test:payment-paytr-adapter": "tsx scripts/test-paytr-iframe-adapter.ts",
     "pretypecheck:web": "npm run db:generate",
     "typecheck:web": "npm run typecheck --workspace @hushle/web",
     "infra:up": "docker compose -f docker-compose.dev.yml up -d",

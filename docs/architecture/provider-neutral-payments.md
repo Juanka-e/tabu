@@ -35,6 +35,16 @@ Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Provider signature adapter'ı
 - işletme bilgileri ve hukuk onayı tamamlanmadıkça legal readiness fail-closed kalır,
 - adapter bulunmadığı için bu branch gerçek provider session veya tahsilat oluşturmaz.
 
+`feature/paytr-iframe-adapter` ile ilk provider adapter temeli eklendi:
+
+- PayTR token ve callback HMAC-SHA256 sözleşmeleri ayrı adapter'da uygulanır,
+- tutar ve sepet minor unit üzerinden eşleştirilir,
+- callback kritik alanları duplicate/body mutation saldırılarına karşı doğrulanır,
+- sağlayıcı hataları bounded kodlara dönüştürülür; ham neden ve secret sızdırılmaz,
+- ad, telefon ve adres kalıcı ödeme/audit modeline eklenmez,
+- checkout orchestration, order processor ve fulfillment bitmediği için adapter
+  registry'ye bağlanmaz ve tahsilat fail-closed kalır.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.
@@ -171,7 +181,8 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 1. `feature/payment-orders-foundation`: şema, state machine, provider registry, idempotency ve admin readiness.
 2. `feature/payment-webhook-inbox`: raw-body signature contract, durable inbox, jobs/retry/reconciliation.
 3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
-4. İlk Türkiye adapter'ı: merchant hesabına göre `iyzico` veya `paytr`.
+4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
+   processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
 5. `shopier_v2` adapter'ı: güncel merchant V2 dokümanı ve sandbox erişimi doğrulandıktan sonra.
 6. `stripe` adapter'ı.
 7. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.

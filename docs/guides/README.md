@@ -112,3 +112,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 24. `oauth-provider-strategy.md`
 - Google ve Apple login zamanlamasi, email verification ve guvenli account
   linking sinirlarini tanimlar
+
+25. `paytr-iframe-adapter.md`
+- PayTR token/callback HMAC kontratini ve veri minimizasyonu sinirini tanimlar
+- checkout aktivasyonu, processor, fulfillment ve sandbox smoke kapilarini ayirir
