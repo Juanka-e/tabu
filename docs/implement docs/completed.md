@@ -252,6 +252,15 @@
 - invalid, missing ve already-owned grant icin bounded failure kaydi
 - disposable MySQL migration, race ve partial bundle rollback testleri
 
+### 36. `feature/paytr-checkout-orchestration`
+- yalnız sandbox kabul eden fail-closed PayTR provider readiness
+- server-priced order ile idempotent PayTR iFrame token session orchestration
+- transaction dışında provider çağrısı ve row-lock korumalı attempt lease
+- doğrulanmış hesap e-postası ile kalıcı tutulmayan geçici iletişim alanları
+- owner-only iFrame resume, responsive checkout ve Playwright doğrulaması
+- coin pack ürünlerini reversal politikası tamamlanana kadar gizleme
+- production Compose env parity ve live modu reddeden preflight gate
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

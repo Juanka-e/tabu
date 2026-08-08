@@ -117,4 +117,94 @@ test.describe("payment checkout UI", () => {
         await expect(page.getByRole("heading", { name: "Hesabın için dijital ürünler" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Gece Mavisi Avatar" })).toBeVisible();
     });
+
+    test("submits transient contact data and opens the sandbox PayTR iframe", async ({ page }) => {
+        await page.goto("/login");
+        await page.getByPlaceholder("Kullanıcı Adı").fill(username);
+        await page.getByPlaceholder("Parola").fill(password);
+        await page.getByRole("button", { name: "Giriş Yap" }).click();
+        await page.waitForURL(/\/dashboard/);
+
+        await page.route("**/api/payments/offers", async (route) => {
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    offers: [{
+                        code: offerCode,
+                        productKind: "cosmetic_item",
+                        productName: "Gece Mavisi Avatar",
+                        description: "Sandbox ödeme testi",
+                        unitAmountMinor: 14900,
+                        currency: "TRY",
+                    }],
+                    checkout: {
+                        available: true,
+                        unavailableReason: null,
+                        legalDocuments: {
+                            checkoutTerms: { version: "terms-v1", href: "/legal/checkout-terms" },
+                            privacyNotice: { version: "privacy-v1", href: "/legal/payment-privacy-notice" },
+                            distanceSalesNotice: { version: "distance-v1", href: "/legal/distance-sales-pre-information" },
+                        },
+                    },
+                }),
+            });
+        });
+        let checkoutBody: Record<string, unknown> | null = null;
+        await page.route("**/api/payments/checkout/session", async (route) => {
+            checkoutBody = route.request().postDataJSON() as Record<string, unknown>;
+            await route.fulfill({
+                status: 201,
+                contentType: "application/json",
+                body: JSON.stringify({
+                    orderId: ownOrderId,
+                    iframeUrl: "https://www.paytr.com/odeme/guvenli/playwright-token",
+                    sandbox: true,
+                }),
+            });
+        });
+        await page.route(`**/api/payments/orders/${ownOrderId}`, async (route) => {
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    order: {
+                        id: ownOrderId,
+                        status: "awaiting_payment",
+                        productNameSnapshot: "Gece Mavisi Avatar",
+                        quantity: 1,
+                        totalAmountMinor: 14900,
+                        currency: "TRY",
+                        createdAt: new Date().toISOString(),
+                    },
+                    paymentSession: {
+                        iframeUrl: "https://www.paytr.com/odeme/guvenli/playwright-token",
+                    },
+                }),
+            });
+        });
+        await page.route("https://www.paytr.com/odeme/guvenli/playwright-token", async (route) => {
+            await route.fulfill({
+                contentType: "text/html",
+                body: "<main><h1>PayTR sandbox fixture</h1></main>",
+            });
+        });
+
+        await page.goto("/checkout");
+        await page.getByLabel("Ad ve soyad").fill("Test Oyuncu");
+        await page.getByLabel("Telefon").fill("+90 555 111 22 33");
+        await page.getByLabel("Fatura/iletişim adresi").fill("Test Mahallesi Istanbul");
+        await page.getByRole("checkbox").check();
+        const submit = page.getByRole("button", { name: "Ödeme yükümlülüğü doğuran siparişi ver" });
+        await expect(submit).toBeEnabled();
+        await submit.click();
+
+        await expect(page.getByText("SANDBOX TEST")).toBeVisible();
+        await expect(page.frameLocator('iframe[title="PayTR güvenli ödeme"]').getByText("PayTR sandbox fixture")).toBeVisible();
+        expect(checkoutBody).toMatchObject({
+            contact: {
+                fullName: "Test Oyuncu",
+                phone: "+90 555 111 22 33",
+                address: "Test Mahallesi Istanbul",
+            },
+        });
+    });
 });

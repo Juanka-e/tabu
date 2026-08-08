@@ -224,7 +224,16 @@ export function validateProductionEnvironment(env) {
         ]) {
             requireConfiguredValue(env, key, result);
         }
-        result.checks.push("payment legal readiness");
+        if (env.PAYMENT_ACTIVE_PROVIDER?.trim() !== "paytr") {
+            result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr while the PayTR sandbox checkout is the only available orchestration.");
+        }
+        if (env.PAYTR_CHECKOUT_MODE?.trim() !== "sandbox") {
+            result.errors.push("PAYTR_CHECKOUT_MODE must be sandbox; live checkout is not available yet.");
+        }
+        for (const key of ["PAYTR_MERCHANT_ID", "PAYTR_MERCHANT_KEY", "PAYTR_MERCHANT_SALT"]) {
+            requireConfiguredValue(env, key, result);
+        }
+        result.checks.push("payment legal and sandbox provider readiness");
     }
 
     if (env.REALTIME_TOPOLOGY !== "single-writer" || env.REALTIME_REPLICA_COUNT !== "1") {

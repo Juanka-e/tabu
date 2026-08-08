@@ -2,61 +2,66 @@
 
 ## Mevcut Durum
 
-Checkout yüzeyi, server-side teklif kataloğu ve owner-only sipariş durumu API'si
-hazırdır. Gerçek tahsilat kapalıdır. İlk provider adapter'ı, webhook processor ve
-fulfillment tamamlanmadan `PAYMENTS_ENABLED=true` yapılmamalıdır.
+Server-priced teklif kataloğu, owner-only sipariş durumu, immutable legal consent,
+atomik fulfillment ve PayTR sandbox iFrame orchestration hazırdır. Gerçek tahsilat
+kapalıdır. Callback processor, refund/chargeback ve operasyon smoke testleri
+tamamlanmadan live moda geçilmez.
 
 ## Hukuki Yüzey Ayrımı
 
 - Ödeme Aydınlatma Metni bilgilendirmedir; zorunlu açık rıza kutusu değildir.
-- Açık rıza gerektiren gelecekteki amaçlar ayrı, belirli ve isteğe bağlı olmalıdır.
-- Pazarlama/ticari ileti izni checkout veya ürün tesliminin şartı yapılmaz.
-- Mesafeli satış ön bilgilendirmesi ve satın alma koşulları ödeme öncesinde açık
-  bağlantılarla sunulur; ödeme yükümlülüğü doğuran buton metni saklanmaz.
-- Sipariş kanıtı belge sürümleri, kabul zamanı, request ID ve yalnız hash'lenmiş
-  user-agent ile tutulur. Ham IP, kart bilgisi veya provider secret saklanmaz.
+- Pazarlama/ticari ileti izni checkout veya teslimat şartı yapılmaz.
+- Mesafeli satış ön bilgilendirmesi ve satın alma koşulları ayrı bağlantılarla
+  gösterilir.
+- Sipariş kanıtında belge sürümü, kabul zamanı, request ID ve hash'lenmiş user-agent
+  tutulur. Ham IP veya kart verisi tutulmaz.
+- PayTR için geçici alınan ad-soyad, telefon ve adresin aktarım amacı ödeme
+  aydınlatmasında açıkça belirtilir.
 
-Kod içindeki metinler işletme bilgileri kesinleşene kadar güvenli taslaktır.
-İşletme unvanı/adresi, vergi-MERSİS bilgileri, sağlayıcı/yurt dışı aktarım modeli,
-iade-cayma politikası ve yetkili merci bilgileri hukuk danışmanı tarafından nihai
-hale getirilmelidir.
+Kod metinleri işletme bilgileri kesinleşene kadar taslaktır. Unvan/adres,
+vergi-MERSİS bilgileri, sağlayıcı ve yurt dışı aktarım modeli, iade-cayma politikası
+ve yetkili merci bilgileri hukuk danışmanı tarafından onaylanmalıdır.
 
-## Production Gate
+## Sandbox Gate
 
 ```env
-PAYMENTS_ENABLED=false
-PAYMENT_LEGAL_APPROVED=false
-PAYMENT_LEGAL_BUSINESS_NAME=replace_with_legal_business_name
-PAYMENT_LEGAL_BUSINESS_ADDRESS=replace_with_legal_business_address
-PAYMENT_LEGAL_CONTACT_EMAIL=replace_with_payment_support_email
-PAYMENT_CHECKOUT_TERMS_VERSION=checkout-terms-draft-v1
-PAYMENT_PRIVACY_NOTICE_VERSION=payment-privacy-draft-v1
-PAYMENT_DISTANCE_SALES_NOTICE_VERSION=distance-sales-draft-v1
+PAYMENTS_ENABLED=true
+PAYMENT_ACTIVE_PROVIDER=paytr
+PAYTR_CHECKOUT_MODE=sandbox
+PAYMENT_LEGAL_APPROVED=true
+PAYMENT_LEGAL_BUSINESS_NAME=...
+PAYMENT_LEGAL_BUSINESS_ADDRESS=...
+PAYMENT_LEGAL_CONTACT_EMAIL=...
+PAYMENT_CHECKOUT_TERMS_VERSION=checkout-terms-v1
+PAYMENT_PRIVACY_NOTICE_VERSION=payment-privacy-v1
+PAYMENT_DISTANCE_SALES_NOTICE_VERSION=distance-sales-v1
 ```
 
-Metin değiştiğinde ilgili sürüm de değiştirilmelidir. Eski sipariş kendi kabul
-ettiği sürümü korur. `PAYMENT_LEGAL_APPROVED=true` yalnız nihai metin ve işletme
-bilgileri onaylandıktan sonra kullanılmalıdır.
+Production preflight ödeme açıldığında PayTR sandbox mode, credential ve hukuk
+alanlarını birlikte doğrular. `PAYTR_CHECKOUT_MODE=live` bu sürümde blocker'dır.
+Normal production yayında callback zinciri bitene kadar `PAYMENTS_ENABLED=false`
+kalmalıdır.
+
+Metin değiştiğinde ilgili sürüm artırılır. Eski sipariş kabul ettiği belge
+sürümlerini korur. `PAYMENT_LEGAL_APPROVED=true` yalnız nihai metin ve işletme
+bilgileri onaylandıktan sonra kullanılır.
 
 ## Güvenlik Kontrolü
 
-1. Session ve hesap capability server-side doğrulanır.
-2. Aktif teklif DB'den yeniden okunur; istemciden tutar/grant kabul edilmez.
-3. Legal sürümler güncelse kabul alınır; stale UI `409` ile yeniden okumaya zorlanır.
+1. Session, doğrulanmış e-posta ve hesap capability server-side doğrulanır.
+2. Teklif DB'den yeniden okunur; istemciden fiyat, para birimi veya grant alınmaz.
+3. Legal sürüm stale ise API `409` döndürür.
 4. User ve IP limitleri ayrı distributed counter kullanır.
-5. İstemci idempotency anahtarı kullanıcıya bağlanır ve request fingerprint ile korunur.
-6. Order status sorgusu `id + userId` ile yapılır ve private/no-store döner.
-7. Redirect başarı kanıtı sayılmaz; yalnız doğrulanmış webhook/reconciliation sonucu
-   siparişi paid durumuna taşıyabilir.
+5. Idempotency anahtarı kullanıcı ve request fingerprint ile korunur.
+6. Order status `id + userId` ile okunur ve private/no-store döner.
+7. Provider çağrısı DB transaction'ı dışında çalışır; attempt lease concurrent
+   token isteklerini sınırlar.
+8. Redirect ödeme kanıtı değildir; yalnız imzalı webhook/reconciliation sonucu
+   siparişi `paid` yapabilir.
 
 ## Sonraki Branch
 
-İlk Türkiye provider adapter'ı merchant hesabı ve sandbox erişimine göre iyzico
-veya PayTR olmalıdır. Adapter branch'i provider session create, imza doğrulama,
-order state transition, webhook processor, fulfillment ve sandbox Playwright/smoke
-testlerini birlikte kapatmalıdır.
-
-## Resmi Referanslar
-
-- [KVKK Aydınlatma Yükümlülüğü Tebliği](https://www.kvkk.gov.tr/Icerik/4132/aydinlatma-yukumlulugunun-yerine-getirilmesinde-uyulacak-usul-ve-esaslar-hakkinda-teblig)
-- [Ticaret Bakanlığı Mesafeli Sözleşmeler Bilgilendirmesi](https://tuketici.ticaret.gov.tr/yayinlar/tuketici-bilgi-rehberi/mesafeli-sozlesmeler-hakkinda-bilgilendirme)
+`feature/paytr-webhook-order-processor` PayTR callback verifier registry bağlantısı,
+durable inbox processor, amount/currency/order doğrulaması, atomik fulfillment,
+notification/cache invalidation ve duplicate/out-of-order sandbox testlerini
+tamamlayacaktır.

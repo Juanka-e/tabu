@@ -120,3 +120,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 26. `payment-fulfillment-operations.md`
 - paid order icin atomik coin/kozmetik teslimati ve duplicate korumasini tanimlar
 - failure, partial rollback ve refund/chargeback kapsam sinirini aciklar
+
+27. `payment-checkout-and-legal-readiness.md`
+- PayTR sandbox checkout gate'ini, transient iletisim verisini ve legal surumlemeyi tanimlar
+- live aktivasyonundan once gereken webhook, reversal ve operasyon kontrollerini ayirir

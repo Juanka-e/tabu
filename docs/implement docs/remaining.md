@@ -220,7 +220,7 @@ Bilincli olarak bu branch'te yapmiyoruz:
 ### Ilk payment provider adapter'i
 - PayTR iFrame kriptografik ve transport adapter temeli tamamlandi
 - provider-neutral atomik coin/kozmetik fulfillment temeli tamamlandi
-- checkout gecici iletisim alanlari, verified account email ve session create eklenecek
+- checkout gecici iletisim alanlari, verified account email ve sandbox session create tamamlandi
 - webhook verifier registry baglantisi ile idempotent order processor tamamlanacak
 - fulfillment sonrasi notification/cache invalidation ve operasyon retry yolu eklenecek
 - provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak

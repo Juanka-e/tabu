@@ -23,6 +23,7 @@ const YOUTUBE_FRAME_SOURCES = [
     "https://www.youtube-nocookie.com",
 ];
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+const PAYTR_FRAME_ORIGIN = "https://www.paytr.com";
 
 export function generateCspNonce(): string {
     return Buffer.from(crypto.randomUUID()).toString("base64");
@@ -130,7 +131,7 @@ export function buildContentSecurityPolicy({
                 ...(externalSources.connections ?? []),
             ],
         ],
-        ["frame-src", ["'self'", TURNSTILE_ORIGIN, ...YOUTUBE_FRAME_SOURCES]],
+        ["frame-src", ["'self'", TURNSTILE_ORIGIN, PAYTR_FRAME_ORIGIN, ...YOUTUBE_FRAME_SOURCES]],
         ["media-src", ["'self'", "blob:", "https:"]],
         ["object-src", ["'none'"]],
         ["base-uri", ["'self'"]],

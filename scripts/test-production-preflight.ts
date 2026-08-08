@@ -134,6 +134,11 @@ assert.ok(
 const checkoutWithLegalApproval = validEnvironment();
 Object.assign(checkoutWithLegalApproval, {
     PAYMENTS_ENABLED: "true",
+    PAYMENT_ACTIVE_PROVIDER: "paytr",
+    PAYTR_CHECKOUT_MODE: "sandbox",
+    PAYTR_MERCHANT_ID: "sandbox-merchant-123",
+    PAYTR_MERCHANT_KEY: "sandbox-key-123456",
+    PAYTR_MERCHANT_SALT: "sandbox-salt-123456",
     PAYMENT_LEGAL_APPROVED: "true",
     PAYMENT_LEGAL_BUSINESS_NAME: "Hushle Teknoloji A.S.",
     PAYMENT_LEGAL_BUSINESS_ADDRESS: "Maslak Mahallesi, Istanbul",
@@ -143,6 +148,20 @@ Object.assign(checkoutWithLegalApproval, {
     PAYMENT_DISTANCE_SALES_NOTICE_VERSION: "distance-v1",
 });
 assert.deepEqual(validateProductionEnvironment(checkoutWithLegalApproval).errors, []);
+
+const livePaytrCheckout = { ...checkoutWithLegalApproval, PAYTR_CHECKOUT_MODE: "live" };
+assert.ok(
+    validateProductionEnvironment(livePaytrCheckout).errors.some((error) =>
+        error.includes("live checkout is not available")
+    )
+);
+
+const incompletePaytrCheckout = { ...checkoutWithLegalApproval, PAYTR_MERCHANT_KEY: "" };
+assert.ok(
+    validateProductionEnvironment(incompletePaytrCheckout).errors.some((error) =>
+        error.includes("PAYTR_MERCHANT_KEY")
+    )
+);
 
 const missingTurnstileHostname = validEnvironment();
 missingTurnstileHostname.TURNSTILE_ALLOWED_HOSTNAMES = "";

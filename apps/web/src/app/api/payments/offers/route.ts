@@ -32,11 +32,12 @@ export async function GET() {
         );
     }
 
-    const [offers, runtime, legal] = await Promise.all([
+    const [allOffers, runtime, legal] = await Promise.all([
         listActivePaymentOffers(),
         Promise.resolve(getPaymentRuntimeReadiness()),
         Promise.resolve(getPaymentLegalReadiness()),
     ]);
+    const offers = allOffers.filter((offer) => offer.productKind !== "coin_pack");
 
     return NextResponse.json(
         {

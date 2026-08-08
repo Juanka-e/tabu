@@ -1,83 +1,81 @@
 # PayTR iFrame Adapter Rehberi
 
-## Kapsam
+## Mevcut Durum
 
-Bu dilim PayTR iFrame API için sağlayıcıya özel kriptografik ve transport
-temelini ekler. Gerçek tahsilatı açmaz. `PAYMENTS_ENABLED=false` kalmalı ve
-PayTR henüz provider registry içindeki checkout/webhook çalışma yoluna
-bağlanmamalıdır.
+`feature/paytr-checkout-orchestration` ile PayTR iFrame token oturumu checkout
+akışına bağlandı. Bu sürüm yalnız sandbox çalıştırır:
 
-Tamamlananlar:
+```env
+PAYMENTS_ENABLED=true
+PAYMENT_ACTIVE_PROVIDER=paytr
+PAYTR_CHECKOUT_MODE=sandbox
+PAYTR_MERCHANT_ID=...
+PAYTR_MERCHANT_KEY=...
+PAYTR_MERCHANT_SALT=...
+```
 
-- token isteği için resmi alan sırasıyla HMAC-SHA256 üretimi,
-- integer minor-unit tutardan deterministik sepet fiyatı üretimi,
-- sepet toplamı ile sipariş tutarını adapter sınırında eşitleme,
-- sabit PayTR HTTPS token endpoint'i ve bounded timeout/response kontrolü,
-- PayTR callback HMAC doğrulaması ve constant-time karşılaştırma,
-- duplicate kritik form alanlarını ve bozuk UTF-8/body boyutunu reddetme,
-- provider ham hata ayrıntısını istemciye taşımayan bounded hata kodları,
-- callback'i provider-neutral webhook event sözleşmesine dönüştürme,
-- PayTR'nin beklediği yalnızca `OK` acknowledgement sözleşmesi.
+`PAYTR_CHECKOUT_MODE=live` bilinçli olarak fail-closed kalır. Kod token isteğinde
+`test_mode=1` değerini sabit gönderir. Callback processor, refund ve chargeback
+tamamlanmadan gerçek tahsilat açılmaz.
+
+## Checkout Akışı
+
+1. Kullanıcı doğrulanmış hesap e-postasıyla oturum açar.
+2. Aktif teklif, fiyat, para birimi ve grant snapshot'ı sunucudan okunur.
+3. Ad-soyad, telefon ve adres yalnız checkout isteğinde geçici alınır.
+4. Sipariş ve immutable legal consent oluşturulur.
+5. `PaymentAttempt` kısa bir lease ile `requested` durumuna alınır.
+6. PayTR token çağrısı veritabanı transaction'ı dışında yapılır.
+7. Başarılı token hash'lenerek attempt'e, oturumu yenilemek için ham token ise
+   owner-only sipariş kaydına yazılır; sipariş `awaiting_payment` olur.
+8. Aynı idempotency anahtarı yeni sipariş veya ikinci provider çağrısı üretmez.
+
+Provider timeout veya reddi yalnız bounded hata kodu olarak saklanır. Ham provider
+cevabı, secret, iletişim alanları ve kart verisi log/audit/veritabanına yazılmaz.
 
 ## Veri Minimizasyonu
 
-PayTR token isteği ad-soyad, telefon, adres ve e-posta ister. Uygulama bu
-alanları `PaymentOrder`, webhook inbox, audit veya log kayıtlarına kopyalamaz.
-Aktivasyon diliminde ad-soyad, telefon ve adres checkout formunda işlem için
-geçici alınacak; sunucu tarafındaki PayTR token isteği tamamlandıktan sonra
-kalıcı uygulama verisi haline getirilmeyecektir.
-
-E-posta istemciden güvenilir kabul edilmeyecek. Oturumdaki kayıtlı ve
-doğrulanmış hesap e-postası sunucudan alınacaktır. Kart verisi uygulama
-sunucusundan geçmeyecek ve PayTR iFrame içinde kalacaktır.
-
-Checkout ekranında KVKK aydınlatma bağlantısı ve mesafeli satış ön
-bilgilendirmesi mevcut yapıdaki ayrı kutucuk/metin düzenini korur. PayTR'nin
-zorunlu iletişim alanlarının hangi amaçla ve kime aktarıldığı ödeme
-aydınlatmasında açıkça yazılmadan adapter aktifleştirilmez.
+- E-posta browser payload'ından alınmaz; doğrulanmış session hesabından okunur.
+- Ad-soyad, telefon ve adres PayTR token çağrısından sonra kalıcı uygulama verisi
+  haline gelmez.
+- Kart verisi uygulama sunucusundan geçmez ve PayTR iFrame içinde kalır.
+- Kullanıcı IP'si güvenilir proxy zincirinden alınır. Local sandbox'ta yalnız
+  server-owned `PAYTR_SANDBOX_USER_IP` fallback'i kullanılabilir.
+- Owner order API yalnız sandbox `iframeUrl` döndürür; merchant secret dönmez.
 
 ## Güven Sınırı
 
-1. Ürün, fiyat, para birimi ve grant yalnız sunucu teklif snapshot'ından gelir.
-2. `merchant_oid` sunucu tarafından üretilen benzersiz sipariş referansıdır.
-3. Başarı veya hata yönlendirme URL'si ödeme kanıtı değildir.
-4. Yalnız imzası doğrulanan PayTR callback durable inbox'a yazılabilir.
-5. Worker callback tutarını, para birimini, provider referansını ve order
-   state'ini tekrar doğrulamadan siparişi `paid` yapamaz.
-6. Fulfillment unique constraint ve transaction ile idempotent olmadan ürün
-   teslim edilmez.
-7. Credential değerleri yalnız secret manager/env içinde kalır; admin API,
-   browser bundle, log ve veritabanına gönderilmez.
+- Redirect başarı kanıtı değildir.
+- Yalnız doğrulanmış PayTR callback'i durable inbox'a girebilir.
+- Worker tutar, para birimi, provider/order referansı ve state'i doğrulamadan
+  siparişi `paid` yapamaz.
+- Fulfillment row lock, transaction ve unique constraint ile idempotenttir.
+- Coin paketleri refund/chargeback reversal politikası tamamlanana kadar katalogdan
+  gizlenir ve API tarafından reddedilir.
+- Provider secret'ları env/secret manager'da kalır; admin UI ve DB'ye yazılmaz.
 
-PayTR callback imzasındaki `total_amount`, taksit farkı nedeniyle checkout
-tutarından yüksek olabilir. Aktivasyon worker'ı eksik ödemeyi reddetmeli;
-beklenen tutardan yüksek signed toplamı kör biçimde ürün miktarına çevirmemeli
-ve siparişin immutable fiyat snapshot'ını değiştirmemelidir.
+## Kalan Aktivasyon İşleri
 
-## Aktivasyon İçin Kalanlar
+- PayTR verifier'ını webhook registry'ye bağlamak,
+- duplicate ve out-of-order callback'leri işleyen idempotent order processor,
+- başarılı fulfillment sonrası notification ve cache invalidation,
+- expiry, refund ve chargeback state/reversal davranışı,
+- sandbox callback entegrasyon testleri ve reconciliation yolu,
+- Cloudflare callback no-challenge smoke testi,
+- hukuk onaylı işletme, aydınlatma ve mesafeli satış metinleri,
+- en son düşük tutarlı canlı ödeme ve iade smoke testi.
 
-- checkout iletişim alanları ve sunucu tarafı doğrulanmış e-posta kontrolü,
-- order attempt ve PayTR token session orchestration,
-- verifier'ın webhook registry'ye açıkça bağlanması,
-- idempotent order processor ve atomik fulfillment,
-- başarısız ödeme, expiry, refund ve chargeback state davranışı,
-- sandbox duplicate/out-of-order callback entegrasyon testi,
-- düşük tutarlı canlı ödeme ve iade smoke testi,
-- Cloudflare üzerinde callback'e challenge uygulanmadığının doğrulanması,
-- hukuk tarafından onaylanmış işletme, aydınlatma ve mesafeli satış metinleri.
-
-Bu maddeler tamamlanmadan credential bulunması adapter'ı hazır veya aktif
-saymaz.
-
-## Test
+## Testler
 
 ```bash
 npm run test:payment-paytr-adapter
+npm run test:payment-paytr-checkout
+npm run test:payment-paytr-checkout-integration
+npm run test:payment-checkout-e2e
 ```
 
-Test; token ve callback HMAC formülünü adapter kodundan bağımsız hesaplar,
-değiştirilmiş tutarı, duplicate kimliği, bozuk UTF-8'i, büyük callback'i,
-geçersiz sepet toplamını ve provider hata izolasyonunu doğrular.
+Entegrasyon testleri geçici MySQL şeması kullanır. Playwright testi transient
+iletişim alanlarını, legal kabulleri ve sandbox iFrame açılışını doğrular.
 
 ## Resmi Kaynaklar
 

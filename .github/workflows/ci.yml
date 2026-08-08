@@ -103,8 +103,18 @@ jobs:
         env:
           PAYMENT_FULFILLMENT_INTEGRATION_TEST: "true"
 
+      - name: Test PayTR checkout orchestration
+        run: npm run test:payment-paytr-checkout-integration
+        env:
+          PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build
+
+      - name: Test payment checkout UI
+        run: npm run test:payment-checkout-e2e
+        env:
+          PAYMENT_CHECKOUT_E2E: "true"
 
       - name: Test strict state-change origin policy
         run: npm run test:request-origin-integration

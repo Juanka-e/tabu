@@ -54,6 +54,23 @@ Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Provider signature adapter'ı
 - duplicate ve concurrent çağrılar ikinci grant üretmez,
 - invalid/already-owned/missing item durumları bounded failure olarak tutulur.
 
+`feature/paytr-checkout-orchestration` ile ilk çalıştırılabilir checkout bağlantısı
+yalnız sandbox için eklendi:
+
+- provider registry yalnız `PAYTR_CHECKOUT_MODE=sandbox` iken PayTR'yi hazır sayar;
+  `live` fail-closed kalır,
+- doğrulanmış hesap e-postası sunucudan alınır; ad-soyad, telefon ve adres token
+  isteğinden sonra DB, audit veya log'a yazılmaz,
+- order/attempt hazırlığı ve provider çağrısı ayrıdır; ağ beklemesi DB transaction'ını
+  açık tutmaz,
+- attempt lease ve mevcut session dönüşü concurrent/duplicate token isteklerini
+  ikinci tahsilat oturumuna dönüştürmez,
+- iFrame session yalnız sipariş sahibine ve yalnız `awaiting_payment` durumunda
+  döner,
+- coin pack teklifleri chargeback/refund reversal tamamlanana kadar gizlenir,
+- redirect yine ödeme kanıtı değildir; webhook processor tamamlanmadan sipariş
+  `paid` durumuna geçemez.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.

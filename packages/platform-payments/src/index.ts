@@ -6,3 +6,4 @@ export * from "./provider-registry";
 export * from "./webhook-inbox";
 export * from "./adapters/paytr";
 export * from "./fulfillment";
+export * from "./paytr-checkout";
