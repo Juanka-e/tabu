@@ -113,8 +113,20 @@ jobs:
         env:
           PAYTR_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
 
+      - name: Test payment reconciliation and reversal
+        run: |
+          npm run test:payment-reconciliation-reversal
+          npm run test:payment-reconciliation-reversal-integration
+        env:
+          PAYMENT_REVERSAL_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build
+
+      - name: Test admin payment operations UI
+        run: npm run test:payment-operations-admin-e2e
+        env:
+          PAYMENT_OPERATIONS_ADMIN_E2E: "true"
 
       - name: Test payment checkout UI
         run: npm run test:payment-checkout-e2e

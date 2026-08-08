@@ -6,6 +6,7 @@ import { PaymentWebhookError } from "../webhook-inbox";
 
 export const PAYTR_IFRAME_TOKEN_ENDPOINT = "https://www.paytr.com/odeme/api/get-token";
 export const PAYTR_IFRAME_URL_PREFIX = "https://www.paytr.com/odeme/guvenli/";
+export const PAYTR_STATUS_QUERY_ENDPOINT = "https://www.paytr.com/odeme/durum-sorgu";
 
 const MAX_CALLBACK_BYTES = 16_384;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -104,6 +105,125 @@ function buildBasket(items: z.infer<typeof basketItemSchema>[]): string {
 
 function hmacBase64(message: string, key: string): string {
     return createHmac("sha256", key).update(message, "utf8").digest("base64");
+}
+
+export function buildPaytrStatusQueryForm(input: {
+    merchantOrderId: string;
+    credentials: PaytrCredentials;
+}): URLSearchParams {
+    if (!/^[A-Za-z0-9]{1,64}$/.test(input.merchantOrderId)) {
+        throw new PaytrAdapterError("invalid_request");
+    }
+    const credentials = parseCredentials(input.credentials);
+    const token = hmacBase64(
+        `${credentials.merchantId}${input.merchantOrderId}${credentials.merchantSalt}`,
+        credentials.merchantKey
+    );
+    return new URLSearchParams({
+        merchant_id: credentials.merchantId,
+        merchant_oid: input.merchantOrderId,
+        paytr_token: token,
+    });
+}
+
+function parseProviderMoney(value: unknown): number {
+    const normalized = typeof value === "number" ? value.toString() : value;
+    if (typeof normalized !== "string" || !/^\d{1,10}([.,]\d{1,2})?$/.test(normalized)) {
+        throw new PaytrAdapterError("invalid_provider_response");
+    }
+    const [whole, fraction = ""] = normalized.replace(",", ".").split(".");
+    const minor = (Number(whole) * 100) + Number(fraction.padEnd(2, "0"));
+    if (!Number.isSafeInteger(minor) || minor > 2_147_483_647) {
+        throw new PaytrAdapterError("invalid_provider_response");
+    }
+    return minor;
+}
+
+const paytrStatusResponseSchema = z.discriminatedUnion("status", [
+    z.object({
+        status: z.literal("success"),
+        payment_amount: z.union([z.string(), z.number()]),
+        payment_total: z.union([z.string(), z.number()]),
+        currency: z.string().trim().min(2).max(3),
+        test_mode: z.union([z.string(), z.number(), z.boolean()]),
+        returns: z.array(z.unknown()).max(100).optional().default([]),
+    }),
+    z.object({
+        status: z.literal("error"),
+        err_no: z.union([z.string(), z.number()]).optional(),
+        err_msg: z.string().max(1000).optional(),
+    }),
+]);
+
+export type PaytrStatusQueryResult =
+    | {
+        status: "success";
+        paymentAmountMinor: number;
+        paymentTotalMinor: number;
+        currency: string;
+        testMode: boolean;
+        returnCount: number;
+    }
+    | { status: "error"; errorCode: string };
+
+export async function queryPaytrPaymentStatus(input: {
+    merchantOrderId: string;
+    credentials: PaytrCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<PaytrStatusQueryResult> {
+    const form = buildPaytrStatusQueryForm(input);
+    const timeoutMs = Math.max(1_000, Math.min(input.timeoutMs ?? DEFAULT_TIMEOUT_MS, 30_000));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await (input.fetchImpl ?? fetch)(PAYTR_STATUS_QUERY_ENDPOINT, {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: form.toString(),
+            signal: controller.signal,
+        });
+        if (!response.ok) throw new PaytrAdapterError("provider_unavailable");
+        const declaredLength = Number(response.headers.get("content-length") ?? "0");
+        if (declaredLength > 16_384) throw new PaytrAdapterError("invalid_provider_response");
+        const body = await response.text();
+        if (Buffer.byteLength(body, "utf8") > 16_384) {
+            throw new PaytrAdapterError("invalid_provider_response");
+        }
+        let json: unknown;
+        try {
+            json = JSON.parse(body);
+        } catch {
+            throw new PaytrAdapterError("invalid_provider_response");
+        }
+        const parsed = paytrStatusResponseSchema.safeParse(json);
+        if (!parsed.success) throw new PaytrAdapterError("invalid_provider_response");
+        if (parsed.data.status === "error") {
+            return {
+                status: "error",
+                errorCode: String(parsed.data.err_no ?? "provider_error").slice(0, 80),
+            };
+        }
+        const currency = parsed.data.currency.toUpperCase() === "TL"
+            ? "TRY"
+            : parsed.data.currency.toUpperCase();
+        return {
+            status: "success",
+            paymentAmountMinor: parseProviderMoney(parsed.data.payment_amount),
+            paymentTotalMinor: parseProviderMoney(parsed.data.payment_total),
+            currency,
+            testMode: parsed.data.test_mode === true
+                || parsed.data.test_mode === 1
+                || parsed.data.test_mode === "1",
+            returnCount: parsed.data.returns.length,
+        };
+    } catch (error) {
+        if (error instanceof PaytrAdapterError) throw error;
+        if (controller.signal.aborted) throw new PaytrAdapterError("provider_timeout");
+        throw new PaytrAdapterError("provider_unavailable");
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export function buildPaytrIframeForm(

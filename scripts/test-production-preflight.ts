@@ -141,6 +141,7 @@ Object.assign(checkoutWithLegalApproval, {
     PAYTR_MERCHANT_SALT: "sandbox-salt-123456",
     JOBS_ENABLED: "true",
     PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED: "true",
+    PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED: "true",
     PAYMENT_LEGAL_APPROVED: "true",
     PAYMENT_LEGAL_BUSINESS_NAME: "Hushle Teknoloji A.S.",
     PAYMENT_LEGAL_BUSINESS_ADDRESS: "Maslak Mahallesi, Istanbul",
@@ -172,6 +173,16 @@ const unscheduledPaytrCheckout = {
 assert.ok(
     validateProductionEnvironment(unscheduledPaytrCheckout).errors.some((error) =>
         error.includes("PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED")
+    )
+);
+
+const unreconciledPaytrCheckout = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED: "false",
+};
+assert.ok(
+    validateProductionEnvironment(unreconciledPaytrCheckout).errors.some((error) =>
+        error.includes("PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED")
     )
 );
 

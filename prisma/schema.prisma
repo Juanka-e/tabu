@@ -207,6 +207,22 @@ enum PaymentWebhookOutcome {
   ignored
 }
 
+enum PaymentReversalOutcome {
+  refund
+  chargeback
+}
+
+enum PaymentReversalStatus {
+  completed
+  manual_review
+}
+
+enum PaymentReconciliationStatus {
+  open
+  resolved
+  ignored
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -258,6 +274,8 @@ model User {
   emailSuppressions        EmailSuppression[]
   oauthAccounts            OAuthAccount[]
   paymentOrders            PaymentOrder[]
+  paymentReversalsAuthored PaymentReversal[] @relation("PaymentReversalActor")
+  paymentReconciliationsResolved PaymentReconciliationCase[] @relation("PaymentReconciliationResolver")
 
   @@index([emailVerifiedAt])
   @@index([accountStatus, emailVerificationRequiredAt])
@@ -323,6 +341,8 @@ model PaymentOrder {
   fulfillment PaymentFulfillment?
   webhookEvents PaymentWebhookEvent[]
   checkoutConsent PaymentCheckoutConsent?
+  reversal PaymentReversal?
+  reconciliationCase PaymentReconciliationCase?
 
   @@unique([userId, idempotencyKey])
   @@unique([provider, providerOrderReference])
@@ -331,6 +351,54 @@ model PaymentOrder {
   @@index([status, createdAt])
   @@index([provider, status, createdAt])
   @@map("payment_orders")
+}
+
+model PaymentReversal {
+  id                    String                @id @default(uuid()) @db.Char(36)
+  orderId               String                @unique @map("order_id") @db.Char(36)
+  outcome               PaymentReversalOutcome
+  status                PaymentReversalStatus
+  externalReference     String                @map("external_reference") @db.VarChar(191)
+  reason                String                @db.VarChar(500)
+  evidence              Json                  @db.Json
+  requestedByUserId     Int?                  @map("requested_by_user_id")
+  notificationSentAt    DateTime?             @map("notification_sent_at")
+  completedAt           DateTime?             @map("completed_at")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  order       PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  requestedBy User?        @relation("PaymentReversalActor", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([outcome, createdAt])
+  @@index([requestedByUserId, createdAt])
+  @@map("payment_reversals")
+}
+
+model PaymentReconciliationCase {
+  id                 String                      @id @default(uuid()) @db.Char(36)
+  orderId            String                      @unique @map("order_id") @db.Char(36)
+  status             PaymentReconciliationStatus @default(open)
+  reasonCode         String                      @map("reason_code") @db.VarChar(80)
+  attemptCount       Int                         @default(0) @map("attempt_count")
+  providerSnapshot   Json?                       @map("provider_snapshot") @db.Json
+  lastErrorCode      String?                     @map("last_error_code") @db.VarChar(80)
+  lastCheckedAt      DateTime?                   @map("last_checked_at")
+  nextCheckAt        DateTime?                   @map("next_check_at")
+  resolvedAt         DateTime?                   @map("resolved_at")
+  resolvedByUserId   Int?                        @map("resolved_by_user_id")
+  resolutionNote     String?                     @map("resolution_note") @db.VarChar(500)
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+
+  order      PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  resolvedBy User?        @relation("PaymentReconciliationResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextCheckAt, createdAt])
+  @@index([reasonCode, createdAt])
+  @@index([resolvedByUserId, resolvedAt])
+  @@map("payment_reconciliation_cases")
 }
 
 model PaymentCheckoutConsent {

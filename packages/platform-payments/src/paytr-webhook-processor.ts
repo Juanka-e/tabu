@@ -127,7 +127,7 @@ async function applyPaytrOrderOutcome(
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
 
-async function createFulfillmentNotification(orderId: string, now: Date): Promise<number> {
+export async function createPaymentFulfillmentNotification(orderId: string, now: Date): Promise<number> {
     return prisma.$transaction(async (tx) => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
             SELECT id
@@ -169,7 +169,7 @@ async function createFulfillmentNotification(orderId: string, now: Date): Promis
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
 
-async function invalidateFulfillmentCaches(userId: number): Promise<void> {
+export async function invalidatePaymentFulfillmentCaches(userId: number): Promise<void> {
     await invalidateJsonCache(getRedisKey("cache", "notification-unread-count", "v1", userId));
 }
 
@@ -191,8 +191,8 @@ export async function processPaytrPaymentWebhook(
 
     try {
         await fulfillPaidPaymentOrder({ orderId: result.order.id, now });
-        const userId = await createFulfillmentNotification(result.order.id, now);
-        await invalidateFulfillmentCaches(userId).catch(() => undefined);
+        const userId = await createPaymentFulfillmentNotification(result.order.id, now);
+        await invalidatePaymentFulfillmentCaches(userId).catch(() => undefined);
         return "processed";
     } catch (error) {
         throw normalizeFulfillmentFailure(error);

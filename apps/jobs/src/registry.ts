@@ -10,6 +10,8 @@ import { runEmailDelivery } from "./email-delivery";
 import { runEmailRetention } from "./email-retention";
 import { getPaymentWebhookConfig } from "./config";
 import { runPaymentWebhook } from "./payment-webhook";
+import { getPaymentReconciliationConfig } from "./config";
+import { runPaymentReconciliationJob } from "./payment-reconciliation";
 
 export const JOB_NAMES = [
     "audit-retention",
@@ -17,6 +19,7 @@ export const JOB_NAMES = [
     "email-delivery",
     "email-retention",
     "payment-webhook",
+    "payment-reconciliation",
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -67,6 +70,13 @@ export function getJobDefinition(job: JobName): JobDefinition {
             return {
                 leaseTtlMs: config.leaseTtlMs,
                 run: ({ dryRun }) => runPaymentWebhook({ config, dryRun }),
+            };
+        }
+        case "payment-reconciliation": {
+            const config = getPaymentReconciliationConfig();
+            return {
+                leaseTtlMs: config.leaseTtlMs,
+                run: ({ dryRun }) => runPaymentReconciliationJob({ config, dryRun }),
             };
         }
     }

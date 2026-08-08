@@ -239,6 +239,9 @@ export function validateProductionEnvironment(env) {
         if (!isTrue(env.PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED)) {
             result.errors.push("PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED must confirm the durable processor schedule before checkout is enabled.");
         }
+        if (!isTrue(env.PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED)) {
+            result.errors.push("PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED must confirm the provider status-query schedule before checkout is enabled.");
+        }
         result.checks.push("payment legal and sandbox provider readiness");
     }
 

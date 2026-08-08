@@ -270,6 +270,14 @@
 - checkout için jobs runtime ve scheduler zorunlu production preflight kapısı
 - imzalı callback zincirini zorlayan disposable MySQL entegrasyon testi
 
+### 38. `feature/payment-reconciliation-and-reversal-foundation`
+
+- PayTR sandbox status-query adapter ve bounded reconciliation worker
+- Redis global lease, retry aralığı ve production scheduler preflight gate'i
+- idempotent kozmetik entitlement reversal ve equipped slot temizliği
+- fungible coin için kazanılmış bakiyeye dokunmayan manuel inceleme politikası
+- admin ödeme operasyon görünümü, dead-letter retry ve audit'li reversal endpoint'i
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
