@@ -43,7 +43,7 @@ function independentHmac(message: string): string {
 }
 
 async function expectCode(
-    action: () => unknown | Promise<unknown>,
+    action: () => Promise<unknown>,
     ErrorType: typeof PaytrAdapterError | typeof PaymentWebhookError,
     code: string
 ): Promise<void> {
