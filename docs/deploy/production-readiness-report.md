@@ -259,6 +259,26 @@ Production aktivasyon sirasi:
 
 Ayrintili sozlesme: `docs/security/adaptive-turnstile-policy.md`.
 
+## Cloudflare Edge Route Policy
+
+Kod ve deployment kontrati hazir:
+
+- `infra/cloudflare/edge-security-policy.json` route siniflarini tanimlar.
+- WebSocket exact Origin + uygulama rate limit/Turnstile ile korunur; Referer
+  zorunlulugu veya handshake challenge kullanilmaz.
+- Login/register/room entry icin browser-only kurallar once gozlem, sonra
+  Managed Challenge olarak acilir.
+- Datacenter/VPN ASN'leri global block edilmez.
+- Gelecek `/api/payments/webhooks/{provider}` rotalari browser challenge,
+  cookie session, Origin ve Referer kontrolunden ayridir; raw-body provider
+  imzasi ve event dedupe zorunludur.
+- Production preflight proxy, origin lock ve
+  `PAYMENT_WEBHOOK_EDGE_POLICY=signature_first_no_challenge` kararini kontrol eder.
+
+Cloudflare dashboard ve origin firewall gercek durumu koddan kanitlanamaz. Launch
+oncesi Security Events, WebSocket reconnect ve provider callback smoke testleri
+operasyonel blocker olarak kalir.
+
 ## Google Search Console ve SEO
 
 Mevcut:
