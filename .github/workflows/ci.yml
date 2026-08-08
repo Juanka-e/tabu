@@ -127,6 +127,8 @@ jobs:
         run: npm run test:payment-operations-admin-e2e
         env:
           PAYMENT_OPERATIONS_ADMIN_E2E: "true"
+          ADMIN_ACCESS_MODE: "public_login"
+          ADMIN_ACCESS_FAIL_CLOSED: "false"
 
       - name: Test payment checkout UI
         run: npm run test:payment-checkout-e2e
