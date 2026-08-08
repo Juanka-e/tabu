@@ -36,6 +36,19 @@ async function verify(action: "login" | "register", token = "valid-token") {
     });
 }
 
+function setNodeEnvironment(value: string | undefined): void {
+    if (value === undefined) {
+        Reflect.deleteProperty(process.env, "NODE_ENV");
+        return;
+    }
+    Object.defineProperty(process.env, "NODE_ENV", {
+        configurable: true,
+        enumerable: true,
+        value,
+        writable: true,
+    });
+}
+
 async function main(): Promise<void> {
     process.env.TURNSTILE_SITE_KEY = "test-site-key";
     process.env.TURNSTILE_SECRET_KEY = "test-secret-key-with-enough-length";
@@ -84,7 +97,7 @@ async function main(): Promise<void> {
     assert.equal(unavailable.ok, false);
     assert.equal(unavailable.reason, "provider_unavailable");
 
-    process.env.NODE_ENV = "production";
+    setNodeEnvironment("production");
     delete process.env.TURNSTILE_ALLOWED_HOSTNAMES;
     const missingProductionAllowlist = await verify("login");
     assert.equal(missingProductionAllowlist.ok, false);
@@ -95,8 +108,7 @@ async function main(): Promise<void> {
 
 void main().finally(() => {
     globalThis.fetch = originalFetch;
-    if (originalEnvironment.nodeEnvironment === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalEnvironment.nodeEnvironment;
+    setNodeEnvironment(originalEnvironment.nodeEnvironment);
     if (originalEnvironment.siteKey === undefined) delete process.env.TURNSTILE_SITE_KEY;
     else process.env.TURNSTILE_SITE_KEY = originalEnvironment.siteKey;
     if (originalEnvironment.secretKey === undefined) delete process.env.TURNSTILE_SECRET_KEY;
