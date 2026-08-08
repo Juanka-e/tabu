@@ -14,6 +14,7 @@ COPY packages/platform-db/package.json ./packages/platform-db/package.json
 COPY packages/platform-inventory/package.json ./packages/platform-inventory/package.json
 COPY packages/platform-observability/package.json ./packages/platform-observability/package.json
 COPY packages/platform-player/package.json ./packages/platform-player/package.json
+COPY packages/platform-payments/package.json ./packages/platform-payments/package.json
 COPY packages/platform-store/package.json ./packages/platform-store/package.json
 RUN npm ci
 

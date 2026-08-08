@@ -8,6 +8,11 @@ export {
     EmailSuppressionScope,
     ItemRarity,
     MobileAuthTokenKind,
+    PaymentAttemptStatus,
+    PaymentFulfillmentStatus,
+    PaymentOrderStatus,
+    PaymentProductKind,
+    PaymentProvider,
     Prisma,
     PrismaClient,
     PromotionDiscountType,
@@ -16,6 +21,7 @@ export {
     UserAccountStatus,
     WalletLedgerSource,
 } from "@prisma/client";
+export type { PaymentOrder } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;

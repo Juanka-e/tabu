@@ -216,6 +216,13 @@
 - proxy/origin-lock ve signature-first webhook production preflight kararlari
 - provider-neutral payment mimarisi ve guvenli adapter branch sirasi
 
+### 31. `feature/payment-orders-foundation`
+- minor-unit fiyat ve immutable urun/grant snapshot'i tasiyan payment order modeli
+- ayni kullanici + idempotency key icin atomik duplicate korumasi ve payload fingerprint kontrolu
+- provider-neutral state machine, attempt ve tekil fulfillment kontrati
+- fail-closed checkout gate ile Integration Hub provider readiness gorunumu
+- gercek MySQL race testi ve admin Integration Hub Playwright smoke testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

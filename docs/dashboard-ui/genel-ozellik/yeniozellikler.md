@@ -61,8 +61,10 @@
 - Gercek para ile coin satin alma sistemi, store coin harcamasindan ayri bir domain olarak ele alinacak.
 - `feature/wallet-ledger-foundation` ile wallet ledger omurgasi kuruldu.
 - Bakiye ve immutable hareket kaydi ayni MySQL transaction'inda yaziliyor.
-- Olasi ileriki branch'ler:
-  - `feature/payment-orders-foundation`
+- `feature/payment-orders-foundation` ile siparis snapshot, state machine, provider registry ve idempotency temeli kuruldu.
+- Siradaki odeme branch'leri:
+  - `feature/payment-webhook-inbox`
+  - `feature/payment-checkout-ui`
 - Provider-neutral ödeme sırası ve güvenlik kontratı:
   - `docs/architecture/provider-neutral-payments.md`
 - İlk sürüm checkout/top-up modelidir; oyuncu cash-out/payout kapsam dışıdır.

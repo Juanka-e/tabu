@@ -25,6 +25,8 @@ async function main(): Promise<void> {
         "integration_test_email_token_secret_123456";
     process.env.SMTP_HOST = "127.0.0.1";
     process.env.SMTP_PORT = "1025";
+    process.env.PAYMENTS_ENABLED = "false";
+    process.env.PAYMENT_ACTIVE_PROVIDER = "";
 
     const settings = normalizeSystemSettings({
         security: {
@@ -49,6 +51,8 @@ async function main(): Promise<void> {
     const adminAccess = snapshot.items.find((item) => item.id === "admin-access-gateway");
     const emailOutbound = snapshot.items.find((item) => item.id === "email-outbound");
     const redis = snapshot.items.find((item) => item.id === "redis-valkey");
+    const paymentGate = snapshot.items.find((item) => item.id === "payment-checkout-gate");
+    const paymentProviders = snapshot.items.filter((item) => item.id.startsWith("payment-") && item.id !== "payment-checkout-gate");
 
     assert.ok(turnstile);
     assert.equal(turnstile.status, "ready");
@@ -61,6 +65,11 @@ async function main(): Promise<void> {
 
     assert.ok(redis);
     assert.equal(redis.status, "planned");
+
+    assert.ok(paymentGate);
+    assert.equal(paymentGate.status, "planned");
+    assert.equal(paymentProviders.length, 5);
+    assert.equal(paymentProviders.every((item) => item.status === "planned"), true);
 
     console.log("integration hub smoke test passed");
 }

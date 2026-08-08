@@ -1,5 +1,19 @@
 # Provider-Neutral Payment Architecture
 
+## Mevcut Durum (2026-08-08)
+
+`feature/payment-orders-foundation` ile ödeme çekirdeğinin tahsilat yapmayan ilk katmanı eklendi:
+
+- `PaymentOrder`, `PaymentAttempt` ve tekil `PaymentFulfillment` modelleri migration ile tanımlandı.
+- Tutarlar kayan noktalı sayı yerine minor unit `Int` olarak, ürün/fiyat/currency/grant bilgileri sipariş snapshot'ı olarak tutuluyor.
+- Kullanıcı + idempotency key unique constraint'i ve request fingerprint kontrolü aynı isteğin ikinci sipariş üretmesini engelliyor.
+- Monoton sipariş state machine'i istemci redirect'inin doğrudan `paid` veya `fulfilled` durumuna sıçramasına izin vermiyor.
+- Beş sağlayıcı registry'de bulunuyor; adapter uygulanmadığı için tamamı fail-closed ve tahsilat endpoint'i henüz yok.
+- Integration Hub yalnız adapter/credential readiness gösteriyor. Secret değerleri admin paneline veya veritabanına taşınmıyor.
+- Runtime seçiminde `PAYMENTS_ENABLED` ve `PAYMENT_ACTIVE_PROVIDER` fail-closed gate olarak kullanılıyor. Admin mutation/toggle, ilk adapter hazır olduğunda RBAC + audit + step-up ile eklenecek.
+
+Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Sonraki branch `feature/payment-webhook-inbox`; imzalı raw-body doğrulama, durable event dedupe, retry worker ve reconciliation tamamlanmadan gerçek checkout açılmaz.
+
 ## Ürün Kararı
 
 İlk sürüm kayıtlı oyuncular için `checkout` olacaktır: kozmetik, bundle veya ileride coin paketi satın alma. Oyuncunun gerçek para çektiği `cash-out/payout` ilk kapsamda yoktur. Payout; KYC/AML, vergi, fraud ve ülke bazlı lisans gereksinimleri nedeniyle ayrı hukuki ve teknik projedir.
@@ -30,11 +44,12 @@ Admin panelden aktif sağlayıcı değiştirilebilir, fakat:
 
 ```text
 packages/platform-payments/
-  contracts.ts
-  order-state-machine.ts
-  provider-registry.ts
-  webhook-inbox.ts
-  adapters/
+  src/contracts.ts
+  src/order-state-machine.ts
+  src/orders.ts
+  src/provider-registry.ts
+  src/webhook-inbox.ts
+  src/adapters/
     shopier-v2.ts
     iyzico.ts
     paytr.ts

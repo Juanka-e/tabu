@@ -4,6 +4,7 @@ import {
     Database,
     KeyRound,
     Mail,
+    ShoppingBag,
     ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,11 @@ const categoryMeta = {
         label: "Storage",
         icon: Boxes,
         description: "Asset storage ve gelecekteki shared runtime store'lar.",
+    },
+    commerce: {
+        label: "Commerce",
+        icon: ShoppingBag,
+        description: "Checkout provider adapter ve secret readiness durumu.",
     },
 } as const;
 
@@ -117,7 +123,7 @@ export default async function AdminIntegrationsPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                 {groupedItems.map((section) => {
                     const Icon = section.icon;
                     return (
