@@ -347,7 +347,7 @@ const OdaIstegiSchema = z.object({
     kullaniciAdi: z.string().min(1).max(50),
     odaKodu: z.string().max(10).optional(),
     guestToken: z.string().min(20).max(512).optional(),
-    captchaToken: z.string().min(1).max(4096).optional(),
+    captchaToken: z.string().min(1).max(2048).optional(),
 });
 
 const KategoriAyarlariSchema = z.object({

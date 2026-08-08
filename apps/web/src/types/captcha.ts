@@ -30,8 +30,10 @@ export interface CaptchaVerificationResult {
         | "provider_unconfigured"
         | "provider_unavailable"
         | "missing_token"
+        | "token_too_long"
         | "verification_failed"
         | "action_mismatch"
+        | "hostname_mismatch"
         | "low_score"
         | "verified";
     score?: number | null;

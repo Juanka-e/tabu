@@ -43,6 +43,7 @@ function validEnvironment(): Record<string, string> {
         PRODUCTION_CAPTCHA_POLICY: "turnstile",
         TURNSTILE_SITE_KEY: "site-key",
         TURNSTILE_SECRET_KEY: "turnstile_R8mQ2vN7xL4pT9sK5wD1cF6h",
+        TURNSTILE_ALLOWED_HOSTNAMES: "play.example.test",
         PRODUCTION_EMAIL_POLICY: "smtp",
         EMAIL_PROVIDER: "smtp",
         EMAIL_TOKEN_SECRET: "email_T7vN2pQ8xL4mR9sK5wD1cF6hJ3yA0zB",
@@ -113,6 +114,30 @@ assert.ok(
 const wildcard = validEnvironment();
 wildcard.TRUSTED_WEB_ORIGINS = "*";
 assert.ok(validateProductionEnvironment(wildcard).errors.some((error) => error.includes("wildcard")));
+
+const missingTurnstileHostname = validEnvironment();
+missingTurnstileHostname.TURNSTILE_ALLOWED_HOSTNAMES = "";
+assert.ok(
+    validateProductionEnvironment(missingTurnstileHostname).errors.some((error) =>
+        error.includes("TURNSTILE_ALLOWED_HOSTNAMES")
+    )
+);
+
+const mismatchedTurnstileHostname = validEnvironment();
+mismatchedTurnstileHostname.TURNSTILE_ALLOWED_HOSTNAMES = "www.example.test";
+assert.ok(
+    validateProductionEnvironment(mismatchedTurnstileHostname).errors.some((error) =>
+        error.includes("NEXT_PUBLIC_SITE_URL hostname")
+    )
+);
+
+const invalidTurnstileHostname = validEnvironment();
+invalidTurnstileHostname.TURNSTILE_ALLOWED_HOSTNAMES = "https://play.example.test/*";
+assert.ok(
+    validateProductionEnvironment(invalidTurnstileHostname).errors.some((error) =>
+        error.includes("invalid or non-production hostname")
+    )
+);
 
 const exampleResult = validateProductionEnvironment(parseEnvFile(".env.production.example"));
 assert.ok(exampleResult.errors.some((error) => error.includes("placeholder")));

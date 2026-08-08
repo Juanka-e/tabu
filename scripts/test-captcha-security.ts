@@ -12,7 +12,7 @@ async function main(): Promise<void> {
     assert.equal(isCaptchaRequiredForAction(defaults, "register"), false);
     assert.equal(defaults.security.captcha.provider, "turnstile");
     assert.equal(defaults.security.captcha.failMode, "hard_fail");
-    assert.equal(defaults.security.captcha.turnstileMode, "invisible");
+    assert.equal(defaults.security.captcha.turnstileMode, "managed");
 
     const enforcedSettings = normalizeSystemSettings({
         security: {

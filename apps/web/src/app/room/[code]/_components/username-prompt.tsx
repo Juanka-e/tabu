@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { prewarmCaptchaForAction } from "@/lib/security/captcha-client";
 
 interface UsernamePromptProps {
     onConfirm: (username: string) => void;
@@ -47,6 +48,8 @@ export function UsernamePrompt({ onConfirm }: UsernamePromptProps) {
                 />
                 <button
                     onClick={handleConfirm}
+                    onFocus={() => prewarmCaptchaForAction("guest_join")}
+                    onPointerEnter={() => prewarmCaptchaForAction("guest_join")}
                     disabled={value.trim().length < 2}
                     className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow-lg transition-all active:scale-[0.99] hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
                 >

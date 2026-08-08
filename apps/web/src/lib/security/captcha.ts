@@ -7,6 +7,27 @@ import type {
     PublicCaptchaConfig,
 } from "@/types/captcha";
 
+const TURNSTILE_TOKEN_MAX_LENGTH = 2048;
+const CAPTCHA_VERIFY_TIMEOUT_MS = 5_000;
+
+export function getTurnstileAllowedHostnames(): ReadonlySet<string> {
+    const hostnames = (process.env.TURNSTILE_ALLOWED_HOSTNAMES ?? "")
+        .split(",")
+        .map((hostname) => hostname.trim().toLowerCase())
+        .filter(
+            (hostname) =>
+                hostname.length > 0 &&
+                hostname.length <= 253 &&
+                /^[a-z0-9.-]+$/.test(hostname) &&
+                !hostname.startsWith(".") &&
+                !hostname.endsWith(".") &&
+                !hostname.includes("..")
+        )
+        .slice(0, 20);
+
+    return new Set(hostnames);
+}
+
 function getCaptchaSiteKey(provider: PublicCaptchaConfig["provider"]): string | null {
     if (provider === "turnstile") {
         return process.env.TURNSTILE_SITE_KEY?.trim() || null;
@@ -101,6 +122,25 @@ async function verifyTurnstileToken(options: {
         };
     }
 
+    if (options.token.length > TURNSTILE_TOKEN_MAX_LENGTH) {
+        return {
+            ok: false,
+            softPassed: false,
+            provider: "turnstile",
+            reason: "token_too_long",
+        };
+    }
+
+    const allowedHostnames = getTurnstileAllowedHostnames();
+    if (process.env.NODE_ENV === "production" && allowedHostnames.size === 0) {
+        return {
+            ok: false,
+            softPassed: false,
+            provider: "turnstile",
+            reason: "provider_unconfigured",
+        };
+    }
+
     const body = new URLSearchParams({
         secret,
         response: options.token,
@@ -121,12 +161,23 @@ async function verifyTurnstileToken(options: {
                 },
                 body,
                 cache: "no-store",
+                signal: AbortSignal.timeout(CAPTCHA_VERIFY_TIMEOUT_MS),
             }
         );
+
+        if (!response.ok) {
+            return {
+                ok: false,
+                softPassed: false,
+                provider: "turnstile",
+                reason: "provider_unavailable",
+            };
+        }
 
         const payload = (await response.json()) as {
             success?: boolean;
             action?: string;
+            hostname?: string;
         };
 
         if (!payload.success) {
@@ -138,12 +189,25 @@ async function verifyTurnstileToken(options: {
             };
         }
 
-        if (payload.action && payload.action !== options.action) {
+        if (payload.action !== options.action) {
             return {
                 ok: false,
                 softPassed: false,
                 provider: "turnstile",
                 reason: "action_mismatch",
+            };
+        }
+
+        if (
+            allowedHostnames.size > 0 &&
+            (!payload.hostname ||
+                !allowedHostnames.has(payload.hostname.trim().toLowerCase()))
+        ) {
+            return {
+                ok: false,
+                softPassed: false,
+                provider: "turnstile",
+                reason: "hostname_mismatch",
             };
         }
 
@@ -198,8 +262,18 @@ async function verifyRecaptchaToken(options: {
                 },
                 body,
                 cache: "no-store",
+                signal: AbortSignal.timeout(CAPTCHA_VERIFY_TIMEOUT_MS),
             }
         );
+
+        if (!response.ok) {
+            return {
+                ok: false,
+                softPassed: false,
+                provider: "recaptcha_v3",
+                reason: "provider_unavailable",
+            };
+        }
 
         const payload = (await response.json()) as {
             success?: boolean;

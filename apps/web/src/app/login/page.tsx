@@ -17,7 +17,10 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    getCaptchaTokenForAction,
+    prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 import { resolveSafeCallbackUrl } from "@/lib/security/safe-callback-url";
 
 export default function LoginPage() {
@@ -155,7 +158,13 @@ export default function LoginPage() {
                         {error ? (
                             <div className="text-sm font-medium text-red-500">{error}</div>
                         ) : null}
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={loading}
+                            onFocus={() => prewarmCaptchaForAction("login")}
+                            onPointerEnter={() => prewarmCaptchaForAction("login")}
+                        >
                             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
                         </Button>
                     </form>

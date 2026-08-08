@@ -104,6 +104,39 @@ function validateOriginList(value, key, result) {
     }
 }
 
+function validateTurnstileHostnames(value, siteUrl, result) {
+    const entries = (value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+    if (entries.length === 0) {
+        result.errors.push("TURNSTILE_ALLOWED_HOSTNAMES must contain at least one exact hostname.");
+        return;
+    }
+    if (entries.length > 20) {
+        result.errors.push("TURNSTILE_ALLOWED_HOSTNAMES must contain at most 20 hostnames.");
+    }
+
+    const normalized = new Set();
+    for (const entry of entries) {
+        const hostname = entry.toLowerCase();
+        if (
+            hostname.length > 253 ||
+            !/^[a-z0-9.-]+$/.test(hostname) ||
+            hostname.startsWith(".") ||
+            hostname.endsWith(".") ||
+            hostname.includes("..") ||
+            hostname === "localhost"
+        ) {
+            result.errors.push("TURNSTILE_ALLOWED_HOSTNAMES contains an invalid or non-production hostname.");
+            continue;
+        }
+        normalized.add(hostname);
+    }
+
+    if (siteUrl && !normalized.has(siteUrl.hostname.toLowerCase())) {
+        result.errors.push("TURNSTILE_ALLOWED_HOSTNAMES must include the NEXT_PUBLIC_SITE_URL hostname.");
+    }
+    if (normalized.size > 0) result.checks.push("Turnstile exact hostname allowlist");
+}
+
 export function validateProductionEnvironment(env) {
     const result = { errors: [], warnings: [], checks: [] };
     if (env.NODE_ENV !== "production") result.errors.push("NODE_ENV must be production.");
@@ -259,6 +292,7 @@ export function validateProductionEnvironment(env) {
     if (captchaPolicy === "turnstile") {
         validateSecret(env, "TURNSTILE_SECRET_KEY", 20, result);
         requireConfiguredValue(env, "TURNSTILE_SITE_KEY", result);
+        validateTurnstileHostnames(env.TURNSTILE_ALLOWED_HOSTNAMES, siteUrl, result);
     } else if (captchaPolicy === "disabled_risk_accepted") {
         result.warnings.push("Captcha is explicitly disabled for public launch.");
     } else {

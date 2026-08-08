@@ -27,7 +27,10 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    getCaptchaTokenForAction,
+    prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
@@ -230,6 +233,8 @@ export default function RegisterPage() {
                             type="submit"
                             className="w-full"
                             disabled={loading || !passwordPolicy.accepted}
+                            onFocus={() => prewarmCaptchaForAction("register")}
+                            onPointerEnter={() => prewarmCaptchaForAction("register")}
                         >
                             {loading ? "Kayıt oluşturuluyor..." : "Kayıt Ol"}
                         </Button>

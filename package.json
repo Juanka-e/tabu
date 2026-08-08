@@ -137,6 +137,8 @@
     "test:distributed-coordination": "tsx scripts/test-distributed-coordination.ts",
     "test:system-settings": "tsx scripts/test-system-settings.ts",
     "test:captcha-security": "tsx scripts/test-captcha-security.ts",
+    "test:adaptive-turnstile-policy": "tsx scripts/test-adaptive-turnstile-policy.ts",
+    "test:captcha-prewarm-e2e": "playwright test tests/captcha-prewarm.spec.ts",
     "test:turnstile-smoke": "tsx scripts/test-turnstile-smoke.ts",
     "test:economy-liveops": "tsx scripts/test-economy-liveops.ts",
     "test:economy-guardrails": "tsx scripts/test-economy-guardrails.ts",
