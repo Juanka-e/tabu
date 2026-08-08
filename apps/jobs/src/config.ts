@@ -33,6 +33,14 @@ export interface PaymentWebhookConfig {
     leaseTtlMs: number;
 }
 
+export interface PaymentReconciliationConfig {
+    batchSize: number;
+    minAgeMinutes: number;
+    retryDelayMinutes: number;
+    maxAttempts: number;
+    leaseTtlMs: number;
+}
+
 interface JobsEnvironment {
     [key: string]: string | undefined;
     AUDIT_HOT_RETENTION_DAYS?: string;
@@ -55,6 +63,53 @@ interface JobsEnvironment {
     PAYMENT_WEBHOOK_MAX_ATTEMPTS?: string;
     PAYMENT_WEBHOOK_CLAIM_TTL_MS?: string;
     PAYMENT_WEBHOOK_JOB_LEASE_TTL_MS?: string;
+    PAYMENT_RECONCILIATION_BATCH_SIZE?: string;
+    PAYMENT_RECONCILIATION_MIN_AGE_MINUTES?: string;
+    PAYMENT_RECONCILIATION_RETRY_DELAY_MINUTES?: string;
+    PAYMENT_RECONCILIATION_MAX_ATTEMPTS?: string;
+    PAYMENT_RECONCILIATION_JOB_LEASE_TTL_MS?: string;
+}
+
+export function getPaymentReconciliationConfig(
+    env: JobsEnvironment = process.env
+): PaymentReconciliationConfig {
+    return {
+        batchSize: parseBoundedInteger({
+            name: "PAYMENT_RECONCILIATION_BATCH_SIZE",
+            value: env.PAYMENT_RECONCILIATION_BATCH_SIZE,
+            fallback: 25,
+            min: 1,
+            max: 100,
+        }),
+        minAgeMinutes: parseBoundedInteger({
+            name: "PAYMENT_RECONCILIATION_MIN_AGE_MINUTES",
+            value: env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES,
+            fallback: 30,
+            min: 5,
+            max: 1_440,
+        }),
+        retryDelayMinutes: parseBoundedInteger({
+            name: "PAYMENT_RECONCILIATION_RETRY_DELAY_MINUTES",
+            value: env.PAYMENT_RECONCILIATION_RETRY_DELAY_MINUTES,
+            fallback: 15,
+            min: 5,
+            max: 1_440,
+        }),
+        maxAttempts: parseBoundedInteger({
+            name: "PAYMENT_RECONCILIATION_MAX_ATTEMPTS",
+            value: env.PAYMENT_RECONCILIATION_MAX_ATTEMPTS,
+            fallback: 12,
+            min: 1,
+            max: 100,
+        }),
+        leaseTtlMs: parseBoundedInteger({
+            name: "PAYMENT_RECONCILIATION_JOB_LEASE_TTL_MS",
+            value: env.PAYMENT_RECONCILIATION_JOB_LEASE_TTL_MS,
+            fallback: 5 * 60_000,
+            min: 60_000,
+            max: 30 * 60_000,
+        }),
+    };
 }
 
 export function getPaymentWebhookConfig(

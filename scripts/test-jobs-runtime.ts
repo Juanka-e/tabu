@@ -10,6 +10,7 @@ import {
     getEmailRetentionConfig,
     getMobileAuthRetentionConfig,
     getPaymentWebhookConfig,
+    getPaymentReconciliationConfig,
 } from "../apps/jobs/src/config";
 import {
     runEmailRetention,
@@ -52,12 +53,14 @@ assert.deepEqual(JOB_NAMES, [
     "email-delivery",
     "email-retention",
     "payment-webhook",
+    "payment-reconciliation",
 ]);
 assert.equal(isJobName("audit-retention"), true);
 assert.equal(isJobName("mobile-auth-retention"), true);
 assert.equal(isJobName("email-delivery"), true);
 assert.equal(isJobName("email-retention"), true);
 assert.equal(isJobName("payment-webhook"), true);
+assert.equal(isJobName("payment-reconciliation"), true);
 assert.equal(isJobName("unknown-job"), false);
 assert.equal(getJobDefinition("audit-retention").leaseTtlMs, 900_000);
 assert.deepEqual(
@@ -71,6 +74,22 @@ assert.deepEqual(
         batchSize: 25,
         maxAttempts: 8,
         claimTtlMs: 300_000,
+        leaseTtlMs: 300_000,
+    }
+);
+assert.deepEqual(
+    getPaymentReconciliationConfig({
+        PAYMENT_RECONCILIATION_BATCH_SIZE: "25",
+        PAYMENT_RECONCILIATION_MIN_AGE_MINUTES: "30",
+        PAYMENT_RECONCILIATION_RETRY_DELAY_MINUTES: "15",
+        PAYMENT_RECONCILIATION_MAX_ATTEMPTS: "12",
+        PAYMENT_RECONCILIATION_JOB_LEASE_TTL_MS: "300000",
+    }),
+    {
+        batchSize: 25,
+        minAgeMinutes: 30,
+        retryDelayMinutes: 15,
+        maxAttempts: 12,
         leaseTtlMs: 300_000,
     }
 );

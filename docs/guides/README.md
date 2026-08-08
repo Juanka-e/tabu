@@ -124,3 +124,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 27. `payment-checkout-and-legal-readiness.md`
 - PayTR sandbox checkout gate'ini, transient iletisim verisini ve legal surumlemeyi tanimlar
 - live aktivasyonundan once gereken webhook, reversal ve operasyon kontrollerini ayirir
+
+28. `payment-reconciliation-and-reversal.md`
+- PayTR durum sorgusu, uzlaştırma worker'ı ve admin operasyon yolunu tanımlar
+- kozmetik reversal ile coin manuel inceleme güvenlik sınırını açıklar

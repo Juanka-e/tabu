@@ -13,6 +13,9 @@ export {
     PaymentOrderStatus,
     PaymentProductKind,
     PaymentProvider,
+    PaymentReconciliationStatus,
+    PaymentReversalOutcome,
+    PaymentReversalStatus,
     PaymentWebhookOutcome,
     PaymentWebhookProcessingStatus,
     Prisma,
@@ -23,7 +26,13 @@ export {
     UserAccountStatus,
     WalletLedgerSource,
 } from "@prisma/client";
-export type { PaymentOffer, PaymentOrder, PaymentWebhookEvent } from "@prisma/client";
+export type {
+    PaymentOffer,
+    PaymentOrder,
+    PaymentReconciliationCase,
+    PaymentReversal,
+    PaymentWebhookEvent,
+} from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
