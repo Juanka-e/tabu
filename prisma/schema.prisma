@@ -190,6 +190,22 @@ enum PaymentFulfillmentStatus {
   reversed
 }
 
+enum PaymentWebhookProcessingStatus {
+  pending
+  processing
+  retry
+  processed
+  dead_letter
+}
+
+enum PaymentWebhookOutcome {
+  payment_succeeded
+  payment_failed
+  refund
+  chargeback
+  ignored
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -281,6 +297,7 @@ model PaymentOrder {
   user        User                @relation(fields: [userId], references: [id], onDelete: Restrict)
   attempts    PaymentAttempt[]
   fulfillment PaymentFulfillment?
+  webhookEvents PaymentWebhookEvent[]
 
   @@unique([userId, idempotencyKey])
   @@unique([provider, providerOrderReference])
@@ -328,6 +345,46 @@ model PaymentFulfillment {
   @@index([status, createdAt])
   @@map("payment_fulfillments")
 }
+
+model PaymentWebhookEvent {
+  id                       String                          @id @default(uuid()) @db.Char(36)
+  provider                 PaymentProvider
+  providerEventId          String                          @map("provider_event_id") @db.VarChar(191)
+  eventType                String                          @map("event_type") @db.VarChar(120)
+  outcome                  PaymentWebhookOutcome
+  bodySha256               String                          @map("body_sha256") @db.Char(64)
+  signatureVersion         String?                         @map("signature_version") @db.VarChar(32)
+  orderId                  String?                         @map("order_id") @db.Char(36)
+  providerOrderReference   String?                         @map("provider_order_reference") @db.VarChar(191)
+  providerPaymentReference String?                         @map("provider_payment_reference") @db.VarChar(191)
+  amountMinor              Int?                            @map("amount_minor")
+  currency                 String?                         @db.Char(3)
+  metadata                 Json?                           @db.Json
+  status                   PaymentWebhookProcessingStatus @default(pending)
+  deliveryCount            Int                             @default(1) @map("delivery_count")
+  attemptCount             Int                             @default(0) @map("attempt_count")
+  availableAt              DateTime                        @default(now()) @map("available_at")
+  claimToken               String?                         @map("claim_token") @db.Char(36)
+  claimedAt                DateTime?                       @map("claimed_at")
+  claimExpiresAt           DateTime?                       @map("claim_expires_at")
+  lastReceivedAt           DateTime                        @default(now()) @map("last_received_at")
+  lastAttemptAt            DateTime?                       @map("last_attempt_at")
+  processedAt              DateTime?                       @map("processed_at")
+  lastErrorCode            String?                         @map("last_error_code") @db.VarChar(80)
+  occurredAt               DateTime?                       @map("occurred_at")
+  createdAt                DateTime                        @default(now()) @map("created_at")
+  updatedAt                DateTime                        @updatedAt @map("updated_at")
+
+  order PaymentOrder? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerEventId])
+  @@index([status, availableAt, createdAt])
+  @@index([status, claimExpiresAt])
+  @@index([provider, providerOrderReference])
+  @@index([orderId, createdAt])
+  @@map("payment_webhook_events")
+}
+
 model OAuthAccount {
   id                String   @id @default(uuid()) @db.Char(36)
   userId            Int      @map("user_id")

@@ -9,6 +9,7 @@ import {
     getEmailDeliveryConfig,
     getEmailRetentionConfig,
     getMobileAuthRetentionConfig,
+    getPaymentWebhookConfig,
 } from "../apps/jobs/src/config";
 import {
     runEmailRetention,
@@ -50,13 +51,29 @@ assert.deepEqual(JOB_NAMES, [
     "mobile-auth-retention",
     "email-delivery",
     "email-retention",
+    "payment-webhook",
 ]);
 assert.equal(isJobName("audit-retention"), true);
 assert.equal(isJobName("mobile-auth-retention"), true);
 assert.equal(isJobName("email-delivery"), true);
 assert.equal(isJobName("email-retention"), true);
+assert.equal(isJobName("payment-webhook"), true);
 assert.equal(isJobName("unknown-job"), false);
 assert.equal(getJobDefinition("audit-retention").leaseTtlMs, 900_000);
+assert.deepEqual(
+    getPaymentWebhookConfig({
+        PAYMENT_WEBHOOK_BATCH_SIZE: "25",
+        PAYMENT_WEBHOOK_MAX_ATTEMPTS: "8",
+        PAYMENT_WEBHOOK_CLAIM_TTL_MS: "300000",
+        PAYMENT_WEBHOOK_JOB_LEASE_TTL_MS: "300000",
+    }),
+    {
+        batchSize: 25,
+        maxAttempts: 8,
+        claimTtlMs: 300_000,
+        leaseTtlMs: 300_000,
+    }
+);
 assert.deepEqual(
     getMobileAuthRetentionConfig({
         MOBILE_AUTH_RETENTION_DAYS: "30",

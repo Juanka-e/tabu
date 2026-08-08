@@ -223,6 +223,13 @@
 - fail-closed checkout gate ile Integration Hub provider readiness gorunumu
 - gercek MySQL race testi ve admin Integration Hub Playwright smoke testi
 
+### 32. `feature/payment-webhook-inbox`
+- raw-body-first provider verifier kontrati ve fail-closed webhook route'u
+- MySQL durable inbox, provider event ID dedupe ve body hash kimlik catismasi korumasi
+- bounded metadata; raw payload, signature, cookie ve authorization saklamama karari
+- retry, claim lease, exponential backoff ve dead-letter worker temeli
+- Redis/Valkey'i yalniz job koordinasyonunda tutan kalici veri ayrimi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
