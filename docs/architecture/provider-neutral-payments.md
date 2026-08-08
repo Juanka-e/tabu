@@ -12,7 +12,16 @@
 - Integration Hub yalnız adapter/credential readiness gösteriyor. Secret değerleri admin paneline veya veritabanına taşınmıyor.
 - Runtime seçiminde `PAYMENTS_ENABLED` ve `PAYMENT_ACTIVE_PROVIDER` fail-closed gate olarak kullanılıyor. Admin mutation/toggle, ilk adapter hazır olduğunda RBAC + audit + step-up ile eklenecek.
 
-Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Sonraki branch `feature/payment-webhook-inbox`; imzalı raw-body doğrulama, durable event dedupe, retry worker ve reconciliation tamamlanmadan gerçek checkout açılmaz.
+`feature/payment-webhook-inbox` ile ikinci güvenlik katmanı da hazırlandı:
+
+- raw body doğrulanmadan parse edilmiyor; verifier yoksa endpoint fail-closed `404` dönüyor,
+- yalnız doğrulanmış normalize event MySQL inbox'a yazılıyor; ham payload ve imza saklanmıyor,
+- provider + event ID unique constraint'i duplicate teslimatı tek satırda topluyor,
+- aynı event ID'nin farklı body hash ile gelmesi kimlik çatışması olarak reddediliyor,
+- bounded retry, claim lease ve dead-letter worker temeli mevcut Redis job lease sistemiyle uyumlu çalışıyor,
+- Redis/Valkey yalnız koordinasyon içindir; webhook source of truth ve retry state'i MySQL'dir.
+
+Bu aşamada `PAYMENTS_ENABLED=false` kalmalıdır. Provider signature adapter'ı ve idempotent order processor tamamlanmadan gerçek checkout açılmaz.
 
 ## Ürün Kararı
 

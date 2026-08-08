@@ -26,6 +26,13 @@ export interface EmailRetentionConfig {
     leaseTtlMs: number;
 }
 
+export interface PaymentWebhookConfig {
+    batchSize: number;
+    maxAttempts: number;
+    claimTtlMs: number;
+    leaseTtlMs: number;
+}
+
 interface JobsEnvironment {
     [key: string]: string | undefined;
     AUDIT_HOT_RETENTION_DAYS?: string;
@@ -44,6 +51,45 @@ interface JobsEnvironment {
     EMAIL_PENDING_ACCOUNT_RETENTION_DAYS?: string;
     EMAIL_RETENTION_BATCH_SIZE?: string;
     EMAIL_RETENTION_LEASE_TTL_MS?: string;
+    PAYMENT_WEBHOOK_BATCH_SIZE?: string;
+    PAYMENT_WEBHOOK_MAX_ATTEMPTS?: string;
+    PAYMENT_WEBHOOK_CLAIM_TTL_MS?: string;
+    PAYMENT_WEBHOOK_JOB_LEASE_TTL_MS?: string;
+}
+
+export function getPaymentWebhookConfig(
+    env: JobsEnvironment = process.env
+): PaymentWebhookConfig {
+    return {
+        batchSize: parseBoundedInteger({
+            name: "PAYMENT_WEBHOOK_BATCH_SIZE",
+            value: env.PAYMENT_WEBHOOK_BATCH_SIZE,
+            fallback: 25,
+            min: 1,
+            max: 100,
+        }),
+        maxAttempts: parseBoundedInteger({
+            name: "PAYMENT_WEBHOOK_MAX_ATTEMPTS",
+            value: env.PAYMENT_WEBHOOK_MAX_ATTEMPTS,
+            fallback: 8,
+            min: 1,
+            max: 25,
+        }),
+        claimTtlMs: parseBoundedInteger({
+            name: "PAYMENT_WEBHOOK_CLAIM_TTL_MS",
+            value: env.PAYMENT_WEBHOOK_CLAIM_TTL_MS,
+            fallback: 5 * 60_000,
+            min: 30_000,
+            max: 30 * 60_000,
+        }),
+        leaseTtlMs: parseBoundedInteger({
+            name: "PAYMENT_WEBHOOK_JOB_LEASE_TTL_MS",
+            value: env.PAYMENT_WEBHOOK_JOB_LEASE_TTL_MS,
+            fallback: 5 * 60_000,
+            min: 60_000,
+            max: 30 * 60_000,
+        }),
+    };
 }
 
 export function getEmailDeliveryConfig(

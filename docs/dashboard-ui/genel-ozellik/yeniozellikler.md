@@ -62,9 +62,10 @@
 - `feature/wallet-ledger-foundation` ile wallet ledger omurgasi kuruldu.
 - Bakiye ve immutable hareket kaydi ayni MySQL transaction'inda yaziliyor.
 - `feature/payment-orders-foundation` ile siparis snapshot, state machine, provider registry ve idempotency temeli kuruldu.
+- `feature/payment-webhook-inbox` ile durable webhook dedupe, retry/dead-letter ve raw-body verifier kontrati kuruldu.
 - Siradaki odeme branch'leri:
-  - `feature/payment-webhook-inbox`
   - `feature/payment-checkout-ui`
+  - ilk provider signature/checkout adapter'i
 - Provider-neutral ödeme sırası ve güvenlik kontratı:
   - `docs/architecture/provider-neutral-payments.md`
 - İlk sürüm checkout/top-up modelidir; oyuncu cash-out/payout kapsam dışıdır.
