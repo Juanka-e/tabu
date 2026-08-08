@@ -47,17 +47,17 @@ test("account forms remain usable within the viewport", async ({ page }) => {
     await expectInsideViewport(
       page,
       page.getByPlaceholder(
-        route === "/login" ? /Kullanici Adi/i : /Kullanıcı adı/i
+        route === "/login" ? /Kullanıcı Adı/i : /Kullanıcı adı/i
       )
     );
     await expectInsideViewport(
       page,
-      page.getByPlaceholder(route === "/login" ? /Sifre/i : /Parola/i)
+      page.getByPlaceholder(/Parola/i)
     );
     await expectInsideViewport(
       page,
       page.getByRole("button", {
-        name: route === "/login" ? /^Giris Yap$/i : /^Kayıt Ol$/i,
+        name: route === "/login" ? /^Giriş Yap$/i : /^Kayıt Ol$/i,
       })
     );
   }

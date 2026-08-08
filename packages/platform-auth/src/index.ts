@@ -237,7 +237,11 @@ export async function loginWithPassword(input: {
         },
     });
 
-    if (!user || !(await bcryptjs.compare(input.password, user.password))) {
+    if (
+        !user ||
+        !user.password ||
+        !(await bcryptjs.compare(input.password, user.password))
+    ) {
         throw new MobileAuthError("invalid_credentials");
     }
     if (isSuspensionActive(user)) {

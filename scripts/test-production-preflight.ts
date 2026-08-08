@@ -32,6 +32,10 @@ function validEnvironment(): Record<string, string> {
         ADMIN_ACCESS_ALLOWED_EMAIL_DOMAINS: "example.test",
         AUTH_TRUST_HOST: "true",
         TRUST_PROXY: "true",
+        PRODUCTION_OAUTH_POLICY: "google",
+        GOOGLE_OAUTH_ENABLED: "true",
+        AUTH_GOOGLE_ID: "918273645001-r4nD0mClientId.apps.googleusercontent.com",
+        AUTH_GOOGLE_SECRET: "google_R8mQ2vN7xL4pT9sK5wD1cF6h",
         PRODUCTION_OBSERVABILITY_POLICY: "http",
         OBSERVABILITY_EXPORT_MODE: "http",
         OBSERVABILITY_EXPORT_URL: "https://collector.example.test/v1/events",
@@ -79,12 +83,16 @@ acceptedRisk.PRODUCTION_EMAIL_POLICY = "disabled_risk_accepted";
 acceptedRisk.EMAIL_PROVIDER = "disabled";
 acceptedRisk.JOBS_ENABLED = "false";
 acceptedRisk.PRODUCTION_OBSERVABILITY_POLICY = "disabled_risk_accepted";
+acceptedRisk.PRODUCTION_OAUTH_POLICY = "disabled_risk_accepted";
+acceptedRisk.GOOGLE_OAUTH_ENABLED = "false";
+acceptedRisk.AUTH_GOOGLE_ID = "";
+acceptedRisk.AUTH_GOOGLE_SECRET = "";
 acceptedRisk.OBSERVABILITY_EXPORT_MODE = "disabled";
 acceptedRisk.OBSERVABILITY_EXPORT_URL = "";
 acceptedRisk.OBSERVABILITY_EXPORT_TOKEN = "";
 const riskResult = validateProductionEnvironment(acceptedRisk);
 assert.deepEqual(riskResult.errors, []);
-assert.equal(riskResult.warnings.length, 3);
+assert.equal(riskResult.warnings.length, 4);
 
 const staleDisabledExporter = { ...acceptedRisk };
 staleDisabledExporter.OBSERVABILITY_EXPORT_TOKEN = "stale-token";

@@ -6,6 +6,7 @@ export const sharedAuthConfig = {
     trustHost: shouldTrustAuthHost(),
     pages: {
         signIn: "/login",
+        error: "/auth/error",
     },
     callbacks: {
         async jwt({ token, user }) {

@@ -17,6 +17,13 @@ Observability icin production karari da zorunludur:
 Queue/batch/timeout ayarlari ve alarm esikleri
 `observability-exporter-operations.md` belgesindedir.
 
+OAuth icin de acik karar zorunludur:
+
+- `PRODUCTION_OAUTH_POLICY=google`: Google provider etkin olmali, client ID ve
+  guclu client secret bulunmalidir.
+- `PRODUCTION_OAUTH_POLICY=disabled_risk_accepted`: provider kapali kalir ve
+  preflight acik risk uyarisi uretir.
+
 Preflight secret değerlerini hiçbir zaman yazdırmaz. Yalnız alan adı ve hata
 sınıfını gösterir. En az bir `BLOCKER` varsa deploy başlamaz.
 

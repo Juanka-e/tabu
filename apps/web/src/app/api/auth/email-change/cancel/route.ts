@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         });
         if (
             !user ||
+            !user.password ||
             !(await bcryptjs.compare(input.currentPassword, user.password))
         ) {
             return NextResponse.json(
