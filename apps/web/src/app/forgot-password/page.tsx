@@ -5,7 +5,10 @@ import { useState } from "react";
 import { KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    getCaptchaTokenForAction,
+    prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 
 export default function ForgotPasswordPage() {
     const [identifier, setIdentifier] = useState("");
@@ -94,6 +97,8 @@ export default function ForgotPasswordPage() {
                         type="submit"
                         disabled={loading}
                         className="w-full bg-teal-300 font-black text-[#082322] hover:bg-teal-200"
+                        onFocus={() => prewarmCaptchaForAction("password_reset")}
+                        onPointerEnter={() => prewarmCaptchaForAction("password_reset")}
                     >
                         {loading ? "Gönderiliyor..." : "Bağlantı iste"}
                     </Button>

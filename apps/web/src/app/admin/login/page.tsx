@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2 } from "lucide-react";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    getCaptchaTokenForAction,
+    prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 import { resolveSafeCallbackUrl } from "@/lib/security/safe-callback-url";
 
 export default function AdminLoginPage() {
@@ -76,7 +79,13 @@ export default function AdminLoginPage() {
                             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                         </div>
                         {error && <p className="text-sm text-destructive text-center">{error}</p>}
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={loading}
+                            onFocus={() => prewarmCaptchaForAction("login")}
+                            onPointerEnter={() => prewarmCaptchaForAction("login")}
+                        >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Giris Yap"}
                         </Button>
                     </form>

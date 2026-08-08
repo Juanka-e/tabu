@@ -204,6 +204,12 @@
 - nullable parola icin web/mobile guvenli fallback davranisi
 - Apple ve yeni provider'lar icin registry, env ve production preflight kontrati
 
+### 29. `feature/adaptive-turnstile-launch-policy`
+- Managed Turnstile varsayilani ve oyuncu niyetinde tokenless provider prewarm
+- exact action/production hostname, token boyutu ve Siteverify timeout kontrolleri
+- production preflight hostname kontrati ve Docker env parity
+- anlasilir admin akis ac/kapat metinleri, server policy ve Playwright regresyonlari
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

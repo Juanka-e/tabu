@@ -190,7 +190,7 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 
 ### Acik riskler
 
-1. Captcha varsayilan olarak kapali ve adaptif step-up akisi henuz yok.
+1. Captcha varsayilan olarak kapali; production key/domain smoke ve admin aktivasyonu deploy oncesi zorunlu.
 2. Production SMTP credential ve gercek teslimat smoke kaniti yok.
 3. SES imza dogrulamali bounce/complaint transport adaptoru yok.
 4. Admin MFA/WebAuthn yok.
@@ -223,17 +223,21 @@ Kod seviyesi destek **mevcut**:
 - modlar: invisible, managed, non-interactive
 - server-side Siteverify
 - action eslestirmesi
+- exact production hostname allowlist
+- 2048 karakter token siniri ve 5 saniye Siteverify timeout'u
 - remote IP aktarimi
 - idempotency key
 - register, login, room create ve guest join bazinda ayri ac/kapat
 - admin system settings ve Integration Hub readiness gorunumu
 - production'da zorunlu hard-fail
 - Cloudflare test key'leriyle smoke test
+- kullanici niyetinde script prewarm; submit oncesinde token uretmeme
 
 Bu branch ile production web container'a:
 
 - `TURNSTILE_SITE_KEY`
 - `TURNSTILE_SECRET_KEY`
+- `TURNSTILE_ALLOWED_HOSTNAMES`
 - reCAPTCHA alternatif key'leri
 
 aktarilir ve CSP Turnstile originini destekler.
@@ -251,7 +255,9 @@ Production aktivasyon sirasi:
 3. Once register ve room create akislarini ac.
 4. Login rate-limit eklendikten sonra login Turnstile'i ac.
 5. Guest join icin bot trafigi gorulmeden zorunlu challenge acma.
-6. Managed fallback ve hata oranlarini izle.
+6. Managed challenge ve hata oranlarini izle; gercek domain/key smoke testini tamamla.
+
+Ayrintili sozlesme: `docs/security/adaptive-turnstile-policy.md`.
 
 ## Google Search Console ve SEO
 

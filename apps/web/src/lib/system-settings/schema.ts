@@ -117,7 +117,7 @@ const captchaSettingsSchema = z.object({
     onRoomCreate: z.boolean().default(true),
     onLogin: z.boolean().default(false),
     failMode: z.enum(CAPTCHA_FAIL_MODES).default("hard_fail"),
-    turnstileMode: z.enum(CAPTCHA_TURNSTILE_MODES).default("invisible"),
+    turnstileMode: z.enum(CAPTCHA_TURNSTILE_MODES).default("managed"),
     recaptchaScoreThreshold: z.number().min(0).max(1).default(0.5),
     turnstileInteractiveFallback: z.boolean().default(true),
 });

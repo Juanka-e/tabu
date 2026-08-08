@@ -34,9 +34,11 @@ async function main(): Promise<void> {
         settings,
     });
 
-    assert.equal(successResult.ok, true);
+    // Cloudflare's fixed dummy token does not carry our requested action metadata.
+    // The application must reject it rather than weakening exact action validation.
+    assert.equal(successResult.ok, false);
     assert.equal(successResult.provider, "turnstile");
-    assert.equal(successResult.reason, "verified");
+    assert.equal(successResult.reason, "action_mismatch");
 
     process.env.TURNSTILE_SECRET_KEY = TURNSTILE_FAIL_SECRET_KEY;
 

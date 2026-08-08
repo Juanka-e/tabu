@@ -13,6 +13,7 @@ const checks: ReadinessCheck[] = [
     { area: "client IP trust", script: "test:client-ip-security" },
     { area: "auth redirects", script: "test:auth-redirect-security" },
     { area: "captcha policy", script: "test:captcha-security" },
+    { area: "adaptive Turnstile policy", script: "test:adaptive-turnstile-policy" },
     { area: "content security policy", script: "test:csp" },
     { area: "web origin policy", script: "test:web-origin-policy" },
     { area: "admin route guards", script: "test:admin-guards" },

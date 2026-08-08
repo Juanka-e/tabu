@@ -1127,6 +1127,15 @@ Critical Findings
 - AI raporunda kritik diye yazilan Prisma `fields.usageLimit` iddiasi repo icinde smoke test ile yanlislandi
   - `test:promotion-field-references`
 
+## 8 August 2026 Update - Adaptive Turnstile Launch Policy
+
+- Varsayilan yeni Turnstile modu `managed` oldu; mevcut kaydedilmis operator ayarlari korunur.
+- Sayfa acilisinda token uretilmez. Kullanici niyetinde config ve provider scripti prewarm edilir, token submit sirasinda alinir.
+- Siteverify exact action, production hostname allowlist, 2048 karakter token siniri ve 5 saniye timeout ile fail-closed calisir.
+- Production preflight `TURNSTILE_ALLOWED_HOSTNAMES` icinde public site hostname'ini zorunlu tutar.
+- Redis rate limit, Turnstile karari ve ekonomi guardrail'leri birbirinden bagimsiz kalir; captcha icin uygulama ici cezalandirici skor eklenmemistir.
+- Operasyon ve test sozlesmesi: `docs/security/adaptive-turnstile-policy.md`.
+
 ## 15 March 2026 Update - Captcha Provider Policy
 
 - Captcha politikasi tek aktif provider modeline cekildi.

@@ -32,7 +32,7 @@ const registerSchema = z.object({
     username: z.string().min(3, "Kullanici adi en az 3 karakter olmalidir."),
     email: z.email("Gecerli bir e-posta adresi girilmelidir."),
     password: z.string().max(256, "Parola çok uzun."),
-    captchaToken: z.string().trim().min(1).optional().nullable(),
+    captchaToken: z.string().trim().min(1).max(2048).optional().nullable(),
 });
 
 export async function POST(req: Request) {

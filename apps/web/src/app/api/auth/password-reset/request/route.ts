@@ -18,7 +18,7 @@ import { normalizeEmail } from "@/lib/users/email";
 
 const requestSchema = z.object({
     identifier: z.string().trim().min(1).max(191),
-    captchaToken: z.string().trim().min(1).optional().nullable(),
+    captchaToken: z.string().trim().min(1).max(2048).optional().nullable(),
 });
 
 const GENERIC_MESSAGE =

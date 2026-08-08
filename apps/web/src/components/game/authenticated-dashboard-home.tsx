@@ -28,7 +28,10 @@ import { DashboardLayout } from "@/components/game/dashboard-overlay";
 import type { DashboardTab } from "@/components/game/dashboard-nav";
 import { useBranding } from "@/components/providers/branding-provider";
 import { getFreshActiveRoomCodeFromPresence } from "@/lib/client/active-room-presence";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+  getCaptchaTokenForAction,
+  prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 import {
   SOCKET_CLIENT_AUTH,
   getSocketProtocolErrorMessage,
@@ -275,6 +278,8 @@ export function AuthenticatedDashboardHome({
 
         <Button
           onClick={() => handleJoinOrCreate(true)}
+          onFocus={() => prewarmCaptchaForAction("room_create")}
+          onPointerEnter={() => prewarmCaptchaForAction("room_create")}
           disabled={isConnecting}
           className="h-14 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-base font-bold shadow-lg shadow-purple-500/20 transition-all duration-200 hover:from-purple-700 hover:to-blue-700 hover:shadow-xl"
         >

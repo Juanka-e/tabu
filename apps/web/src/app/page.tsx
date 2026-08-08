@@ -22,7 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { getCaptchaTokenForAction } from "@/lib/security/captcha-client";
+import {
+    getCaptchaTokenForAction,
+    prewarmCaptchaForAction,
+} from "@/lib/security/captcha-client";
 import {
     SOCKET_CLIENT_AUTH,
     getSocketProtocolErrorMessage,
@@ -237,6 +240,8 @@ export default function HomePage() {
 
                     <Button
                         onClick={() => void handleJoinOrCreate(true)}
+                        onFocus={() => prewarmCaptchaForAction("room_create")}
+                        onPointerEnter={() => prewarmCaptchaForAction("room_create")}
                         disabled={isConnecting || !username.trim()}
                         className="h-12 w-full bg-gradient-to-r from-blue-600 to-emerald-600 text-base font-semibold shadow-lg transition-all duration-200 hover:from-blue-700 hover:to-emerald-700 hover:shadow-xl"
                     >
@@ -288,6 +293,8 @@ export default function HomePage() {
                             />
                             <Button
                                 onClick={() => void handleJoinOrCreate(false)}
+                                onFocus={() => prewarmCaptchaForAction("guest_join")}
+                                onPointerEnter={() => prewarmCaptchaForAction("guest_join")}
                                 disabled={
                                     isConnecting ||
                                     !username.trim() ||

@@ -19,6 +19,23 @@ declare global {
 
 let activeTurnstileScriptPromise: Promise<void> | null = null;
 let activeRecaptchaScriptPromise: Promise<void> | null = null;
+const captchaConfigCache = new Map<
+    CaptchaAction,
+    { expiresAt: number; promise: Promise<PublicCaptchaConfig> }
+>();
+const CAPTCHA_CONFIG_CACHE_MS = 15_000;
+
+function ensurePreconnect(origin: string): void {
+    if (document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) {
+        return;
+    }
+
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origin;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
+}
 
 function loadScript(src: string, dataAttribute: string): Promise<void> {
     if (typeof window === "undefined") {
@@ -47,10 +64,14 @@ function loadScript(src: string, dataAttribute: string): Promise<void> {
 
 function ensureTurnstileLoaded(): Promise<void> {
     if (!activeTurnstileScriptPromise) {
+        ensurePreconnect("https://challenges.cloudflare.com");
         activeTurnstileScriptPromise = loadScript(
             "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
             "data-turnstile-script"
-        );
+        ).catch((error) => {
+            activeTurnstileScriptPromise = null;
+            throw error;
+        });
     }
 
     return activeTurnstileScriptPromise;
@@ -58,25 +79,59 @@ function ensureTurnstileLoaded(): Promise<void> {
 
 function ensureRecaptchaLoaded(siteKey: string): Promise<void> {
     if (!activeRecaptchaScriptPromise) {
+        ensurePreconnect("https://www.google.com");
         activeRecaptchaScriptPromise = loadScript(
             `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(siteKey)}`,
             "data-recaptcha-script"
-        );
+        ).catch((error) => {
+            activeRecaptchaScriptPromise = null;
+            throw error;
+        });
     }
 
     return activeRecaptchaScriptPromise;
 }
 
 async function fetchCaptchaConfig(action: CaptchaAction): Promise<PublicCaptchaConfig> {
-    const response = await fetch(`/api/security/captcha-config?action=${encodeURIComponent(action)}`, {
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error("Captcha ayarlari alinamadi.");
+    const cached = captchaConfigCache.get(action);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.promise;
     }
 
-    return (await response.json()) as PublicCaptchaConfig;
+    const promise = fetch(`/api/security/captcha-config?action=${encodeURIComponent(action)}`, {
+        cache: "no-store",
+    }).then(async (response) => {
+        if (!response.ok) {
+            throw new Error("Captcha ayarlari alinamadi.");
+        }
+        return (await response.json()) as PublicCaptchaConfig;
+    });
+    captchaConfigCache.set(action, {
+        expiresAt: Date.now() + CAPTCHA_CONFIG_CACHE_MS,
+        promise,
+    });
+
+    try {
+        return await promise;
+    } catch (error) {
+        captchaConfigCache.delete(action);
+        throw error;
+    }
+}
+
+export function prewarmCaptchaForAction(action: CaptchaAction): void {
+    void fetchCaptchaConfig(action)
+        .then(async (config) => {
+            if (!config.required || !config.enabled || !config.siteKey) return;
+            if (config.provider === "turnstile") {
+                await ensureTurnstileLoaded();
+            } else if (config.provider === "recaptcha_v3") {
+                await ensureRecaptchaLoaded(config.siteKey);
+            }
+        })
+        .catch(() => {
+            // Submit remains authoritative and will surface a controlled error.
+        });
 }
 
 async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaAction): Promise<string> {
@@ -93,8 +148,20 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
 
     const container = document.createElement("div");
     container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
+    container.style.zIndex = "2147483647";
+    container.setAttribute("aria-live", "polite");
+    container.setAttribute("data-hushle-captcha", action);
+    if (config.turnstileMode === "invisible") {
+        container.style.right = "0";
+        container.style.bottom = "0";
+        container.style.width = "1px";
+        container.style.height = "1px";
+        container.style.overflow = "hidden";
+    } else {
+        container.style.left = "50%";
+        container.style.top = "50%";
+        container.style.transform = "translate(-50%, -50%)";
+    }
     document.body.appendChild(container);
     let widgetId: string | null = null;
 
@@ -104,7 +171,8 @@ async function executeTurnstile(config: PublicCaptchaConfig, action: CaptchaActi
                 sitekey: siteKey,
                 action,
                 appearance:
-                    config.turnstileMode === "managed"
+                    config.turnstileMode === "managed" &&
+                    config.turnstileInteractiveFallback
                         ? "interaction-only"
                         : "execute",
                 execution: "execute",
