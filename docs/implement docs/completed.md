@@ -210,6 +210,12 @@
 - production preflight hostname kontrati ve Docker env parity
 - anlasilir admin akis ac/kapat metinleri, server policy ve Playwright regresyonlari
 
+### 30. `feature/production-edge-security-policy`
+- Cloudflare Free icin application-first declarative edge policy
+- WebSocket, browser auth/room entry, checkout ve payment webhook route ayrimi
+- proxy/origin-lock ve signature-first webhook production preflight kararlari
+- provider-neutral payment mimarisi ve guvenli adapter branch sirasi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

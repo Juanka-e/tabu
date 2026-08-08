@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { validateEdgeSecurityEnvironment } from "./edge-security-policy.mjs";
 
 export function parseEnvFile(path) {
     const env = {};
@@ -140,6 +141,11 @@ function validateTurnstileHostnames(value, siteUrl, result) {
 export function validateProductionEnvironment(env) {
     const result = { errors: [], warnings: [], checks: [] };
     if (env.NODE_ENV !== "production") result.errors.push("NODE_ENV must be production.");
+
+    const edgeSecurity = validateEdgeSecurityEnvironment(env);
+    result.errors.push(...edgeSecurity.errors);
+    result.warnings.push(...edgeSecurity.warnings);
+    result.checks.push(...edgeSecurity.checks);
 
     validateSecret(env, "AUTH_SECRET", 32, result);
     validateSecret(env, "HEALTHCHECK_TOKEN", 32, result);

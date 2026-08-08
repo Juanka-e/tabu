@@ -17,6 +17,17 @@ Observability icin production karari da zorunludur:
 Queue/batch/timeout ayarlari ve alarm esikleri
 `observability-exporter-operations.md` belgesindedir.
 
+Edge guvenligi icin production karari zorunludur:
+
+- `cloudflare_free_safe_launch`: proxy acik, origin firewall/Tunnel/AOP ile
+  kilitli ve payment webhook'lari signature-first/no-challenge politikasindadir.
+- `direct_origin_risk_accepted`: Cloudflare edge korumasi olmadan launch riskini
+  acikca kabul eder ve warning uretir.
+- Free Bot Fight Mode, payment provider callback'leri gercek ortamda smoke
+  edilmeden acilmaz; custom rule ile guvenilir istisna verilemez.
+
+Route matrisi ve rollout: `cloudflare-admin.md`.
+
 OAuth icin de acik karar zorunludur:
 
 - `PRODUCTION_OAUTH_POLICY=google`: Google provider etkin olmali, client ID ve

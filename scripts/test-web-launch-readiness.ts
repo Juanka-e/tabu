@@ -14,6 +14,7 @@ const checks: ReadinessCheck[] = [
     { area: "auth redirects", script: "test:auth-redirect-security" },
     { area: "captcha policy", script: "test:captcha-security" },
     { area: "adaptive Turnstile policy", script: "test:adaptive-turnstile-policy" },
+    { area: "production edge policy", script: "test:edge-security-policy" },
     { area: "content security policy", script: "test:csp" },
     { area: "web origin policy", script: "test:web-origin-policy" },
     { area: "admin route guards", script: "test:admin-guards" },

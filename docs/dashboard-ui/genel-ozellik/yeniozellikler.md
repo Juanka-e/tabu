@@ -63,6 +63,9 @@
 - Bakiye ve immutable hareket kaydi ayni MySQL transaction'inda yaziliyor.
 - Olasi ileriki branch'ler:
   - `feature/payment-orders-foundation`
+- Provider-neutral ödeme sırası ve güvenlik kontratı:
+  - `docs/architecture/provider-neutral-payments.md`
+- İlk sürüm checkout/top-up modelidir; oyuncu cash-out/payout kapsam dışıdır.
 - Amac, `payment_topup`, `purchase_spend`, `coin_grant`, `match_reward`, `refund` gibi hareketleri tek muhasebe zincirinde izlemek.
 
 ### Cache ve Veri Ayrimi Stratejisi

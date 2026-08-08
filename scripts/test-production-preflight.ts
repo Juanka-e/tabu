@@ -44,6 +44,11 @@ function validEnvironment(): Record<string, string> {
         TURNSTILE_SITE_KEY: "site-key",
         TURNSTILE_SECRET_KEY: "turnstile_R8mQ2vN7xL4pT9sK5wD1cF6h",
         TURNSTILE_ALLOWED_HOSTNAMES: "play.example.test",
+        PRODUCTION_EDGE_SECURITY_POLICY: "cloudflare_free_safe_launch",
+        CLOUDFLARE_PROXY_ENABLED: "true",
+        CLOUDFLARE_ORIGIN_LOCK_MODE: "firewall",
+        CLOUDFLARE_BOT_FIGHT_MODE: "disabled_until_webhook_smoke",
+        PAYMENT_WEBHOOK_EDGE_POLICY: "signature_first_no_challenge",
         PRODUCTION_EMAIL_POLICY: "smtp",
         EMAIL_PROVIDER: "smtp",
         EMAIL_TOKEN_SECRET: "email_T7vN2pQ8xL4mR9sK5wD1cF6hJ3yA0zB",
@@ -70,12 +75,14 @@ unsafe.ADMIN_ACCESS_MODE = "public_login";
 unsafe.ADMIN_ACCESS_ALLOW_LOCAL_DEV_BYPASS = "true";
 unsafe.BACKUP_REMOTE_ENABLED = "false";
 unsafe.STATE_CHANGE_ORIGIN_POLICY = "compatible";
+unsafe.PAYMENT_WEBHOOK_EDGE_POLICY = "challenge_all";
 const rejected = validateProductionEnvironment(unsafe);
 assert.ok(rejected.errors.length >= 6);
 assert.ok(rejected.errors.some((error) => error.includes("AUTH_SECRET")));
 assert.ok(rejected.errors.some((error) => error.includes("single-writer")));
 assert.ok(rejected.errors.some((error) => error.includes("ADMIN_ACCESS_MODE")));
 assert.ok(rejected.errors.some((error) => error.includes("STATE_CHANGE_ORIGIN_POLICY")));
+assert.ok(rejected.errors.some((error) => error.includes("PAYMENT_WEBHOOK_EDGE_POLICY")));
 assert.equal(rejected.errors.join("\n").includes(unsafe.MYSQL_PASSWORD), false);
 
 const acceptedRisk = validEnvironment();
