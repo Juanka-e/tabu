@@ -98,7 +98,7 @@ test.describe("admin payment operations", () => {
         await expect(page.getByText(/Bu ekran sağlayıcıda para iadesi başlatmaz/)).toBeVisible();
         await expect(page.getByText("Açık uzlaştırma")).toBeVisible();
         await expect(page.getByText("İkinci onay bekliyor")).toBeVisible();
-        await expect(page.getByText("Açık manuel inceleme")).toBeVisible();
+        await expect(page.getByText("Açık manuel inceleme", { exact: true })).toBeVisible();
         await expect(page.getByText("Dead-letter")).toBeVisible();
         await expect(page.getByText(/farklı bir adminin onayı zorunludur/)).toBeVisible();
         await expect(page.getByText("Açık manuel inceleme · coin_spent_unrecovered")).toBeVisible();
