@@ -32,6 +32,8 @@
     "test:payment-paytr-adapter": "tsx scripts/test-paytr-iframe-adapter.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",
+    "payment:paytr-refund-sandbox-acceptance": "tsx scripts/run-paytr-refund-sandbox-acceptance.ts",
+    "test:payment-paytr-refund-acceptance": "tsx scripts/test-paytr-refund-sandbox-acceptance.ts",
     "test:payment-fulfillment": "tsx scripts/test-payment-fulfillment-foundation.ts",
     "test:payment-fulfillment-integration": "tsx scripts/test-payment-fulfillment-integration.ts",
     "test:payment-paytr-checkout": "tsx scripts/test-paytr-checkout-orchestration.ts",

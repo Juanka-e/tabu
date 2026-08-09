@@ -310,7 +310,15 @@
 - timeout, response boyutu ve exact order/amount/reference doğrulamalı transport
 - provider hata metnini dışarı taşımayan bounded hata davranışı
 - production'da refund execution'ı kapalı tutan preflight ve Compose env parity
-- admin route'larına para hareketi bağlanmadığını doğrulayan regresyon testi
+- production para hareketini kapalı tutan readiness ve regresyon testleri
+
+### 43. `feature/payment-provider-refund-attempt-orchestration`
+
+- kalıcı `processing`, `succeeded`, `failed`, `uncertain` provider attempt modeli
+- tam tutarı siparişten alan ve farklı ikinci admin isteyen PayTR sandbox refund akışı
+- timeout/transport belirsizliğinde entitlement değiştirmeyen `provider_review`
+- kör retry yerine exact reference, tutar, currency ve tamamlanma kanıtlı recovery
+- admin durum görünümü, MySQL entegrasyon testi ve Playwright doğrulaması
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

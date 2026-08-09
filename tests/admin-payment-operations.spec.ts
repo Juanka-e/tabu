@@ -150,6 +150,7 @@ test.describe("admin payment operations", () => {
         await page.goto("/admin/payments");
         await expect(page.getByRole("heading", { name: "Ödeme Operasyonları" })).toBeVisible();
         await expect(page.getByText(/PayTR API iadesi yalnız hazır sandbox yapılandırmasında/)).toBeVisible();
+        await expect(page.getByText("PayTR API iadesi kapalı")).toBeVisible();
         await expect(page.getByText("Açık uzlaştırma")).toBeVisible();
         await expect(page.getByText("İkinci onay bekliyor")).toBeVisible();
         await expect(page.getByText("Açık manuel inceleme", { exact: true })).toBeVisible();

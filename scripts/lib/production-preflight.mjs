@@ -211,7 +211,7 @@ export function validateProductionEnvironment(env) {
     }
 
     if ((env.PAYTR_REFUND_MODE?.trim() || "disabled") !== "disabled") {
-        result.errors.push("PAYTR_REFUND_MODE must remain disabled until durable refund attempt and uncertain-state recovery are available.");
+        result.errors.push("PAYTR_REFUND_MODE must remain disabled until PayTR sandbox refund acceptance is recorded and live activation is explicitly approved.");
     }
 
     if (isTrue(env.PAYMENTS_ENABLED)) {
