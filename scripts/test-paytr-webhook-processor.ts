@@ -19,6 +19,7 @@ assert.equal(getPaymentWebhookVerifier("paytr", environment)?.provider, "paytr")
 assert.equal(typeof getPaymentWebhookProcessor(), "function");
 
 const processor = readFileSync("packages/platform-payments/src/paytr-webhook-processor.ts", "utf8");
+const fulfillmentEffects = readFileSync("packages/platform-payments/src/fulfillment-effects.ts", "utf8");
 const jobs = readFileSync("apps/jobs/src/payment-webhook.ts", "utf8");
 const migration = readFileSync(
     "prisma/migrations/20260809000000_paytr_webhook_processor/migration.sql",
@@ -29,7 +30,7 @@ assert.match(processor, /amount_mismatch/);
 assert.match(processor, /currency_mismatch/);
 assert.match(processor, /sandbox_mode_mismatch/);
 assert.match(processor, /fulfillPaidPaymentOrder/);
-assert.match(processor, /notificationSentAt/);
+assert.match(fulfillmentEffects, /notificationSentAt/);
 assert.match(jobs, /getPaymentWebhookProcessor/);
 assert.match(migration, /notification_sent_at/);
 
