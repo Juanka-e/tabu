@@ -119,8 +119,10 @@ jobs:
         run: |
           npm run test:payment-reconciliation-reversal
           npm run test:payment-reconciliation-reversal-integration
+          npm run test:payment-provider-refund-integration
         env:
           PAYMENT_REVERSAL_INTEGRATION_TEST: "true"
+          PAYMENT_PROVIDER_REFUND_INTEGRATION_TEST: "true"
 
       - name: Test paid coin provenance and manual review
         run: |

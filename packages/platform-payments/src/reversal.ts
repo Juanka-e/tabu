@@ -2,7 +2,10 @@ import { getRedisKey, invalidateJsonCache } from "@hushle/platform-cache";
 import { Prisma, prisma } from "@hushle/platform-db";
 import { reversePaymentCoinLot } from "@hushle/platform-wallet";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { assertPaymentOrderTransition } from "./order-state-machine";
+import type { PaymentRefundAdapter } from "./refunds";
+import { PaytrAdapterError, type PaytrStatusQueryResult } from "./adapters/paytr";
 
 const requestSchema = z.object({
     orderId: z.string().uuid(),
@@ -18,6 +21,19 @@ const reviewSchema = z.object({
     reviewNote: z.string().trim().min(3).max(500),
     now: z.date().optional(),
 });
+const providerRequestSchema = z.object({
+    orderId: z.string().uuid(),
+    reason: z.string().trim().min(3).max(500),
+    requestedByUserId: z.number().int().positive(),
+    now: z.date().optional(),
+});
+const recoverySchema = z.object({
+    requestId: z.string().uuid(),
+    checkedByUserId: z.number().int().positive(),
+    now: z.date().optional(),
+});
+
+const ACTIVE_REVERSAL_REQUEST_STATUSES = ["pending", "processing", "provider_review"] as const;
 const grantResultSchema = z.discriminatedUnion("kind", [
     z.object({
         schemaVersion: z.literal(1),
@@ -58,6 +74,9 @@ export class PaymentReversalError extends Error {
         | "grant_evidence_invalid"
         | "reversal_identity_conflict"
         | "reversal_state_conflict"
+        | "execution_mode_conflict"
+        | "provider_refund_unavailable"
+        | "provider_refund_not_recoverable"
     ) {
         super(code);
         this.name = "PaymentReversalError";
@@ -104,7 +123,7 @@ export async function requestExternallyConfirmedPaymentReversal(
         });
         if (!order) throw new PaymentReversalError("order_not_found");
         const pending = await tx.paymentReversalRequest.count({
-            where: { orderId: order.id, status: "pending" },
+            where: { orderId: order.id, status: { in: [...ACTIVE_REVERSAL_REQUEST_STATUSES] } },
         });
         if (pending > 0) throw new PaymentReversalError("pending_request_exists");
 
@@ -126,6 +145,53 @@ export async function requestExternallyConfirmedPaymentReversal(
                 orderId: order.id,
                 outcome: value.outcome,
                 externalReference: value.externalReference,
+                reason: value.reason,
+                requestedByUserId: value.requestedByUserId,
+                executionMode: "externally_confirmed",
+                createdAt: value.now,
+            },
+        });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+}
+
+export async function requestProviderApiPaymentRefund(
+    input: z.input<typeof providerRequestSchema>
+) {
+    const parsed = providerRequestSchema.safeParse(input);
+    if (!parsed.success) throw new PaymentReversalError("invalid_input");
+    const value = parsed.data;
+    const requestId = randomUUID();
+    const referenceNo = `RF${requestId.replaceAll("-", "")}`;
+    return prisma.$transaction(async (tx) => {
+        await lockOrder(tx, value.orderId);
+        await assertAdminActor(tx, value.requestedByUserId);
+        const order = await tx.paymentOrder.findUnique({
+            where: { id: value.orderId },
+            include: { fulfillment: true, reversal: true },
+        });
+        if (!order) throw new PaymentReversalError("order_not_found");
+        const active = await tx.paymentReversalRequest.count({
+            where: { orderId: order.id, status: { in: [...ACTIVE_REVERSAL_REQUEST_STATUSES] } },
+        });
+        if (active > 0) throw new PaymentReversalError("pending_request_exists");
+        if (
+            order.provider !== "paytr"
+            || order.status !== "fulfilled"
+            || order.fulfillment?.status !== "completed"
+            || order.reversal
+            || !order.providerOrderReference
+            || !/^[A-Za-z0-9]{1,64}$/.test(order.providerOrderReference)
+        ) {
+            throw new PaymentReversalError("order_not_reversible");
+        }
+        return tx.paymentReversalRequest.create({
+            data: {
+                id: requestId,
+                orderId: order.id,
+                outcome: "refund",
+                status: "pending",
+                executionMode: "provider_api",
+                externalReference: referenceNo,
                 reason: value.reason,
                 requestedByUserId: value.requestedByUserId,
                 createdAt: value.now,
@@ -388,6 +454,9 @@ export async function approvePaymentReversalRequest(
         if (!request) throw new PaymentReversalError("request_not_found");
         await assertAdminActor(tx, value.reviewedByUserId);
         if (request.status !== "pending") throw new PaymentReversalError("request_not_pending");
+        if (request.executionMode !== "externally_confirmed") {
+            throw new PaymentReversalError("execution_mode_conflict");
+        }
         if (request.requestedByUserId === value.reviewedByUserId) {
             throw new PaymentReversalError("second_approver_required");
         }
@@ -412,6 +481,269 @@ export async function approvePaymentReversalRequest(
         outcome: result.outcome,
         removedInventoryItemIds: result.removedInventoryItemIds,
     };
+}
+
+type ProviderRefundOutcome =
+    | { outcome: "applied"; result: PaymentReversalResult }
+    | { outcome: "provider_failed" | "provider_review"; requestId: string; attemptId: string };
+
+async function finishProviderAttemptWithoutReversal(input: {
+    requestId: string;
+    attemptId: string;
+    requestStatus: "provider_failed" | "provider_review";
+    attemptStatus: "failed" | "uncertain";
+    errorCode: string;
+    now: Date;
+}): Promise<ProviderRefundOutcome> {
+    await prisma.$transaction(async (tx) => {
+        const request = await tx.paymentReversalRequest.findUnique({
+            where: { id: input.requestId },
+            select: { orderId: true, status: true },
+        });
+        if (!request) throw new PaymentReversalError("request_not_found");
+        await lockOrder(tx, request.orderId);
+        const current = await tx.paymentReversalRequest.findUnique({ where: { id: input.requestId } });
+        const attempt = await tx.paymentProviderRefundAttempt.findUnique({ where: { id: input.attemptId } });
+        if (!current || !attempt) throw new PaymentReversalError("request_not_found");
+        if (!["processing", "provider_review"].includes(current.status)) return;
+        if (!["processing", "uncertain"].includes(attempt.status)) return;
+        await tx.paymentProviderRefundAttempt.update({
+            where: { id: attempt.id },
+            data: {
+                status: input.attemptStatus,
+                errorCode: input.errorCode,
+                completedAt: input.attemptStatus === "failed" ? input.now : null,
+                lastCheckedAt: input.now,
+            },
+        });
+        await tx.paymentReversalRequest.update({
+            where: { id: current.id },
+            data: { status: input.requestStatus },
+        });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    return { outcome: input.requestStatus, requestId: input.requestId, attemptId: input.attemptId };
+}
+
+async function applyVerifiedProviderRefund(input: {
+    requestId: string;
+    attemptId: string;
+    actorUserId: number;
+    now: Date;
+}): Promise<ProviderRefundOutcome> {
+    const applied = await prisma.$transaction(async (tx) => {
+        const initial = await tx.paymentReversalRequest.findUnique({
+            where: { id: input.requestId },
+            select: { orderId: true },
+        });
+        if (!initial) throw new PaymentReversalError("request_not_found");
+        await lockOrder(tx, initial.orderId);
+        await assertAdminActor(tx, input.actorUserId);
+        const request = await tx.paymentReversalRequest.findUnique({ where: { id: input.requestId } });
+        const attempt = await tx.paymentProviderRefundAttempt.findUnique({ where: { id: input.attemptId } });
+        if (!request || !attempt) throw new PaymentReversalError("request_not_found");
+        if (request.executionMode !== "provider_api") throw new PaymentReversalError("execution_mode_conflict");
+        if (!["processing", "provider_review"].includes(request.status)) {
+            throw new PaymentReversalError("request_not_pending");
+        }
+        if (!["processing", "uncertain"].includes(attempt.status)) {
+            throw new PaymentReversalError("provider_refund_not_recoverable");
+        }
+        const result = await applyApprovedReversal(tx, request, input.now);
+        await tx.paymentProviderRefundAttempt.update({
+            where: { id: attempt.id },
+            data: { status: "succeeded", errorCode: null, completedAt: input.now, lastCheckedAt: input.now },
+        });
+        await tx.paymentReversalRequest.update({
+            where: { id: request.id },
+            data: { status: "approved" },
+        });
+        return result;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    await invalidateReversalCaches(applied.userId);
+    return {
+        outcome: "applied",
+        result: {
+            orderId: applied.orderId,
+            reversalId: applied.reversalId,
+            requestId: applied.requestId,
+            status: applied.status,
+            outcome: applied.outcome,
+            removedInventoryItemIds: applied.removedInventoryItemIds,
+        },
+    };
+}
+
+export async function approveProviderApiRefundRequest(input: z.input<typeof reviewSchema> & {
+    adapter: PaymentRefundAdapter | null;
+}): Promise<ProviderRefundOutcome> {
+    const parsed = reviewSchema.safeParse(input);
+    if (!parsed.success) throw new PaymentReversalError("invalid_input");
+    if (!input.adapter || input.adapter.provider !== "paytr") {
+        throw new PaymentReversalError("provider_refund_unavailable");
+    }
+    const value = parsed.data;
+    const now = value.now ?? new Date();
+    const prepared = await prisma.$transaction(async (tx) => {
+        const initial = await tx.paymentReversalRequest.findUnique({
+            where: { id: value.requestId },
+            select: { orderId: true },
+        });
+        if (!initial) throw new PaymentReversalError("request_not_found");
+        await lockOrder(tx, initial.orderId);
+        const request = await tx.paymentReversalRequest.findUnique({ where: { id: value.requestId } });
+        if (!request) throw new PaymentReversalError("request_not_found");
+        await assertAdminActor(tx, value.reviewedByUserId);
+        if (request.status !== "pending") throw new PaymentReversalError("request_not_pending");
+        if (request.executionMode !== "provider_api" || request.outcome !== "refund") {
+            throw new PaymentReversalError("execution_mode_conflict");
+        }
+        if (request.requestedByUserId === value.reviewedByUserId) {
+            throw new PaymentReversalError("second_approver_required");
+        }
+        const order = await tx.paymentOrder.findUnique({ where: { id: request.orderId } });
+        if (!order?.providerOrderReference || order.provider !== "paytr" || order.status !== "fulfilled") {
+            throw new PaymentReversalError("order_not_reversible");
+        }
+        const attempt = await tx.paymentProviderRefundAttempt.create({
+            data: {
+                reversalRequestId: request.id,
+                provider: "paytr",
+                status: "processing",
+                amountMinor: order.totalAmountMinor,
+                currency: order.currency,
+                referenceNo: request.externalReference,
+                startedAt: now,
+            },
+        });
+        await tx.paymentReversalRequest.update({
+            where: { id: request.id },
+            data: {
+                status: "processing",
+                reviewedByUserId: value.reviewedByUserId,
+                reviewNote: value.reviewNote,
+                reviewedAt: now,
+            },
+        });
+        return { request, order, attempt };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+    try {
+        const result = await input.adapter.refund({
+            merchantOrderId: prepared.order.providerOrderReference!,
+            amountMinor: prepared.order.totalAmountMinor,
+            currency: prepared.order.currency,
+            referenceNo: prepared.attempt.referenceNo,
+        });
+        if (
+            result.merchantOrderId !== prepared.order.providerOrderReference
+            || result.referenceNo !== prepared.attempt.referenceNo
+            || result.amountMinor !== prepared.attempt.amountMinor
+            || result.currency !== prepared.attempt.currency
+        ) {
+            return finishProviderAttemptWithoutReversal({
+                requestId: prepared.request.id,
+                attemptId: prepared.attempt.id,
+                requestStatus: "provider_review",
+                attemptStatus: "uncertain",
+                errorCode: "provider_result_mismatch",
+                now,
+            });
+        }
+        if (!result.testMode) {
+            return finishProviderAttemptWithoutReversal({
+                requestId: prepared.request.id,
+                attemptId: prepared.attempt.id,
+                requestStatus: "provider_review",
+                attemptStatus: "uncertain",
+                errorCode: "provider_mode_mismatch",
+                now,
+            });
+        }
+        return applyVerifiedProviderRefund({
+            requestId: prepared.request.id,
+            attemptId: prepared.attempt.id,
+            actorUserId: value.reviewedByUserId,
+            now,
+        });
+    } catch (error) {
+        const definitive = error instanceof PaytrAdapterError && error.code === "provider_rejected";
+        return finishProviderAttemptWithoutReversal({
+            requestId: prepared.request.id,
+            attemptId: prepared.attempt.id,
+            requestStatus: definitive ? "provider_failed" : "provider_review",
+            attemptStatus: definitive ? "failed" : "uncertain",
+            errorCode: error instanceof PaytrAdapterError ? error.code : "provider_unknown_error",
+            now,
+        });
+    }
+}
+
+export async function recoverProviderApiRefundRequest(input: z.input<typeof recoverySchema> & {
+    query: () => Promise<PaytrStatusQueryResult>;
+}): Promise<ProviderRefundOutcome> {
+    const parsed = recoverySchema.safeParse(input);
+    if (!parsed.success) throw new PaymentReversalError("invalid_input");
+    const value = parsed.data;
+    const now = value.now ?? new Date();
+    const current = await prisma.paymentReversalRequest.findUnique({
+        where: { id: value.requestId },
+        include: { providerRefundAttempt: true },
+    });
+    if (!current) throw new PaymentReversalError("request_not_found");
+    await prisma.$transaction((tx) => assertAdminActor(tx, value.checkedByUserId));
+    if (current.executionMode !== "provider_api" || !["processing", "provider_review"].includes(current.status)) {
+        throw new PaymentReversalError("provider_refund_not_recoverable");
+    }
+    const attempt = current.providerRefundAttempt;
+    if (!attempt || !["processing", "uncertain"].includes(attempt.status)) {
+        throw new PaymentReversalError("provider_refund_not_recoverable");
+    }
+    let status: PaytrStatusQueryResult;
+    try {
+        status = await input.query();
+    } catch {
+        return finishProviderAttemptWithoutReversal({
+            requestId: current.id,
+            attemptId: attempt.id,
+            requestStatus: "provider_review",
+            attemptStatus: "uncertain",
+            errorCode: "status_query_failed",
+            now,
+        });
+    }
+    if (status.status !== "success" || !status.testMode) {
+        return finishProviderAttemptWithoutReversal({
+            requestId: current.id,
+            attemptId: attempt.id,
+            requestStatus: "provider_review",
+            attemptStatus: "uncertain",
+            errorCode: status.status === "error" ? status.errorCode : "provider_mode_mismatch",
+            now,
+        });
+    }
+    const refund = (status.refunds ?? []).find((entry) => entry.referenceNo === attempt.referenceNo);
+    if (status.currency !== attempt.currency || !refund || refund.amountMinor !== attempt.amountMinor || !refund.completed) {
+        return finishProviderAttemptWithoutReversal({
+            requestId: current.id,
+            attemptId: attempt.id,
+            requestStatus: "provider_review",
+            attemptStatus: "uncertain",
+            errorCode: status.currency !== attempt.currency
+                ? "refund_currency_mismatch"
+                : !refund
+                    ? "refund_not_observed"
+                    : refund.amountMinor !== attempt.amountMinor
+                        ? "refund_amount_mismatch"
+                        : "refund_not_completed",
+            now,
+        });
+    }
+    return applyVerifiedProviderRefund({
+        requestId: current.id,
+        attemptId: attempt.id,
+        actorUserId: value.checkedByUserId,
+        now,
+    });
 }
 
 export async function rejectPaymentReversalRequest(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, prisma } from "@hushle/platform-db";
+import { getPaymentRefundReadiness } from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import {
@@ -95,17 +96,25 @@ export async function GET(request: NextRequest) {
                 },
                 reconciliationCase: { select: { id: true, status: true, reasonCode: true, attemptCount: true, lastErrorCode: true, lastCheckedAt: true } },
                 reversalRequests: {
-                    where: { status: "pending" },
+                    where: { status: { in: ["pending", "processing", "provider_review", "provider_failed"] } },
                     orderBy: { createdAt: "desc" },
                     take: 1,
                     select: {
                         id: true,
                         outcome: true,
                         status: true,
+                        executionMode: true,
                         externalReference: true,
                         reason: true,
                         createdAt: true,
                         requestedBy: { select: { id: true, username: true } },
+                        providerRefundAttempt: {
+                            select: {
+                                id: true, status: true, amountMinor: true, currency: true,
+                                referenceNo: true, errorCode: true, startedAt: true,
+                                completedAt: true, lastCheckedAt: true,
+                            },
+                        },
                     },
                 },
                 webhookEvents: {
@@ -155,6 +164,12 @@ export async function GET(request: NextRequest) {
             reversalRequests: order.reversalRequests.map((entry) => ({
                 ...entry,
                 createdAt: entry.createdAt.toISOString(),
+                providerRefundAttempt: entry.providerRefundAttempt ? {
+                    ...entry.providerRefundAttempt,
+                    startedAt: entry.providerRefundAttempt.startedAt.toISOString(),
+                    completedAt: entry.providerRefundAttempt.completedAt?.toISOString() ?? null,
+                    lastCheckedAt: entry.providerRefundAttempt.lastCheckedAt?.toISOString() ?? null,
+                } : null,
             })),
         })),
         page,
@@ -168,5 +183,6 @@ export async function GET(request: NextRequest) {
             deadLetterThresholdExceeded: deadLetters >= deadLetterAlertThreshold,
             oldestOpenCaseAt: oldestOpenCase?.createdAt.toISOString() ?? null,
         },
+        refundExecution: getPaymentRefundReadiness("paytr"),
     }, { headers: buildRateLimitHeaders(rateLimit) });
 }

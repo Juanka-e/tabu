@@ -29,10 +29,11 @@
 
 ## Reversal Güvenlik Politikası
 
-Admin panelindeki ters işlem PayTR'de para iadesi başlatmaz. İlk operatör provider
-panelinde işlemi tamamlar, sonra provider referansı, gerekçe ve sipariş UUID onayıyla
-yerel reversal talebi oluşturur. Talebi oluşturan admin kendi talebini onaylayamaz
-veya reddedemez; farklı bir admin talep UUID'si ve zorunlu inceleme notuyla karar verir.
+Admin paneli iki ayrı akış sunar. `externally_confirmed` modunda ilk operatör provider
+panelindeki işlemi tamamlayıp referansıyla yerel reversal ister. `provider_api` modu
+yalnız hazır PayTR sandbox yapılandırmasında tam iade çağrısı yapar. İki modda da talebi
+oluşturan admin kendi talebini onaylayamaz veya reddedemez; farklı bir admin talep
+UUID'si ve zorunlu inceleme notuyla karar verir.
 
 - Kozmetikte yalnız fulfillment `grantResult` içindeki kesin inventory ID'leri
   kaldırılır. Başka kaynaktan kazanılan item korunur.
@@ -54,6 +55,10 @@ veya reddedemez; farklı bir admin talep UUID'si ve zorunlu inceleme notuyla kar
   `legacy_manual_review_no_wallet_mutation` politikasında kalır.
 - Oyuncuya yalnız genel durum bildirimi gider. Provider iç hata kodları ve koruma
   ayrıntıları istemciye gönderilmez.
+- Timeout veya bağlantı kopması provider başarısızlığı sayılmaz. Talep
+  `provider_review` durumunda kalır, yeni refund engellenir ve yerel entitlement
+  değiştirilmez. Recovery yalnız exact referans, tutar ve tamamlanmış PayTR iade
+  kaydıyla uygulanır.
 
 ## Ücretli Coin Manuel İnceleme
 
@@ -98,8 +103,11 @@ kontrolünü atlamaz.
 
 ## Gelecek Sınırlar
 
-- Live PayTR ve provider refund API ayrı bir onaylı branch'te, resmi sandbox kabul
-  testleri ve çift kontrol akışıyla ele alınmalıdır.
+- Live PayTR refund açılışı resmi sandbox kabul/smoke testi, runbook onayı ve ayrı
+  production değişikliği gerektirir. Mevcut preflight production refund modunu kapalı
+  tutar.
+- Kısmi iade; ürün miktarı, bundle entitlement ve coin lot paylaştırma politikası
+  tasarlanmadan eklenmemelidir.
 - Reconciliation alarm metrikleri merkezi observability exporter'a bağlanmalıdır.
 - Alarm metrikleri exporter'a bağlandığında eşik aşımı merkezi uyarı kanalına
   yönlendirilmeli; admin sayfasındaki mevcut uyarı yedek görünüm olarak korunmalıdır.

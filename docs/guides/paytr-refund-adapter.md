@@ -2,15 +2,17 @@
 
 ## Mevcut Durum
 
-PayTR'nin tam veya kısmi iade endpoint'i için provider-neutral kontrat ve bounded
-transport adapter hazırdır. Bu foundation gerçek para hareketine bağlı değildir:
+PayTR'nin iade endpoint'i için provider-neutral kontrat, bounded transport adapter ve
+kalıcı refund attempt orkestrasyonu hazırdır. Uygulama yalnız **tam iade** açar.
 
 ```env
 PAYTR_REFUND_MODE=disabled
 ```
 
 Production preflight, `PAYTR_REFUND_MODE` için `sandbox` ve `live` değerlerini
-reddeder. Admin reversal endpoint'leri refund adapter'ını import etmez veya çağırmaz.
+reddeder. Dolayısıyla production'da provider API iade butonu ve endpoint'i fail-closed
+kalır. Yerelde ancak checkout ve refund modu birlikte `sandbox` ve merchant bilgileri
+geçerliyse ikinci onaya gönderilebilir.
 
 ## Adapter Kontratı
 
@@ -24,6 +26,22 @@ reddeder. Admin reversal endpoint'leri refund adapter'ını import etmez veya ç
 - Başarı cevabındaki sipariş, tutar ve referans istekle birebir eşleşmelidir.
 - Provider `err_msg` metni dışarı taşınmaz; yalnız bounded uygulama hata kodu üretilir.
 
+## Kalıcı Orkestrasyon
+
+- Harici provider işlemi sonrası kullanılan `externally_confirmed` akış korunur.
+- `provider_api` talebi tam tutarı sipariş kaydından alır; istemci tutar gönderemez.
+- Talebi oluşturan admin onaylayamaz. Provider çağrısından hemen önce ikinci admin
+  rolü ve sipariş durumu transaction içinde yeniden doğrulanır.
+- Provider çağrısı veritabanı transaction'ı dışında yapılır.
+- Kalıcı attempt durumları `processing`, `succeeded`, `failed` ve `uncertain`'dır.
+- Başarıda provider kanıtı ile inventory/wallet reversal tek transaction'da uygulanır.
+- Kesin ret `provider_failed`; timeout, transport veya geçersiz cevap
+  `provider_review` üretir ve yerel varlıklara dokunmaz.
+- `provider_review` yeni refund talebini engeller. Kör retry yerine PayTR durum
+  sorgusunda aynı `reference_no`, tam tutar, tamamlanmış kayıt ve test modu aranır.
+- Provider çağrısı sonrasında admin rolü değişmişse yerel reversal uygulanmaz; kayıt
+  güvenli inceleme durumunda bırakılır.
+
 ## Bilinçli Güvenlik Sınırı
 
 PayTR `reference_no` alanını kabul eder ancak resmi doküman bunu tekrarlanan refund
@@ -32,23 +50,21 @@ istekleri için idempotency garantisi olarak tanımlamaz. Bu nedenle:
 - timeout veya bağlantı kopmasında aynı istek kör biçimde tekrarlanmaz,
 - provider başarısı kalıcı olarak kanıtlanmadan yerel entitlement reversal yapılmaz,
 - mevcut `externally_confirmed` reversal akışı otomatik refund ile karıştırılmaz,
-- full ve partial refund ürün/entitlement politikası belirlenmeden admin aksiyonu açılmaz.
-
-Bir sonraki branch durable provider refund attempt modeli, `processing`, `succeeded`,
-`failed` ve `uncertain` state machine, tekil reference üretimi, ikinci admin onayı ve durum
-sorgusuyla recovery akışını kurmalıdır. Ancak bundan sonra sandbox admin butonu açılır.
+- partial refund ürün/entitlement politikası belirlenmeden kısmi iade açılmaz.
+- sandbox merchant kabul testi tamamlanmadan production kilidi kaldırılmaz.
 
 ## Test
 
 ```bash
 npm run test:payment-paytr-refund
+npm run test:payment-provider-refund-integration
 npm run test:production-preflight
 npm run typecheck:packages
 ```
 
-Testler bağımsız HMAC hesabını, exact decimal tutarı, secret minimizasyonunu, response
-eşleşmesini, response boyut sınırını, provider reddini ve app route'larının adapter'a
-bağlı olmadığını doğrular.
+Testler HMAC hesabını, exact decimal tutarı, secret minimizasyonunu, response sınırını,
+ikinci onayı, timeout sonrası kör retry engelini, kesin reddi ve exact recovery kanıtını
+doğrular.
 
 ## Resmi Kaynaklar
 

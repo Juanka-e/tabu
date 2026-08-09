@@ -44,6 +44,7 @@ assert.deepEqual(result, {
     currency: "TRY",
     testMode: true,
     returnCount: 1,
+    refunds: [],
 });
 assert.equal(JSON.stringify(result).includes("masked_pan"), false);
 

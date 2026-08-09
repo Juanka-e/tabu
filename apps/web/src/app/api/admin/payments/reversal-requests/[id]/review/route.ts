@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+    approveProviderApiRefundRequest,
     approvePaymentReversalRequest,
+    createPaymentRefundAdapter,
     PaymentReversalError,
     rejectPaymentReversalRequest,
 } from "@hushle/platform-payments";
+import { prisma } from "@hushle/platform-db";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -35,8 +38,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         return NextResponse.json({ error: "Çok fazla reversal inceleme isteği." }, { status: 429, headers: buildRateLimitHeaders(rateLimit) });
     }
     try {
+        const reversalRequest = await prisma.paymentReversalRequest.findUnique({
+            where: { id: params.data.id },
+            select: { executionMode: true },
+        });
+        if (!reversalRequest) throw new PaymentReversalError("request_not_found");
         const result = body.data.action === "approve"
-            ? await approvePaymentReversalRequest({
+            ? reversalRequest.executionMode === "provider_api"
+                ? await approveProviderApiRefundRequest({
+                    requestId: params.data.id,
+                    reviewedByUserId: admin.id,
+                    reviewNote: body.data.reviewNote,
+                    adapter: createPaymentRefundAdapter({ provider: "paytr" }),
+                })
+                : await approvePaymentReversalRequest({
                 requestId: params.data.id,
                 reviewedByUserId: admin.id,
                 reviewNote: body.data.reviewNote,
@@ -52,7 +67,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
             resourceType: "payment_reversal_request",
             resourceId: params.data.id,
             summary: `${body.data.action} payment reversal request`,
-            metadata: { reviewNote: body.data.reviewNote },
+            metadata: { reviewNote: body.data.reviewNote, executionMode: reversalRequest.executionMode },
             request,
         });
         return NextResponse.json({ ok: true, result }, { headers: buildRateLimitHeaders(rateLimit) });

@@ -7,6 +7,7 @@ import {
     buildPaytrRefundForm,
     createPaymentRefundAdapter,
     getPaymentRefundReadiness,
+    queryPaytrPaymentStatus,
     requestPaytrRefund,
 } from "@hushle/platform-payments";
 
@@ -128,13 +129,37 @@ async function main(): Promise<void> {
         ready: false,
         issues: ["refund_adapter_unavailable"],
     });
+    const status = await queryPaytrPaymentStatus({
+        merchantOrderId: request.merchantOrderId,
+        credentials,
+        fetchImpl: async () => new Response(JSON.stringify({
+            status: "success",
+            payment_amount: "11.97",
+            payment_total: "11.97",
+            currency: "TL",
+            test_mode: "1",
+            returns: [{
+                return_amount: "11.97",
+                reference_no: request.referenceNo,
+                date_completed: "2026-08-09 20:00:00",
+            }],
+        })),
+    });
+    assert.equal(status.status, "success");
+    if (status.status === "success") {
+        assert.deepEqual(status.refunds, [{ referenceNo: request.referenceNo, amountMinor: 1_197, completed: true }]);
+    }
 
     const appSources = [
         readFileSync("apps/web/src/app/api/admin/payments/[id]/reversal/route.ts", "utf8"),
         readFileSync("apps/web/src/app/api/admin/payments/reversal-requests/[id]/review/route.ts", "utf8"),
+        readFileSync("apps/web/src/app/api/admin/payments/reversal-requests/[id]/recover/route.ts", "utf8"),
     ].join("\n");
-    assert.doesNotMatch(appSources, /requestPaytrRefund|createPaymentRefundAdapter/);
-    console.log("PayTR refund adapter foundation checks passed");
+    assert.doesNotMatch(appSources, /requestPaytrRefund/);
+    assert.match(appSources, /getPaymentRefundReadiness/);
+    assert.match(appSources, /approveProviderApiRefundRequest/);
+    assert.match(appSources, /recoverProviderApiRefundRequest/);
+    console.log("PayTR refund adapter and guarded orchestration checks passed");
 }
 
 main().catch((error) => {

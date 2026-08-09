@@ -220,8 +220,23 @@ enum PaymentReversalStatus {
 
 enum PaymentReversalRequestStatus {
   pending
+  processing
+  provider_failed
+  provider_review
   approved
   rejected
+}
+
+enum PaymentReversalExecutionMode {
+  externally_confirmed
+  provider_api
+}
+
+enum PaymentProviderRefundAttemptStatus {
+  processing
+  succeeded
+  failed
+  uncertain
 }
 
 enum PaymentManualReviewStatus {
@@ -423,6 +438,7 @@ model PaymentReversalRequest {
   orderId             String                       @map("order_id") @db.Char(36)
   outcome             PaymentReversalOutcome
   status              PaymentReversalRequestStatus @default(pending)
+  executionMode       PaymentReversalExecutionMode  @default(externally_confirmed) @map("execution_mode")
   externalReference   String                       @map("external_reference") @db.VarChar(191)
   reason              String                       @db.VarChar(500)
   requestedByUserId   Int                          @map("requested_by_user_id")
@@ -435,12 +451,36 @@ model PaymentReversalRequest {
   order       PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
   requestedBy User         @relation("PaymentReversalRequestActor", fields: [requestedByUserId], references: [id], onDelete: Restrict)
   reviewedBy  User?        @relation("PaymentReversalRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  providerRefundAttempt PaymentProviderRefundAttempt?
 
   @@index([orderId, status, createdAt])
   @@index([status, createdAt])
   @@index([requestedByUserId, createdAt])
   @@index([reviewedByUserId, reviewedAt])
   @@map("payment_reversal_requests")
+}
+
+model PaymentProviderRefundAttempt {
+  id                String                             @id @default(uuid()) @db.Char(36)
+  reversalRequestId String                             @unique @map("reversal_request_id") @db.Char(36)
+  provider          PaymentProvider
+  status            PaymentProviderRefundAttemptStatus @default(processing)
+  amountMinor       Int                                @map("amount_minor")
+  currency          String                             @db.Char(3)
+  referenceNo       String                             @map("reference_no") @db.VarChar(64)
+  errorCode         String?                            @map("error_code") @db.VarChar(80)
+  startedAt         DateTime                           @default(now()) @map("started_at")
+  completedAt       DateTime?                          @map("completed_at")
+  lastCheckedAt     DateTime?                          @map("last_checked_at")
+  createdAt         DateTime                           @default(now()) @map("created_at")
+  updatedAt         DateTime                           @updatedAt @map("updated_at")
+
+  reversalRequest PaymentReversalRequest @relation(fields: [reversalRequestId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, referenceNo])
+  @@index([status, startedAt])
+  @@index([provider, status, createdAt])
+  @@map("payment_provider_refund_attempts")
 }
 
 model PaymentReconciliationCase {
