@@ -634,6 +634,21 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
             currency: prepared.order.currency,
             referenceNo: prepared.attempt.referenceNo,
         });
+        if (
+            result.merchantOrderId !== prepared.order.providerOrderReference
+            || result.referenceNo !== prepared.attempt.referenceNo
+            || result.amountMinor !== prepared.attempt.amountMinor
+            || result.currency !== prepared.attempt.currency
+        ) {
+            return finishProviderAttemptWithoutReversal({
+                requestId: prepared.request.id,
+                attemptId: prepared.attempt.id,
+                requestStatus: "provider_review",
+                attemptStatus: "uncertain",
+                errorCode: "provider_result_mismatch",
+                now,
+            });
+        }
         if (!result.testMode) {
             return finishProviderAttemptWithoutReversal({
                 requestId: prepared.request.id,

@@ -53,7 +53,7 @@ async function run() {
         assert.match(successRequest.externalReference, /^RF[a-f0-9]{32}$/);
         const successfulAdapter: PaymentRefundAdapter = {
             provider: "paytr",
-            refund: async (request) => ({ provider: "paytr", referenceNo: request.referenceNo, amountMinor: request.amountMinor, currency: request.currency, testMode: true }),
+            refund: async (request) => ({ provider: "paytr", merchantOrderId: request.merchantOrderId, referenceNo: request.referenceNo, amountMinor: request.amountMinor, currency: request.currency, testMode: true }),
         };
         await assert.rejects(
             () => approveProviderApiRefundRequest({ requestId: successRequest.id, reviewedByUserId: requester.id, reviewNote: "self approval", adapter: successfulAdapter }),
