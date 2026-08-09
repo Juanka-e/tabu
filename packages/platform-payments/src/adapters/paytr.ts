@@ -281,6 +281,11 @@ export type PaytrStatusQueryResult =
         currency: string;
         testMode: boolean;
         returnCount: number;
+        refunds?: Array<{
+            referenceNo: string;
+            amountMinor: number;
+            completed: boolean;
+        }>;
     }
     | { status: "error"; errorCode: string };
 
@@ -325,6 +330,24 @@ export async function queryPaytrPaymentStatus(input: {
         const currency = parsed.data.currency.toUpperCase() === "TL"
             ? "TRY"
             : parsed.data.currency.toUpperCase();
+        const refunds = parsed.data.returns.flatMap((entry) => {
+            const refund = z.object({
+                return_amount: z.union([z.string(), z.number()]),
+                reference_no: z.string().trim().regex(/^[A-Za-z0-9]{1,64}$/),
+                date_completed: z.union([z.string(), z.number()]).optional(),
+            }).safeParse(entry);
+            if (!refund.success) return [];
+            try {
+                return [{
+                    referenceNo: refund.data.reference_no,
+                    amountMinor: parseProviderMoney(refund.data.return_amount),
+                    completed: refund.data.date_completed !== undefined
+                        && String(refund.data.date_completed).trim().length > 0,
+                }];
+            } catch {
+                return [];
+            }
+        });
         return {
             status: "success",
             paymentAmountMinor: parseProviderMoney(parsed.data.payment_amount),
@@ -334,6 +357,7 @@ export async function queryPaytrPaymentStatus(input: {
                 || parsed.data.test_mode === 1
                 || parsed.data.test_mode === "1",
             returnCount: parsed.data.returns.length,
+            refunds,
         };
     } catch (error) {
         if (error instanceof PaytrAdapterError) throw error;

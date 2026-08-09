@@ -20,11 +20,23 @@ import { Input } from "@/components/ui/input";
 type ReversalRequest = {
     id: string;
     outcome: "refund" | "chargeback";
-    status: "pending";
+    status: "pending" | "processing" | "provider_failed" | "provider_review";
+    executionMode: "externally_confirmed" | "provider_api";
     externalReference: string;
     reason: string;
     createdAt: string;
     requestedBy: { id: number; username: string };
+    providerRefundAttempt: {
+        id: string;
+        status: "processing" | "succeeded" | "failed" | "uncertain";
+        amountMinor: number;
+        currency: string;
+        referenceNo: string;
+        errorCode: string | null;
+        startedAt: string;
+        completedAt: string | null;
+        lastCheckedAt: string | null;
+    } | null;
 };
 type PaymentItem = {
     id: string;
@@ -83,6 +95,12 @@ type PaymentResponse = {
         caseAlertThreshold: number;
         deadLetterAlertThreshold: number;
         oldestOpenCaseAt: string | null;
+    };
+    refundExecution: {
+        provider: string;
+        mode: "disabled" | "sandbox" | "invalid";
+        ready: boolean;
+        issues: string[];
     };
 };
 
@@ -174,8 +192,9 @@ export default function AdminPaymentsPage() {
         setBusyId(order.id);
         try {
             await post(`/api/admin/payments/${order.id}/reversal`, {
+                executionMode: form.get("executionMode"),
                 outcome: form.get("outcome"),
-                externalReference: form.get("externalReference"),
+                externalReference: form.get("externalReference") || undefined,
                 reason: form.get("reason"),
                 confirmationOrderId: form.get("confirmationOrderId"),
             }, "Ters işlem talebi oluşturulamadı.");
@@ -191,15 +210,35 @@ export default function AdminPaymentsPage() {
         const form = new FormData(event.currentTarget);
         setBusyId(request.id);
         try {
-            await post(`/api/admin/payments/reversal-requests/${request.id}/review`, {
+            const response = await post(`/api/admin/payments/reversal-requests/${request.id}/review`, {
                 action: form.get("action"),
                 reviewNote: form.get("reviewNote"),
                 confirmationRequestId: form.get("confirmationRequestId"),
             }, "Reversal incelemesi tamamlanamadı.");
-            toast.success(form.get("action") === "approve" ? "Talep onaylandı ve yerel reversal uygulandı." : "Talep reddedildi.");
+            const result = response.result as { outcome?: string } | undefined;
+            if (result?.outcome === "provider_review") toast.warning("Sağlayıcı sonucu belirsiz. Yerel reversal uygulanmadı.");
+            else if (result?.outcome === "provider_failed") toast.error("Sağlayıcı iade isteğini reddetti. Yerel reversal uygulanmadı.");
+            else toast.success(form.get("action") === "approve" ? "Talep onaylandı ve yerel reversal uygulandı." : "Talep reddedildi.");
             await load();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Reversal incelemesi tamamlanamadı.");
+        } finally { setBusyId(null); }
+    }
+
+    async function recoverProviderRefund(event: React.FormEvent<HTMLFormElement>, request: ReversalRequest) {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        setBusyId(request.id);
+        try {
+            const response = await post(`/api/admin/payments/reversal-requests/${request.id}/recover`, {
+                confirmationRequestId: form.get("confirmationRequestId"),
+            }, "İade durumu doğrulanamadı.");
+            const result = response.result as { outcome?: string } | undefined;
+            if (result?.outcome === "applied") toast.success("PayTR iadesi doğrulandı ve yerel reversal uygulandı.");
+            else toast.warning("Tamamlanmış iade kanıtı bulunamadı; yerel durum değiştirilmedi.");
+            await load();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "İade durumu doğrulanamadı.");
         } finally { setBusyId(null); }
     }
 
@@ -247,7 +286,7 @@ export default function AdminPaymentsPage() {
         <div className="space-y-6 p-4 md:p-6">
             <AdminPageHeader
                 title="Ödeme Operasyonları"
-                description="Bu ekran sağlayıcıda para iadesi başlatmaz. Yerel reversal için talep oluşturan kişiden farklı bir adminin onayı zorunludur."
+                description="Harici işlemler yerel reversal ile kaydedilir. PayTR API iadesi yalnız hazır sandbox yapılandırmasında ve farklı bir adminin ikinci onayıyla çalışır."
                 meta={data ? `${data.counts.openCases} açık vaka · ${data.counts.pendingApprovals} onay bekliyor` : undefined}
                 icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
                 action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Yenile</Button>}
@@ -277,10 +316,11 @@ export default function AdminPaymentsPage() {
                 <div className="divide-y divide-border/60">
                     {data?.items.map((item) => {
                         const webhook = item.webhookEvents[0];
-                        const pendingRequest = item.reversalRequests[0];
+                        const activeRequest = item.reversalRequests[0];
                         const coinReversal = readCoinReversalEvidence(item.reversal?.evidence);
                         const manualReview = item.reversal?.manualReviewCase;
-                        const canRequest = !pendingRequest && (
+                        const blocksNewRequest = activeRequest && ["pending", "processing", "provider_review"].includes(activeRequest.status);
+                        const canRequest = !blocksNewRequest && (
                             (item.status === "fulfilled" && item.fulfillment?.status === "completed" && !item.reversal)
                             || (item.status === "refunded" && item.reversal?.outcome === "refund")
                         );
@@ -306,18 +346,23 @@ export default function AdminPaymentsPage() {
                                     </details>
                                 ) : null}
 
-                                {pendingRequest ? (
+                                {activeRequest ? (
                                     <details open className="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm dark:bg-sky-950/20">
-                                        <summary className="cursor-pointer font-semibold text-sky-950 dark:text-sky-100">İkinci admin onayı bekleniyor · {pendingRequest.outcome}</summary>
-                                        <p className="mt-2">Talep eden: <strong>@{pendingRequest.requestedBy.username}</strong> · {new Date(pendingRequest.createdAt).toLocaleString("tr-TR")}</p>
-                                        <p className="mt-1 text-muted-foreground">{pendingRequest.reason} · Sağlayıcı ref: {pendingRequest.externalReference}</p>
-                                        <p className="mt-2 text-xs text-muted-foreground">Talebi oluşturan admin kendi talebini onaylayamaz veya reddedemez.</p>
-                                        <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void reviewReversal(event, pendingRequest)}>
+                                        <summary className="cursor-pointer font-semibold text-sky-950 dark:text-sky-100">{activeRequest.status === "pending" ? "İkinci admin onayı bekleniyor" : activeRequest.status === "provider_failed" ? "Sağlayıcı iade isteğini reddetti" : "Sağlayıcı iadesi doğrulama bekliyor"} · {activeRequest.outcome}</summary>
+                                        <p className="mt-2">Talep eden: <strong>@{activeRequest.requestedBy.username}</strong> · {new Date(activeRequest.createdAt).toLocaleString("tr-TR")}</p>
+                                        <p className="mt-1 text-muted-foreground">{activeRequest.reason} · Mod: {activeRequest.executionMode} · Referans: {activeRequest.externalReference}</p>
+                                        {activeRequest.providerRefundAttempt ? <p className="mt-2 text-xs text-muted-foreground">Deneme: {activeRequest.providerRefundAttempt.status} · {money(activeRequest.providerRefundAttempt.amountMinor, activeRequest.providerRefundAttempt.currency)} · Hata: {activeRequest.providerRefundAttempt.errorCode ?? "-"}</p> : null}
+                                        {activeRequest.status === "pending" ? <><p className="mt-2 text-xs text-muted-foreground">Talebi oluşturan admin kendi talebini onaylayamaz veya reddedemez.</p>
+                                        <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void reviewReversal(event, activeRequest)}>
                                             <select name="action" className="h-10 rounded-md border bg-background px-3 text-sm" required><option value="approve">Onayla ve uygula</option><option value="reject">Reddet</option></select>
                                             <Input name="reviewNote" placeholder="İkinci admin inceleme notu" minLength={3} maxLength={500} required />
-                                            <Input name="confirmationRequestId" placeholder={`Onay için talep ID: ${pendingRequest.id}`} required />
-                                            <Button type="submit" variant="outline" disabled={busyId === pendingRequest.id}><ShieldAlert className="mr-2 h-4 w-4" />Kararı kaydet</Button>
-                                        </form>
+                                            <Input name="confirmationRequestId" placeholder={`Onay için talep ID: ${activeRequest.id}`} required />
+                                            <Button type="submit" variant="outline" disabled={busyId === activeRequest.id}><ShieldAlert className="mr-2 h-4 w-4" />Kararı kaydet</Button>
+                                        </form></> : null}
+                                        {["processing", "provider_review"].includes(activeRequest.status) ? <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void recoverProviderRefund(event, activeRequest)}>
+                                            <Input name="confirmationRequestId" placeholder={`Doğrulama için talep ID: ${activeRequest.id}`} required />
+                                            <Button type="submit" variant="outline" disabled={busyId === activeRequest.id}><RefreshCw className="mr-2 h-4 w-4" />PayTR durumunu doğrula</Button>
+                                        </form> : null}
                                     </details>
                                 ) : null}
 
@@ -355,13 +400,15 @@ export default function AdminPaymentsPage() {
 
                                 {canRequest ? (
                                     <details className="rounded-xl border p-3">
-                                        <summary className="cursor-pointer font-semibold"><ShieldAlert className="mr-2 inline h-4 w-4 text-amber-600" />Harici işlem sonrası reversal talebi oluştur</summary>
+                                        <summary className="cursor-pointer font-semibold"><ShieldAlert className="mr-2 inline h-4 w-4 text-amber-600" />İade veya reversal talebi oluştur</summary>
                                         <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={(event) => void requestReversal(event, item)}>
+                                            <select name="executionMode" className="h-10 rounded-md border bg-background px-3 text-sm" defaultValue="externally_confirmed" required><option value="externally_confirmed">Harici işlem tamamlandı</option><option value="provider_api" disabled={!data?.refundExecution.ready}>PayTR API ile tam iade (sandbox)</option></select>
                                             <select name="outcome" className="h-10 rounded-md border bg-background px-3 text-sm" defaultValue={item.status === "refunded" ? "chargeback" : "refund"} required><option value="refund" disabled={item.status === "refunded"}>İade</option><option value="chargeback">Ters ibraz</option></select>
-                                            <Input name="externalReference" placeholder="Sağlayıcı işlem referansı" minLength={3} maxLength={191} required />
+                                            <Input name="externalReference" placeholder="Harici işlem referansı (harici modda zorunlu)" minLength={3} maxLength={191} />
                                             <Input name="reason" placeholder="Operasyon gerekçesi" minLength={3} maxLength={500} required />
                                             <Input name="confirmationOrderId" placeholder="Onay için sipariş UUID'sini yazın" required />
                                             <Button type="submit" variant="destructive" disabled={busyId === item.id}>İkinci onaya gönder</Button>
+                                            <p className="text-xs text-muted-foreground md:col-span-2">PayTR API modu yalnız tam iadeyi destekler. Sonuç belirsizse coin veya envanter değişmez; tekrar denemek yerine sağlayıcı durumu doğrulanır.</p>
                                         </form>
                                     </details>
                                 ) : null}

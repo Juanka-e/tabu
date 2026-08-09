@@ -170,6 +170,7 @@ async function run(): Promise<void> {
         assert.equal((await prisma.paymentReconciliationCase.findUniqueOrThrow({ where: { orderId: reconciliationOrder.id } })).status, "resolved");
     } finally {
         await prisma.notification.deleteMany({ where: { userId: user.id } });
+        await prisma.paymentProviderRefundAttempt.deleteMany({ where: { reversalRequest: { order: { userId: user.id } } } });
         await prisma.paymentReversalRequest.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentReversal.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentReconciliationCase.deleteMany({ where: { order: { userId: user.id } } });

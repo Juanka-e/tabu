@@ -11,6 +11,8 @@ export {
     PaymentAttemptStatus,
     PaymentFulfillmentStatus,
     PaymentManualReviewStatus,
+    PaymentProviderRefundAttemptStatus,
+    PaymentReversalExecutionMode,
     PaymentOrderStatus,
     PaymentProductKind,
     PaymentProvider,
@@ -30,6 +32,7 @@ export {
 } from "@prisma/client";
 export type {
     PaymentManualReviewCase,
+    PaymentProviderRefundAttempt,
     PaymentCoinLot,
     PaymentCoinLotAllocation,
     PaymentOffer,

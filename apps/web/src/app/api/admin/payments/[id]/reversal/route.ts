@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requestExternallyConfirmedPaymentReversal, PaymentReversalError } from "@hushle/platform-payments";
+import {
+    getPaymentRefundReadiness,
+    requestExternallyConfirmedPaymentReversal,
+    requestProviderApiPaymentRefund,
+    PaymentReversalError,
+} from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -8,8 +13,9 @@ import { buildRateLimitHeaders, consumeRequestRateLimit, getRequestIp } from "@/
 export const dynamic = "force-dynamic";
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
+    executionMode: z.enum(["externally_confirmed", "provider_api"]).default("externally_confirmed"),
     outcome: z.enum(["refund", "chargeback"]),
-    externalReference: z.string().trim().min(3).max(191),
+    externalReference: z.string().trim().max(191).optional(),
     reason: z.string().trim().min(3).max(500),
     confirmationOrderId: z.string().uuid(),
 });
@@ -22,6 +28,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (!params.success || !body.success || body.data.confirmationOrderId !== params.data.id) {
         return NextResponse.json({ error: "Sipariş onayı veya ters işlem verisi geçersiz." }, { status: 422 });
     }
+    if (
+        (body.data.executionMode === "externally_confirmed" && (!body.data.externalReference || body.data.externalReference.length < 3))
+        || (body.data.executionMode === "provider_api" && body.data.outcome !== "refund")
+    ) {
+        return NextResponse.json({ error: "execution_mode_conflict" }, { status: 422 });
+    }
+    if (body.data.executionMode === "provider_api" && !getPaymentRefundReadiness("paytr").ready) {
+        return NextResponse.json({ error: "provider_refund_unavailable" }, { status: 503 });
+    }
     const rateLimit = consumeRequestRateLimit({
         bucket: "admin-payment-reversal",
         key: `admin:${admin.id}:${getRequestIp(request)}`,
@@ -32,22 +47,29 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         return NextResponse.json({ error: "Çok fazla ters işlem isteği." }, { status: 429, headers: buildRateLimitHeaders(rateLimit) });
     }
     try {
-        const result = await requestExternallyConfirmedPaymentReversal({
-            orderId: params.data.id,
-            outcome: body.data.outcome,
-            externalReference: body.data.externalReference,
-            reason: body.data.reason,
-            requestedByUserId: admin.id,
-        });
+        const result = body.data.executionMode === "provider_api"
+            ? await requestProviderApiPaymentRefund({
+                orderId: params.data.id,
+                reason: body.data.reason,
+                requestedByUserId: admin.id,
+            })
+            : await requestExternallyConfirmedPaymentReversal({
+                orderId: params.data.id,
+                outcome: body.data.outcome,
+                externalReference: body.data.externalReference!,
+                reason: body.data.reason,
+                requestedByUserId: admin.id,
+            });
         await writeAuditLog({
             actor: admin,
             action: "admin.payment.reversal.request",
             resourceType: "payment_order",
             resourceId: params.data.id,
-            summary: `Requested externally confirmed ${body.data.outcome} reversal`,
+            summary: `Requested ${body.data.executionMode} ${body.data.outcome} reversal`,
             metadata: {
+                executionMode: body.data.executionMode,
                 outcome: body.data.outcome,
-                externalReference: body.data.externalReference,
+                externalReference: result.externalReference,
                 reason: body.data.reason,
                 requestId: result.id,
             },
