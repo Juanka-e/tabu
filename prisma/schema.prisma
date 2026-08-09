@@ -183,6 +183,7 @@ enum PaymentAttemptStatus {
   requested
   succeeded
   failed
+  uncertain
 }
 
 enum PaymentFulfillmentStatus {
@@ -357,6 +358,7 @@ model PaymentOrder {
   grantSnapshot            Json               @map("grant_snapshot") @db.Json
   providerOrderReference   String?            @map("provider_order_reference") @db.VarChar(191)
   providerSessionReference String?            @map("provider_session_reference") @db.VarChar(191)
+  providerHostedUrl        String?            @map("provider_hosted_url") @db.VarChar(1000)
   version                  Int                @default(1)
   expiresAt                DateTime?          @map("expires_at")
   paidAt                   DateTime?          @map("paid_at")
@@ -372,6 +374,7 @@ model PaymentOrder {
   fulfillment PaymentFulfillment?
   webhookEvents PaymentWebhookEvent[]
   checkoutConsent PaymentCheckoutConsent?
+  checkoutVerification PaymentCheckoutVerification?
   reversal PaymentReversal?
   reconciliationCase PaymentReconciliationCase?
   reversalRequests PaymentReversalRequest[]
@@ -543,6 +546,27 @@ model PaymentAttempt {
   @@unique([orderId, providerRequestId])
   @@index([status, createdAt])
   @@map("payment_attempts")
+}
+
+model PaymentCheckoutVerification {
+  id                       String          @id @default(uuid()) @db.Char(36)
+  orderId                  String          @unique @map("order_id") @db.Char(36)
+  provider                 PaymentProvider
+  providerPaymentReference String          @map("provider_payment_reference") @db.VarChar(191)
+  amountMinor              Int             @map("amount_minor")
+  paidAmountMinor          Int             @map("paid_amount_minor")
+  currency                 String          @db.Char(3)
+  providerPaymentStatus    String          @map("provider_payment_status") @db.VarChar(80)
+  providerRiskStatus       Int?            @map("provider_risk_status")
+  verifiedAt               DateTime        @map("verified_at")
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerPaymentReference], map: "payment_checkout_verifications_provider_ref_key")
+  @@index([provider, verifiedAt], map: "payment_checkout_verifications_provider_verified_idx")
+  @@map("payment_checkout_verifications")
 }
 
 model PaymentFulfillment {

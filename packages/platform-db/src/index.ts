@@ -33,6 +33,7 @@ export {
 export type {
     PaymentManualReviewCase,
     PaymentProviderRefundAttempt,
+    PaymentCheckoutVerification,
     PaymentCoinLot,
     PaymentCoinLotAllocation,
     PaymentOffer,

@@ -344,6 +344,14 @@
 - profil, sipariş, attempt, audit, log ve telemetry için değer/hash saklamama sınırı
 - KVKK veri minimizasyonu ve yurt dışı aktarım incelemesini aktivasyon kapısı yapan dokümantasyon
 
+### 47. `feature/iyzico-checkout-orchestration`
+
+- row lock ve request lease ile tekil iyzico Checkout Form initialize orkestrasyonu
+- duplicate istekte aynı hosted session'ı döndüren kalıcı provider referansları
+- timeout ve belirsiz transport sonucunda kör retry'ı kesen `uncertain` attempt/vaka akışı
+- callback token'ını kanıt saymadan exact amount/currency doğrulayan server-side retrieve
+- fulfillment açmadan minimize edilmiş provider doğrulama kanıtı ve MySQL yarış testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

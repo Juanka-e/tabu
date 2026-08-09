@@ -68,6 +68,10 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: "desc" },
             skip: (page - 1) * limit,
             take: limit,
+            omit: {
+                providerSessionReference: true,
+                providerHostedUrl: true,
+            },
             include: {
                 user: { select: { id: true, username: true } },
                 fulfillment: { select: { status: true, errorCode: true, completedAt: true, reversedAt: true } },

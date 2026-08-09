@@ -192,6 +192,13 @@ UI, domain ve provider adapter'ı birbirinden ayrılır. Web ve ileride mobile a
 8. Fulfillment ve ledger yazımı tek transaction/unique constraint ile atomik olur.
 9. İstemciye secret, provider ham hata, fraud kuralı veya başka kullanıcının order ID'si gönderilmez.
 
+iyzico initialize özelinde provider genel idempotency garantisi vermediği için ağ
+timeout'u normal retry sayılmaz. Attempt `uncertain` olur, reconciliation vakası
+açılır ve operator/provider doğrulaması olmadan ikinci initialize yapılmaz.
+Server-side retrieve sonucu minimize edilmiş `PaymentCheckoutVerification` kaydına
+yazılır; route/webhook aktivasyonu tamamlanana kadar tek başına paid/fulfillment
+geçişi üretmez.
+
 ## Webhook Güvenliği
 
 - Raw body parse edilmeden önce provider imzası doğrulanır.
@@ -229,9 +236,10 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
 4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
-5. `iyzico` Checkout Form HMAC/transport ve request-only buyer data sözleşmesi:
-   tamamlandı; hukuki aktarım incelemesi, durable orchestration ve Signature V3
-   webhook dilimleri bitene kadar devre dışı.
+5. `iyzico` Checkout Form HMAC/transport, request-only buyer data ve durable
+   initialize/retrieve orchestration sözleşmesi tamamlandı; hukuki aktarım
+   incelemesi, Signature V3 webhook ve gerçek merchant sandbox kabulü bitene kadar
+   devre dışı.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,

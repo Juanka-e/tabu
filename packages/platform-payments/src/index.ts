@@ -11,6 +11,7 @@ export * from "./adapters/iyzico";
 export * from "./adapters/stripe";
 export * from "./fulfillment";
 export * from "./paytr-checkout";
+export * from "./iyzico-checkout";
 export * from "./paytr-webhook-processor";
 export * from "./reversal";
 export * from "./reconciliation";

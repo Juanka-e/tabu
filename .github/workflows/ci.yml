@@ -110,16 +110,18 @@ jobs:
         env:
           PAYMENT_FULFILLMENT_INTEGRATION_TEST: "true"
 
-      - name: Test payment provider adapters and PayTR orchestration
+      - name: Test payment provider adapters and checkout orchestration
         run: |
           npm run test:payment-iyzico-adapter
           npm run test:payment-iyzico-buyer-data
+          npm run test:payment-iyzico-checkout-integration
           npm run test:payment-stripe-adapter
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance
           npm run test:payment-paytr-checkout-integration
         env:
           PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
+          IYZICO_CHECKOUT_INTEGRATION_TEST: "true"
 
       - name: Test PayTR webhook processor
         run: npm run test:payment-paytr-webhook-integration
