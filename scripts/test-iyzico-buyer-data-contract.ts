@@ -107,7 +107,7 @@ async function run(): Promise<void> {
     assert.match(checkoutRoute, /buyerDataPolicyVersion: PAYMENT_BUYER_DATA_POLICY_VERSION/);
     assert.match(privacyNotice, /kimlik numarası/);
     assert.match(privacyNotice, /hash biçiminde de saklanmaz/);
-    assert.equal(privacyNotice.includes("Ã"), false);
+    assert.equal(privacyNotice.includes(String.fromCharCode(0xc3)), false);
 
     console.log("iyzico request-only buyer data and no-persistence contract checks passed");
 }
