@@ -229,11 +229,14 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
 4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
-5. `shopier_v2` adapter'ı: güncel merchant V2 dokümanı ve sandbox erişimi doğrulandıktan sonra.
-6. `stripe` adapter'ı.
-7. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.
-8. Refund HMAC/transport adapter foundation: tamamlandı.
-9. Durable refund attempt, uncertain-state recovery, ikinci admin ve operasyon paneli:
+5. `iyzico` Checkout Form HMAC/transport temeli: tamamlandı; hassas alıcı verisi,
+   durable orchestration ve Signature V3 webhook dilimleri bitene kadar devre dışı.
+6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
+   mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
+7. `stripe` adapter'ı.
+8. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.
+9. Refund HMAC/transport adapter foundation: tamamlandı.
+10. Durable refund attempt, uncertain-state recovery, ikinci admin ve operasyon paneli:
    tamamlandı; production çağrısı gerçek merchant sandbox kabulü ve ayrıca live onay
    verilene kadar kapalıdır.
 
@@ -244,7 +247,8 @@ Bir adapter production smoke testini geçmeden admin seçim listesinde `Hazır` 
 - [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions)
 - [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 - [Stripe webhook security](https://docs.stripe.com/webhooks)
-- [iyzico webhook ve Signature V3](https://docs.iyzico.com/ek-servisler/webhook)
+- [iyzico Checkout Form initialize](https://docs.iyzico.com/en/payment-methods/checkoutform/cf-implementation/cf-initialize)
+- [iyzico webhook ve Signature V3](https://docs.iyzico.com/en/advanced/webhook)
 - [PayTR iFrame API](https://dev.paytr.com/iframe-api)
 - [PayTR İade API](https://dev.paytr.com/iade-api)
 - [Lemon Squeezy webhook requests](https://docs.lemonsqueezy.com/help/webhooks/webhook-requests)

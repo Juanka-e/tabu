@@ -320,6 +320,14 @@
 - kör retry yerine exact reference, tutar, currency ve tamamlanma kanıtlı recovery
 - admin durum görünümü, MySQL entegrasyon testi ve Playwright doğrulaması
 
+### 44. `feature/iyzico-checkout-adapter-foundation`
+
+- sabit sandbox host/path kullanan iyzico Checkout Form initialize/retrieve transport temeli
+- resmi `IYZWSv2` HMAC-SHA256 authorization ve exact minor-unit tutar dönüşümü
+- timeout, stream response boyutu, provider redirect allowlist ve bounded hata korumaları
+- callback token'ını ödeme kanıtı saymayan server-side retrieve sözleşmesi
+- hassas alıcı verisi ve legal kararlar tamamlanana kadar route/UI bağlamayan fail-closed sınır
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
