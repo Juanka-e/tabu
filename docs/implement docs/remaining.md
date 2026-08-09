@@ -233,7 +233,15 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak
 - fulfillment ve refund/chargeback davranışı gerçek merchant sandbox kabulü olmadan
   production'a açılmayacak
-- referans: `docs/guides/payment-checkout-and-legal-readiness.md`, `docs/guides/paytr-iframe-adapter.md`
+- iyzico Checkout Form HMAC ve bounded sandbox transport temeli tamamlandı; yeni kimlik,
+  telefon ve adres verisi toplama kararı verilmediği için checkout route/UI bağlantısı
+  ve provider aktivasyonu bilinçli olarak kapalı
+- iyzico için sıradaki dilimler: legal/veri sözleşmesi, durable initialize/retrieve
+  orchestration, Signature V3 webhook inbox ve gerçek merchant sandbox kabulü
+- Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
+  server-priced katalogla uyumluluk kararı bekliyor
+- referans: `docs/guides/payment-checkout-and-legal-readiness.md`,
+  `docs/guides/paytr-iframe-adapter.md`, `docs/guides/iyzico-checkout-adapter-foundation.md`
 
 ### `feature/google-oauth-account-linking-foundation` - tamamlandi
 - Google ile giris ve Settings icinden explicit hesap baglama

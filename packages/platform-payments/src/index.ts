@@ -6,6 +6,7 @@ export * from "./provider-registry";
 export * from "./webhook-inbox";
 export * from "./webhook-registry";
 export * from "./adapters/paytr";
+export * from "./adapters/iyzico";
 export * from "./fulfillment";
 export * from "./paytr-checkout";
 export * from "./paytr-webhook-processor";

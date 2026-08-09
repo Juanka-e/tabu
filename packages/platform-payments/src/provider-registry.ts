@@ -37,7 +37,7 @@ const providers = {
     iyzico: {
         id: "iyzico",
         title: "iyzico",
-        requiredEnvironment: ["IYZICO_API_KEY", "IYZICO_SECRET_KEY", "IYZICO_BASE_URL"],
+        requiredEnvironment: ["IYZICO_API_KEY", "IYZICO_SECRET_KEY", "IYZICO_CHECKOUT_MODE"],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: false,
     },
@@ -95,6 +95,13 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("PAYTR_CHECKOUT_MODE")
     ) {
         missingEnvironment.push("PAYTR_CHECKOUT_MODE");
+    }
+    if (
+        provider === "iyzico"
+        && environment.IYZICO_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"
+        && !missingEnvironment.includes("IYZICO_CHECKOUT_MODE")
+    ) {
+        missingEnvironment.push("IYZICO_CHECKOUT_MODE");
     }
     const credentialsConfigured = missingEnvironment.length === 0;
 
