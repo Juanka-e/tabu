@@ -10,7 +10,7 @@ import { assertPaymentOrderTransition } from "./order-state-machine";
 import {
     createPaymentFulfillmentNotification,
     invalidatePaymentFulfillmentCaches,
-} from "./paytr-webhook-processor";
+} from "./fulfillment-effects";
 
 export interface PaymentReconciliationConfig {
     batchSize: number;
@@ -86,6 +86,7 @@ async function markPaid(order: PaymentOrder, now: Date): Promise<boolean> {
                 status: "paid",
                 paidAt: now,
                 providerSessionReference: null,
+                providerHostedUrl: null,
                 version: { increment: 1 },
             },
         });
@@ -146,7 +147,7 @@ async function finishVerifiedOrder(order: PaymentOrder, now: Date): Promise<"ful
     } else if (order.status !== "fulfilled") {
         return "unchanged";
     }
-    const userId = await createPaymentFulfillmentNotification(order.id, now);
+    const userId = await createPaymentFulfillmentNotification(order.id, now, "paytr");
     await invalidatePaymentFulfillmentCaches(userId);
     await resolveCase(order.id, now, "fulfillment_and_notification_completed");
     return "fulfilled";

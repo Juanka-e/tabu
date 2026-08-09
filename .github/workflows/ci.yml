@@ -115,6 +115,7 @@ jobs:
           npm run test:payment-iyzico-adapter
           npm run test:payment-iyzico-buyer-data
           npm run test:payment-iyzico-checkout-integration
+          npm run test:payment-iyzico-webhook
           npm run test:payment-stripe-adapter
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance
@@ -123,10 +124,13 @@ jobs:
           PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
           IYZICO_CHECKOUT_INTEGRATION_TEST: "true"
 
-      - name: Test PayTR webhook processor
-        run: npm run test:payment-paytr-webhook-integration
+      - name: Test payment webhook processors
+        run: |
+          npm run test:payment-paytr-webhook-integration
+          npm run test:payment-iyzico-webhook-integration
         env:
           PAYTR_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
+          IYZICO_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
 
       - name: Test payment reconciliation and reversal
         run: |

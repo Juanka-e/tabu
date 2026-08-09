@@ -1,4 +1,3 @@
-import { getRedisKey, invalidateJsonCache } from "@hushle/platform-cache";
 import {
     Prisma,
     prisma,
@@ -6,10 +5,13 @@ import {
     type PaymentWebhookEvent,
 } from "@hushle/platform-db";
 import { fulfillPaidPaymentOrder, PaymentFulfillmentError } from "./fulfillment";
+import {
+    createPaymentFulfillmentNotification,
+    invalidatePaymentFulfillmentCaches,
+} from "./fulfillment-effects";
 import { assertPaymentOrderTransition } from "./order-state-machine";
 import {
     PaymentWebhookProcessingError,
-    type PaymentWebhookProcessor,
 } from "./webhook-inbox";
 
 type OrderProcessingResult = {
@@ -20,7 +22,6 @@ type OrderProcessingResult = {
 function processingError(code: string, retryable = false): PaymentWebhookProcessingError {
     return new PaymentWebhookProcessingError(code, retryable);
 }
-
 function readSandboxMode(event: PaymentWebhookEvent): boolean | null {
     if (!event.metadata || typeof event.metadata !== "object" || Array.isArray(event.metadata)) {
         return null;
@@ -98,6 +99,7 @@ async function applyPaytrOrderOutcome(
                     status: "failed",
                     failedAt: now,
                     providerSessionReference: null,
+                    providerHostedUrl: null,
                     version: { increment: 1 },
                 },
             });
@@ -120,57 +122,12 @@ async function applyPaytrOrderOutcome(
                 status: "paid",
                 paidAt: event.occurredAt ?? now,
                 providerSessionReference: null,
+                providerHostedUrl: null,
                 version: { increment: 1 },
             },
         });
         return { action: "fulfill", order: paid };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
-}
-
-export async function createPaymentFulfillmentNotification(orderId: string, now: Date): Promise<number> {
-    return prisma.$transaction(async (tx) => {
-        const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-            SELECT id
-            FROM payment_fulfillments
-            WHERE order_id = ${orderId}
-            FOR UPDATE
-        `);
-        if (rows.length !== 1) throw processingError("fulfillment_not_found", true);
-        const fulfillment = await tx.paymentFulfillment.findUniqueOrThrow({
-            where: { orderId },
-            include: { order: true },
-        });
-        if (fulfillment.status !== "completed") {
-            throw processingError("fulfillment_not_completed", true);
-        }
-        if (fulfillment.notificationSentAt) return fulfillment.order.userId;
-
-        await tx.notification.create({
-            data: {
-                userId: fulfillment.order.userId,
-                type: "economy",
-                title: "Satın alım tamamlandı",
-                body: `${fulfillment.order.productNameSnapshot} hesabına eklendi.`,
-                resourceType: "payment_order",
-                resourceId: fulfillment.order.id,
-                actionLabel: "Envanteri aç",
-                actionHref: "/dashboard?tab=inventory",
-                metadata: {
-                    provider: "paytr",
-                    productKind: fulfillment.order.productKind,
-                },
-            },
-        });
-        await tx.paymentFulfillment.update({
-            where: { id: fulfillment.id },
-            data: { notificationSentAt: now },
-        });
-        return fulfillment.order.userId;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
-}
-
-export async function invalidatePaymentFulfillmentCaches(userId: number): Promise<void> {
-    await invalidateJsonCache(getRedisKey("cache", "notification-unread-count", "v1", userId));
 }
 
 function normalizeFulfillmentFailure(error: unknown): PaymentWebhookProcessingError {
@@ -191,14 +148,10 @@ export async function processPaytrPaymentWebhook(
 
     try {
         await fulfillPaidPaymentOrder({ orderId: result.order.id, now });
-        const userId = await createPaymentFulfillmentNotification(result.order.id, now);
+        const userId = await createPaymentFulfillmentNotification(result.order.id, now, "paytr");
         await invalidatePaymentFulfillmentCaches(userId).catch(() => undefined);
         return "processed";
     } catch (error) {
         throw normalizeFulfillmentFailure(error);
     }
-}
-
-export function getPaymentWebhookProcessor(): PaymentWebhookProcessor {
-    return (event) => processPaytrPaymentWebhook(event);
 }

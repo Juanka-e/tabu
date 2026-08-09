@@ -1,5 +1,6 @@
 import type { PaymentProviderId } from "./contracts";
 import { createPaytrWebhookVerifier } from "./adapters/paytr";
+import { createIyzicoHppWebhookVerifier } from "./adapters/iyzico-webhook";
 import type { PaymentWebhookVerifier } from "./webhook-inbox";
 
 type WebhookEnvironment = Record<string, string | undefined>;
@@ -8,19 +9,28 @@ export function getPaymentWebhookVerifier(
     provider: PaymentProviderId,
     environment: WebhookEnvironment = process.env
 ): PaymentWebhookVerifier | null {
-    if (
-        provider !== "paytr"
-        || environment.PAYTR_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"
-    ) {
-        return null;
-    }
-
     try {
-        return createPaytrWebhookVerifier({
-            merchantId: environment.PAYTR_MERCHANT_ID ?? "",
-            merchantKey: environment.PAYTR_MERCHANT_KEY ?? "",
-            merchantSalt: environment.PAYTR_MERCHANT_SALT ?? "",
-        });
+        if (
+            provider === "paytr"
+            && environment.PAYTR_CHECKOUT_MODE?.trim().toLowerCase() === "sandbox"
+        ) {
+            return createPaytrWebhookVerifier({
+                merchantId: environment.PAYTR_MERCHANT_ID ?? "",
+                merchantKey: environment.PAYTR_MERCHANT_KEY ?? "",
+                merchantSalt: environment.PAYTR_MERCHANT_SALT ?? "",
+            });
+        }
+        if (
+            provider === "iyzico"
+            && environment.IYZICO_CHECKOUT_MODE?.trim().toLowerCase() === "sandbox"
+            && environment.IYZICO_WEBHOOK_MODE?.trim().toLowerCase() === "sandbox"
+        ) {
+            return createIyzicoHppWebhookVerifier({
+                secretKey: environment.IYZICO_SECRET_KEY ?? "",
+                merchantId: environment.IYZICO_MERCHANT_ID ?? "",
+            });
+        }
+        return null;
     } catch {
         return null;
     }

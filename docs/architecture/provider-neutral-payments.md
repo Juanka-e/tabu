@@ -210,6 +210,12 @@ geçişi üretmez.
 - Out-of-order, duplicate, refund ve chargeback event'leri state machine dışında işlem yapamaz.
 - Reconciliation job pending siparişleri provider API üzerinden kontrollü olarak karşılaştırır.
 
+iyzico Checkout Form webhook'u tutar/currency taşımadığı için Signature V3 tek
+başına fulfillment kanıtı değildir. V3 doğrulaması, merchant/order/token/payment
+referansı korelasyonu ve server-side retrieve ile oluşan exact
+`PaymentCheckoutVerification` birlikte sağlanmadan sipariş `paid` olmaz. Legacy
+iyzico signature sürümleri compatibility fallback olarak kabul edilmez.
+
 ## Rate Limit Ayrımı
 
 - Checkout create: user + IP, düşük limit, idempotent retry toleransı.
@@ -238,8 +244,8 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
 5. `iyzico` Checkout Form HMAC/transport, request-only buyer data ve durable
    initialize/retrieve orchestration sözleşmesi tamamlandı; hukuki aktarım
-   incelemesi, Signature V3 webhook ve gerçek merchant sandbox kabulü bitene kadar
-   devre dışı.
+   incelemesi ve Signature V3 webhook processor tamamlandı; owner-only route/UI,
+   reconciliation ve gerçek merchant sandbox kabulü bitene kadar devre dışı.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,

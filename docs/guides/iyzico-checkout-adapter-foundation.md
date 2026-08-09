@@ -4,13 +4,16 @@
 
 The iyzico Checkout Form transport and durable orchestration foundation are
 implemented but intentionally disabled. They are not connected to checkout
-routes, UI, webhooks, fulfillment, or production configuration.
+routes, buyer-data UI, or production configuration. The webhook route and
+processor remain behind a separate explicit sandbox-only mode.
 `adapterAvailable=false` remains the activation boundary.
 
 ```env
 IYZICO_API_KEY=""
 IYZICO_SECRET_KEY=""
+IYZICO_MERCHANT_ID=""
 IYZICO_CHECKOUT_MODE=disabled
+IYZICO_WEBHOOK_MODE=disabled
 ```
 
 Only `sandbox` credentials are accepted by the transport foundation. The API host
@@ -34,8 +37,9 @@ The browser callback and its `token` are not payment proof. The orchestration
 retrieves the Checkout Form result server-side and verifies the order/conversation
 reference, token, exact price, paid price, and currency. It stores a minimized
 verification record containing provider payment reference, payment/risk status,
-amount, currency, and verification time. Retrieve does not mark the order paid or
-run fulfillment while webhook activation remains incomplete.
+amount, currency, and verification time. Retrieve alone does not mark the order
+paid or run fulfillment; only the verified webhook processor can consume that
+proof.
 
 ## Durable Orchestration
 
@@ -55,6 +59,28 @@ run fulfillment while webhook activation remains incomplete.
 `providerHostedUrl` and `providerSessionReference` are operational session data,
 not public order fields. Future routes must return them only to the authenticated
 order owner and must never log them.
+
+## Signature V3 Webhook
+
+- Only Checkout Form HPP events with `iyziEventType=CHECKOUT_FORM_AUTH` are
+  accepted by this adapter.
+- Only `X-IYZ-SIGNATURE-V3` is accepted. Legacy signature headers are rejected.
+- Signature input follows the official HPP order: secret key, event type, iyzico
+  payment ID, token, payment conversation ID, and status.
+- The configured merchant ID must match the signed payload merchant ID.
+- The raw token is never persisted in webhook metadata; only its SHA-256
+  correlation value is stored and compared with the server-owned order session.
+- Provider reference-code dedupe and raw-body identity conflict checks run in the
+  existing durable webhook inbox.
+- A signed success webhook is still not sufficient for fulfillment because it
+  carries no amount or currency. The processor requires an exact server-side
+  Checkout Form retrieve proof before moving the order to paid/fulfilled.
+- A signed failure can close only the matching awaiting order and clears hosted
+  session data. It cannot reverse an already paid or fulfilled order.
+
+The endpoint remains off unless both checkout and webhook modes are explicitly
+set to `sandbox`. Enabling `IYZICO_WEBHOOK_MODE` also requires the merchant account
+Signature V3 feature and HTTPS notification URL to be configured at iyzico.
 
 ## Buyer Data Contract
 
@@ -81,13 +107,13 @@ create a second provider session.
 ## Next Slices
 
 1. Merchant-specific legal/privacy and transfer approval.
-2. Signature V3 webhook verifier, durable inbox processor, and reconciliation.
-3. Owner-only checkout/callback routes and just-in-time buyer-data UI.
+2. Owner-only checkout/callback routes and just-in-time buyer-data UI.
+3. Provider-specific reconciliation for uncertain initialize and webhook cases.
 4. Real merchant sandbox acceptance with exact amount/currency proof.
 5. Separate reviewed live-mode activation.
 
-Only Signature V3 should be accepted for future webhooks. Deprecated signature
-formats are not an acceptable compatibility fallback.
+Only Signature V3 is accepted. Deprecated signature formats are not an acceptable
+compatibility fallback.
 
 ## Official References
 

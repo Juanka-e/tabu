@@ -37,7 +37,13 @@ const providers = {
     iyzico: {
         id: "iyzico",
         title: "iyzico",
-        requiredEnvironment: ["IYZICO_API_KEY", "IYZICO_SECRET_KEY", "IYZICO_CHECKOUT_MODE"],
+        requiredEnvironment: [
+            "IYZICO_API_KEY",
+            "IYZICO_SECRET_KEY",
+            "IYZICO_MERCHANT_ID",
+            "IYZICO_CHECKOUT_MODE",
+            "IYZICO_WEBHOOK_MODE",
+        ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: false,
     },
@@ -102,6 +108,20 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_CHECKOUT_MODE")
     ) {
         missingEnvironment.push("IYZICO_CHECKOUT_MODE");
+    }
+    if (
+        provider === "iyzico"
+        && environment.IYZICO_WEBHOOK_MODE?.trim().toLowerCase() !== "sandbox"
+        && !missingEnvironment.includes("IYZICO_WEBHOOK_MODE")
+    ) {
+        missingEnvironment.push("IYZICO_WEBHOOK_MODE");
+    }
+    if (
+        provider === "iyzico"
+        && !/^\d{1,19}$/.test(environment.IYZICO_MERCHANT_ID?.trim() ?? "")
+        && !missingEnvironment.includes("IYZICO_MERCHANT_ID")
+    ) {
+        missingEnvironment.push("IYZICO_MERCHANT_ID");
     }
     if (
         provider === "stripe"

@@ -352,6 +352,14 @@
 - callback token'ını kanıt saymadan exact amount/currency doğrulayan server-side retrieve
 - fulfillment açmadan minimize edilmiş provider doğrulama kanıtı ve MySQL yarış testi
 
+### 48. `feature/iyzico-signature-v3-webhook`
+
+- yalnız Checkout Form HPP formatını kabul eden Signature V3 HMAC verifier
+- explicit sandbox webhook mode ve merchant ID eşleştirme kapısı
+- raw token saklamadan order/token/payment reference korelasyonu ve durable inbox dedupe
+- success event için server-side retrieve/exact verification olmadan fulfillment yapmayan processor
+- failure, duplicate, token mismatch ve amount mismatch MySQL/route testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
