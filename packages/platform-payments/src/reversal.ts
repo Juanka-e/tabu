@@ -210,6 +210,7 @@ async function applyApprovedReversal(
     let reversalStatus: "completed" | "manual_review" = "completed";
     let removedInventoryItemIds: number[] = [];
     let evidence: Prisma.InputJsonValue;
+    let manualReviewCase: { reasonCode: string; unrecoveredCoin: number | null } | null = null;
 
     if (grant.kind === "coin_pack") {
         if (grant.coinLotId) {
@@ -224,6 +225,12 @@ async function applyApprovedReversal(
                 },
             });
             reversalStatus = coinReversal.unrecoveredCoin === 0 ? "completed" : "manual_review";
+            if (coinReversal.unrecoveredCoin > 0) {
+                manualReviewCase = {
+                    reasonCode: "coin_spent_unrecovered",
+                    unrecoveredCoin: coinReversal.unrecoveredCoin,
+                };
+            }
             evidence = {
                 schemaVersion: 2,
                 kind: "coin_pack",
@@ -238,6 +245,10 @@ async function applyApprovedReversal(
             };
         } else {
             reversalStatus = "manual_review";
+            manualReviewCase = {
+                reasonCode: "legacy_coin_provenance_missing",
+                unrecoveredCoin: null,
+            };
             evidence = {
                 schemaVersion: 1,
                 kind: "coin_pack",
@@ -307,6 +318,15 @@ async function applyApprovedReversal(
             completedAt: reversalStatus === "completed" ? now : null,
         },
     });
+    if (manualReviewCase) {
+        await tx.paymentManualReviewCase.create({
+            data: {
+                reversalId: reversal.id,
+                reasonCode: manualReviewCase.reasonCode,
+                unrecoveredCoin: manualReviewCase.unrecoveredCoin,
+            },
+        });
+    }
     await tx.paymentFulfillment.update({
         where: { id: order.fulfillment.id },
         data: { status: "reversed", reversedAt: now },

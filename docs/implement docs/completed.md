@@ -295,6 +295,14 @@
 - spend/refund yarışında wallet row lock ve allocation tabanlı tutarlılık testi
 - mevcut payment/legal/provider gate'leri altında coin-pack checkout aktivasyonu
 
+### 41. `feature/payment-manual-review-resolution`
+
+- manuel reversal kayıtları için tekil, durumlu ve geriye dönük doldurulan vaka modeli
+- zorunlu admin notlu `resolved` / `waived` karar geçmişi ve yarış koşulu koruması
+- bakiye, askıya alma ve ekonomi guard ayarlarına dokunmayan fail-safe çözüm akışı
+- isteğe bağlı, güvenli varsayılan metinli oyuncu bildirimi ve cache invalidation
+- açık vaka odaklı admin metriği, karar formu, audit ve Playwright doğrulaması
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
