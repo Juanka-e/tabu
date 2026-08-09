@@ -58,6 +58,7 @@ istekleri için idempotency garantisi olarak tanımlamaz. Bu nedenle:
 ```bash
 npm run test:payment-paytr-refund
 npm run test:payment-provider-refund-integration
+npm run test:payment-paytr-refund-acceptance
 npm run test:production-preflight
 npm run typecheck:packages
 ```
@@ -65,6 +66,10 @@ npm run typecheck:packages
 Testler HMAC hesabını, exact decimal tutarı, secret minimizasyonunu, response sınırını,
 ikinci onayı, timeout sonrası kör retry engelini, kesin reddi ve exact recovery kanıtını
 doğrular.
+
+Gerçek merchant sandbox kabulü için
+[`paytr-refund-sandbox-acceptance-runbook.md`](./paytr-refund-sandbox-acceptance-runbook.md)
+kullanılır. Bu opt-in komut CI'da gerçek provider'a çağrı yapmaz.
 
 ## Resmi Kaynaklar
 

@@ -225,12 +225,14 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - fulfillment sonrasi idempotent notification/cache invalidation tamamlandi
 - sandbox refund/chargeback yerel reversal, ikinci admin onayı, notlu vaka çözümleme,
   coin-lot reversal ve PayTR refund transport adapter foundation tamamlandı
-- provider refund için durable attempt, belirsiz timeout recovery ve sandbox admin
-  orkestrasyonu tamamlanmadan `PAYTR_REFUND_MODE` açılmayacak
+- provider refund durable attempt, belirsiz timeout recovery ve sandbox admin
+  orkestrasyonu tamamlandı; gerçek merchant sandbox kabulü kaydedilmeden ve ayrıca
+  onaylanmadan production/live `PAYTR_REFUND_MODE` açılmayacak
 - harcanmış ücretli coin `manual_review` kayıtları için otomatik ceza vermeyen,
   notlu operatör çözüm/uyarı akışı tamamlandı
 - provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak
-- fulfillment ve refund/chargeback davranisi sandbox testleri olmadan production'a acilmayacak
+- fulfillment ve refund/chargeback davranışı gerçek merchant sandbox kabulü olmadan
+  production'a açılmayacak
 - referans: `docs/guides/payment-checkout-and-legal-readiness.md`, `docs/guides/paytr-iframe-adapter.md`
 
 ### `feature/google-oauth-account-linking-foundation` - tamamlandi

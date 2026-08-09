@@ -108,6 +108,21 @@ function money(minor: number, currency: string): string {
     return new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(minor / 100);
 }
 
+function refundReadinessMessage(issue: string): string {
+    const messages: Record<string, string> = {
+        refund_disabled: "Sandbox iade modu kapalı.",
+        refund_mode_invalid: "İade modu geçersiz.",
+        refund_checkout_mode_mismatch: "Checkout ve iade modu aynı sandbox ortamında değil.",
+        paytr_merchant_id_missing: "PayTR mağaza numarası eksik.",
+        paytr_merchant_id_invalid: "PayTR mağaza numarası geçersiz.",
+        paytr_merchant_key_missing: "PayTR merchant key eksik.",
+        paytr_merchant_key_invalid: "PayTR merchant key geçersiz.",
+        paytr_merchant_salt_missing: "PayTR merchant salt eksik.",
+        paytr_merchant_salt_invalid: "PayTR merchant salt geçersiz.",
+    };
+    return messages[issue] ?? "Sandbox iade yapılandırması tamamlanmamış.";
+}
+
 async function readError(response: Response, fallback: string): Promise<string> {
     const payload = await response.json().catch(() => null) as { error?: string } | null;
     return payload?.error || fallback;
@@ -291,6 +306,20 @@ export default function AdminPaymentsPage() {
                 icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
                 action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Yenile</Button>}
             />
+
+            {data ? (
+                <div className={`flex gap-3 rounded-2xl border p-4 ${data.refundExecution.ready ? "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"}`}>
+                    {data.refundExecution.ready ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />}
+                    <div>
+                        <strong>{data.refundExecution.ready ? "PayTR sandbox iade hazır" : "PayTR API iadesi kapalı"}</strong>
+                        <p className="mt-1 text-sm opacity-80">
+                            {data.refundExecution.ready
+                                ? "Tam iade ikinci admin onayıyla kullanılabilir. Bu durum production/live iadenin açık olduğu anlamına gelmez."
+                                : data.refundExecution.issues.map(refundReadinessMessage).join(" ")}
+                        </p>
+                    </div>
+                </div>
+            ) : null}
 
             {alertActive ? (
                 <div className="flex gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-rose-950 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100">

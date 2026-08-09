@@ -232,9 +232,10 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 5. `shopier_v2` adapter'ı: güncel merchant V2 dokümanı ve sandbox erişimi doğrulandıktan sonra.
 6. `stripe` adapter'ı.
 7. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.
-8. Refund HMAC/transport adapter foundation: tamamlandı; production çağrısı durable
-   attempt ve uncertain-state recovery tamamlanana kadar kapalıdır.
-9. Refund, chargeback ve paid-balance operasyon paneli.
+8. Refund HMAC/transport adapter foundation: tamamlandı.
+9. Durable refund attempt, uncertain-state recovery, ikinci admin ve operasyon paneli:
+   tamamlandı; production çağrısı gerçek merchant sandbox kabulü ve ayrıca live onay
+   verilene kadar kapalıdır.
 
 Bir adapter production smoke testini geçmeden admin seçim listesinde `Hazır` görünmez.
 
