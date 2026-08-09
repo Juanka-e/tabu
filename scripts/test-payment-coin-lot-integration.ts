@@ -4,7 +4,9 @@ import { Prisma, prisma } from "@hushle/platform-db";
 import {
     approvePaymentReversalRequest,
     fulfillPaidPaymentOrder,
+    PaymentManualReviewError,
     requestExternallyConfirmedPaymentReversal,
+    resolvePaymentManualReview,
 } from "@hushle/platform-payments";
 import {
     applyWalletLedgerMutation,
@@ -121,11 +123,58 @@ async function run(): Promise<void> {
         assert.equal(reversal.status, "manual_review");
         const evidence = reversal.evidence as Record<string, unknown>;
         assert.equal(Number(evidence.reversedCoin) + Number(evidence.unrecoveredCoin), 500);
+        const reviewCase = await prisma.paymentManualReviewCase.findUniqueOrThrow({
+            where: { reversalId: reversal.id },
+        });
+        assert.equal(reviewCase.status, "open");
+        assert.equal(reviewCase.reasonCode, "coin_spent_unrecovered");
+        assert.equal(reviewCase.unrecoveredCoin, Number(evidence.unrecoveredCoin));
+
+        await assert.rejects(
+            resolvePaymentManualReview({
+                reversalId: reversal.id,
+                decision: "resolved",
+                resolutionNote: "must not resolve as player",
+                resolvedByUserId: user.id,
+                notifyUser: false,
+            }),
+            (error: unknown) => error instanceof PaymentManualReviewError
+                && error.code === "admin_actor_required"
+        );
+        const resolved = await resolvePaymentManualReview({
+            reversalId: reversal.id,
+            decision: "resolved",
+            resolutionNote: "provider evidence and paid coin usage reviewed",
+            resolvedByUserId: reviewer.id,
+            notifyUser: true,
+            noticeMessage: "Ödeme incelemeniz tamamlandı. Destek ekibimizle iletişime geçebilirsiniz.",
+        });
+        assert.equal(resolved.status, "resolved");
+        assert.equal(resolved.resolvedByUserId, reviewer.id);
+        assert.ok(resolved.noticeSentAt);
+        assert.equal(await prisma.notification.count({
+            where: { userId: user.id, resourceType: "payment_manual_review_case", resourceId: resolved.id },
+        }), 1);
+        await assert.rejects(
+            resolvePaymentManualReview({
+                reversalId: reversal.id,
+                decision: "waived",
+                resolutionNote: "duplicate resolution attempt",
+                resolvedByUserId: reviewer.id,
+                notifyUser: true,
+            }),
+            (error: unknown) => error instanceof PaymentManualReviewError
+                && error.code === "case_not_open"
+        );
+        assert.equal(await prisma.notification.count({
+            where: { userId: user.id, resourceType: "payment_manual_review_case", resourceId: resolved.id },
+        }), 1);
         assert.equal(await prisma.walletLedgerEntry.count({
             where: { walletId: finalWallet.id, source: "payment_reversal" },
         }), 1);
     } finally {
         await prisma.notification.deleteMany({ where: { userId: user.id } });
+        await prisma.paymentManualReviewCase.deleteMany({ where: { reversal: { orderId: order.id } } });
         await prisma.paymentReversalRequest.deleteMany({ where: { orderId: order.id } });
         await prisma.paymentReversal.deleteMany({ where: { orderId: order.id } });
         await prisma.paymentCoinLot.deleteMany({ where: { orderId: order.id } });

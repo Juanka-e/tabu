@@ -120,6 +120,14 @@ jobs:
         env:
           PAYMENT_REVERSAL_INTEGRATION_TEST: "true"
 
+      - name: Test paid coin provenance and manual review
+        run: |
+          npm run test:payment-coin-lot
+          npm run test:payment-manual-review
+          npm run test:payment-coin-lot-integration
+        env:
+          PAYMENT_COIN_LOT_INTEGRATION_TEST: "true"
+
       - name: Build Next.js
         run: npm run build
 

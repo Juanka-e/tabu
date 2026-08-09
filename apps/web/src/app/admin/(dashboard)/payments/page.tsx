@@ -37,7 +37,24 @@ type PaymentItem = {
     createdAt: string;
     user: { id: number; username: string };
     fulfillment: { status: string; errorCode: string | null } | null;
-    reversal: { outcome: string; status: string; externalReference: string; reason: string; evidence: unknown } | null;
+    reversal: {
+        id: string;
+        outcome: string;
+        status: string;
+        externalReference: string;
+        reason: string;
+        evidence: unknown;
+        manualReviewCase: {
+            id: string;
+            status: "open" | "resolved" | "waived";
+            reasonCode: string;
+            unrecoveredCoin: number | null;
+            resolutionNote: string | null;
+            resolvedAt: string | null;
+            noticeSentAt: string | null;
+            resolvedBy: { id: number; username: string } | null;
+        } | null;
+    } | null;
     reversalRequests: ReversalRequest[];
     reconciliationCase: {
         id: string;
@@ -59,7 +76,7 @@ type PaymentResponse = {
     page: number;
     pages: number;
     total: number;
-    counts: { openCases: number; deadLetters: number; pendingApprovals: number; manualReversals: number };
+    counts: { openCases: number; deadLetters: number; pendingApprovals: number; openManualReviews: number };
     alerts: {
         openCaseThresholdExceeded: boolean;
         deadLetterThresholdExceeded: boolean;
@@ -203,6 +220,25 @@ export default function AdminPaymentsPage() {
         } finally { setBusyId(null); }
     }
 
+    async function resolveManualReview(event: React.FormEvent<HTMLFormElement>, reversalId: string) {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        setBusyId(reversalId);
+        try {
+            await post(`/api/admin/payments/reversals/${reversalId}/manual-review`, {
+                decision: form.get("decision"),
+                resolutionNote: form.get("resolutionNote"),
+                notifyUser: form.get("notifyUser") === "on",
+                noticeMessage: form.get("noticeMessage") || undefined,
+                confirmationReversalId: form.get("confirmationReversalId"),
+            }, "Manuel inceleme tamamlanamadı.");
+            toast.success("Manuel inceleme kararı kaydedildi.");
+            await load();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Manuel inceleme tamamlanamadı.");
+        } finally { setBusyId(null); }
+    }
+
     const alertActive = Boolean(
         data?.alerts.openCaseThresholdExceeded || data?.alerts.deadLetterThresholdExceeded
     );
@@ -225,7 +261,7 @@ export default function AdminPaymentsPage() {
             ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Metric label="Manuel reversal" value={data?.counts.manualReversals ?? 0} />
+                <Metric label="Açık manuel inceleme" value={data?.counts.openManualReviews ?? 0} />
                 <Metric label="Açık uzlaştırma" value={data?.counts.openCases ?? 0} tone="amber" />
                 <Metric label="İkinci onay bekliyor" value={data?.counts.pendingApprovals ?? 0} tone="sky" />
                 <Metric label="Dead-letter" value={data?.counts.deadLetters ?? 0} tone="rose" />
@@ -243,6 +279,7 @@ export default function AdminPaymentsPage() {
                         const webhook = item.webhookEvents[0];
                         const pendingRequest = item.reversalRequests[0];
                         const coinReversal = readCoinReversalEvidence(item.reversal?.evidence);
+                        const manualReview = item.reversal?.manualReviewCase;
                         const canRequest = !pendingRequest && (
                             (item.status === "fulfilled" && item.fulfillment?.status === "completed" && !item.reversal)
                             || (item.status === "refunded" && item.reversal?.outcome === "refund")
@@ -285,6 +322,36 @@ export default function AdminPaymentsPage() {
                                 ) : null}
 
                                 {item.reversal ? <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-3 text-sm dark:bg-rose-950/20"><strong>{item.reversal.outcome}</strong> · {item.reversal.status} · {item.reversal.externalReference}<p className="mt-1 text-muted-foreground">{item.reversal.reason}</p>{coinReversal ? <p className="mt-2 font-medium">{coinReversal.reversedCoin === null ? "Eski coin kaydı: otomatik bakiye işlemi yapılmadı." : `${coinReversal.reversedCoin.toLocaleString("tr-TR")} coin geri alındı · ${(coinReversal.unrecoveredCoin ?? 0).toLocaleString("tr-TR")} coin manuel inceleme`}</p> : null}</div> : null}
+
+                                {manualReview?.status === "open" && item.reversal ? (
+                                    <details open className="rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm dark:bg-orange-950/20">
+                                        <summary className="cursor-pointer font-semibold">Açık manuel inceleme · {manualReview.reasonCode}</summary>
+                                        <p className="mt-2 text-muted-foreground">
+                                            {manualReview.unrecoveredCoin === null
+                                                ? "Tutar kanıtı eski kayıt yapısı nedeniyle bilinmiyor."
+                                                : `${manualReview.unrecoveredCoin.toLocaleString("tr-TR")} coin otomatik olarak geri alınamadı.`}
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground">Bu karar bakiye, askıya alma veya ekonomi guard ayarını değiştirmez.</p>
+                                        <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void resolveManualReview(event, item.reversal!.id)}>
+                                            <select name="decision" className="h-10 rounded-md border bg-background px-3 text-sm" required><option value="resolved">İncelendi ve kapatıldı</option><option value="waived">İşlem yapılmadan kapatıldı</option></select>
+                                            <Input name="resolutionNote" placeholder="Zorunlu operasyon karar notu" minLength={3} maxLength={500} required />
+                                            <label className="flex min-h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"><input name="notifyUser" type="checkbox" /> Oyuncuya genel bildirim gönder</label>
+                                            <Input name="noticeMessage" placeholder="Bildirim mesajı (boşsa güvenli varsayılan metin)" maxLength={500} />
+                                            <Input name="confirmationReversalId" placeholder={`Onay için reversal ID: ${item.reversal.id}`} required />
+                                            <Button type="submit" variant="outline" disabled={busyId === item.reversal.id}><CheckCircle2 className="mr-2 h-4 w-4" />İncelemeyi kapat</Button>
+                                        </form>
+                                    </details>
+                                ) : manualReview ? (
+                                    <div className="rounded-xl border bg-muted/30 p-3 text-sm">
+                                        <strong>{manualReview.status === "resolved" ? "İnceleme tamamlandı" : "İşlem yapılmadan kapatıldı"}</strong>
+                                        <p className="mt-1 text-muted-foreground">{manualReview.resolutionNote}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {manualReview.resolvedBy ? `@${manualReview.resolvedBy.username}` : "Eski kayıt"}
+                                            {manualReview.resolvedAt ? ` · ${new Date(manualReview.resolvedAt).toLocaleString("tr-TR")}` : ""}
+                                            {manualReview.noticeSentAt ? " · Oyuncuya bildirim gönderildi" : ""}
+                                        </p>
+                                    </div>
+                                ) : null}
 
                                 {canRequest ? (
                                     <details className="rounded-xl border p-3">

@@ -55,6 +55,22 @@ veya reddedemez; farklı bir admin talep UUID'si ve zorunlu inceleme notuyla kar
 - Oyuncuya yalnız genel durum bildirimi gider. Provider iç hata kodları ve koruma
   ayrıntıları istemciye gönderilmez.
 
+## Ücretli Coin Manuel İnceleme
+
+- Harcanmış ücretli coin veya lot özelliğinden önceki belirsiz kayıt, reversal ile
+  aynı transaction içinde tekil bir `PaymentManualReviewCase` oluşturur.
+- Açık vaka neden kodu, geri alınamayan coin miktarı ve reversal ilişkisiyle admin
+  ödeme ekranında görünür. Tarihsel kapanmış kayıtlar açık vaka sayacını şişirmez.
+- Admin vakayı `resolved` veya `waived` kararı ve zorunlu operasyon notuyla kapatır.
+  Karar veren admin ve zaman bilgisi kalıcı tutulur; aynı vaka ikinci kez kapatılamaz.
+- Bu karar bakiye, askıya alma, ekonomi guard veya güvenlik puanı değiştirmez. Para
+  ya da coin üzerinde ek otomatik işlem üretmek bu akışın bilinçli olarak dışındadır.
+- Oyuncu bildirimi isteğe bağlıdır. Boş mesajda güvenli genel metin kullanılır;
+  provider kanıtı, iç hata kodu ve abuse sinyali oyuncuya gönderilmez.
+- Endpoint admin oturumunu ve servis transaction'ı içindeki güncel admin rolünü
+  ayrı ayrı doğrular; reversal UUID tekrar onayı, admin/IP rate limit ve audit kaydı
+  zorunludur. Serbest bildirim metni audit metadata'ya kopyalanmaz.
+
 ## Çalıştırma
 
 ```bash

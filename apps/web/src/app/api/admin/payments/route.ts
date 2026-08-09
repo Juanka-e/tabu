@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
             ],
         } : {}),
     } satisfies Prisma.PaymentOrderWhereInput;
-    const [total, orders, openCases, deadLetters, pendingApprovals, manualReversals, oldestOpenCase] = await Promise.all([
+    const [total, orders, openCases, deadLetters, pendingApprovals, openManualReviews, oldestOpenCase] = await Promise.all([
         prisma.paymentOrder.count({ where }),
         prisma.paymentOrder.findMany({
             where,
@@ -70,7 +70,29 @@ export async function GET(request: NextRequest) {
             include: {
                 user: { select: { id: true, username: true } },
                 fulfillment: { select: { status: true, errorCode: true, completedAt: true, reversedAt: true } },
-                reversal: { select: { outcome: true, status: true, externalReference: true, reason: true, evidence: true, createdAt: true } },
+                reversal: {
+                    select: {
+                        id: true,
+                        outcome: true,
+                        status: true,
+                        externalReference: true,
+                        reason: true,
+                        evidence: true,
+                        createdAt: true,
+                        manualReviewCase: {
+                            select: {
+                                id: true,
+                                status: true,
+                                reasonCode: true,
+                                unrecoveredCoin: true,
+                                resolutionNote: true,
+                                resolvedAt: true,
+                                noticeSentAt: true,
+                                resolvedBy: { select: { id: true, username: true } },
+                            },
+                        },
+                    },
+                },
                 reconciliationCase: { select: { id: true, status: true, reasonCode: true, attemptCount: true, lastErrorCode: true, lastCheckedAt: true } },
                 reversalRequests: {
                     where: { status: "pending" },
@@ -96,7 +118,7 @@ export async function GET(request: NextRequest) {
         prisma.paymentReconciliationCase.count({ where: { status: "open" } }),
         prisma.paymentWebhookEvent.count({ where: { status: "dead_letter" } }),
         prisma.paymentReversalRequest.count({ where: { status: "pending" } }),
-        prisma.paymentReversal.count({ where: { status: "manual_review" } }),
+        prisma.paymentManualReviewCase.count({ where: { status: "open" } }),
         prisma.paymentReconciliationCase.findFirst({
             where: { status: "open" },
             orderBy: { createdAt: "asc" },
@@ -120,6 +142,11 @@ export async function GET(request: NextRequest) {
             reversal: order.reversal ? {
                 ...order.reversal,
                 createdAt: order.reversal.createdAt.toISOString(),
+                manualReviewCase: order.reversal.manualReviewCase ? {
+                    ...order.reversal.manualReviewCase,
+                    resolvedAt: order.reversal.manualReviewCase.resolvedAt?.toISOString() ?? null,
+                    noticeSentAt: order.reversal.manualReviewCase.noticeSentAt?.toISOString() ?? null,
+                } : null,
             } : null,
             reconciliationCase: order.reconciliationCase ? {
                 ...order.reconciliationCase,
@@ -133,7 +160,7 @@ export async function GET(request: NextRequest) {
         page,
         pages: Math.max(1, Math.ceil(total / limit)),
         total,
-        counts: { openCases, deadLetters, pendingApprovals, manualReversals },
+        counts: { openCases, deadLetters, pendingApprovals, openManualReviews },
         alerts: {
             caseAlertThreshold,
             deadLetterAlertThreshold,
