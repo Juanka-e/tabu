@@ -87,6 +87,8 @@ test.describe("admin payment operations", () => {
                 currency: "TRY",
                 grantSnapshot: { schemaVersion: 1, items: [{ shopItemId: 1 }] },
                 providerOrderReference: providerReviewOrderId.replaceAll("-", ""),
+                providerSessionReference: `secret-session-${suffix}`,
+                providerHostedUrl: `https://sandbox-cpp.iyzipay.com/?token=secret-hosted-${suffix}`,
                 paidAt: new Date(),
                 fulfilledAt: new Date(),
                 reversalRequests: {
@@ -148,6 +150,12 @@ test.describe("admin payment operations", () => {
         await page.getByRole("button", { name: "Giris Yap" }).click();
         await page.waitForURL(/\/admin(?:\/)?$/);
         await page.goto("/admin/payments");
+        const operationsPayload = await page.evaluate(async () => {
+            const response = await fetch("/api/admin/payments?limit=50", { cache: "no-store" });
+            return JSON.stringify(await response.json());
+        });
+        expect(operationsPayload).not.toContain(`secret-session-${suffix}`);
+        expect(operationsPayload).not.toContain(`secret-hosted-${suffix}`);
         await expect(page.getByRole("heading", { name: "Ödeme Operasyonları" })).toBeVisible();
         await expect(page.getByText(/PayTR API iadesi yalnız hazır sandbox yapılandırmasında/)).toBeVisible();
         await expect(page.getByText("PayTR API iadesi kapalı")).toBeVisible();
