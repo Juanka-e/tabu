@@ -16,11 +16,16 @@ export default function PaymentPrivacyNoticePage() {
             <LegalSection title="İşlenen veriler ve amaçlar">
                 <p>Hesap kimliği, sipariş ve ürün bilgileri, işlem zamanı, ödeme sağlayıcısı referansları, sınırlı teknik güvenlik kayıtları ile ödeme sonucu; siparişin kurulması, tahsilatın doğrulanması, ürünün teslimi, iade/itiraz süreçleri, dolandırıcılığın önlenmesi ve yasal yükümlülüklerin yerine getirilmesi amacıyla işlenir.</p>
                 <p>PayTR ödeme oturumu oluşturulurken ad-soyad, telefon, adres ve doğrulanmış hesap e-postası işlem için PayTR’ye iletilir. Ad-soyad, telefon ve adres Hushle sipariş, audit veya uygulama log kayıtlarına kopyalanmaz.</p>
+                <p>iyzico şu anda etkin değildir. İleride etkinleştirilmesi halinde sağlayıcının zorunlu tuttuğu ad, soyad, telefon, adres ve kimlik numarası alanları ödeme başlatılmadan önce ayrıca gösterilir; aydınlatma metni güncellenmeden bu alanlar toplanmaz.</p>
                 <p>Kart numarası ve kart güvenlik kodu Hushle sistemlerinde tutulmaz; bu bilgiler seçilen ödeme sağlayıcısının güvenli ödeme yüzeyinde işlenir.</p>
+            </LegalSection>
+            <LegalSection title="Saklama ve veri minimizasyonu">
+                <p>Ödeme formunda sağlayıcıya iletilmek üzere alınan ad-soyad, telefon, adres ve varsa kimlik numarası yalnız ilgili ödeme isteğinin kurulması sırasında kullanılır. Bu değerler kullanıcı profiline, siparişe, onay kaydına, audit kaydına veya uygulama telemetrisine yazılmaz; geri döndürülebilir ya da tahmin edilebilir hash biçiminde de saklanmaz.</p>
+                <p>Hushle tarafında sipariş ve ürün özeti, tutar, para birimi, sağlayıcı referansları, ödeme sonucu ve kabul edilen metin/politika sürümleri saklanabilir. Ödeme sağlayıcısının kendi saklama süreleri ve yükümlülükleri sağlayıcının şartlarına tabidir.</p>
             </LegalSection>
             <LegalSection title="Hukuki sebep, toplama yöntemi ve aktarım">
                 <p>Veriler elektronik ortamda kullanıcı, uygulama ve ödeme sağlayıcısından otomatik yöntemlerle elde edilir. İşleme; sözleşmenin kurulması veya ifası, hukuki yükümlülükler ve meşru menfaat kapsamındaki güvenlik ihtiyaçlarına dayanır.</p>
-                <p>Gerekli veriler ödeme sağlayıcısına, altyapı hizmet sağlayıcılarına ve hukuken yetkili kurumlara amaçla sınırlı olarak aktarılabilir. Yurt dışı aktarım durumu seçilecek sağlayıcı ve barındırma mimarisi kesinleştiğinde bu metinde ayrıca belirtilmelidir.</p>
+                <p>Gerekli veriler ödeme sağlayıcısına, altyapı hizmet sağlayıcılarına ve hukuken yetkili kurumlara amaçla sınırlı olarak aktarılabilir. Bir sağlayıcının veya alt işleyeninin yurt dışı aktarım doğurması halinde uygun hukuki güvence, aktarım tarafları ve ülke bilgisi doğrulanmadan ilgili sağlayıcı etkinleştirilmez.</p>
             </LegalSection>
             <LegalSection title="Haklar ve başvuru">
                 <p>KVKK kapsamındaki bilgi alma, düzeltme, silme, itiraz ve diğer talepler {contact} adresine iletilebilir. Kimlik doğrulaması için yalnız gerekli bilgiler talep edilir.</p>

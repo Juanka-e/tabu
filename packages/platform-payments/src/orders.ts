@@ -171,6 +171,7 @@ export async function createPaymentCheckoutOrderRecord(
                             checkoutTermsVersion: parsed.legalAcceptance.checkoutTermsVersion,
                             privacyNoticeVersion: parsed.legalAcceptance.privacyNoticeVersion,
                             distanceSalesNoticeVersion: parsed.legalAcceptance.distanceSalesNoticeVersion,
+                            buyerDataPolicyVersion: parsed.legalAcceptance.buyerDataPolicyVersion,
                             acceptedAt: parsed.legalAcceptance.acceptedAt,
                             requestId: parsed.legalAcceptance.requestId,
                             userAgentHash: parsed.legalAcceptance.userAgentHash,
@@ -188,7 +189,8 @@ export async function createPaymentCheckoutOrderRecord(
                 if (
                     existingConsent.checkoutTermsVersion !== acceptance.checkoutTermsVersion ||
                     existingConsent.privacyNoticeVersion !== acceptance.privacyNoticeVersion ||
-                    existingConsent.distanceSalesNoticeVersion !== acceptance.distanceSalesNoticeVersion
+                    existingConsent.distanceSalesNoticeVersion !== acceptance.distanceSalesNoticeVersion ||
+                    existingConsent.buyerDataPolicyVersion !== acceptance.buyerDataPolicyVersion
                 ) {
                     throw new PaymentOrderConflictError("idempotency_payload_mismatch");
                 }

@@ -229,8 +229,9 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
 4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
-5. `iyzico` Checkout Form HMAC/transport temeli: tamamlandı; hassas alıcı verisi,
-   durable orchestration ve Signature V3 webhook dilimleri bitene kadar devre dışı.
+5. `iyzico` Checkout Form HMAC/transport ve request-only buyer data sözleşmesi:
+   tamamlandı; hukuki aktarım incelemesi, durable orchestration ve Signature V3
+   webhook dilimleri bitene kadar devre dışı.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,

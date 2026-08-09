@@ -336,6 +336,14 @@
 - redirect/session cevabını ödeme kanıtı saymayan webhook-first aktivasyon sınırı
 - Türkiye merchant uygunluğu bulunmadığı için production önceliği vermeyen realist provider kararı
 
+### 46. `feature/iyzico-buyer-data-legal-contract`
+
+- PayTR ve iyzico için sürümlü, provider bazlı request-only buyer data politikası
+- iyzico ad/soyad, telefon, adres ve 11 haneli kimlik alanı normalizasyon sözleşmesi
+- hassas değer yerine yalnız `buyer-data-v1` sürümünü saklayan checkout consent migration'ı
+- profil, sipariş, attempt, audit, log ve telemetry için değer/hash saklamama sınırı
+- KVKK veri minimizasyonu ve yurt dışı aktarım incelemesini aktivasyon kapısı yapan dokümantasyon
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

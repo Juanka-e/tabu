@@ -51,6 +51,7 @@ async function run(): Promise<void> {
             checkoutTermsVersion: "terms-v1",
             privacyNoticeVersion: "privacy-v1",
             distanceSalesNoticeVersion: "distance-v1",
+            buyerDataPolicyVersion: "buyer-data-v1",
             acceptedAt,
             requestId: `request-${suffix}`,
             userAgentHash: createHash("sha256").update("integration-agent").digest("hex"),
@@ -73,12 +74,20 @@ async function run(): Promise<void> {
         });
         assert.equal(consents.length, 1);
         assert.equal(consents[0]?.checkoutTermsVersion, "terms-v1");
+        assert.equal(consents[0]?.buyerDataPolicyVersion, "buyer-data-v1");
         assert.equal(consents[0]?.requestId, `request-${suffix}`);
 
         await assert.rejects(
             () => createPaymentCheckoutOrderRecord({
                 ...input,
                 legalAcceptance: { ...input.legalAcceptance, checkoutTermsVersion: "terms-v2" },
+            }),
+            (error: unknown) => error instanceof PaymentOrderConflictError
+        );
+        await assert.rejects(
+            () => createPaymentCheckoutOrderRecord({
+                ...input,
+                legalAcceptance: { ...input.legalAcceptance, buyerDataPolicyVersion: "buyer-data-v2" },
             }),
             (error: unknown) => error instanceof PaymentOrderConflictError
         );

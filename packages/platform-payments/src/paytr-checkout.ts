@@ -8,21 +8,11 @@ import {
     type PaytrCredentials,
 } from "./adapters/paytr";
 import { assertPaymentOrderTransition } from "./order-state-machine";
+import { paymentCheckoutContactSchema } from "./sensitive-checkout-data";
 
 const REQUEST_LEASE_MS = 60_000;
 
-function collapseWhitespace(value: string): string {
-    return value.trim().replace(/\s+/g, " ");
-}
-
-export const paytrCheckoutContactSchema = z.object({
-    fullName: z.string().min(2).max(60).transform(collapseWhitespace),
-    phone: z.string().trim().min(7).max(20)
-        .regex(/^\+?[0-9 ()-]+$/)
-        .transform((value) => `${value.startsWith("+") ? "+" : ""}${value.replace(/\D/g, "")}`)
-        .refine((value) => /^\+?\d{7,15}$/.test(value)),
-    address: z.string().min(10).max(400).transform(collapseWhitespace),
-});
+export const paytrCheckoutContactSchema = paymentCheckoutContactSchema;
 
 export type PaytrCheckoutContact = z.input<typeof paytrCheckoutContactSchema>;
 

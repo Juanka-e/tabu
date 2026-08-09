@@ -34,16 +34,22 @@ layer must retrieve the Checkout Form result server-side and verify at least the
 order/conversation reference, token, exact price, paid price, currency,
 `paymentStatus`, and `fraudStatus` before fulfillment.
 
+## Buyer Data Contract
+
+The request-only buyer data schema and `buyer-data-v1` consent snapshot are now
+implemented. National identity, phone, and address values are not persisted or
+hashed locally. See `docs/guides/payment-buyer-data-policy.md`.
+
 ## Activation Blockers
 
 iyzico Checkout Form requires buyer identity, phone, IP, and address fields. The
 application does not collect or persist new fields merely to activate an adapter.
 Before route integration, the following need explicit product/legal decisions:
 
-1. Which fields are strictly required for the selected product and merchant setup.
-2. Privacy notice and consent versioning for each collected field.
-3. Encryption, access control, retention, deletion, and support visibility policy.
-4. Guest exclusion and verified registered-account requirements.
+1. Merchant-specific confirmation of every required field.
+2. Provider/subprocessor and domestic or cross-border transfer legal review.
+3. Just-in-time player UI and a new approved privacy notice version.
+4. Guest exclusion and verified registered-account enforcement in orchestration.
 5. Durable checkout-attempt state for uncertain network outcomes.
 
 Most iyzico API operations are not generally idempotent. A timeout after initialize

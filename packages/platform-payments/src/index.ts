@@ -3,6 +3,7 @@ export * from "./order-state-machine";
 export * from "./orders";
 export * from "./offers";
 export * from "./provider-registry";
+export * from "./sensitive-checkout-data";
 export * from "./webhook-inbox";
 export * from "./webhook-registry";
 export * from "./adapters/paytr";
