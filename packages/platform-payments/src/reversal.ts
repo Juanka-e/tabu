@@ -1,5 +1,6 @@
 import { getRedisKey, invalidateJsonCache } from "@hushle/platform-cache";
 import { Prisma, prisma } from "@hushle/platform-db";
+import { reversePaymentCoinLot } from "@hushle/platform-wallet";
 import { z } from "zod";
 import { assertPaymentOrderTransition } from "./order-state-machine";
 
@@ -23,6 +24,7 @@ const grantResultSchema = z.discriminatedUnion("kind", [
         kind: z.literal("coin_pack"),
         coinAmount: z.number().int().positive(),
         ledgerEntryId: z.number().int().positive(),
+        coinLotId: z.string().uuid().optional(),
         balanceAfter: z.number().int().min(0),
     }),
     z.object({
@@ -210,14 +212,40 @@ async function applyApprovedReversal(
     let evidence: Prisma.InputJsonValue;
 
     if (grant.kind === "coin_pack") {
-        reversalStatus = "manual_review";
-        evidence = {
-            schemaVersion: 1,
-            kind: "coin_pack",
-            policy: "manual_review_no_wallet_mutation",
-            coinAmount: grant.coinAmount,
-            originalLedgerEntryId: grant.ledgerEntryId,
-        };
+        if (grant.coinLotId) {
+            const coinReversal = await reversePaymentCoinLot(tx, {
+                userId: order.userId,
+                orderId: order.id,
+                coinLotId: grant.coinLotId,
+                reversalRequestId: request.id,
+                metadata: {
+                    outcome: request.outcome,
+                    originalLedgerEntryId: grant.ledgerEntryId,
+                },
+            });
+            reversalStatus = coinReversal.unrecoveredCoin === 0 ? "completed" : "manual_review";
+            evidence = {
+                schemaVersion: 2,
+                kind: "coin_pack",
+                policy: "exact_payment_lot_reversal",
+                coinAmount: grant.coinAmount,
+                coinLotId: grant.coinLotId,
+                originalLedgerEntryId: grant.ledgerEntryId,
+                reversalLedgerEntryId: coinReversal.reversalLedgerEntryId,
+                reversedCoin: coinReversal.reversedCoin,
+                unrecoveredCoin: coinReversal.unrecoveredCoin,
+                balanceAfter: coinReversal.balanceAfter,
+            };
+        } else {
+            reversalStatus = "manual_review";
+            evidence = {
+                schemaVersion: 1,
+                kind: "coin_pack",
+                policy: "legacy_manual_review_no_wallet_mutation",
+                coinAmount: grant.coinAmount,
+                originalLedgerEntryId: grant.ledgerEntryId,
+            };
+        }
     } else {
         const expectedPairs = grant.inventoryItemIds.map((id, index) => ({
             id,

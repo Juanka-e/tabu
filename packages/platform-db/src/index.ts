@@ -28,6 +28,8 @@ export {
     WalletLedgerSource,
 } from "@prisma/client";
 export type {
+    PaymentCoinLot,
+    PaymentCoinLotAllocation,
     PaymentOffer,
     PaymentOrder,
     PaymentReconciliationCase,

@@ -45,8 +45,13 @@ veya reddedemez; farklı bir admin talep UUID'si ve zorunlu inceleme notuyla kar
 - Sipariş başına tek uygulanmış reversal vardır; yeni bekleyen talepler aynı sipariş
   satır kilidiyle seri hale getirilir.
 - Refund daha sonra chargeback'e dönüşebilir; entitlement ikinci kez kaldırılmaz.
-- Coin cüzdanı fungible olduğu ve coin lot modeli bulunmadığı için otomatik coin
-  kesintisi yapılmaz. Vaka `manual_review` olur; oynayarak kazanılan coin korunur.
+- Yeni coin fulfillment'ları siparişe tekil lot kanıtı taşır. Reversal yalnız bu
+  lotta kalan coinleri `payment_reversal` ledger kaydıyla düşer; earned/grant/admin
+  coinlere dokunmaz.
+- Harcanmış ücretli coin bakiye eksiye çekilmez. Geri alınabilen miktar otomatik
+  uygulanır, harcanmış fark `manual_review` kanıtında operatöre gösterilir.
+- Lot özelliğinden önce oluşmuş fulfillment tahmin edilmez ve güvenli biçimde
+  `legacy_manual_review_no_wallet_mutation` politikasında kalır.
 - Oyuncuya yalnız genel durum bildirimi gider. Provider iç hata kodları ve koruma
   ayrıntıları istemciye gönderilmez.
 
@@ -79,7 +84,6 @@ kontrolünü atlamaz.
 
 - Live PayTR ve provider refund API ayrı bir onaylı branch'te, resmi sandbox kabul
   testleri ve çift kontrol akışıyla ele alınmalıdır.
-- Ücretli coin otomatik geri alma için wallet coin-lot/provenance modeli gerekir.
 - Reconciliation alarm metrikleri merkezi observability exporter'a bağlanmalıdır.
 - Alarm metrikleri exporter'a bağlandığında eşik aşımı merkezi uyarı kanalına
   yönlendirilmeli; admin sayfasındaki mevcut uyarı yedek görünüm olarak korunmalıdır.

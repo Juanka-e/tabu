@@ -218,7 +218,8 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 - `payment_topup`, `purchase_spend`, `refund` ve `chargeback` ayrı ledger source olarak kalır.
 - Paid coin ile earned coin kaynağı audit'te ayrılır.
 - Chargeback geldiğinde kör biçimde bütün bakiyeyi negatife çekmek yerine ilgili paid grant/reward lot'u terslenir.
-- Harcanmış paid bakiye varsa hesap manuel inceleme/paid-purchase restriction durumuna alınır; oyunla kazanılmış ödüle otomatik büyük ceza uygulanmaz.
+- Harcanmış paid bakiye reversal kanıtında manuel incelemeye ayrılır; bu aşamada
+  otomatik hesap kısıtı uygulanmaz ve oyunla kazanılmış ödüle büyük ceza verilmez.
 - Kozmetik doğrudan satın alındıysa entitlement revoke/freeze politikası ürün şartlarında açık olmalıdır.
 
 ## Adapter Sırası

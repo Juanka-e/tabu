@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
             ],
         } : {}),
     } satisfies Prisma.PaymentOrderWhereInput;
-    const [total, orders, openCases, deadLetters, pendingApprovals, oldestOpenCase] = await Promise.all([
+    const [total, orders, openCases, deadLetters, pendingApprovals, manualReversals, oldestOpenCase] = await Promise.all([
         prisma.paymentOrder.count({ where }),
         prisma.paymentOrder.findMany({
             where,
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             include: {
                 user: { select: { id: true, username: true } },
                 fulfillment: { select: { status: true, errorCode: true, completedAt: true, reversedAt: true } },
-                reversal: { select: { outcome: true, status: true, externalReference: true, reason: true, createdAt: true } },
+                reversal: { select: { outcome: true, status: true, externalReference: true, reason: true, evidence: true, createdAt: true } },
                 reconciliationCase: { select: { id: true, status: true, reasonCode: true, attemptCount: true, lastErrorCode: true, lastCheckedAt: true } },
                 reversalRequests: {
                     where: { status: "pending" },
@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
         prisma.paymentReconciliationCase.count({ where: { status: "open" } }),
         prisma.paymentWebhookEvent.count({ where: { status: "dead_letter" } }),
         prisma.paymentReversalRequest.count({ where: { status: "pending" } }),
+        prisma.paymentReversal.count({ where: { status: "manual_review" } }),
         prisma.paymentReconciliationCase.findFirst({
             where: { status: "open" },
             orderBy: { createdAt: "asc" },
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
         page,
         pages: Math.max(1, Math.ceil(total / limit)),
         total,
-        counts: { openCases, deadLetters, pendingApprovals },
+        counts: { openCases, deadLetters, pendingApprovals, manualReversals },
         alerts: {
             caseAlertThreshold,
             deadLetterAlertThreshold,

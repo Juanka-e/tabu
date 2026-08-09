@@ -76,6 +76,7 @@ enum WalletLedgerSource {
   coin_grant
   admin_adjustment
   payment_topup
+  payment_reversal
 }
 
 enum CoinGrantClaimStatus {
@@ -352,6 +353,7 @@ model PaymentOrder {
   reversal PaymentReversal?
   reconciliationCase PaymentReconciliationCase?
   reversalRequests PaymentReversalRequest[]
+  coinLot PaymentCoinLot?
 
   @@unique([userId, idempotencyKey])
   @@unique([provider, providerOrderReference])
@@ -809,6 +811,7 @@ model Wallet {
 
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   ledgerEntries WalletLedgerEntry[]
+  paymentCoinLots PaymentCoinLot[]
 
   @@map("wallets")
 }
@@ -830,12 +833,55 @@ model WalletLedgerEntry {
   wallet      Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
   actorUser   User?              @relation("WalletLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
   adjustment  WalletAdjustment?
+  paymentCoinLotGrant PaymentCoinLot? @relation("PaymentCoinLotGrantLedger")
+  paymentCoinLotReversal PaymentCoinLot? @relation("PaymentCoinLotReversalLedger")
+  paymentCoinLotAllocations PaymentCoinLotAllocation[]
 
   @@index([walletId, createdAt])
   @@index([source, createdAt])
   @@index([referenceType, referenceId])
   @@index([actorUserId, createdAt])
   @@map("wallet_ledger_entries")
+}
+
+model PaymentCoinLot {
+  id                    String   @id @default(uuid()) @db.Char(36)
+  orderId               String   @unique @map("order_id") @db.Char(36)
+  walletId              Int      @map("wallet_id")
+  grantLedgerEntryId    Int      @unique @map("grant_ledger_entry_id")
+  reversalLedgerEntryId Int?     @unique @map("reversal_ledger_entry_id")
+  grantedCoin           Int      @map("granted_coin")
+  remainingCoin         Int      @map("remaining_coin")
+  spentCoin             Int      @default(0) @map("spent_coin")
+  reversedCoin          Int      @default(0) @map("reversed_coin")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  order               PaymentOrder      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  wallet              Wallet            @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  grantLedgerEntry    WalletLedgerEntry @relation("PaymentCoinLotGrantLedger", fields: [grantLedgerEntryId], references: [id], onDelete: Restrict)
+  reversalLedgerEntry WalletLedgerEntry? @relation("PaymentCoinLotReversalLedger", fields: [reversalLedgerEntryId], references: [id], onDelete: Restrict)
+  allocations         PaymentCoinLotAllocation[]
+
+  @@index([walletId, createdAt])
+  @@index([walletId, remainingCoin, createdAt])
+  @@map("payment_coin_lots")
+}
+
+model PaymentCoinLotAllocation {
+  id            Int      @id @default(autoincrement())
+  lotId         String   @map("lot_id") @db.Char(36)
+  ledgerEntryId Int      @map("ledger_entry_id")
+  amountCoin    Int      @map("amount_coin")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  lot         PaymentCoinLot   @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  ledgerEntry WalletLedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+
+  @@unique([lotId, ledgerEntryId])
+  @@index([ledgerEntryId])
+  @@index([lotId, createdAt])
+  @@map("payment_coin_lot_allocations")
 }
 
 model WalletAdjustment {

@@ -18,6 +18,7 @@ const sourceLabels: Record<AdminWalletLedgerSource, string> = {
     store_item_purchase: "Mağaza ürünü",
     store_bundle_purchase: "Mağaza paketi",
     payment_topup: "Ücretli coin paketi",
+    payment_reversal: "Ödeme coin iadesi",
     coin_grant: "Coin kodu",
     admin_adjustment: "Admin düzeltmesi",
 };

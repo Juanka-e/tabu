@@ -127,4 +127,4 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 
 28. `payment-reconciliation-and-reversal.md`
 - PayTR durum sorgusu, uzlaştırma worker'ı ve admin operasyon yolunu tanımlar
-- kozmetik reversal ile coin manuel inceleme güvenlik sınırını açıklar
+- kozmetik reversal, çift admin onayı ve ücretli coin lot geri alma sınırını açıklar

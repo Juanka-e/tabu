@@ -37,7 +37,7 @@ type PaymentItem = {
     createdAt: string;
     user: { id: number; username: string };
     fulfillment: { status: string; errorCode: string | null } | null;
-    reversal: { outcome: string; status: string; externalReference: string; reason: string } | null;
+    reversal: { outcome: string; status: string; externalReference: string; reason: string; evidence: unknown } | null;
     reversalRequests: ReversalRequest[];
     reconciliationCase: {
         id: string;
@@ -59,7 +59,7 @@ type PaymentResponse = {
     page: number;
     pages: number;
     total: number;
-    counts: { openCases: number; deadLetters: number; pendingApprovals: number };
+    counts: { openCases: number; deadLetters: number; pendingApprovals: number; manualReversals: number };
     alerts: {
         openCaseThresholdExceeded: boolean;
         deadLetterThresholdExceeded: boolean;
@@ -76,6 +76,19 @@ function money(minor: number, currency: string): string {
 async function readError(response: Response, fallback: string): Promise<string> {
     const payload = await response.json().catch(() => null) as { error?: string } | null;
     return payload?.error || fallback;
+}
+
+function readCoinReversalEvidence(value: unknown): {
+    reversedCoin: number | null;
+    unrecoveredCoin: number | null;
+} | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const evidence = value as Record<string, unknown>;
+    if (evidence.kind !== "coin_pack" || typeof evidence.policy !== "string") return null;
+    return {
+        reversedCoin: typeof evidence.reversedCoin === "number" ? evidence.reversedCoin : null,
+        unrecoveredCoin: typeof evidence.unrecoveredCoin === "number" ? evidence.unrecoveredCoin : null,
+    };
 }
 
 export default function AdminPaymentsPage() {
@@ -212,7 +225,7 @@ export default function AdminPaymentsPage() {
             ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Metric label="Toplam sonuç" value={data?.total ?? 0} />
+                <Metric label="Manuel reversal" value={data?.counts.manualReversals ?? 0} />
                 <Metric label="Açık uzlaştırma" value={data?.counts.openCases ?? 0} tone="amber" />
                 <Metric label="İkinci onay bekliyor" value={data?.counts.pendingApprovals ?? 0} tone="sky" />
                 <Metric label="Dead-letter" value={data?.counts.deadLetters ?? 0} tone="rose" />
@@ -224,11 +237,12 @@ export default function AdminPaymentsPage() {
                 <Button type="submit">Ara</Button>
             </form>
 
-            <AdminTableShell title="Sipariş akışı" description="Coin lot muhasebesi olmadığı için coin reversal manuel incelemede kalır; kazanılmış coin otomatik kesilmez." loading={loading} isEmpty={!loading && (data?.items.length ?? 0) === 0} emptyState={<AdminEmptyState icon={<CreditCard />} title="Sipariş bulunamadı" description="Bu filtrede ödeme siparişi yok." />} footer={data ? <AdminPagination page={page} pageCount={data.pages} onPageChange={setPage} /> : undefined}>
+            <AdminTableShell title="Sipariş akışı" description="Coin reversal yalnız ilgili ödeme lotunun kalan kısmını geri alır; kazanılmış coinlere dokunmaz. Harcanmış ücretli kısım manuel incelemede görünür." loading={loading} isEmpty={!loading && (data?.items.length ?? 0) === 0} emptyState={<AdminEmptyState icon={<CreditCard />} title="Sipariş bulunamadı" description="Bu filtrede ödeme siparişi yok." />} footer={data ? <AdminPagination page={page} pageCount={data.pages} onPageChange={setPage} /> : undefined}>
                 <div className="divide-y divide-border/60">
                     {data?.items.map((item) => {
                         const webhook = item.webhookEvents[0];
                         const pendingRequest = item.reversalRequests[0];
+                        const coinReversal = readCoinReversalEvidence(item.reversal?.evidence);
                         const canRequest = !pendingRequest && (
                             (item.status === "fulfilled" && item.fulfillment?.status === "completed" && !item.reversal)
                             || (item.status === "refunded" && item.reversal?.outcome === "refund")
@@ -270,7 +284,7 @@ export default function AdminPaymentsPage() {
                                     </details>
                                 ) : null}
 
-                                {item.reversal ? <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-3 text-sm dark:bg-rose-950/20"><strong>{item.reversal.outcome}</strong> · {item.reversal.status} · {item.reversal.externalReference}<p className="mt-1 text-muted-foreground">{item.reversal.reason}</p></div> : null}
+                                {item.reversal ? <div className="rounded-xl border border-rose-300/70 bg-rose-50 p-3 text-sm dark:bg-rose-950/20"><strong>{item.reversal.outcome}</strong> · {item.reversal.status} · {item.reversal.externalReference}<p className="mt-1 text-muted-foreground">{item.reversal.reason}</p>{coinReversal ? <p className="mt-2 font-medium">{coinReversal.reversedCoin === null ? "Eski coin kaydı: otomatik bakiye işlemi yapılmadı." : `${coinReversal.reversedCoin.toLocaleString("tr-TR")} coin geri alındı · ${(coinReversal.unrecoveredCoin ?? 0).toLocaleString("tr-TR")} coin manuel inceleme`}</p> : null}</div> : null}
 
                                 {canRequest ? (
                                     <details className="rounded-xl border p-3">

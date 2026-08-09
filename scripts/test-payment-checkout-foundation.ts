@@ -36,6 +36,10 @@ const checkout = readFileSync(
     "apps/web/src/components/payments/checkout-content.tsx",
     "utf8"
 );
+const offersRoute = readFileSync(
+    "apps/web/src/app/api/payments/offers/route.ts",
+    "utf8"
+);
 
 assert.match(schema, /model PaymentOffer/);
 assert.match(schema, /model PaymentCheckoutConsent/);
@@ -52,5 +56,7 @@ assert.match(checkout, /Ödeme Aydınlatma Metni/);
 assert.match(checkout, /Ödeme yükümlülüğü doğuran siparişi ver/);
 assert.match(checkout, /Fatura\/iletişim adresi/);
 assert.doesNotMatch(checkout, /pazarlama|ticari ileti/i);
+assert.doesNotMatch(route, /PRODUCT_NOT_SELLABLE/);
+assert.doesNotMatch(offersRoute, /productKind !== "coin_pack"/);
 
 console.log("payment checkout foundation checks passed");
