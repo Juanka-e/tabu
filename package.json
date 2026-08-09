@@ -38,6 +38,8 @@
     "test:payment-paytr-webhook-integration": "tsx scripts/test-paytr-webhook-processor-integration.ts",
     "test:payment-reconciliation-reversal": "tsx scripts/test-payment-reconciliation-reversal.ts",
     "test:payment-reconciliation-reversal-integration": "tsx scripts/test-payment-reconciliation-reversal-integration.ts",
+    "test:payment-coin-lot": "tsx scripts/test-payment-coin-lot.ts",
+    "test:payment-coin-lot-integration": "tsx scripts/test-payment-coin-lot-integration.ts",
     "test:payment-operations-admin-e2e": "playwright test tests/admin-payment-operations.spec.ts",
     "pretypecheck:web": "npm run db:generate",
     "typecheck:web": "npm run typecheck --workspace @hushle/web",

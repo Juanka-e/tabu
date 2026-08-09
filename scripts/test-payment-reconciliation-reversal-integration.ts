@@ -125,8 +125,12 @@ async function run(): Promise<void> {
             requestedByUserId: requester.id,
         });
         const coinReversal = await approvePaymentReversalRequest({ requestId: coinRequest.id, reviewedByUserId: reviewer.id, reviewNote: "manual coin review" });
-        assert.equal(coinReversal.status, "manual_review");
-        assert.equal((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).coinBalance, balanceBefore);
+        assert.equal(coinReversal.status, "completed");
+        assert.equal((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).coinBalance, balanceBefore - 500);
+        const reversedLot = await prisma.paymentCoinLot.findUniqueOrThrow({ where: { orderId: coinOrder.id } });
+        assert.equal(reversedLot.remainingCoin, 0);
+        assert.equal(reversedLot.reversedCoin, 500);
+        assert.ok(reversedLot.reversalLedgerEntryId);
 
         const ignoredOrder = await createOrder({ userId: user.id, suffix: `${suffix}:ignored`, status: "awaiting_payment", kind: "cosmetic_item", grantSnapshot: cosmeticSnapshot });
         const ignoredCase = await prisma.paymentReconciliationCase.create({ data: {
@@ -170,6 +174,7 @@ async function run(): Promise<void> {
         await prisma.paymentReversal.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentReconciliationCase.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentWebhookEvent.deleteMany({ where: { order: { userId: user.id } } });
+        await prisma.paymentCoinLot.deleteMany({ where: { wallet: { userId: user.id } } });
         await prisma.paymentFulfillment.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentOrder.deleteMany({ where: { userId: user.id } });
         await prisma.inventoryItem.deleteMany({ where: { userId: user.id } });

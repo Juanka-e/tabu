@@ -6,7 +6,8 @@ export type AdminWalletLedgerSource =
     | "store_bundle_purchase"
     | "coin_grant"
     | "admin_adjustment"
-    | "payment_topup";
+    | "payment_topup"
+    | "payment_reversal";
 
 export interface AdminWalletLedgerEntry {
     id: number;

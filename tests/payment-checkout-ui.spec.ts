@@ -131,9 +131,9 @@ test.describe("payment checkout UI", () => {
                 body: JSON.stringify({
                     offers: [{
                         code: offerCode,
-                        productKind: "cosmetic_item",
-                        productName: "Gece Mavisi Avatar",
-                        description: "Sandbox ödeme testi",
+                        productKind: "coin_pack",
+                        productName: "500 Coin Paketi",
+                        description: "Lot korumalı sandbox coin testi",
                         unitAmountMinor: 14900,
                         currency: "TRY",
                     }],
@@ -169,7 +169,7 @@ test.describe("payment checkout UI", () => {
                     order: {
                         id: ownOrderId,
                         status: "awaiting_payment",
-                        productNameSnapshot: "Gece Mavisi Avatar",
+                        productNameSnapshot: "500 Coin Paketi",
                         quantity: 1,
                         totalAmountMinor: 14900,
                         currency: "TRY",
@@ -189,6 +189,7 @@ test.describe("payment checkout UI", () => {
         });
 
         await page.goto("/checkout");
+        await expect(page.getByRole("heading", { name: "500 Coin Paketi" })).toBeVisible();
         await page.getByLabel("Ad ve soyad").fill("Test Oyuncu");
         await page.getByLabel("Telefon").fill("+90 555 111 22 33");
         await page.getByLabel("Fatura/iletişim adresi").fill("Test Mahallesi Istanbul");

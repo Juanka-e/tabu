@@ -286,6 +286,15 @@
 - sipariş satır kilidi altında atomik onay, entitlement reversal ve yarış koruması
 - açık vaka, dead-letter ve bekleyen onay eşikleriyle admin-only operasyon uyarıları
 
+### 40. `feature/payment-coin-lot-provenance-and-reversal`
+
+- her ücretli coin fulfillment'ı için siparişe tekil ve tutarlılık kontrollü coin lotu
+- normal debitlerde non-payment-first, ardından oldest-paid-lot allocation politikası
+- yalnız ilgili lotun kalan kısmını düşen idempotent `payment_reversal` ledger kaydı
+- harcanmış ücretli coin için negatif bakiye yerine bounded manuel inceleme kanıtı
+- spend/refund yarışında wallet row lock ve allocation tabanlı tutarlılık testi
+- mevcut payment/legal/provider gate'leri altında coin-pack checkout aktivasyonu
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

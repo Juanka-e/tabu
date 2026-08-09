@@ -1,5 +1,5 @@
 import { Prisma, prisma, type PaymentOrder } from "@hushle/platform-db";
-import { applyWalletLedgerMutation } from "@hushle/platform-wallet";
+import { grantPaymentCoinLot } from "@hushle/platform-wallet";
 import { z } from "zod";
 import { assertPaymentOrderTransition } from "./order-state-machine";
 
@@ -42,6 +42,7 @@ export type PaymentFulfillmentGrantResult =
         kind: "coin_pack";
         coinAmount: number;
         ledgerEntryId: number;
+        coinLotId?: string;
         balanceAfter: number;
     }
     | {
@@ -57,6 +58,7 @@ const paymentFulfillmentGrantResultSchema = z.discriminatedUnion("kind", [
         kind: z.literal("coin_pack"),
         coinAmount: z.number().int().positive(),
         ledgerEntryId: z.number().int().positive(),
+        coinLotId: z.string().uuid().optional(),
         balanceAfter: z.number().int().min(0),
     }),
     z.object({
@@ -165,13 +167,11 @@ async function executeGrant(
     const grant = parseGrantSnapshot(order);
     if (grant.kind === "coin_pack") {
         try {
-            const wallet = await applyWalletLedgerMutation(tx, {
+            const wallet = await grantPaymentCoinLot(tx, {
                 userId: order.userId,
-                source: "payment_topup",
-                deltaCoin: grant.coinAmount,
+                orderId: order.id,
+                coinAmount: grant.coinAmount,
                 idempotencyKey: `${fulfillmentKey}:coin`,
-                referenceType: "payment_order",
-                referenceId: order.id,
                 metadata: {
                     provider: order.provider,
                     productReference: order.productReference,
@@ -183,6 +183,7 @@ async function executeGrant(
                 kind: "coin_pack",
                 coinAmount: grant.coinAmount,
                 ledgerEntryId: wallet.ledgerEntryId,
+                coinLotId: wallet.coinLotId,
                 balanceAfter: wallet.balanceAfter,
             };
         } catch (error) {

@@ -36,6 +36,7 @@ test.describe("admin payment operations", () => {
         await expect(page.getByText(/Bu ekran sağlayıcıda para iadesi başlatmaz/)).toBeVisible();
         await expect(page.getByText("Açık uzlaştırma")).toBeVisible();
         await expect(page.getByText("İkinci onay bekliyor")).toBeVisible();
+        await expect(page.getByText("Manuel reversal")).toBeVisible();
         await expect(page.getByText("Dead-letter")).toBeVisible();
         await expect(page.getByText(/farklı bir adminin onayı zorunludur/)).toBeVisible();
         await page.setViewportSize({ width: 390, height: 844 });

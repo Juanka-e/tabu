@@ -37,11 +37,9 @@ export async function GET() {
         Promise.resolve(getPaymentRuntimeReadiness()),
         Promise.resolve(getPaymentLegalReadiness()),
     ]);
-    const offers = allOffers.filter((offer) => offer.productKind !== "coin_pack");
-
     return NextResponse.json(
         {
-            offers,
+            offers: allOffers,
             checkout: {
                 available: runtime.ready && legal.ready,
                 unavailableReason: runtime.ready && legal.ready

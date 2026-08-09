@@ -126,12 +126,6 @@ export async function POST(request: Request) {
         );
     }
 
-    if (offer.productKind === "coin_pack") {
-        return NextResponse.json(
-            { error: "Coin paketleri henüz satışa açık değil.", code: "PRODUCT_NOT_SELLABLE" },
-            { status: 409 }
-        );
-    }
     try {
         normalizePaymentGrantSnapshot({
             productKind: offer.productKind,

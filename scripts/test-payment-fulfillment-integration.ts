@@ -115,6 +115,15 @@ async function run(): Promise<void> {
             wallet.ledgerEntries.filter((entry) => entry.source === "payment_topup").length,
             1
         );
+        const coinLot = await prisma.paymentCoinLot.findUniqueOrThrow({
+            where: { orderId: coinOrder.id },
+        });
+        assert.equal(coinLot.grantedCoin, 500);
+        assert.equal(coinLot.remainingCoin, 500);
+        assert.equal(
+            coinLot.grantLedgerEntryId,
+            wallet.ledgerEntries.find((entry) => entry.source === "payment_topup")?.id
+        );
         assert.equal(
             (await prisma.paymentOrder.findUniqueOrThrow({ where: { id: coinOrder.id } })).status,
             "fulfilled"
@@ -231,6 +240,7 @@ async function run(): Promise<void> {
             500
         );
     } finally {
+        await prisma.paymentCoinLot.deleteMany({ where: { wallet: { userId: user.id } } });
         await prisma.paymentFulfillment.deleteMany({
             where: { order: { userId: user.id } },
         });

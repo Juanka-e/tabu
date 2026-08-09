@@ -9,8 +9,8 @@ ve idempotent teslim eder. Desteklenen grant snapshot sürümü `1`:
 - `cosmetic_item`: tek item ve immutable render snapshot,
 - `cosmetic_bundle`: benzersiz item listesi ve render snapshot'ları.
 
-Coin pack ürünleri reversal politikası tamamlanana kadar checkout kataloğunda
-gizlidir; çekirdek fulfillment desteği gelecekteki kontrollü aktivasyon içindir.
+Coin pack ürünleri aynı payment runtime, legal readiness ve provider gate'lerinden
+geçerek checkout kataloğunda sunulabilir. Ayrı veya daha zayıf bir aktivasyon yolu yoktur.
 
 ## Transaction Değişmezleri
 
@@ -22,8 +22,9 @@ gizlidir; çekirdek fulfillment desteği gelecekteki kontrollü aktivasyon için
 6. Tamamlanmış grant sonucu yeniden okunurken schema ile doğrulanır.
 7. Redis bakiye, envanter veya fulfillment source of truth değildir.
 
-Coin pack hareketleri `payment_topup` kaynağını kullanır; maç ödülü, coin kodu ve
-admin düzeltmesiyle karışmaz.
+Coin pack hareketleri `payment_topup` kaynağını ve siparişe tekil `PaymentCoinLot`
+kaydını kullanır; maç ödülü, coin kodu ve admin düzeltmesiyle karışmaz. Normal debit
+önce non-payment bakiyeyi, sonra en eski ücretli lotu tüketir ve allocation kanıtı yazar.
 
 ## Bildirim
 
@@ -41,9 +42,7 @@ verir. Bundle kısmi teslim edilmez.
 
 ## Kalanlar
 
-- refund/chargeback reversal ledger ve entitlement freeze/revoke politikası,
-- admin dead-letter retry/refund/reconciliation ekranı,
-- provider reconciliation job'ı,
+- live provider refund API adapter'ı,
 - düşük tutarlı canlı ödeme ve iade smoke testi.
 
 ## Testler
@@ -51,5 +50,7 @@ verir. Bundle kısmi teslim edilmez.
 ```bash
 npm run test:payment-fulfillment
 npm run test:payment-fulfillment-integration
+npm run test:payment-coin-lot
+npm run test:payment-coin-lot-integration
 npm run test:payment-paytr-webhook-integration
 ```
