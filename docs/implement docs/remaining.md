@@ -233,11 +233,12 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak
 - fulfillment ve refund/chargeback davranışı gerçek merchant sandbox kabulü olmadan
   production'a açılmayacak
-- iyzico Checkout Form HMAC ve bounded sandbox transport temeli tamamlandı; yeni kimlik,
-  telefon ve adres verisi toplama kararı verilmediği için checkout route/UI bağlantısı
-  ve provider aktivasyonu bilinçli olarak kapalı
-- iyzico için sıradaki dilimler: legal/veri sözleşmesi, durable initialize/retrieve
-  orchestration, Signature V3 webhook inbox ve gerçek merchant sandbox kabulü
+- iyzico Checkout Form HMAC, bounded sandbox transport ve `buyer-data-v1` request-only
+  veri sözleşmesi tamamlandı; kimlik, telefon ve adres değerleri profile/order/audit'e
+  veya hash biçiminde yazılmıyor
+- iyzico için sıradaki dilimler: merchant/aktarım hukuki incelemesi, durable
+  initialize/retrieve orchestration, Signature V3 webhook inbox ve gerçek merchant
+  sandbox kabulü
 - Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
   server-priced katalogla uyumluluk kararı bekliyor
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider

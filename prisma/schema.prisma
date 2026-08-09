@@ -514,6 +514,7 @@ model PaymentCheckoutConsent {
   checkoutTermsVersion         String   @map("checkout_terms_version") @db.VarChar(80)
   privacyNoticeVersion         String   @map("privacy_notice_version") @db.VarChar(80)
   distanceSalesNoticeVersion   String   @map("distance_sales_notice_version") @db.VarChar(80)
+  buyerDataPolicyVersion       String   @default("buyer-data-v1") @map("buyer_data_policy_version") @db.VarChar(80)
   acceptedAt                   DateTime @map("accepted_at")
   requestId                    String?  @map("request_id") @db.VarChar(80)
   userAgentHash                String?  @map("user_agent_hash") @db.Char(64)

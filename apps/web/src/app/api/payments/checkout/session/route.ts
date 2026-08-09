@@ -9,6 +9,7 @@ import {
     getActivePaymentOffer,
     getPaymentRuntimeReadiness,
     normalizePaymentGrantSnapshot,
+    PAYMENT_BUYER_DATA_POLICY_VERSION,
     paytrCheckoutContactSchema,
 } from "@hushle/platform-payments";
 import { enforceAccountCapability } from "@/lib/auth/account-capability";
@@ -171,6 +172,7 @@ export async function POST(request: Request) {
                 checkoutTermsVersion: body.legalAcceptance.checkoutTermsVersion,
                 privacyNoticeVersion: body.legalAcceptance.privacyNoticeVersion,
                 distanceSalesNoticeVersion: body.legalAcceptance.distanceSalesNoticeVersion,
+                buyerDataPolicyVersion: PAYMENT_BUYER_DATA_POLICY_VERSION,
                 acceptedAt: new Date(),
                 requestId: getBoundedRequestId(request),
                 userAgentHash: request.headers.get("user-agent")

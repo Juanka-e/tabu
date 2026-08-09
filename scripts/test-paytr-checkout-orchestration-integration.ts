@@ -42,6 +42,7 @@ async function createOrder(userId: number, suffix: string, shopItemId: number) {
             checkoutTermsVersion: "terms-test-v1",
             privacyNoticeVersion: "privacy-test-v1",
             distanceSalesNoticeVersion: "distance-test-v1",
+            buyerDataPolicyVersion: "buyer-data-v1",
             acceptedAt: new Date(),
         },
     });

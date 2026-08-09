@@ -113,6 +113,7 @@ jobs:
       - name: Test payment provider adapters and PayTR orchestration
         run: |
           npm run test:payment-iyzico-adapter
+          npm run test:payment-iyzico-buyer-data
           npm run test:payment-stripe-adapter
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance
