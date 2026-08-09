@@ -31,6 +31,7 @@
     "test:payment-checkout-e2e": "playwright test tests/payment-checkout-ui.spec.ts",
     "test:payment-paytr-adapter": "tsx scripts/test-paytr-iframe-adapter.ts",
     "test:payment-iyzico-adapter": "tsx scripts/test-iyzico-checkout-adapter.ts",
+    "test:payment-stripe-adapter": "tsx scripts/test-stripe-checkout-adapter.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",
     "payment:paytr-refund-sandbox-acceptance": "tsx scripts/run-paytr-refund-sandbox-acceptance.ts",

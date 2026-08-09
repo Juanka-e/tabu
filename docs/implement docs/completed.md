@@ -328,6 +328,14 @@
 - callback token'ını ödeme kanıtı saymayan server-side retrieve sözleşmesi
 - hassas alıcı verisi ve legal kararlar tamamlanana kadar route/UI bağlamayan fail-closed sınır
 
+### 45. `feature/stripe-checkout-adapter-foundation`
+
+- sabit Stripe Checkout Session endpoint'i ve pinli API sürümü kullanan sandbox transport
+- server-owned minor-unit tutar, order metadata ve provider idempotency key sözleşmesi
+- yalnız test/restricted-test key, hosted URL allowlist, timeout ve bounded stream response
+- redirect/session cevabını ödeme kanıtı saymayan webhook-first aktivasyon sınırı
+- Türkiye merchant uygunluğu bulunmadığı için production önceliği vermeyen realist provider kararı
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

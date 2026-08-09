@@ -75,11 +75,12 @@ const emptyEnvironment = {};
 const readiness = listPaymentProviderReadiness(emptyEnvironment);
 assert.deepEqual(readiness.map((item) => item.id), PAYMENT_PROVIDER_IDS);
 assert.equal(readiness.every((item) => !item.ready), true);
-assert.equal(getPaymentProviderReadiness("stripe", emptyEnvironment).missingEnvironment.length, 2);
+assert.equal(getPaymentProviderReadiness("stripe", emptyEnvironment).missingEnvironment.length, 3);
 assert.equal(
     getPaymentProviderReadiness("stripe", {
         STRIPE_SECRET_KEY: "sk_test_example",
         STRIPE_WEBHOOK_SECRET: "whsec_example",
+        STRIPE_CHECKOUT_MODE: "sandbox",
     }).credentialsConfigured,
     true
 );
@@ -87,9 +88,19 @@ assert.equal(
     getPaymentProviderReadiness("stripe", {
         STRIPE_SECRET_KEY: "sk_test_example",
         STRIPE_WEBHOOK_SECRET: "whsec_example",
+        STRIPE_CHECKOUT_MODE: "sandbox",
     }).ready,
     false,
     "credentials alone must not enable an unimplemented adapter"
+);
+assert.equal(
+    getPaymentProviderReadiness("stripe", {
+        STRIPE_SECRET_KEY: "sk_live_example",
+        STRIPE_WEBHOOK_SECRET: "whsec_example",
+        STRIPE_CHECKOUT_MODE: "sandbox",
+    }).credentialsConfigured,
+    false,
+    "live Stripe keys must not appear configured in the sandbox-only foundation"
 );
 assert.deepEqual(getPaymentRuntimeReadiness(emptyEnvironment), {
     enabled: false,
@@ -102,6 +113,7 @@ const enabledWithoutAdapter = getPaymentRuntimeReadiness({
     PAYMENT_ACTIVE_PROVIDER: "stripe",
     STRIPE_SECRET_KEY: "sk_test_example",
     STRIPE_WEBHOOK_SECRET: "whsec_example",
+    STRIPE_CHECKOUT_MODE: "sandbox",
 });
 assert.equal(enabledWithoutAdapter.ready, false);
 assert.deepEqual(enabledWithoutAdapter.issues, ["active_provider_adapter_unavailable"]);
