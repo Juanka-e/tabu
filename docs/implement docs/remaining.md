@@ -223,8 +223,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - checkout gecici iletisim alanlari, verified account email ve sandbox session create tamamlandi
 - webhook verifier registry baglantisi ve idempotent order processor tamamlandi
 - fulfillment sonrasi idempotent notification/cache invalidation tamamlandi
-- sandbox refund/chargeback yerel reversal ve admin reconciliation yolu tamamlandı;
-  live provider refund API, coin-lot reversal ve ikinci admin onayı eklenecek
+- sandbox refund/chargeback yerel reversal, ikinci admin onayı ve notlu vaka çözümleme tamamlandı;
+  live provider refund API ve coin-lot reversal eklenecek
 - provider redirect basari kaniti sayilmayacak; webhook/reconciliation dogrulamasi korunacak
 - fulfillment ve refund/chargeback davranisi sandbox testleri olmadan production'a acilmayacak
 - referans: `docs/guides/payment-checkout-and-legal-readiness.md`, `docs/guides/paytr-iframe-adapter.md`

@@ -57,25 +57,39 @@ await assert.rejects(
 );
 
 const reversal = readFileSync("packages/platform-payments/src/reversal.ts", "utf8");
+const caseResolution = readFileSync("packages/platform-payments/src/case-resolution.ts", "utf8");
 const reconciliation = readFileSync("packages/platform-payments/src/reconciliation.ts", "utf8");
 const migration = readFileSync("prisma/migrations/20260809020000_payment_reconciliation_reversal/migration.sql", "utf8");
+const approvalMigration = readFileSync("prisma/migrations/20260809040000_payment_case_resolution_dual_approval/migration.sql", "utf8");
 const reversalRoute = readFileSync("apps/web/src/app/api/admin/payments/[id]/reversal/route.ts", "utf8");
+const reviewRoute = readFileSync("apps/web/src/app/api/admin/payments/reversal-requests/[id]/review/route.ts", "utf8");
+const caseRoute = readFileSync("apps/web/src/app/api/admin/payments/cases/[id]/resolution/route.ts", "utf8");
 const reconciliationRoute = readFileSync("apps/web/src/app/api/admin/payments/[id]/reconcile/route.ts", "utf8");
 const retryRoute = readFileSync("apps/web/src/app/api/admin/payments/webhooks/[id]/retry/route.ts", "utf8");
 assert.match(reversal, /FOR UPDATE/);
 assert.match(reversal, /manual_review_no_wallet_mutation/);
 assert.match(reversal, /inventoryItem\.deleteMany/);
 assert.doesNotMatch(reversal, /applyWalletLedgerMutation/);
+assert.match(reversal, /second_approver_required/);
+assert.match(reversal, /admin_actor_required/);
+assert.match(reversal, /request\.requestedByUserId === value\.reviewedByUserId/);
+assert.match(caseResolution, /order_not_terminal/);
+assert.match(caseResolution, /FOR UPDATE/);
 assert.match(reconciliation, /provider_payment_mismatch/);
 assert.match(reconciliation, /returnCount > 0/);
 assert.match(migration, /UNIQUE INDEX `payment_reversals_order_id_key`/);
 assert.match(migration, /payment_reconciliation_cases/);
-for (const route of [reversalRoute, reconciliationRoute, retryRoute]) {
+assert.match(approvalMigration, /payment_reversal_requests/);
+assert.match(approvalMigration, /requested_by_user_id/);
+assert.match(approvalMigration, /reviewed_by_user_id/);
+for (const route of [reversalRoute, reviewRoute, caseRoute, reconciliationRoute, retryRoute]) {
     assert.match(route, /requireAdminSession/);
     assert.match(route, /consumeRequestRateLimit/);
     assert.match(route, /writeAuditLog/);
 }
 assert.match(reversalRoute, /confirmationOrderId/);
+assert.match(reviewRoute, /confirmationRequestId/);
+assert.match(caseRoute, /confirmationCaseId/);
 assert.match(reconciliationRoute, /confirmationOrderId/);
 assert.match(retryRoute, /confirmationEventId/);
 

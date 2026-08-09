@@ -20,6 +20,11 @@ const querySchema = z.object({
     search: z.string().trim().max(191).optional(),
 });
 
+function boundedThreshold(value: string | undefined, fallback: number): number {
+    const parsed = Number.parseInt(value ?? "", 10);
+    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10_000 ? parsed : fallback;
+}
+
 export async function GET(request: NextRequest) {
     const admin = await requireAdminSession();
     if (admin instanceof NextResponse) return admin;
@@ -55,7 +60,7 @@ export async function GET(request: NextRequest) {
             ],
         } : {}),
     } satisfies Prisma.PaymentOrderWhereInput;
-    const [total, orders, openCases, deadLetters] = await Promise.all([
+    const [total, orders, openCases, deadLetters, pendingApprovals, oldestOpenCase] = await Promise.all([
         prisma.paymentOrder.count({ where }),
         prisma.paymentOrder.findMany({
             where,
@@ -66,7 +71,21 @@ export async function GET(request: NextRequest) {
                 user: { select: { id: true, username: true } },
                 fulfillment: { select: { status: true, errorCode: true, completedAt: true, reversedAt: true } },
                 reversal: { select: { outcome: true, status: true, externalReference: true, reason: true, createdAt: true } },
-                reconciliationCase: { select: { status: true, reasonCode: true, attemptCount: true, lastErrorCode: true, lastCheckedAt: true } },
+                reconciliationCase: { select: { id: true, status: true, reasonCode: true, attemptCount: true, lastErrorCode: true, lastCheckedAt: true } },
+                reversalRequests: {
+                    where: { status: "pending" },
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                    select: {
+                        id: true,
+                        outcome: true,
+                        status: true,
+                        externalReference: true,
+                        reason: true,
+                        createdAt: true,
+                        requestedBy: { select: { id: true, username: true } },
+                    },
+                },
                 webhookEvents: {
                     orderBy: { createdAt: "desc" },
                     take: 1,
@@ -76,7 +95,15 @@ export async function GET(request: NextRequest) {
         }),
         prisma.paymentReconciliationCase.count({ where: { status: "open" } }),
         prisma.paymentWebhookEvent.count({ where: { status: "dead_letter" } }),
+        prisma.paymentReversalRequest.count({ where: { status: "pending" } }),
+        prisma.paymentReconciliationCase.findFirst({
+            where: { status: "open" },
+            orderBy: { createdAt: "asc" },
+            select: { createdAt: true },
+        }),
     ]);
+    const caseAlertThreshold = boundedThreshold(process.env.PAYMENT_OPEN_CASE_ALERT_THRESHOLD, 25);
+    const deadLetterAlertThreshold = boundedThreshold(process.env.PAYMENT_DEAD_LETTER_ALERT_THRESHOLD, 10);
     return NextResponse.json({
         items: orders.map((order) => ({
             ...order,
@@ -97,10 +124,21 @@ export async function GET(request: NextRequest) {
                 ...order.reconciliationCase,
                 lastCheckedAt: order.reconciliationCase.lastCheckedAt?.toISOString() ?? null,
             } : null,
+            reversalRequests: order.reversalRequests.map((entry) => ({
+                ...entry,
+                createdAt: entry.createdAt.toISOString(),
+            })),
         })),
         page,
         pages: Math.max(1, Math.ceil(total / limit)),
         total,
-        counts: { openCases, deadLetters },
+        counts: { openCases, deadLetters, pendingApprovals },
+        alerts: {
+            caseAlertThreshold,
+            deadLetterAlertThreshold,
+            openCaseThresholdExceeded: openCases >= caseAlertThreshold,
+            deadLetterThresholdExceeded: deadLetters >= deadLetterAlertThreshold,
+            oldestOpenCaseAt: oldestOpenCase?.createdAt.toISOString() ?? null,
+        },
     }, { headers: buildRateLimitHeaders(rateLimit) });
 }
