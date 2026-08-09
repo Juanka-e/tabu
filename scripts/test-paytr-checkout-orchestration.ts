@@ -78,7 +78,7 @@ const checkout = readFileSync(
 assert.match(route, /VERIFIED_EMAIL_REQUIRED/);
 assert.match(route, /PAYTR_SANDBOX_USER_IP/);
 assert.match(route, /normalizePaymentGrantSnapshot/);
-assert.match(route, /PRODUCT_NOT_SELLABLE/);
+assert.match(route, /INVALID_GRANT_SNAPSHOT/);
 assert.match(orderRoute, /userId: sessionUser\.id/);
 assert.match(checkout, /SANDBOX TEST/);
 assert.match(checkout, /Bu iletişim bilgileri yalnız ödeme oturumu için PayTR/);

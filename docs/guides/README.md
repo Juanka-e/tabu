@@ -128,3 +128,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 28. `payment-reconciliation-and-reversal.md`
 - PayTR durum sorgusu, uzlaştırma worker'ı ve admin operasyon yolunu tanımlar
 - kozmetik reversal, çift admin onayı ve ücretli coin lot geri alma sınırını açıklar
+
+29. `paytr-refund-adapter.md`
+- PayTR iade HMAC/transport kontratını ve production fail-closed sınırını tanımlar
+- timeout retry, idempotency ve durable provider attempt gereksinimini açıklar

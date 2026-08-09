@@ -232,7 +232,9 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 5. `shopier_v2` adapter'ı: güncel merchant V2 dokümanı ve sandbox erişimi doğrulandıktan sonra.
 6. `stripe` adapter'ı.
 7. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.
-8. Refund, chargeback ve paid-balance operasyon paneli.
+8. Refund HMAC/transport adapter foundation: tamamlandı; production çağrısı durable
+   attempt ve uncertain-state recovery tamamlanana kadar kapalıdır.
+9. Refund, chargeback ve paid-balance operasyon paneli.
 
 Bir adapter production smoke testini geçmeden admin seçim listesinde `Hazır` görünmez.
 
@@ -243,4 +245,5 @@ Bir adapter production smoke testini geçmeden admin seçim listesinde `Hazır` 
 - [Stripe webhook security](https://docs.stripe.com/webhooks)
 - [iyzico webhook ve Signature V3](https://docs.iyzico.com/ek-servisler/webhook)
 - [PayTR iFrame API](https://dev.paytr.com/iframe-api)
+- [PayTR İade API](https://dev.paytr.com/iade-api)
 - [Lemon Squeezy webhook requests](https://docs.lemonsqueezy.com/help/webhooks/webhook-requests)

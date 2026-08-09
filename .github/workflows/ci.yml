@@ -104,7 +104,9 @@ jobs:
           PAYMENT_FULFILLMENT_INTEGRATION_TEST: "true"
 
       - name: Test PayTR checkout orchestration
-        run: npm run test:payment-paytr-checkout-integration
+        run: |
+          npm run test:payment-paytr-refund
+          npm run test:payment-paytr-checkout-integration
         env:
           PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
 
