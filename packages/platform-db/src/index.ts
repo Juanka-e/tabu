@@ -15,6 +15,7 @@ export {
     PaymentProvider,
     PaymentReconciliationStatus,
     PaymentReversalOutcome,
+    PaymentReversalRequestStatus,
     PaymentReversalStatus,
     PaymentWebhookOutcome,
     PaymentWebhookProcessingStatus,
@@ -31,6 +32,7 @@ export type {
     PaymentOrder,
     PaymentReconciliationCase,
     PaymentReversal,
+    PaymentReversalRequest,
     PaymentWebhookEvent,
 } from "@prisma/client";
 

@@ -278,6 +278,14 @@
 - fungible coin için kazanılmış bakiyeye dokunmayan manuel inceleme politikası
 - admin ödeme operasyon görünümü, dead-letter retry ve audit'li reversal endpoint'i
 
+### 39. `feature/payment-case-resolution-and-dual-approval`
+
+- uzlaştırma vakaları için notlu `resolved` / `ignored` operatör kararları
+- yerel refund ve chargeback uygulamalarında farklı ikinci admin onayı
+- onay talebi, inceleyen admin ve karar notunu koruyan kalıcı işlem geçmişi
+- sipariş satır kilidi altında atomik onay, entitlement reversal ve yarış koruması
+- açık vaka, dead-letter ve bekleyen onay eşikleriyle admin-only operasyon uyarıları
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { reverseExternallyConfirmedPayment, PaymentReversalError } from "@hushle/platform-payments";
+import { requestExternallyConfirmedPaymentReversal, PaymentReversalError } from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         return NextResponse.json({ error: "Çok fazla ters işlem isteği." }, { status: 429, headers: buildRateLimitHeaders(rateLimit) });
     }
     try {
-        const result = await reverseExternallyConfirmedPayment({
+        const result = await requestExternallyConfirmedPaymentReversal({
             orderId: params.data.id,
             outcome: body.data.outcome,
             externalReference: body.data.externalReference,
@@ -41,20 +41,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         });
         await writeAuditLog({
             actor: admin,
-            action: "admin.payment.reversal.apply",
+            action: "admin.payment.reversal.request",
             resourceType: "payment_order",
             resourceId: params.data.id,
-            summary: `Applied externally confirmed ${body.data.outcome} to payment order`,
+            summary: `Requested externally confirmed ${body.data.outcome} reversal`,
             metadata: {
                 outcome: body.data.outcome,
                 externalReference: body.data.externalReference,
                 reason: body.data.reason,
-                reversalStatus: result.status,
-                duplicate: result.duplicate,
+                requestId: result.id,
             },
             request,
         });
-        return NextResponse.json(result, { headers: buildRateLimitHeaders(rateLimit) });
+        return NextResponse.json({ requestId: result.id, status: result.status }, { headers: buildRateLimitHeaders(rateLimit) });
     } catch (error) {
         if (error instanceof PaymentReversalError) {
             const status = error.code === "order_not_found" ? 404 : 409;
