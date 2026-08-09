@@ -303,6 +303,15 @@
 - isteğe bağlı, güvenli varsayılan metinli oyuncu bildirimi ve cache invalidation
 - açık vaka odaklı admin metriği, karar formu, audit ve Playwright doğrulaması
 
+### 42. `feature/paytr-refund-adapter-foundation`
+
+- provider-neutral refund request/result ve readiness kontratı
+- resmi alan sıralı HMAC-SHA256 PayTR refund formu ve sabit HTTPS endpoint
+- timeout, response boyutu ve exact order/amount/reference doğrulamalı transport
+- provider hata metnini dışarı taşımayan bounded hata davranışı
+- production'da refund execution'ı kapalı tutan preflight ve Compose env parity
+- admin route'larına para hareketi bağlanmadığını doğrulayan regresyon testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

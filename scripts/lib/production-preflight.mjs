@@ -210,6 +210,10 @@ export function validateProductionEnvironment(env) {
         result.errors.push("STATE_CHANGE_ORIGIN_POLICY must be strict.");
     }
 
+    if ((env.PAYTR_REFUND_MODE?.trim() || "disabled") !== "disabled") {
+        result.errors.push("PAYTR_REFUND_MODE must remain disabled until durable refund attempt and uncertain-state recovery are available.");
+    }
+
     if (isTrue(env.PAYMENTS_ENABLED)) {
         if (!isTrue(env.PAYMENT_LEGAL_APPROVED)) {
             result.errors.push("PAYMENT_LEGAL_APPROVED must be true before checkout is enabled.");

@@ -7,6 +7,7 @@ import { PaymentWebhookError } from "../webhook-inbox";
 export const PAYTR_IFRAME_TOKEN_ENDPOINT = "https://www.paytr.com/odeme/api/get-token";
 export const PAYTR_IFRAME_URL_PREFIX = "https://www.paytr.com/odeme/guvenli/";
 export const PAYTR_STATUS_QUERY_ENDPOINT = "https://www.paytr.com/odeme/durum-sorgu";
+export const PAYTR_REFUND_ENDPOINT = "https://www.paytr.com/odeme/iade";
 
 const MAX_CALLBACK_BYTES = 16_384;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -92,6 +93,123 @@ function formatMinorUnits(value: number): string {
     const whole = Math.floor(value / 100);
     const fraction = value % 100;
     return `${whole}.${fraction.toString().padStart(2, "0")}`;
+}
+
+const paytrRefundRequestSchema = z.object({
+    merchantOrderId: z.string().trim().regex(/^[A-Za-z0-9]{1,64}$/),
+    amountMinor: z.number().int().min(1).max(2_147_483_647),
+    referenceNo: z.string().trim().regex(/^[A-Za-z0-9]{1,64}$/),
+});
+
+const paytrRefundResponseSchema = z.discriminatedUnion("status", [
+    z.object({
+        status: z.literal("success"),
+        is_test: z.union([z.string(), z.number(), z.boolean()]),
+        merchant_oid: z.string().trim().min(1).max(64),
+        return_amount: z.union([z.string(), z.number()]),
+        reference_no: z.string().trim().min(1).max(64),
+    }),
+    z.object({
+        status: z.enum(["error", "failed"]),
+        err_no: z.union([z.string(), z.number()]).optional(),
+        err_msg: z.string().max(1000).optional(),
+    }),
+]);
+
+export type PaytrRefundResult = {
+    merchantOrderId: string;
+    amountMinor: number;
+    referenceNo: string;
+    testMode: boolean;
+};
+
+export function buildPaytrRefundForm(input: {
+    merchantOrderId: string;
+    amountMinor: number;
+    referenceNo: string;
+    credentials: PaytrCredentials;
+}): URLSearchParams {
+    const parsed = paytrRefundRequestSchema.safeParse(input);
+    if (!parsed.success) throw new PaytrAdapterError("invalid_request");
+    const credentials = parseCredentials(input.credentials);
+    const returnAmount = formatMinorUnits(parsed.data.amountMinor);
+    const token = hmacBase64(
+        `${credentials.merchantId}${parsed.data.merchantOrderId}${returnAmount}${credentials.merchantSalt}`,
+        credentials.merchantKey
+    );
+    return new URLSearchParams({
+        merchant_id: credentials.merchantId,
+        merchant_oid: parsed.data.merchantOrderId,
+        return_amount: returnAmount,
+        paytr_token: token,
+        reference_no: parsed.data.referenceNo,
+    });
+}
+
+export async function requestPaytrRefund(input: {
+    merchantOrderId: string;
+    amountMinor: number;
+    referenceNo: string;
+    credentials: PaytrCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<PaytrRefundResult> {
+    const request = paytrRefundRequestSchema.safeParse(input);
+    if (!request.success) throw new PaytrAdapterError("invalid_request");
+    const form = buildPaytrRefundForm({
+        ...request.data,
+        credentials: input.credentials,
+    });
+    const timeoutMs = Math.max(1_000, Math.min(input.timeoutMs ?? DEFAULT_TIMEOUT_MS, 30_000));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await (input.fetchImpl ?? fetch)(PAYTR_REFUND_ENDPOINT, {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: form.toString(),
+            signal: controller.signal,
+        });
+        if (!response.ok) throw new PaytrAdapterError("provider_unavailable");
+        const declaredLength = Number(response.headers.get("content-length") ?? "0");
+        if (declaredLength > 16_384) throw new PaytrAdapterError("invalid_provider_response");
+        const body = await response.text();
+        if (Buffer.byteLength(body, "utf8") > 16_384) {
+            throw new PaytrAdapterError("invalid_provider_response");
+        }
+        let json: unknown;
+        try {
+            json = JSON.parse(body);
+        } catch {
+            throw new PaytrAdapterError("invalid_provider_response");
+        }
+        const parsed = paytrRefundResponseSchema.safeParse(json);
+        if (!parsed.success) throw new PaytrAdapterError("invalid_provider_response");
+        if (parsed.data.status !== "success") throw new PaytrAdapterError("provider_rejected");
+        const amountMinor = parseProviderMoney(parsed.data.return_amount);
+        const referenceNo = parsed.data.reference_no;
+        if (
+            parsed.data.merchant_oid !== request.data.merchantOrderId
+            || amountMinor !== request.data.amountMinor
+            || referenceNo !== request.data.referenceNo
+        ) {
+            throw new PaytrAdapterError("invalid_provider_response");
+        }
+        return {
+            merchantOrderId: parsed.data.merchant_oid,
+            amountMinor,
+            referenceNo,
+            testMode: parsed.data.is_test === true
+                || parsed.data.is_test === 1
+                || parsed.data.is_test === "1",
+        };
+    } catch (error) {
+        if (error instanceof PaytrAdapterError) throw error;
+        if (controller.signal.aborted) throw new PaytrAdapterError("provider_timeout");
+        throw new PaytrAdapterError("provider_unavailable");
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 function buildBasket(items: z.infer<typeof basketItemSchema>[]): string {

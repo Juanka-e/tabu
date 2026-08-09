@@ -159,6 +159,13 @@ assert.ok(
     )
 );
 
+const prematurelyEnabledRefund = { ...checkoutWithLegalApproval, PAYTR_REFUND_MODE: "sandbox" };
+assert.ok(
+    validateProductionEnvironment(prematurelyEnabledRefund).errors.some((error) =>
+        error.includes("PAYTR_REFUND_MODE must remain disabled")
+    )
+);
+
 const incompletePaytrCheckout = { ...checkoutWithLegalApproval, PAYTR_MERCHANT_KEY: "" };
 assert.ok(
     validateProductionEnvironment(incompletePaytrCheckout).errors.some((error) =>

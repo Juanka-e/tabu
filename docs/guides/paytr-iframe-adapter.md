@@ -16,7 +16,8 @@ PAYTR_MERCHANT_SALT=...
 
 `PAYTR_CHECKOUT_MODE=live` bilinçli olarak fail-closed kalır. Kod token isteğinde
 `test_mode=1` değerini sabit gönderir. Sandbox callback processor tamamlanmıştır;
-refund, chargeback ve live operasyonlar bitmeden gerçek tahsilat açılmaz.
+Refund transport adapter foundation hazırdır ancak production çağrısı kapalıdır.
+Durable provider attempt/recovery ve live operasyonlar bitmeden gerçek tahsilat açılmaz.
 
 ## Checkout Akışı
 
@@ -56,7 +57,7 @@ cevabı, secret, iletişim alanları ve kart verisi log/audit/veritabanına yaz�
 
 ## Kalan Aktivasyon İşleri
 
-- expiry, refund ve chargeback state/reversal davranışı,
+- durable provider refund attempt ve uncertain-state recovery,
 - provider reconciliation ve admin dead-letter operasyon yolu,
 - Cloudflare callback no-challenge smoke testi,
 - hukuk onaylı işletme, aydınlatma ve mesafeli satış metinleri,
@@ -81,3 +82,4 @@ iletişim alanlarını, legal kabulleri ve sandbox iFrame açılışını doğru
 - [PayTR iFrame API](https://dev.paytr.com/iframe-api)
 - [PayTR iFrame API 1. Adım](https://dev.paytr.com/iframe-api/iframe-api-1-adim)
 - [PayTR iFrame API 2. Adım](https://dev.paytr.com/iframe-api/iframe-api-2-adim)
+- [PayTR İade API](https://dev.paytr.com/iade-api)
