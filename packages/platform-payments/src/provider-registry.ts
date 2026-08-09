@@ -56,7 +56,7 @@ const providers = {
     stripe: {
         id: "stripe",
         title: "Stripe",
-        requiredEnvironment: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+        requiredEnvironment: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_CHECKOUT_MODE"],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: false,
     },
@@ -102,6 +102,27 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_CHECKOUT_MODE")
     ) {
         missingEnvironment.push("IYZICO_CHECKOUT_MODE");
+    }
+    if (
+        provider === "stripe"
+        && environment.STRIPE_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"
+        && !missingEnvironment.includes("STRIPE_CHECKOUT_MODE")
+    ) {
+        missingEnvironment.push("STRIPE_CHECKOUT_MODE");
+    }
+    if (
+        provider === "stripe"
+        && !/^(?:sk|rk)_test_[A-Za-z0-9_]+$/.test(environment.STRIPE_SECRET_KEY?.trim() ?? "")
+        && !missingEnvironment.includes("STRIPE_SECRET_KEY")
+    ) {
+        missingEnvironment.push("STRIPE_SECRET_KEY");
+    }
+    if (
+        provider === "stripe"
+        && !/^whsec_[A-Za-z0-9_]+$/.test(environment.STRIPE_WEBHOOK_SECRET?.trim() ?? "")
+        && !missingEnvironment.includes("STRIPE_WEBHOOK_SECRET")
+    ) {
+        missingEnvironment.push("STRIPE_WEBHOOK_SECRET");
     }
     const credentialsConfigured = missingEnvironment.length === 0;
 

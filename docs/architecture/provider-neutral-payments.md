@@ -233,7 +233,9 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
    durable orchestration ve Signature V3 webhook dilimleri bitene kadar devre dışı.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
-7. `stripe` adapter'ı.
+7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,
+   merchant ülke uygunluğu ve sandbox kabulü bitene kadar devre dışı. Türkiye mevcut
+   resmi merchant ülke listesinde olmadığı için production önceliği değildir.
 8. `lemonsqueezy` adapter'ı; Merchant of Record ürün/ülke uygunluğu doğrulandıktan sonra.
 9. Refund HMAC/transport adapter foundation: tamamlandı.
 10. Durable refund attempt, uncertain-state recovery, ikinci admin ve operasyon paneli:

@@ -240,8 +240,13 @@ Bilincli olarak bu branch'te yapmiyoruz:
   orchestration, Signature V3 webhook inbox ve gerçek merchant sandbox kabulü
 - Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
   server-priced katalogla uyumluluk kararı bekliyor
+- Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider
+  idempotency ve API version pin mevcut, ancak webhook/fulfillment bağlı değil
+- Stripe resmi merchant ülke listesinde Türkiye olmadığı için production aktivasyonu
+  planlanmıyor; yalnız uygun gerçek tüzel kişilik ve ayrı sandbox kabulüyle yeniden değerlendirilir
 - referans: `docs/guides/payment-checkout-and-legal-readiness.md`,
-  `docs/guides/paytr-iframe-adapter.md`, `docs/guides/iyzico-checkout-adapter-foundation.md`
+  `docs/guides/paytr-iframe-adapter.md`, `docs/guides/iyzico-checkout-adapter-foundation.md`,
+  `docs/guides/stripe-checkout-adapter-foundation.md`
 
 ### `feature/google-oauth-account-linking-foundation` - tamamlandi
 - Google ile giris ve Settings icinden explicit hesap baglama
