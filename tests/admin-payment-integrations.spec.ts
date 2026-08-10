@@ -41,6 +41,7 @@ test.describe("admin payment integration readiness", () => {
         await page.goto("/admin/integrations");
         await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Commerce" })).toBeVisible();
+        await expect(page.getByText("Email Feedback", { exact: true })).toBeVisible();
         await expect(page.getByText("Payment Checkout Gate")).toBeVisible();
         await expect(page.getByText("Checkout is fail-closed and does not accept payments.")).toBeVisible();
 

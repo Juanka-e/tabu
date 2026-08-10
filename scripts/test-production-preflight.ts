@@ -117,6 +117,12 @@ function validEnvironment(): Record<string, string> {
         EMAIL_FROM: "Hushle <no-reply@hushle.test>",
         SMTP_HOST: "smtp.hushle.test",
         SMTP_PORT: "587",
+        PRODUCTION_EMAIL_FEEDBACK_POLICY: "ses_sns",
+        SES_FEEDBACK_WEBHOOK_ENABLED: "true",
+        SES_SNS_TOPIC_ARNS: "arn:aws:sns:eu-central-1:123456789012:hushle-ses-feedback",
+        SES_ALLOWED_SOURCE_ARNS: "arn:aws:ses:eu-central-1:123456789012:identity/hushle.test",
+        SES_SNS_AUTO_CONFIRM: "false",
+        SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE: "600",
         JOBS_ENABLED: "true",
         BACKUP_REMOTE_ENABLED: "true",
         BACKUP_S3_ENDPOINT: "https://account.r2.cloudflarestorage.com",
@@ -151,6 +157,10 @@ const acceptedRisk = validEnvironment();
 acceptedRisk.PRODUCTION_CAPTCHA_POLICY = "disabled_risk_accepted";
 acceptedRisk.PRODUCTION_EMAIL_POLICY = "disabled_risk_accepted";
 acceptedRisk.EMAIL_PROVIDER = "disabled";
+acceptedRisk.PRODUCTION_EMAIL_FEEDBACK_POLICY = "disabled";
+acceptedRisk.SES_FEEDBACK_WEBHOOK_ENABLED = "false";
+acceptedRisk.SES_SNS_TOPIC_ARNS = "";
+acceptedRisk.SES_ALLOWED_SOURCE_ARNS = "";
 acceptedRisk.JOBS_ENABLED = "false";
 acceptedRisk.PRODUCTION_OBSERVABILITY_POLICY = "disabled_risk_accepted";
 acceptedRisk.PRODUCTION_OAUTH_POLICY = "disabled_risk_accepted";
@@ -163,6 +173,48 @@ acceptedRisk.OBSERVABILITY_EXPORT_TOKEN = "";
 const riskResult = validateProductionEnvironment(acceptedRisk);
 assert.deepEqual(riskResult.errors, []);
 assert.equal(riskResult.warnings.length, 4);
+
+const missingSesTopics = validEnvironment();
+missingSesTopics.SES_SNS_TOPIC_ARNS = "";
+assert.ok(
+    validateProductionEnvironment(missingSesTopics).errors.some((error) =>
+        error.includes("SES_SNS_TOPIC_ARNS")
+    )
+);
+
+const missingSesSources = validEnvironment();
+missingSesSources.SES_ALLOWED_SOURCE_ARNS = "";
+assert.ok(
+    validateProductionEnvironment(missingSesSources).errors.some((error) =>
+        error.includes("SES_ALLOWED_SOURCE_ARNS")
+    )
+);
+
+const mismatchedSesRegion = validEnvironment();
+mismatchedSesRegion.SES_ALLOWED_SOURCE_ARNS =
+    "arn:aws:ses:eu-west-1:123456789012:identity/hushle.test";
+assert.ok(
+    validateProductionEnvironment(mismatchedSesRegion).errors.some((error) =>
+        error.includes("partition and region")
+    )
+);
+
+const invalidSesRateLimit = validEnvironment();
+invalidSesRateLimit.SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE = "20";
+assert.ok(
+    validateProductionEnvironment(invalidSesRateLimit).errors.some((error) =>
+        error.includes("SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE")
+    )
+);
+
+const providerManagedFeedback = validEnvironment();
+providerManagedFeedback.PRODUCTION_EMAIL_FEEDBACK_POLICY = "provider_managed_risk_accepted";
+providerManagedFeedback.SES_FEEDBACK_WEBHOOK_ENABLED = "false";
+providerManagedFeedback.SES_SNS_TOPIC_ARNS = "";
+providerManagedFeedback.SES_ALLOWED_SOURCE_ARNS = "";
+const providerManagedResult = validateProductionEnvironment(providerManagedFeedback);
+assert.deepEqual(providerManagedResult.errors, []);
+assert.ok(providerManagedResult.warnings.some((warning) => warning.includes("delegated")));
 
 const staleDisabledExporter = { ...acceptedRisk };
 staleDisabledExporter.OBSERVABILITY_EXPORT_TOKEN = "stale-token";

@@ -415,6 +415,12 @@
 - callback, webhook ve reconciliation akışını kesmeyen rollback sınırı
 - health ve PII'siz merkezi observability görünürlüğü
 
+### 57. `feature/ses-feedback-webhook-foundation`
+- exact topic ARN ve aynı-region AWS sertifika hostu doğrulamalı SNS adapter
+- bounded body/certificate fetch, signature V1/V2 ve distributed route rate limit
+- permanent bounce/complaint suppression, transient bounce koruması ve recipient bazlı idempotency
+- güvenli subscription confirmation gate, production preflight ve Cloudflare route policy
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

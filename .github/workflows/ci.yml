@@ -43,6 +43,11 @@ jobs:
       - name: Test mobile API foundation
         run: npm run test:mobile-api
 
+      - name: Test SES feedback webhook security
+        run: |
+          npm run test:ses-feedback-webhook
+          npm run test:ses-feedback-route
+
   # ─── 2. Build Check ───────────────────────────────────────────────
   build:
     name: Build
@@ -187,6 +192,13 @@ jobs:
         run: npm run test:payment-operations-admin-e2e
         env:
           PAYMENT_OPERATIONS_ADMIN_E2E: "true"
+          ADMIN_ACCESS_MODE: "public_login"
+          ADMIN_ACCESS_FAIL_CLOSED: "false"
+
+      - name: Test admin integration readiness UI
+        run: npm run test:payment-integrations-admin-e2e
+        env:
+          PAYMENT_INTEGRATIONS_ADMIN_E2E: "true"
           ADMIN_ACCESS_MODE: "public_login"
           ADMIN_ACCESS_FAIL_CLOSED: "false"
 

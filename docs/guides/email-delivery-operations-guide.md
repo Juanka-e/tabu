@@ -28,9 +28,10 @@ kapsamlı suppression üretir. Worker bu mesajı sağlayıcıya göndermeden dea
 taşır.
 
 Nodemailer SMTP standart ve doğrulanabilir bounce/complaint webhook'u sağlamaz.
-Bu nedenle dışarı açık genel bir webhook route'u yoktur. SES entegrasyonu geldiğinde
-SNS/EventBridge imzasını provider adaptörü doğrulamalı, sonra yalnız normalize
-domain event'ini bu servise vermelidir. Ham webhook payload'ı kalıcı tutulmaz.
+SES/SNS adaptörü `POST /api/email/webhooks/ses` üzerinde imza, exact topic ARN ve
+AWS sertifika hostunu doğrular; sonra yalnız normalize domain event'ini bu servise
+verir. Ham webhook payload'ı kalıcı tutulmaz. Ayrıntılar:
+[`ses-feedback-webhook.md`](./ses-feedback-webhook.md).
 
 Provider event kanıtları mevcut dead-letter retention süresiyle (varsayılan 90
 gün) bounded batch halinde silinir. Suppression kayıtları ise yanlışlıkla yeniden
@@ -57,16 +58,16 @@ Redis job lease backup'a dahil değildir; source of truth MySQL'dir.
 
 ## Gelecek Provider Adaptörü
 
-1. SES SNS/EventBridge signature ve subscription doğrulaması
-2. provider message ID'nin gönderim sonucundan outbox'a yazılması
-3. event mapping fixture'ları
-4. suppression inceleme/kaldırma için ayrı admin yetkisi
-5. transactional akıştan ayrı marketing consent/unsubscribe sistemi
+1. SES API transport kullanılırsa provider message ID'nin outbox'a yazılması
+2. gerçek AWS SNS subscription ve simulator kabul kanıtı
+3. suppression inceleme/kaldırma için ayrı admin yetkisi
+4. transactional akıştan ayrı marketing consent/unsubscribe sistemi
 
 ## Doğrulama
 
 ```bash
 npm run test:email-delivery-operations
+npm run test:ses-feedback-webhook
 EMAIL_DELIVERY_OPERATIONS_INTEGRATION=true npm run test:email-delivery-operations-integration
 EMAIL_DELIVERY_ADMIN_E2E=true npm run test:email-delivery-admin-e2e
 npm run test:prisma-migrations

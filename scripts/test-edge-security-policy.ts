@@ -30,10 +30,16 @@ assert.ok(routes.get("websocket")?.forbiddenEdgeControls.includes("require-refer
 assert.ok(routes.get("websocket")?.forbiddenEdgeControls.includes("managed-challenge"));
 assert.ok(routes.get("payment-webhook")?.forbiddenEdgeControls.includes("browser-challenge"));
 assert.ok(routes.get("payment-webhook")?.forbiddenEdgeControls.includes("session-check"));
+assert.ok(routes.get("email-provider-webhook")?.forbiddenEdgeControls.includes("browser-challenge"));
+assert.ok(routes.get("email-provider-webhook")?.forbiddenEdgeControls.includes("origin-check"));
 
 const userAgentRule = policy.candidateRules.find((rule) => rule.id === "bad-user-agent-browser-only");
 assert.equal(userAgentRule?.status, "observe");
-assert.deepEqual(userAgentRule?.excludedRouteClasses, ["websocket", "payment-webhook"]);
+assert.deepEqual(userAgentRule?.excludedRouteClasses, [
+    "websocket",
+    "payment-webhook",
+    "email-provider-webhook",
+]);
 assert.equal(
     policy.candidateRules.find((rule) => rule.id === "empty-or-bad-referer")?.status,
     "disabled"

@@ -25,6 +25,11 @@ async function main(): Promise<void> {
         "integration_test_email_token_secret_123456";
     process.env.SMTP_HOST = "127.0.0.1";
     process.env.SMTP_PORT = "1025";
+    process.env.PRODUCTION_EMAIL_FEEDBACK_POLICY = "ses_sns";
+    process.env.SES_FEEDBACK_WEBHOOK_ENABLED = "true";
+    process.env.SES_SNS_TOPIC_ARNS = "arn:aws:sns:eu-central-1:123456789012:hushle-ses-feedback";
+    process.env.SES_ALLOWED_SOURCE_ARNS = "arn:aws:ses:eu-central-1:123456789012:identity/hushle.example";
+    process.env.SES_SNS_AUTO_CONFIRM = "false";
     process.env.PAYMENTS_ENABLED = "false";
     process.env.PAYMENT_ACTIVE_PROVIDER = "";
 
@@ -50,9 +55,13 @@ async function main(): Promise<void> {
     const turnstile = snapshot.items.find((item) => item.id === "turnstile");
     const adminAccess = snapshot.items.find((item) => item.id === "admin-access-gateway");
     const emailOutbound = snapshot.items.find((item) => item.id === "email-outbound");
+    const emailFeedback = snapshot.items.find((item) => item.id === "email-feedback");
     const redis = snapshot.items.find((item) => item.id === "redis-valkey");
     const paymentGate = snapshot.items.find((item) => item.id === "payment-checkout-gate");
-    const paymentProviders = snapshot.items.filter((item) => item.id.startsWith("payment-") && item.id !== "payment-checkout-gate");
+    const paymentProviders = snapshot.items.filter(
+        (item) => item.id.startsWith("payment-")
+            && !["payment-checkout-gate", "payment-legal-gate"].includes(item.id)
+    );
 
     assert.ok(turnstile);
     assert.equal(turnstile.status, "ready");
@@ -63,13 +72,17 @@ async function main(): Promise<void> {
     assert.ok(emailOutbound);
     assert.equal(emailOutbound.status, "ready");
 
+    assert.ok(emailFeedback);
+    assert.equal(emailFeedback.status, "ready");
+    assert.equal(emailFeedback.details.some((detail) => detail.includes("123456789012")), false);
+
     assert.ok(redis);
     assert.equal(redis.status, "planned");
 
     assert.ok(paymentGate);
     assert.equal(paymentGate.status, "planned");
     assert.equal(paymentProviders.length, 5);
-    assert.equal(paymentProviders.every((item) => item.status === "planned"), true);
+    assert.equal(paymentProviders.every((item) => item.category === "commerce"), true);
 
     console.log("integration hub smoke test passed");
 }

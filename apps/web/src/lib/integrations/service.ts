@@ -4,7 +4,12 @@ import {
     type JsonCacheMetrics,
     type RedisHealth,
 } from "@hushle/platform-cache";
-import { getEmailProviderReadiness } from "@hushle/platform-email";
+import {
+    getEmailProviderReadiness,
+    isValidSesSourceArn,
+    isValidSnsTopicArn,
+    parseSesFeedbackConfig,
+} from "@hushle/platform-email";
 import {
     getPaymentRuntimeReadiness,
     listPaymentProviderReadiness,
@@ -173,6 +178,23 @@ function buildAccessItems(): IntegrationItem[] {
 
 function buildMessagingItems(): IntegrationItem[] {
     const email = getEmailProviderReadiness();
+    const feedback = parseSesFeedbackConfig();
+    const feedbackPolicy = process.env.PRODUCTION_EMAIL_FEEDBACK_POLICY?.trim() ?? "disabled";
+    const topicsValid = feedback.topicArns.size > 0
+        && [...feedback.topicArns].every(isValidSnsTopicArn);
+    const sourcesValid = feedback.sourceArns.size > 0
+        && [...feedback.sourceArns].every(isValidSesSourceArn);
+    const feedbackReady = feedbackPolicy === "ses_sns"
+        && feedback.enabled
+        && topicsValid
+        && sourcesValid;
+    const feedbackStatus: IntegrationStatus = feedbackReady
+        ? "ready"
+        : feedbackPolicy === "provider_managed_risk_accepted"
+          ? "partial"
+          : email.configured
+            ? "missing"
+            : "planned";
 
     return [
         {
@@ -190,6 +212,24 @@ function buildMessagingItems(): IntegrationItem[] {
                     ? `Issues: ${email.issues.join(", ")}`
                     : "Outbox delivery: ready",
                 "Marketing delivery remains disabled until explicit consent enforcement is implemented.",
+            ],
+        },
+        {
+            id: "email-feedback",
+            category: "messaging",
+            title: "Email Feedback",
+            status: feedbackStatus,
+            summary: feedbackReady
+                ? "SES/SNS bounce ve complaint feedback doğrulaması hazır."
+                : feedbackPolicy === "provider_managed_risk_accepted"
+                  ? "Feedback yönetimi harici sağlayıcıya bırakılmış."
+                  : "Bounce ve complaint feedback yapılandırması eksik.",
+            details: [
+                `Policy: ${feedbackPolicy}`,
+                `SES endpoint: ${feedback.enabled ? "enabled" : "disabled"}`,
+                `Allowed topics: ${feedback.topicArns.size}`,
+                `Allowed identities: ${feedback.sourceArns.size}`,
+                `Auto-confirm: ${feedback.autoConfirm ? "bootstrap enabled" : "disabled"}`,
             ],
         },
     ];

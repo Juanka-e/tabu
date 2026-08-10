@@ -50,7 +50,7 @@ akisi ile ertelenebilir. Acik public kayit icin ertelenmemelidir.
 | HTTP CSRF/origin | Hazir | Production state-change istekleri allowlisted exact Origin ister; eksik header ve cross-site Fetch Metadata fail-closed reddedilir |
 | Uye kayit | Hazir/Kismi | 8 karakter + zxcvbn, HIBP, bcrypt, captcha, rate-limit ve admin kontrollu e-posta dogrulama modu var |
 | Uye giris | Hazir/Kismi | Web/mobile ortak Redis basarisizlik limitleri, bcrypt, captcha, suspension ve 24 saat JWT var |
-| Email verification | Hazir/Kismi | Token, provider bagimsiz outbox, atomik claim, suppression ve admin dead-letter akisi var; production provider smoke gerekir |
+| Email verification | Hazir/Kismi | Token, provider bagimsiz outbox, atomik claim, SES/SNS imzali suppression ve admin dead-letter akisi var; production provider smoke gerekir |
 | Password reset | Hazir/Kismi | Tek kullanimlik token, enumeration-safe request ve session revoke var; production provider smoke gerekir |
 | Cloudflare Turnstile | Kismi | Client/server uygulamasi hazir; production key ve aktivasyon gerekiyor |
 | reCAPTCHA v3 | Kismi | Alternatif provider kodu hazir; key ve aktivasyon gerekiyor |
@@ -192,7 +192,7 @@ Bu branch ile Turnstile CSP ve Docker env parity eksikleri kapatildi.
 
 1. Captcha varsayilan olarak kapali; production key/domain smoke ve admin aktivasyonu deploy oncesi zorunlu.
 2. Production SMTP credential ve gercek teslimat smoke kaniti yok.
-3. SES imza dogrulamali bounce/complaint transport adaptoru yok.
+3. SES imza dogrulamali bounce/complaint transport adaptoru hazir; gercek SNS subscription ve simulator smoke kaniti yok.
 4. Admin MFA/WebAuthn yok.
 5. bcrypt'ten Argon2id'e kademeli rehash henuz yok.
 6. Parola kurtarma ve e-posta degisikligi uygulanmistir; production SMTP,
@@ -211,7 +211,7 @@ Uygulanan minimum:
 
 Siradaki minimum:
 
-- production SMTP credential smoke ve SES imza doğrulamalı webhook adaptörü
+- production SMTP credential, gerçek SNS subscription ve SES simulator smoke kanıtı
 - native mobile recovery/change transport endpoint'leri
 - adminler icin Cloudflare Access MFA; daha sonra uygulama ici WebAuthn
 

@@ -20,8 +20,8 @@ duraklatildi. Tamamlananlar ve yeniden baslama sirasi
 bu ertelemenin disindadir.
 
 E-posta doğrulama, hesap kurtarma ve teslimat operasyon temeli tamamlandı.
-Provider'a özel doğrulanmış SES webhook adaptörü ile consent tabanlı marketing
-gönderimi ayrı dar branch'lerde ele alınacaktır. Referans:
+Provider'a özel doğrulanmış SES webhook adaptörü tamamlandı. Gerçek AWS SNS kabulü
+ile consent tabanlı marketing gönderimi ayrı dar branch'lerde ele alınacaktır. Referans:
 `docs/guides/email-delivery-operations-guide.md`.
 
 OAuth karari: Google login launch blocker degildir fakat gercek kullanici verisi

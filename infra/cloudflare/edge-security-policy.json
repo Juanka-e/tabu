@@ -34,6 +34,13 @@
       "applicationControls": ["provider-signature", "raw-body", "event-deduplication", "async-inbox", "body-size-limit"],
       "edgeControls": ["ddos", "managed-waf"],
       "forbiddenEdgeControls": ["browser-challenge", "referer-check", "origin-check", "session-check", "blanket-datacenter-asn-block"]
+    },
+    {
+      "id": "email-provider-webhook",
+      "paths": ["/api/email/webhooks/ses"],
+      "applicationControls": ["sns-signature", "topic-allowlist", "event-deduplication", "body-size-limit", "redis-rate-limit"],
+      "edgeControls": ["ddos", "managed-waf"],
+      "forbiddenEdgeControls": ["browser-challenge", "referer-check", "origin-check", "session-check", "blanket-datacenter-asn-block"]
     }
   ],
   "candidateRules": [
@@ -42,7 +49,7 @@
       "status": "observe",
       "actionAfterObservation": "managed-challenge",
       "scope": "browser-navigation-only",
-      "excludedRouteClasses": ["websocket", "payment-webhook"]
+      "excludedRouteClasses": ["websocket", "payment-webhook", "email-provider-webhook"]
     },
     {
       "id": "empty-or-bad-referer",
@@ -53,7 +60,7 @@
       "id": "datacenter-network",
       "status": "observe",
       "actionAfterObservation": "managed-challenge-sensitive-browser-entry-only",
-      "excludedRouteClasses": ["websocket", "payment-webhook"]
+      "excludedRouteClasses": ["websocket", "payment-webhook", "email-provider-webhook"]
     }
   ]
 }
