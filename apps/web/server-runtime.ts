@@ -10,6 +10,7 @@ import {
 } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
 import { getPaymentSchedulerHealth } from "./src/lib/payments/scheduler-health";
+import { getPaymentCheckoutControl } from "./src/lib/payments/checkout-control";
 import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
 import {
     allowOriginlessSocketClients,
@@ -107,9 +108,13 @@ app.prepare().then(async () => {
         }
 
         const metrics = getRoomMetrics();
-        const [redis, paymentSchedulers] = await Promise.all([
+        const paymentsEnabled = process.env.PAYMENTS_ENABLED?.trim().toLowerCase() === "true";
+        const [redis, paymentSchedulers, paymentCheckoutControl] = await Promise.all([
             getRedisHealth(),
             getPaymentSchedulerHealth(),
+            paymentsEnabled
+                ? getPaymentCheckoutControl().catch(() => null)
+                : Promise.resolve(null),
         ]);
         const socketRedisAdapterStatus =
             socketRedisAdapter?.getStatus() ?? {
@@ -160,12 +165,16 @@ app.prepare().then(async () => {
             roomRoutingStatus.localStateMissing > 0 ||
             roomRoutingStatus.ownershipMismatches > 0;
         const paymentSchedulersDegraded =
-            process.env.PAYMENTS_ENABLED?.trim().toLowerCase() === "true"
+            paymentsEnabled
             && paymentSchedulers.some((scheduler) => scheduler.status !== "healthy");
+        const paymentCheckoutControlDegraded = paymentsEnabled
+            && (!paymentCheckoutControl || !paymentCheckoutControl.available);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
             JSON.stringify({
-                status: realtimeDegraded || paymentSchedulersDegraded ? "degraded" : "ok",
+                status: realtimeDegraded || paymentSchedulersDegraded || paymentCheckoutControlDegraded
+                    ? "degraded"
+                    : "ok",
                 uptime: process.uptime(),
                 dependencies: {
                     redis,
@@ -185,6 +194,12 @@ app.prepare().then(async () => {
                 observability: getObservabilityStatus(),
                 payments: {
                     schedulers: paymentSchedulers,
+                    checkoutControl: paymentCheckoutControl ? {
+                        available: paymentCheckoutControl.available,
+                        paused: paymentCheckoutControl.control.paused,
+                        rolloutPercent: paymentCheckoutControl.control.rolloutPercent,
+                        revision: paymentCheckoutControl.control.revision,
+                    } : null,
                 },
                 ...metrics,
             })

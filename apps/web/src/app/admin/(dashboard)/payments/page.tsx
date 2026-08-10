@@ -109,6 +109,25 @@ type PaymentResponse = {
         ready: boolean;
         issues: string[];
     };
+    checkoutControl: {
+        control: {
+            paused: boolean;
+            rolloutPercent: number;
+            revision: number;
+            lastChangeReason: string;
+        };
+        available: boolean;
+        source: "default" | "stored" | "invalid";
+        updatedAt: string | null;
+        updatedBy: { id: number; username: string } | null;
+    };
+    checkoutActivation: {
+        activeProvider: string | null;
+        runtimeReady: boolean;
+        legalReady: boolean;
+        providerSurfaceReady: boolean;
+        rolloutSeedConfigured: boolean;
+    };
 };
 
 function schedulerStatusText(status: PaymentResponse["schedulerHealth"][number]["status"]): string {
@@ -166,6 +185,10 @@ export default function AdminPaymentsPage() {
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [busyId, setBusyId] = useState<string | null>(null);
+    const [checkoutPaused, setCheckoutPaused] = useState(true);
+    const [rolloutPercent, setRolloutPercent] = useState(0);
+    const [rolloutReason, setRolloutReason] = useState("");
+    const [rolloutConfirmation, setRolloutConfirmation] = useState("");
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -178,12 +201,43 @@ export default function AdminPaymentsPage() {
                 throw new Error(payload && "error" in payload ? payload.error : "Ödemeler yüklenemedi.");
             }
             setData(payload);
+            setCheckoutPaused(payload.checkoutControl.control.paused);
+            setRolloutPercent(payload.checkoutControl.control.rolloutPercent);
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Ödemeler yüklenemedi.");
         } finally {
             setLoading(false);
         }
     }, [page, search, status]);
+
+    async function updateCheckoutControl(input: {
+        paused: boolean;
+        rolloutPercent: number;
+        reason: string;
+        confirmation?: string;
+    }) {
+        if (!data) return;
+        setBusyId("checkout-control");
+        try {
+            const response = await fetch("/api/admin/payments/checkout-control", {
+                method: "PATCH",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    ...input,
+                    expectedRevision: data.checkoutControl.control.revision,
+                }),
+            });
+            if (!response.ok) throw new Error(await readError(response, "Ödeme kontrolü güncellenemedi."));
+            toast.success(input.paused ? "Yeni checkout işlemleri durduruldu." : "Checkout rollout ayarı güncellendi.");
+            setRolloutReason("");
+            setRolloutConfirmation("");
+            await load();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Ödeme kontrolü güncellenemedi.");
+        } finally {
+            setBusyId(null);
+        }
+    }
     useEffect(() => { void load(); }, [load]);
 
     async function post(url: string, body: object, fallback: string): Promise<Record<string, unknown>> {
@@ -313,6 +367,14 @@ export default function AdminPaymentsPage() {
     const alertActive = Boolean(
         data?.alerts.openCaseThresholdExceeded || data?.alerts.deadLetterThresholdExceeded
     );
+    const rolloutExpands = Boolean(
+        data
+        && !checkoutPaused
+        && (
+            data.checkoutControl.control.paused
+            || rolloutPercent > data.checkoutControl.control.rolloutPercent
+        )
+    );
 
     return (
         <div className="space-y-6 p-4 md:p-6">
@@ -323,6 +385,115 @@ export default function AdminPaymentsPage() {
                 icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
                 action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Yenile</Button>}
             />
+
+            {data ? (
+                <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+                    <div className="flex flex-col gap-3 border-b bg-muted/25 p-4 md:flex-row md:items-center md:justify-between md:p-5">
+                        <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 rounded-xl p-2 ${data.checkoutControl.control.paused ? "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"}`}>
+                                <ShieldAlert className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h2 className="font-semibold">Checkout yayın kontrolü</h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Yalnız yeni ödeme oturumlarını yönetir. Callback, webhook ve uzlaştırma bekleyen siparişleri tamamlamaya devam eder.
+                                </p>
+                            </div>
+                        </div>
+                        <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${data.checkoutControl.control.paused ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"}`}>
+                            {data.checkoutControl.control.paused
+                                ? "Yeni checkout durduruldu"
+                                : `Açık · kullanıcıların %${data.checkoutControl.control.rolloutPercent}'i`}
+                        </span>
+                    </div>
+
+                    <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+                        <div className="space-y-4">
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                {[
+                                    ["Runtime", data.checkoutActivation.runtimeReady],
+                                    ["Hukuki kanıt", data.checkoutActivation.legalReady],
+                                    ["Provider yüzeyi", data.checkoutActivation.providerSurfaceReady],
+                                    ["Rollout seed", data.checkoutActivation.rolloutSeedConfigured],
+                                ].map(([label, ready]) => (
+                                    <div key={String(label)} className="rounded-xl border bg-background p-3">
+                                        <p className="text-xs text-muted-foreground">{label}</p>
+                                        <p className={`mt-1 text-sm font-semibold ${ready ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
+                                            {ready ? "Hazır" : "Hazır değil"}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="rounded-xl border bg-muted/20 p-3 text-sm">
+                                <p><strong>Aktif provider:</strong> {data.checkoutActivation.activeProvider ?? "Seçilmedi"}</p>
+                                <p className="mt-1 text-muted-foreground">
+                                    Son değişiklik: {data.checkoutControl.updatedAt ? new Date(data.checkoutControl.updatedAt).toLocaleString("tr-TR") : "Henüz yok"}
+                                    {data.checkoutControl.updatedBy ? ` · @${data.checkoutControl.updatedBy.username}` : ""}
+                                    {` · rev ${data.checkoutControl.control.revision}`}
+                                </p>
+                                <p className="mt-1 text-muted-foreground">Not: {data.checkoutControl.control.lastChangeReason}</p>
+                            </div>
+                            {!data.checkoutControl.available ? (
+                                <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900 dark:bg-rose-950/30 dark:text-rose-100">
+                                    Kontrol kaydı geçersiz. Sistem fail-closed davranır ve yeni checkout açmaz.
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <form
+                            className="space-y-3 rounded-xl border bg-background p-4"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                void updateCheckoutControl({
+                                    paused: checkoutPaused,
+                                    rolloutPercent,
+                                    reason: rolloutReason,
+                                    confirmation: rolloutConfirmation || undefined,
+                                });
+                            }}
+                        >
+                            <label className="block text-sm font-medium">
+                                Yeni checkout durumu
+                                <select className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm" value={checkoutPaused ? "paused" : "open"} onChange={(event) => setCheckoutPaused(event.target.value === "paused")}>
+                                    <option value="paused">Durduruldu</option>
+                                    <option value="open">Kademeli olarak açık</option>
+                                </select>
+                            </label>
+                            <label className="block text-sm font-medium">
+                                Kullanıcı rollout yüzdesi
+                                <Input className="mt-1" type="number" min={checkoutPaused ? 0 : 1} max={100} value={rolloutPercent} onChange={(event) => setRolloutPercent(Number(event.target.value))} required />
+                            </label>
+                            <label className="block text-sm font-medium">
+                                Operasyon notu
+                                <Input className="mt-1" value={rolloutReason} onChange={(event) => setRolloutReason(event.target.value)} minLength={3} maxLength={300} placeholder="Neden değiştirildi?" required />
+                            </label>
+                            {rolloutExpands ? (
+                                <label className="block text-sm font-medium text-amber-800 dark:text-amber-200">
+                                    Onay için ODEMEYI AC yazın
+                                    <Input className="mt-1" value={rolloutConfirmation} onChange={(event) => setRolloutConfirmation(event.target.value)} autoComplete="off" required />
+                                </label>
+                            ) : null}
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                <Button type="submit" disabled={busyId === "checkout-control" || !data.checkoutControl.available}>
+                                    {busyId === "checkout-control" ? "Kaydediliyor..." : "Kontrolü kaydet"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    disabled={busyId === "checkout-control" || data.checkoutControl.control.paused || !data.checkoutControl.available}
+                                    onClick={() => void updateCheckoutControl({
+                                        paused: true,
+                                        rolloutPercent: data.checkoutControl.control.rolloutPercent,
+                                        reason: "Admin acil durdurma",
+                                    })}
+                                >
+                                    Acil durdur
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            ) : null}
 
             {data ? (
                 <div className={`flex gap-3 rounded-2xl border p-4 ${data.refundExecution.ready ? "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"}`}>

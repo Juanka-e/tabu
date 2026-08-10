@@ -110,6 +110,10 @@ Ubuntu 24.04 üzerinde hedef sade model:
     `scripts/ops/check-payment-health.sh` ile iki scheduler'ı `healthy` görmeli.
 18. Ödeme açıksa legal ve provider acceptance evidence dosyalarının SHA-256 değerleri
     production env ile eşleşmeli; preflight stale veya değiştirilmiş kanıtı reddetmeli.
+19. `PAYMENT_ROLLOUT_SEED` secret manager'da sabit tutulmalı; checkout varsayılan
+    paused/0% durumundan admin ödeme operasyonları ekranında kontrollü açılmalı.
+20. Acil durdurma testinde yeni checkout 503 alırken callback, webhook ve reconciliation
+    worker'larının mevcut siparişleri işlemeye devam ettiği doğrulanmalı.
 
 Web launch test katmanlari ve disposable DB siniri:
 `docs/guides/web-launch-readiness-guide.md`.

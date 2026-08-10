@@ -16,6 +16,7 @@ import { enforceAccountCapability } from "@/lib/auth/account-capability";
 import {
     getPaymentLegalReadiness,
 } from "@/lib/payments/legal";
+import { getPaymentCheckoutAccess } from "@/lib/payments/checkout-control";
 import {
     buildRateLimitHeaders,
     consumeDistributedRequestRateLimit,
@@ -63,6 +64,13 @@ export async function POST(request: Request) {
         return NextResponse.json(
             { error: "Ödeme için doğrulanmış bir e-posta adresi gerekli.", code: "VERIFIED_EMAIL_REQUIRED" },
             { status: 403 }
+        );
+    }
+    const checkoutAccess = await getPaymentCheckoutAccess(sessionUser.id, { fresh: true });
+    if (!checkoutAccess.available) {
+        return NextResponse.json(
+            { error: "Ödeme altyapısı şu anda kullanıma hazır değil.", code: "CHECKOUT_UNAVAILABLE" },
+            { status: 503, headers: { "Retry-After": "60", "Cache-Control": "no-store" } }
         );
     }
 

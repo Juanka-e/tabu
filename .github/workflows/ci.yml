@@ -170,12 +170,15 @@ jobs:
           npm run test:payment-scheduler-deployment
           npm run test:payment-scheduler-deployment-shell
           npm run test:payment-activation-evidence
+          npm run test:payment-checkout-rollout
+          npm run test:payment-checkout-control-integration
           bash -n scripts/ops/run-payment-job.sh
           bash -n scripts/ops/check-payment-health.sh
           bash -n scripts/ops/install-payment-schedulers.sh
         env:
           REDIS_URL: "redis://localhost:6379"
           REDIS_KEY_PREFIX: "hushle:ci"
+          PAYMENT_CHECKOUT_CONTROL_INTEGRATION_TEST: "true"
 
       - name: Build Next.js
         run: npm run build

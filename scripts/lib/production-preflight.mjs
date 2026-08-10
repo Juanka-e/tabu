@@ -233,6 +233,15 @@ export function validateProductionEnvironment(env) {
         ]) {
             requireConfiguredValue(env, key, result);
         }
+        const rolloutSeed = env.PAYMENT_ROLLOUT_SEED?.trim() ?? "";
+        if (
+            rolloutSeed.length < 16
+            || rolloutSeed.length > 128
+            || !/^[A-Za-z0-9._:-]+$/.test(rolloutSeed)
+            || isPlaceholder(rolloutSeed)
+        ) {
+            result.errors.push("PAYMENT_ROLLOUT_SEED must be a non-placeholder value between 16 and 128 safe characters.");
+        }
         result.errors.push(...validateEvidenceFile({
             environment: env,
             pathKey: "PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE",

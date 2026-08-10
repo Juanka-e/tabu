@@ -17,6 +17,7 @@ import {
     getIyzicoOwnerSurfaceReadiness,
     getPublicPaymentOrigin,
 } from "@/lib/payments/iyzico-owner-surface";
+import { getPaymentCheckoutAccess } from "@/lib/payments/checkout-control";
 
 export async function GET() {
     const sessionUser = await getSessionUser();
@@ -37,14 +38,18 @@ export async function GET() {
         );
     }
 
-    const [allOffers, runtime, legal] = await Promise.all([
+    const [allOffers, runtime, legal, checkoutAccess] = await Promise.all([
         listActivePaymentOffers(),
         Promise.resolve(getPaymentRuntimeReadiness()),
         Promise.resolve(getPaymentLegalReadiness()),
+        getPaymentCheckoutAccess(sessionUser.id),
     ]);
     const providerSurfaceReady = runtime.activeProvider !== "iyzico"
         || (getIyzicoOwnerSurfaceReadiness().sessionEnabled && Boolean(getPublicPaymentOrigin()));
-    const checkoutAvailable = runtime.ready && legal.ready && providerSurfaceReady;
+    const checkoutAvailable = runtime.ready
+        && legal.ready
+        && providerSurfaceReady
+        && checkoutAccess.available;
     return NextResponse.json(
         {
             offers: allOffers,

@@ -18,6 +18,7 @@ const restoreScript = read("scripts/ops/mysql-restore.sh");
 const schemaOpsLock = read("scripts/ops/lib/schema-ops-lock.sh");
 const preflight = read("scripts/lib/production-preflight.mjs");
 const observabilityOperations = read("docs/deploy/observability-exporter-operations.md");
+const paymentRolloutGuide = read("docs/guides/payment-rollout-and-emergency-pause.md");
 
 assert.match(workflow, /branches:\s*\n\s*-\s*main/);
 assert.doesNotMatch(workflow, /branches:\s*\[[^\]]*develop/);
@@ -51,6 +52,10 @@ assert.match(preflight, /Secret values were not printed|validateProductionEnviro
 assert.match(preflight, /STATE_CHANGE_ORIGIN_POLICY must be strict/);
 assert.match(preflight, /PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE/);
 assert.match(preflight, /IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_FILE/);
+assert.match(preflight, /PAYMENT_ROLLOUT_SEED/);
+assert.match(paymentRolloutGuide, /Acil durdur/);
+assert.match(paymentRolloutGuide, /callback/i);
+assert.match(paymentRolloutGuide, /reconciliation/i);
 assert.match(preflight, /PRODUCTION_OBSERVABILITY_POLICY/);
 assert.match(preflight, /OBSERVABILITY_EXPORT_URL must be an HTTPS URL/);
 assert.match(backupScript, /acquire_schema_ops_lock/);
