@@ -385,6 +385,22 @@
 - allowlist'li hosted redirect, callback sonucu mesaji ve otomatik loop yaratmayan resume butonu
 - PayTR regresyonu, storage/URL veri minimizasyonu ve iyzico redirect Playwright testleri
 
+### 52. `feature/iyzico-sandbox-acceptance-harness`
+- gerçek merchant credential'larıyla initialize ve exact retrieve kanıtını PII/token saklamadan kaydeden kabul aracı
+- tutar, para birimi, conversation ve payment reference korelasyon kontrolleri
+- kabul kanıtını yalnız hash ve bounded metadata ile üreten operasyon runbook'u
+
+### 53. `feature/iyzico-operations-readiness`
+- payment worker execute heartbeat'leri ve admin scheduler health görünümü
+- stale/missing scheduler için token korumalı health degradation
+- dead-letter ve açık vaka eşiklerinde 15 dakikalık Redis cooldown'lı merkezi uyarılar
+
+### 54. `feature/payment-scheduler-deployment`
+- webhook için bir dakikalık, reconciliation için on beş dakikalık systemd timer şablonları
+- yalnız iki payment job'ını kabul eden, schedule gate ve bounded timeout kullanan Compose wrapper
+- jobs/app container'larında eksik Iyzico, webhook ve scheduler environment aktarımları
+- tokeni process argümanında göstermeyen HTTPS health probe ve dış monitor kabul kontratı
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

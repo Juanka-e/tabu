@@ -50,6 +50,7 @@ fi
 
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull mysql redis nginx
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration build migrate
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile jobs build jobs
 acquire_schema_ops_lock "$ROOT_DIR" "production-deploy"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migration run --rm migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans

@@ -44,6 +44,8 @@
     "test:payment-iyzico-sandbox-acceptance-integration": "tsx scripts/test-iyzico-sandbox-acceptance-integration.ts",
     "test:payment-operations-readiness": "tsx scripts/test-payment-operations-readiness.ts",
     "test:payment-operations-readiness-redis": "tsx scripts/test-payment-operations-readiness-redis.ts",
+    "test:payment-scheduler-deployment": "tsx scripts/test-payment-scheduler-deployment.ts",
+    "test:payment-scheduler-deployment-shell": "bash scripts/test-payment-scheduler-deployment.sh",
     "test:payment-stripe-adapter": "tsx scripts/test-stripe-checkout-adapter.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",
