@@ -31,8 +31,10 @@ interface LegalDocumentReference {
 interface OffersResponse {
     offers: PaymentOffer[];
     checkout: {
+        provider: "shopier_v2" | "iyzico" | "paytr" | "stripe" | "lemonsqueezy" | null;
         available: boolean;
         unavailableReason: string | null;
+        buyerDataPolicyVersion: string | null;
         legalDocuments: {
             checkoutTerms: LegalDocumentReference;
             privacyNotice: LegalDocumentReference;
@@ -40,6 +42,10 @@ interface OffersResponse {
         };
     };
 }
+
+type PaymentSession =
+    | { provider?: "paytr"; iframeUrl: string }
+    | { provider: "iyzico"; redirectUrl: string };
 
 interface OrderView {
     id: string;
@@ -82,9 +88,24 @@ function statusLabel(status: string): string {
     return "Sipariş güncelleniyor";
 }
 
+function isAllowedIyzicoRedirect(value: string): boolean {
+    try {
+        const url = new URL(value);
+        const hostname = url.hostname.toLowerCase();
+        return url.protocol === "https:"
+            && !url.username
+            && !url.password
+            && !url.port
+            && (hostname === "iyzipay.com" || hostname.endsWith(".iyzipay.com"));
+    } catch {
+        return false;
+    }
+}
+
 export function CheckoutContent() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get("order");
+    const providerResult = searchParams.get("result");
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
     const [data, setData] = useState<OffersResponse | null>(null);
     const [selectedCode, setSelectedCode] = useState<string | null>(null);
@@ -93,9 +114,17 @@ export function CheckoutContent() {
     const [submitting, setSubmitting] = useState(false);
     const [order, setOrder] = useState<OrderView | null>(null);
     const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+    const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
     const [fullName, setFullName] = useState("");
+    const [givenName, setGivenName] = useState("");
+    const [familyName, setFamilyName] = useState("");
+    const [identityNumber, setIdentityNumber] = useState("");
     const [phone, setPhone] = useState("");
     const [address, setAddress] = useState("");
+    const [city, setCity] = useState("");
+    const [country, setCountry] = useState("Türkiye");
+    const [zipCode, setZipCode] = useState("");
+    const [buyerDataAcknowledged, setBuyerDataAcknowledged] = useState(false);
     const idempotencyKey = useRef(`web:${crypto.randomUUID()}`);
     const activeOrderId = orderId ?? createdOrderId;
 
@@ -128,10 +157,19 @@ export function CheckoutContent() {
         if (!response.ok) return null;
         const payload = (await response.json()) as {
             order: OrderView;
-            paymentSession?: { iframeUrl: string } | null;
+            paymentSession?: PaymentSession | null;
         };
         setOrder(payload.order);
-        if (payload.paymentSession?.iframeUrl) setIframeUrl(payload.paymentSession.iframeUrl);
+        if (payload.paymentSession && "iframeUrl" in payload.paymentSession) {
+            setIframeUrl(payload.paymentSession.iframeUrl);
+        }
+        if (
+            payload.paymentSession
+            && "redirectUrl" in payload.paymentSession
+            && isAllowedIyzicoRedirect(payload.paymentSession.redirectUrl)
+        ) {
+            setRedirectUrl(payload.paymentSession.redirectUrl);
+        }
         return payload.order;
     }, [activeOrderId]);
 
@@ -158,15 +196,62 @@ export function CheckoutContent() {
         () => data?.offers.find((offer) => offer.code === selectedCode) ?? null,
         [data, selectedCode]
     );
-    const contactReady = fullName.trim().length >= 2
+    const provider = data?.checkout.provider ?? null;
+    const paytrContactReady = fullName.trim().length >= 2
         && phone.replace(/\D/g, "").length >= 7
         && address.trim().length >= 10;
+    const iyzicoBuyerReady = givenName.trim().length >= 1
+        && familyName.trim().length >= 1
+        && /^\d{11}$/.test(identityNumber.trim())
+        && phone.replace(/\D/g, "").length >= 7
+        && address.trim().length >= 5
+        && city.trim().length >= 2
+        && country.trim().length >= 2
+        && buyerDataAcknowledged
+        && Boolean(data?.checkout.buyerDataPolicyVersion);
+    const buyerDataReady = provider === "paytr"
+        ? paytrContactReady
+        : provider === "iyzico" && iyzicoBuyerReady;
+
+    const clearTransientBuyerData = () => {
+        setFullName("");
+        setGivenName("");
+        setFamilyName("");
+        setIdentityNumber("");
+        setPhone("");
+        setAddress("");
+        setCity("");
+        setCountry("Türkiye");
+        setZipCode("");
+        setBuyerDataAcknowledged(false);
+    };
 
     const startCheckout = async () => {
-        if (!data || !selectedOffer || !accepted || !contactReady || submitting) return;
+        if (!data || !selectedOffer || !provider || !accepted || !buyerDataReady || submitting) return;
         setSubmitting(true);
         try {
-            const response = await fetch("/api/payments/checkout/session", {
+            const endpoint = provider === "iyzico"
+                ? "/api/payments/checkout/iyzico/session"
+                : "/api/payments/checkout/session";
+            const providerPayload = provider === "iyzico"
+                ? {
+                    buyerDataDisclosure: {
+                        accepted: true,
+                        policyVersion: data.checkout.buyerDataPolicyVersion,
+                    },
+                    buyerData: {
+                        givenName,
+                        familyName,
+                        identityNumber,
+                        phone,
+                        addressLine: address,
+                        city,
+                        country,
+                        ...(zipCode.trim() ? { zipCode } : {}),
+                    },
+                }
+                : { contact: { fullName, phone, address } };
+            const response = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -178,21 +263,32 @@ export function CheckoutContent() {
                         privacyNoticeVersion: data.checkout.legalDocuments.privacyNotice.version,
                         distanceSalesNoticeVersion: data.checkout.legalDocuments.distanceSalesNotice.version,
                     },
-                    contact: { fullName, phone, address },
+                    ...providerPayload,
                 }),
             });
             const payload = (await response.json()) as {
                 error?: string;
                 orderId?: string;
                 iframeUrl?: string;
+                redirectUrl?: string;
             };
-            if (!response.ok || !payload.orderId || !payload.iframeUrl) {
+            const validSession = provider === "iyzico"
+                ? Boolean(payload.redirectUrl && isAllowedIyzicoRedirect(payload.redirectUrl))
+                : Boolean(payload.iframeUrl);
+            if (!response.ok || !payload.orderId || !validSession) {
                 toast.error(payload.error || "Ödeme başlatılamadı.");
                 return;
             }
             setCreatedOrderId(payload.orderId);
-            setIframeUrl(payload.iframeUrl);
+            if (payload.iframeUrl) setIframeUrl(payload.iframeUrl);
             window.history.replaceState(null, "", `/checkout?order=${encodeURIComponent(payload.orderId)}`);
+            if (provider === "iyzico" && payload.redirectUrl) {
+                clearTransientBuyerData();
+                await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+                window.location.assign(payload.redirectUrl);
+                return;
+            }
+            clearTransientBuyerData();
             void loadOrder();
         } catch {
             toast.error("Ödeme isteği tamamlanamadı.");
@@ -223,6 +319,17 @@ export function CheckoutContent() {
                     </div>
                 </header>
 
+                {providerResult === "provider-return" ? (
+                    <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/35 dark:text-emerald-100">
+                        Ödeme sağlayıcısından geri döndün. Sipariş, sunucu doğrulaması tamamlanana kadar beklemede kalabilir.
+                    </section>
+                ) : null}
+                {providerResult === "provider-review" || providerResult === "provider-error" ? (
+                    <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/35 dark:text-amber-100">
+                        Ödeme sonucu kesinleşmedi. Yeni bir ödeme başlatma; sipariş durumu güvenli şekilde kontrol ediliyor.
+                    </section>
+                ) : null}
+
                 {order ? (
                     <section className="mt-6 rounded-[28px] border border-blue-200 bg-blue-50/90 p-6 dark:border-blue-900/60 dark:bg-blue-950/35">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -252,6 +359,18 @@ export function CheckoutContent() {
                             allow="payment"
                             referrerPolicy="no-referrer"
                         />
+                    </section>
+                ) : null}
+
+                {redirectUrl && order?.status === "awaiting_payment" ? (
+                    <section className="mt-6 flex flex-col gap-4 rounded-[28px] border border-cyan-200 bg-cyan-50/90 p-5 dark:border-cyan-900/60 dark:bg-cyan-950/35 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="font-black">iyzico ödeme oturumu hazır</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Ödeme sayfasını kapattıysan aynı güvenli oturuma devam edebilirsin.</p>
+                        </div>
+                        <button type="button" onClick={() => window.location.assign(redirectUrl)} className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-black text-white transition hover:bg-cyan-500">
+                            Ödemeye devam et
+                        </button>
                     </section>
                 ) : null}
 
@@ -292,6 +411,8 @@ export function CheckoutContent() {
                         </div>
 
                         <div className="mt-5 space-y-3">
+                            {provider === "paytr" ? (
+                                <>
                             <div>
                                 <label htmlFor="payment-full-name" className="text-xs font-bold text-slate-300">Ad ve soyad</label>
                                 <input id="payment-full-name" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={60} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="Ad Soyad" />
@@ -307,6 +428,56 @@ export function CheckoutContent() {
                             <p className="rounded-xl border border-sky-300/15 bg-sky-300/10 p-3 text-xs leading-5 text-sky-100">
                                 Bu iletişim bilgileri yalnız ödeme oturumu için PayTR’ye iletilir; Hushle sipariş, audit veya log kayıtlarına kopyalanmaz.
                             </p>
+                                </>
+                            ) : null}
+
+                            {provider === "iyzico" ? (
+                                <>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label htmlFor="payment-given-name" className="text-xs font-bold text-slate-300">Ad</label>
+                                            <input id="payment-given-name" autoComplete="given-name" value={givenName} onChange={(event) => setGivenName(event.target.value)} maxLength={60} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="payment-family-name" className="text-xs font-bold text-slate-300">Soyad</label>
+                                            <input id="payment-family-name" autoComplete="family-name" value={familyName} onChange={(event) => setFamilyName(event.target.value)} maxLength={60} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="payment-identity-number" className="text-xs font-bold text-slate-300">T.C. kimlik numarası</label>
+                                        <input id="payment-identity-number" type="text" inputMode="numeric" autoComplete="off" value={identityNumber} onChange={(event) => setIdentityNumber(event.target.value.replace(/\D/g, "").slice(0, 11))} minLength={11} maxLength={11} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="11 hane" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="payment-phone" className="text-xs font-bold text-slate-300">Telefon</label>
+                                        <input id="payment-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={20} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="+90 5xx xxx xx xx" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="payment-address" className="text-xs font-bold text-slate-300">Fatura adresi</label>
+                                        <textarea id="payment-address" autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} maxLength={400} rows={3} className="mt-1.5 w-full resize-none rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" placeholder="Mahalle, sokak, ilçe" />
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label htmlFor="payment-city" className="text-xs font-bold text-slate-300">İl</label>
+                                            <input id="payment-city" autoComplete="address-level1" value={city} onChange={(event) => setCity(event.target.value)} maxLength={80} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="payment-zip-code" className="text-xs font-bold text-slate-300">Posta kodu <span className="font-normal text-slate-500">(opsiyonel)</span></label>
+                                            <input id="payment-zip-code" inputMode="numeric" autoComplete="postal-code" value={zipCode} onChange={(event) => setZipCode(event.target.value)} maxLength={20} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="payment-country" className="text-xs font-bold text-slate-300">Ülke</label>
+                                        <input id="payment-country" autoComplete="country-name" value={country} onChange={(event) => setCountry(event.target.value)} maxLength={80} className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+                                    </div>
+                                    <p className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100">
+                                        Bu bilgiler yalnız bu ödeme oturumu için iyzico’ya iletilir. Kimlik numarası, telefon ve adres Hushle profilinde, siparişte, audit kaydında veya hash olarak saklanmaz.
+                                    </p>
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
+                                        <input type="checkbox" checked={buyerDataAcknowledged} onChange={(event) => setBuyerDataAcknowledged(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-cyan-400" />
+                                        <span>Ödeme için gerekli bu verilerin iyzico’ya aktarılacağına ilişkin bilgilendirmeyi okudum.</span>
+                                    </label>
+                                </>
+                            ) : null}
                         </div>
 
                         {data ? (
@@ -327,7 +498,7 @@ export function CheckoutContent() {
                             <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-200">{data.checkout.unavailableReason}</p>
                         ) : null}
 
-                        <button type="button" onClick={() => void startCheckout()} disabled={!selectedOffer || !accepted || !contactReady || !data?.checkout.available || submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-400 px-4 py-3.5 text-sm font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
+                        <button type="button" onClick={() => void startCheckout()} disabled={!selectedOffer || !accepted || !buyerDataReady || !data?.checkout.available || submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-400 px-4 py-3.5 text-sm font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
                             {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                             Ödeme yükümlülüğü doğuran siparişi ver
                         </button>

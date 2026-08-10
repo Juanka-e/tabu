@@ -377,6 +377,14 @@
 - callback'in yalniz proof yazdigini, cross-owner ve token mismatch'in provider'a ulasmadigini
   kanitlayan MySQL, static ve Playwright testleri
 
+### 51. `feature/iyzico-jit-checkout-ui`
+
+- server-selected provider bilgisini kullanan provider-neutral checkout formu
+- iyzico kimlik, telefon ve tek adres alanlarini yalniz component memory'de tutan JIT akis
+- buyer-data aktarim bildirimi ile satis kosullari kabulunu ayiran UI
+- allowlist'li hosted redirect, callback sonucu mesaji ve otomatik loop yaratmayan resume butonu
+- PayTR regresyonu, storage/URL veri minimizasyonu ve iyzico redirect Playwright testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

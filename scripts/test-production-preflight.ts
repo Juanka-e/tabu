@@ -152,6 +152,38 @@ Object.assign(checkoutWithLegalApproval, {
 });
 assert.deepEqual(validateProductionEnvironment(checkoutWithLegalApproval).errors, []);
 
+const iyzicoCheckoutWithAcceptance = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_ACTIVE_PROVIDER: "iyzico",
+    IYZICO_API_KEY: "sandbox-api-key",
+    IYZICO_SECRET_KEY: "sandbox-secret-key",
+    IYZICO_MERCHANT_ID: "3404590",
+    IYZICO_CHECKOUT_MODE: "sandbox",
+    IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
+    IYZICO_CALLBACK_MODE: "sandbox",
+    IYZICO_WEBHOOK_MODE: "sandbox",
+    IYZICO_RECONCILIATION_MODE: "sandbox",
+    IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
+};
+assert.deepEqual(validateProductionEnvironment(iyzicoCheckoutWithAcceptance).errors, []);
+
+const iyzicoWithoutAcceptance = {
+    ...iyzicoCheckoutWithAcceptance,
+    IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "false",
+};
+assert.ok(
+    validateProductionEnvironment(iyzicoWithoutAcceptance).errors.some((error) =>
+        error.includes("IYZICO_SANDBOX_ACCEPTANCE_RECORDED")
+    )
+);
+
+const iyzicoWithLiveMode = { ...iyzicoCheckoutWithAcceptance, IYZICO_CALLBACK_MODE: "live" };
+assert.ok(
+    validateProductionEnvironment(iyzicoWithLiveMode).errors.some((error) =>
+        error.includes("IYZICO_CALLBACK_MODE must be sandbox")
+    )
+);
+
 const livePaytrCheckout = { ...checkoutWithLegalApproval, PAYTR_CHECKOUT_MODE: "live" };
 assert.ok(
     validateProductionEnvironment(livePaytrCheckout).errors.some((error) =>
