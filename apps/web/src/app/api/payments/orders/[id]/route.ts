@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
     PAYTR_IFRAME_URL_PREFIX,
     isAllowedIyzicoHostedUrl,
+    isAllowedShopierHostedUrl,
 } from "@hushle/platform-payments";
 import { prisma } from "@/lib/prisma";
 import { getIyzicoOwnerSurfaceReadiness } from "@/lib/payments/iyzico-owner-surface";
@@ -80,7 +81,18 @@ export async function GET(
                 redirectUrl: providerHostedUrl,
             }
             : null;
-    const paymentSession = paytrSession ?? iyzicoSession;
+    const shopierSession =
+        provider === "shopier_v2"
+        && order.status === "awaiting_payment"
+        && providerSessionReference
+        && providerHostedUrl
+        && isAllowedShopierHostedUrl(providerHostedUrl, providerSessionReference)
+            ? {
+                provider: "shopier_v2" as const,
+                redirectUrl: providerHostedUrl,
+            }
+            : null;
+    const paymentSession = paytrSession ?? iyzicoSession ?? shopierSession;
 
     return NextResponse.json(
         { order: publicOrder, paymentSession },

@@ -244,15 +244,20 @@ Bilincli olarak bu branch'te yapmiyoruz:
   dilimler manifestleri uretecek gercek
   merchant/aktarim hukuki onayi, gercek merchant sandbox kabulu ve ayri incelenecek
   live-mode implementasyonu
-- Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
-  server-priced katalogla uyumluluk kararı bekliyor
+- Shopier güncel v1 API için siparişe özel, stok 1 `customListing` dijital ürün
+  checkout foundation'ı tamamlandı. Exact server price, hosted URL allowlist,
+  concurrent create lease ve belirsiz sonuçta kör retry yapmayan mutabakat kapısı var.
+  Signed webhook/fulfillment, Order API reconciliation, refund orkestrasyonu,
+  operasyon alarmları ve gerçek düşük tutarlı ödeme+iade kabul kanıtı tamamlanmadan
+  registry fail-closed kalacak
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider
   idempotency ve API version pin mevcut, ancak webhook/fulfillment bağlı değil
 - Stripe resmi merchant ülke listesinde Türkiye olmadığı için production aktivasyonu
   planlanmıyor; yalnız uygun gerçek tüzel kişilik ve ayrı sandbox kabulüyle yeniden değerlendirilir
 - referans: `docs/guides/payment-checkout-and-legal-readiness.md`,
   `docs/guides/paytr-iframe-adapter.md`, `docs/guides/iyzico-checkout-adapter-foundation.md`,
-  `docs/guides/stripe-checkout-adapter-foundation.md`
+  `docs/guides/stripe-checkout-adapter-foundation.md`,
+  `docs/guides/shopier-custom-listing-checkout-foundation.md`
 
 ### `feature/google-oauth-account-linking-foundation` - tamamlandi
 - Google ile giris ve Settings icinden explicit hesap baglama
