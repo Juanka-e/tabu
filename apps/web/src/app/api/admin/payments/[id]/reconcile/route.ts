@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@hushle/platform-db";
-import { reconcilePaytrOrder } from "@hushle/platform-payments";
+import { reconcilePaymentOrder } from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -29,17 +29,24 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
     const order = await prisma.paymentOrder.findUnique({ where: { id: params.data.id } });
     if (!order) return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
-    if (order.provider !== "paytr" || !["awaiting_payment", "paid", "fulfilled"].includes(order.status)) {
+    const supportedState = ["awaiting_payment", "paid", "fulfilled"].includes(order.status)
+        || (order.provider === "iyzico" && order.status === "pending_provider");
+    if (!(["paytr", "iyzico"] as string[]).includes(order.provider) || !supportedState) {
         return NextResponse.json({ error: "Sipariş uzlaştırmaya uygun değil." }, { status: 409 });
     }
+    if (
+        order.provider === "iyzico"
+        && (
+            process.env.IYZICO_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"
+            || process.env.IYZICO_RECONCILIATION_MODE?.trim().toLowerCase() !== "sandbox"
+        )
+    ) {
+        return NextResponse.json({ error: "iyzico uzlaştırma işlemi etkin değil." }, { status: 409 });
+    }
     try {
-        const outcome = await reconcilePaytrOrder({
+        const outcome = await reconcilePaymentOrder({
             order,
-            credentials: {
-                merchantId: process.env.PAYTR_MERCHANT_ID ?? "",
-                merchantKey: process.env.PAYTR_MERCHANT_KEY ?? "",
-                merchantSalt: process.env.PAYTR_MERCHANT_SALT ?? "",
-            },
+            environment: process.env,
             now: new Date(),
             retryDelayMinutes: 15,
         });
@@ -78,7 +85,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
                 resolutionNote: null,
             },
         });
-        console.error("Manual payment reconciliation failed", error);
+        console.error("Manual payment reconciliation failed", {
+            errorName: error instanceof Error ? error.name.slice(0, 80) : "unknown_error",
+        });
         return NextResponse.json({ error: "Durum sorgusu tamamlanamadı; vaka kaydı korunuyor." }, { status: 502 });
     }
 }
