@@ -30,8 +30,14 @@ const providers = {
     shopier_v2: {
         id: "shopier_v2",
         title: "Shopier V2",
-        requiredEnvironment: ["SHOPIER_API_KEY", "SHOPIER_API_SECRET"],
-        supportedCurrencies: ["TRY"],
+        requiredEnvironment: [
+            "SHOPIER_PERSONAL_ACCESS_TOKEN",
+            "SHOPIER_PRODUCT_MEDIA_URL",
+            "SHOPIER_CHECKOUT_MODE",
+            "SHOPIER_LIVE_ACCEPTANCE_RECORDED",
+            "SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256",
+        ],
+        supportedCurrencies: ["TRY", "USD", "EUR"],
         adapterAvailable: false,
     },
     iyzico: {
@@ -100,6 +106,43 @@ export function getPaymentProviderReadiness(
     const missingEnvironment = descriptor.requiredEnvironment.filter(
         (name) => !hasUsableSecret(environment[name])
     );
+    if (
+        provider === "shopier_v2"
+        && environment.SHOPIER_CHECKOUT_MODE?.trim().toLowerCase() !== "live"
+        && !missingEnvironment.includes("SHOPIER_CHECKOUT_MODE")
+    ) {
+        missingEnvironment.push("SHOPIER_CHECKOUT_MODE");
+    }
+    if (
+        provider === "shopier_v2"
+        && environment.SHOPIER_LIVE_ACCEPTANCE_RECORDED?.trim().toLowerCase() !== "true"
+        && !missingEnvironment.includes("SHOPIER_LIVE_ACCEPTANCE_RECORDED")
+    ) {
+        missingEnvironment.push("SHOPIER_LIVE_ACCEPTANCE_RECORDED");
+    }
+    if (
+        provider === "shopier_v2"
+        && !/^sha256:[a-f0-9]{64}$/.test(environment.SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256?.trim() ?? "")
+        && !missingEnvironment.includes("SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256")
+    ) {
+        missingEnvironment.push("SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256");
+    }
+    if (
+        provider === "shopier_v2"
+        && (() => {
+            try {
+                const url = new URL(environment.SHOPIER_PRODUCT_MEDIA_URL ?? "");
+                return url.protocol !== "https:"
+                    || Boolean(url.username || url.password)
+                    || !/\.(?:jpe?g|png|bmp)$/i.test(url.pathname);
+            } catch {
+                return true;
+            }
+        })()
+        && !missingEnvironment.includes("SHOPIER_PRODUCT_MEDIA_URL")
+    ) {
+        missingEnvironment.push("SHOPIER_PRODUCT_MEDIA_URL");
+    }
     if (
         provider === "paytr"
         && environment.PAYTR_CHECKOUT_MODE?.trim().toLowerCase() !== "sandbox"

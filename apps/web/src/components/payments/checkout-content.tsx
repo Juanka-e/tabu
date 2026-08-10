@@ -45,7 +45,7 @@ interface OffersResponse {
 
 type PaymentSession =
     | { provider?: "paytr"; iframeUrl: string }
-    | { provider: "iyzico"; redirectUrl: string };
+    | { provider: "iyzico" | "shopier_v2"; redirectUrl: string };
 
 interface OrderView {
     id: string;
@@ -88,15 +88,22 @@ function statusLabel(status: string): string {
     return "Sipariş güncelleniyor";
 }
 
-function isAllowedIyzicoRedirect(value: string): boolean {
+function isAllowedPaymentRedirect(provider: "iyzico" | "shopier_v2", value: string): boolean {
     try {
         const url = new URL(value);
         const hostname = url.hostname.toLowerCase();
-        return url.protocol === "https:"
+        const commonUrlAllowed = url.protocol === "https:"
             && !url.username
             && !url.password
-            && !url.port
-            && (hostname === "iyzipay.com" || hostname.endsWith(".iyzipay.com"));
+            && !url.port;
+        if (!commonUrlAllowed) return false;
+        if (provider === "iyzico") {
+            return hostname === "iyzipay.com" || hostname.endsWith(".iyzipay.com");
+        }
+        return hostname === "www.shopier.com"
+            && /^\/\d{1,64}$/.test(url.pathname)
+            && !url.search
+            && !url.hash;
     } catch {
         return false;
     }
@@ -115,6 +122,7 @@ export function CheckoutContent() {
     const [order, setOrder] = useState<OrderView | null>(null);
     const [iframeUrl, setIframeUrl] = useState<string | null>(null);
     const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+    const [redirectProvider, setRedirectProvider] = useState<"iyzico" | "shopier_v2" | null>(null);
     const [fullName, setFullName] = useState("");
     const [givenName, setGivenName] = useState("");
     const [familyName, setFamilyName] = useState("");
@@ -166,9 +174,10 @@ export function CheckoutContent() {
         if (
             payload.paymentSession
             && "redirectUrl" in payload.paymentSession
-            && isAllowedIyzicoRedirect(payload.paymentSession.redirectUrl)
+            && isAllowedPaymentRedirect(payload.paymentSession.provider, payload.paymentSession.redirectUrl)
         ) {
             setRedirectUrl(payload.paymentSession.redirectUrl);
+            setRedirectProvider(payload.paymentSession.provider);
         }
         return payload.order;
     }, [activeOrderId]);
@@ -211,7 +220,9 @@ export function CheckoutContent() {
         && Boolean(data?.checkout.buyerDataPolicyVersion);
     const buyerDataReady = provider === "paytr"
         ? paytrContactReady
-        : provider === "iyzico" && iyzicoBuyerReady;
+        : provider === "iyzico"
+            ? iyzicoBuyerReady
+            : provider === "shopier_v2";
 
     const clearTransientBuyerData = () => {
         setFullName("");
@@ -250,7 +261,9 @@ export function CheckoutContent() {
                         ...(zipCode.trim() ? { zipCode } : {}),
                     },
                 }
-                : { contact: { fullName, phone, address } };
+                : provider === "paytr"
+                    ? { contact: { fullName, phone, address } }
+                    : {};
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -272,8 +285,8 @@ export function CheckoutContent() {
                 iframeUrl?: string;
                 redirectUrl?: string;
             };
-            const validSession = provider === "iyzico"
-                ? Boolean(payload.redirectUrl && isAllowedIyzicoRedirect(payload.redirectUrl))
+            const validSession = provider === "iyzico" || provider === "shopier_v2"
+                ? Boolean(payload.redirectUrl && isAllowedPaymentRedirect(provider, payload.redirectUrl))
                 : Boolean(payload.iframeUrl);
             if (!response.ok || !payload.orderId || !validSession) {
                 toast.error(payload.error || "Ödeme başlatılamadı.");
@@ -282,7 +295,8 @@ export function CheckoutContent() {
             setCreatedOrderId(payload.orderId);
             if (payload.iframeUrl) setIframeUrl(payload.iframeUrl);
             window.history.replaceState(null, "", `/checkout?order=${encodeURIComponent(payload.orderId)}`);
-            if (provider === "iyzico" && payload.redirectUrl) {
+            if ((provider === "iyzico" || provider === "shopier_v2") && payload.redirectUrl) {
+                setRedirectProvider(provider);
                 clearTransientBuyerData();
                 await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
                 window.location.assign(payload.redirectUrl);
@@ -365,8 +379,8 @@ export function CheckoutContent() {
                 {redirectUrl && order?.status === "awaiting_payment" ? (
                     <section className="mt-6 flex flex-col gap-4 rounded-[28px] border border-cyan-200 bg-cyan-50/90 p-5 dark:border-cyan-900/60 dark:bg-cyan-950/35 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <p className="font-black">iyzico ödeme oturumu hazır</p>
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Ödeme sayfasını kapattıysan aynı güvenli oturuma devam edebilirsin.</p>
+                            <p className="font-black">{redirectProvider === "shopier_v2" ? "Shopier" : "iyzico"} ödeme sayfası hazır</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Ödeme sayfasını kapattıysan aynı güvenli bağlantıdan devam edebilirsin.</p>
                         </div>
                         <button type="button" onClick={() => window.location.assign(redirectUrl)} className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-black text-white transition hover:bg-cyan-500">
                             Ödemeye devam et
@@ -477,6 +491,12 @@ export function CheckoutContent() {
                                         <span>Ödeme için gerekli bu verilerin iyzico’ya aktarılacağına ilişkin bilgilendirmeyi okudum.</span>
                                     </label>
                                 </>
+                            ) : null}
+
+                            {provider === "shopier_v2" ? (
+                                <p className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100">
+                                    Shopier sayfasında Hushle hesabındaki doğrulanmış e-posta adresini kullan. Farklı e-posta ile tamamlanan sipariş otomatik teslim edilmez ve incelemeye alınır.
+                                </p>
                             ) : null}
                         </div>
 

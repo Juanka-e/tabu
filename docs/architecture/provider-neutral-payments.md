@@ -255,8 +255,10 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
    session/callback ve just-in-time UI tamamlandi. Registry adapter'i yalniz tum
    explicit sandbox kapilari acikken route edilebilir; hukuki onay, gercek merchant
    sandbox kabulu ve ayri live implementasyonu bitmeden production tahsilat acilmaz.
-6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
-   mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
+6. `shopier_v2`: Güncel v1 API ile siparişe özel `customListing` dijital ürün checkout
+   foundation'ı eklendi. Ortak katalog yerine stok 1 private link ve exact server price
+   kullanılır. Signed webhook, reconciliation, refund ve gerçek düşük tutarlı kabul
+   tamamlanana kadar registry fail-closed kalır.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,
    merchant ülke uygunluğu ve sandbox kabulü bitene kadar devre dışı. Türkiye mevcut
    resmi merchant ülke listesinde olmadığı için production önceliği değildir.

@@ -421,6 +421,13 @@
 - permanent bounce/complaint suppression, transient bounce koruması ve recipient bazlı idempotency
 - güvenli subscription confirmation gate, production preflight ve Cloudflare route policy
 
+### 58. `feature/shopier-custom-listing-checkout-foundation`
+- güncel Shopier v1 API ile siparişe özel, stok 1 dijital `customListing` transportu
+- exact server price/currency, product ID ve hosted URL doğrulaması
+- concurrent checkout lease, duplicate resume ve belirsiz create sonucunda kör retry koruması
+- bounded timeout/response, PAT gizliliği ve provider hata detayı minimizasyonu
+- webhook, reconciliation, refund ve gerçek kabul kanıtı bitene kadar fail-closed registry
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

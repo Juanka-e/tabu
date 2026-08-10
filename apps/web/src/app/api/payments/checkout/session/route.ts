@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
     PaytrCheckoutError,
+    ShopierCheckoutError,
     PaymentOrderConflictError,
     createPaymentCheckoutOrderRecord,
     createPaytrSandboxCheckoutSession,
+    createShopierCheckoutListing,
     getActivePaymentOffer,
     getPaymentRuntimeReadiness,
     normalizePaymentGrantSnapshot,
@@ -33,7 +35,7 @@ const checkoutRequestSchema = z.object({
         privacyNoticeVersion: z.string().trim().min(1).max(80),
         distanceSalesNoticeVersion: z.string().trim().min(1).max(80),
     }),
-    contact: paytrCheckoutContactSchema,
+    contact: paytrCheckoutContactSchema.optional(),
 });
 
 function getPublicSiteOrigin(): string | null {
@@ -128,7 +130,7 @@ export async function POST(request: Request) {
     }
 
     const runtime = getPaymentRuntimeReadiness();
-    if (!runtime.ready || runtime.activeProvider !== "paytr") {
+    if (!runtime.ready || !runtime.activeProvider || !["paytr", "shopier_v2"].includes(runtime.activeProvider)) {
         return NextResponse.json(
             { error: "Ödeme altyapısı şu anda kullanıma hazır değil.", code: "CHECKOUT_UNAVAILABLE" },
             { status: 503, headers: { "Retry-After": "60" } }
@@ -149,11 +151,14 @@ export async function POST(request: Request) {
     }
 
     const publicOrigin = getPublicSiteOrigin();
-    if (!publicOrigin) {
+    if (runtime.activeProvider === "paytr" && !publicOrigin) {
         return NextResponse.json(
             { error: "Ödeme altyapısı şu anda kullanıma hazır değil.", code: "CHECKOUT_UNAVAILABLE" },
             { status: 503, headers: { "Retry-After": "60" } }
         );
+    }
+    if (runtime.activeProvider === "paytr" && !body.contact) {
+        return NextResponse.json({ error: "Geçersiz ödeme isteği." }, { status: 422 });
     }
     const requestIp = getRequestIp(request);
     const userIp = requestIp === "unknown"
@@ -163,7 +168,7 @@ export async function POST(request: Request) {
     try {
         const orderResult = await createPaymentCheckoutOrderRecord({
             userId: sessionUser.id,
-            provider: "paytr",
+            provider: runtime.activeProvider,
             providerConfigVersion: 1,
             idempotencyKey: body.idempotencyKey,
             quote: {
@@ -188,6 +193,31 @@ export async function POST(request: Request) {
                     : null,
             },
         });
+        if (runtime.activeProvider === "shopier_v2") {
+            const checkout = await createShopierCheckoutListing({
+                orderId: orderResult.order.id,
+                mediaUrl: process.env.SHOPIER_PRODUCT_MEDIA_URL ?? "",
+                credentials: {
+                    personalAccessToken: process.env.SHOPIER_PERSONAL_ACCESS_TOKEN ?? "",
+                },
+            });
+            return NextResponse.json(
+                {
+                    provider: "shopier_v2",
+                    orderId: checkout.orderId,
+                    redirectUrl: checkout.checkoutUrl,
+                },
+                {
+                    status: orderResult.reused || checkout.duplicate ? 200 : 201,
+                    headers: {
+                        ...buildRateLimitHeaders(limit),
+                        "Cache-Control": "private, no-store",
+                    },
+                }
+            );
+        }
+
+        if (!body.contact || !publicOrigin) throw new TypeError("PayTR checkout invariant failed");
         const successUrl = new URL("/checkout", publicOrigin);
         successUrl.searchParams.set("order", orderResult.order.id);
         successUrl.searchParams.set("result", "provider-return");
@@ -241,6 +271,23 @@ export async function POST(request: Request) {
                 {
                     status,
                     headers: error.retryable ? { "Retry-After": "5" } : undefined,
+                }
+            );
+        }
+        if (error instanceof ShopierCheckoutError) {
+            const status = ["checkout_in_progress", "checkout_uncertain"].includes(error.code) ? 409 : 502;
+            return NextResponse.json(
+                {
+                    error: error.code === "checkout_in_progress"
+                        ? "Ödeme hazırlanıyor. Lütfen kısa süre sonra tekrar dene."
+                        : error.code === "checkout_uncertain"
+                            ? "Shopier liste sonucu kesinleşmedi. Yeni ödeme başlatma; sipariş inceleniyor."
+                            : "Ödeme sağlayıcısına şu anda ulaşılamıyor.",
+                    code: error.code.toUpperCase(),
+                },
+                {
+                    status,
+                    headers: error.retryable ? { "Retry-After": "60" } : undefined,
                 }
             );
         }

@@ -107,7 +107,8 @@ assert.match(offersRoute, /provider: runtime\.activeProvider/);
 assert.match(offersRoute, /getIyzicoOwnerSurfaceReadiness/);
 assert.match(checkoutUi, /\/api\/payments\/checkout\/iyzico\/session/);
 assert.match(checkoutUi, /buyerDataDisclosure/);
-assert.match(checkoutUi, /isAllowedIyzicoRedirect/);
+assert.match(checkoutUi, /isAllowedPaymentRedirect/);
+assert.match(checkoutUi, /hostname === "iyzipay\.com" \|\| hostname\.endsWith\("\.iyzipay\.com"\)/);
 assert.doesNotMatch(checkoutUi, /localStorage|sessionStorage|sendBeacon|console\./);
 
 console.log("iyzico owner checkout and callback surface checks passed");

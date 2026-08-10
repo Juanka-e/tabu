@@ -132,12 +132,15 @@ jobs:
           npm run test:payment-iyzico-webhook
           npm run test:payment-iyzico-owner-surface
           npm run test:payment-stripe-adapter
+          npm run test:payment-shopier-adapter
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance
           npm run test:payment-paytr-checkout-integration
+          npm run test:payment-shopier-checkout-integration
         env:
           PAYTR_CHECKOUT_INTEGRATION_TEST: "true"
           IYZICO_CHECKOUT_INTEGRATION_TEST: "true"
+          SHOPIER_CHECKOUT_INTEGRATION_TEST: "true"
 
       - name: Test payment webhook processors
         run: |
