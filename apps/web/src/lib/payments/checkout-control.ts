@@ -1,5 +1,6 @@
 import { Prisma, prisma } from "@hushle/platform-db";
 import { getOrSetJsonCache } from "@hushle/platform-cache";
+import { setTimeout as delay } from "node:timers/promises";
 import {
     DEFAULT_PAYMENT_CHECKOUT_CONTROL,
     evaluatePaymentCheckoutAccess,
@@ -130,23 +131,20 @@ export async function updatePaymentCheckoutControl(input: {
     userAgent: string | null;
 }): Promise<PaymentCheckoutControlState> {
     const reason = input.reason.trim();
-    const updated = await prisma.$transaction(async (tx) => {
-        await tx.$executeRaw(Prisma.sql`
-            INSERT IGNORE INTO system_settings (
-                \`key\`, value, updated_by_user_id, created_at, updated_at
-            ) VALUES (
-                ${CONTROL_KEY},
-                ${JSON.stringify(DEFAULT_PAYMENT_CHECKOUT_CONTROL)},
-                NULL,
-                CURRENT_TIMESTAMP(3),
-                CURRENT_TIMESTAMP(3)
-            )
-        `);
-        await tx.$queryRaw(Prisma.sql`
+    const write = () => prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<Array<{ key: string }>>(Prisma.sql`
             SELECT \`key\` FROM system_settings
             WHERE \`key\` = ${CONTROL_KEY}
             FOR UPDATE
         `);
+        if (locked.length === 0) {
+            await tx.systemSetting.create({
+                data: {
+                    key: CONTROL_KEY,
+                    value: DEFAULT_PAYMENT_CHECKOUT_CONTROL as Prisma.InputJsonValue,
+                },
+            });
+        }
         const row = await tx.systemSetting.findUniqueOrThrow({ where: { key: CONTROL_KEY } });
         const current = paymentCheckoutControlSchema.safeParse(row.value);
         if (!current.success || current.data.revision !== input.expectedRevision) {
@@ -191,10 +189,28 @@ export async function updatePaymentCheckoutControl(input: {
         });
         return next;
     });
+    let updated: PaymentCheckoutControl | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            updated = await write();
+            break;
+        } catch (error) {
+            if (!isRetryablePaymentControlTransactionError(error) || attempt === 2) throw error;
+            await delay((attempt + 1) * 15);
+        }
+    }
+    if (!updated) throw new Error("Payment checkout control update did not complete.");
     await invalidatePaymentCheckoutControlCache();
     const state = await getPaymentCheckoutControl({ fresh: true });
     if (state.control.revision !== updated.revision) throw new PaymentCheckoutControlConflictError();
     return state;
+}
+
+function isRetryablePaymentControlTransactionError(error: unknown): boolean {
+    if (!error || typeof error !== "object") return false;
+    const candidate = error as { code?: unknown; meta?: { code?: unknown } };
+    return candidate.code === "P2034"
+        || (candidate.code === "P2010" && String(candidate.meta?.code ?? "") === "1213");
 }
 
 export function isPaymentCheckoutExpansion(
