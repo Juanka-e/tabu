@@ -2,10 +2,11 @@
 
 ## Current Status
 
-The iyzico Checkout Form transport and durable orchestration foundation are
-implemented but intentionally disabled. They are not connected to checkout
-routes, buyer-data UI, or production configuration. The webhook route and
-processor remain behind a separate explicit sandbox-only mode.
+The iyzico Checkout Form transport, durable orchestration, and owner-bound route
+foundation are implemented but intentionally disabled. The owner session route
+is not connected to the checkout UI, and no production configuration is active.
+The callback, webhook, and reconciliation paths each remain behind explicit
+sandbox-only modes.
 `adapterAvailable=false` remains the activation boundary.
 
 ```env
@@ -15,6 +16,8 @@ IYZICO_MERCHANT_ID=""
 IYZICO_CHECKOUT_MODE=disabled
 IYZICO_WEBHOOK_MODE=disabled
 IYZICO_RECONCILIATION_MODE=disabled
+IYZICO_OWNER_CHECKOUT_MODE=disabled
+IYZICO_CALLBACK_MODE=disabled
 ```
 
 Only `sandbox` credentials are accepted by the transport foundation. The API host
@@ -31,6 +34,11 @@ SSRF surface.
 - 64 KiB response limit and bounded internal error codes.
 - Hosted payment URL allowlist limited to HTTPS `iyzipay.com` hosts.
 - Constant-time token comparison after equal-length validation.
+- Official Checkout Form response signature validation for initialize
+  (`conversationId`, `token`) and retrieve (`paymentStatus`, `paymentId`,
+  `currency`, `basketId`, `conversationId`, `paidPrice`, `price`, `token`).
+- Signature decimal inputs remove trailing fractional zeros exactly as required
+  by the provider contract. Invalid or missing signatures fail closed.
 - Response minimization: provider HTML, card metadata, and error text are not
   returned from the adapter.
 
@@ -60,6 +68,31 @@ reconciliation worker may consume the exact server-side proof.
 `providerHostedUrl` and `providerSessionReference` are operational session data,
 not public order fields. Future routes must return them only to the authenticated
 order owner and must never log them.
+
+## Owner Session and Callback Boundary
+
+- `POST /api/payments/checkout/iyzico/session` requires the authenticated order
+  owner, account capability, verified email, current legal versions, explicit
+  buyer-data disclosure, user/IP distributed rate limits, strict JSON content
+  type, and an 8 KiB streaming body limit.
+- Buyer identity, phone, and address are request-only provider data. The route
+  persists only the versioned consent record and returns only order ID, allowlisted
+  hosted redirect URL, and sandbox marker.
+- iyzico calls the callback as a cross-site form POST, so the callback does not
+  depend on browser session cookies. Its opaque order ID and posted token must
+  match the server-owned session before any provider request is made.
+- The callback accepts only one bounded form token, applies token-hash and order
+  keyed distributed limiters, performs an exact signed server-side retrieve, and sends
+  a `303` redirect without the raw token.
+- The callback writes verification proof only. It never marks an order paid and
+  never fulfills coin or inventory; webhook/reconciliation retain that authority.
+- Order status can expose the allowlisted hosted URL only to the authenticated
+  order owner. The separate raw session reference is never serialized.
+
+`IYZICO_OWNER_CHECKOUT_MODE` stops new owner sessions. `IYZICO_CALLBACK_MODE`
+controls outstanding provider returns independently. During a sales shutdown,
+disable new checkout while keeping callback, webhook, and reconciliation paths
+available long enough to settle already-started orders.
 
 ## Signature V3 Webhook
 
@@ -116,12 +149,12 @@ hashed locally. See `docs/guides/payment-buyer-data-policy.md`.
 
 iyzico Checkout Form requires buyer identity, phone, IP, and address fields. The
 application does not collect or persist new fields merely to activate an adapter.
-Before route integration, the following need explicit product/legal decisions:
+Before UI or live activation, the following still need explicit product/legal decisions:
 
 1. Merchant-specific confirmation of every required field.
 2. Provider/subprocessor and domestic or cross-border transfer legal review.
 3. Just-in-time player UI and a new approved privacy notice version.
-4. Guest exclusion and verified registered-account enforcement in orchestration.
+4. Just-in-time UI validation and merchant-specific acceptance evidence.
 5. Real merchant sandbox acceptance and reviewed session-data retention.
 
 Most iyzico API operations are not generally idempotent. A timeout after initialize
@@ -131,7 +164,7 @@ create a second provider session.
 ## Next Slices
 
 1. Merchant-specific legal/privacy and transfer approval.
-2. Owner-only checkout/callback routes and just-in-time buyer-data UI.
+2. Just-in-time buyer-data UI wired to the existing owner-only route.
 3. Real merchant sandbox acceptance with exact amount/currency proof.
 4. Separate reviewed live-mode activation.
 
@@ -144,5 +177,6 @@ compatibility fallback.
 - [Idempotency](https://docs.iyzico.com/en/getting-started/preliminaries/idempotency)
 - [Checkout Form initialize](https://docs.iyzico.com/en/payment-methods/checkoutform/cf-implementation/cf-initialize)
 - [Checkout Form retrieve](https://docs.iyzico.com/en/payment-methods/checkoutform/cf-implementation/cf-retrieve)
+- [Response signature validation](https://docs.iyzico.com/en/advanced/response-signature-validation)
 - [Webhook Signature V3](https://docs.iyzico.com/en/advanced/webhook)
 - [Sandbox environment](https://docs.iyzico.com/en/getting-started/preliminaries/sandbox)

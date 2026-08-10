@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@hushle/platform-db";
 import {
+    buildIyzicoCfRetrieveResponseSignature,
     buildIyzicoHppWebhookSignatureV3,
     processIyzicoPaymentWebhook,
     processPaymentWebhookInbox,
@@ -115,11 +116,23 @@ function retrieveResponse(input: {
         conversationId: input.orderId,
         token: input.token,
         paymentId: input.paymentId,
+        basketId: input.orderId,
         price: amount,
         paidPrice: amount,
         currency: "TRY",
         fraudStatus: 1,
         paymentStatus: "SUCCESS",
+        signature: buildIyzicoCfRetrieveResponseSignature({
+            secretKey: credentials.secretKey,
+            paymentStatus: "SUCCESS",
+            paymentId: input.paymentId,
+            currency: "TRY",
+            basketId: input.orderId,
+            conversationId: input.orderId,
+            paidPrice: amount,
+            price: amount,
+            token: input.token,
+        }),
     }));
 }
 

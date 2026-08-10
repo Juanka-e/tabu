@@ -368,6 +368,15 @@
 - token bulunmayan initialize belirsizliğinde kör retry yapmayan kalıcı manuel inceleme vakası
 - job, admin reconcile, eşzamanlı worker ve proofsuz paid sipariş güvenlik testleri
 
+### 50. `feature/iyzico-owner-checkout-surface`
+
+- verified registered account ve guncel legal consent isteyen owner-only sandbox session route
+- callback cookie'sine guvenmeden order + server-owned token ile baglanan bounded form callback
+- initialize/retrieve resmi response signature dogrulamasi ve exact basket/order korelasyonu
+- raw token'i redirect, public order JSON, log ve fulfillment yuzeyinden uzak tutan veri minimizasyonu
+- callback'in yalniz proof yazdigini, cross-owner ve token mismatch'in provider'a ulasmadigini
+  kanitlayan MySQL, static ve Playwright testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

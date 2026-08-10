@@ -44,6 +44,8 @@ const providers = {
             "IYZICO_CHECKOUT_MODE",
             "IYZICO_WEBHOOK_MODE",
             "IYZICO_RECONCILIATION_MODE",
+            "IYZICO_OWNER_CHECKOUT_MODE",
+            "IYZICO_CALLBACK_MODE",
         ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: false,
@@ -123,6 +125,18 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_RECONCILIATION_MODE")
     ) {
         missingEnvironment.push("IYZICO_RECONCILIATION_MODE");
+    }
+    for (const [name, value] of [
+        ["IYZICO_OWNER_CHECKOUT_MODE", environment.IYZICO_OWNER_CHECKOUT_MODE],
+        ["IYZICO_CALLBACK_MODE", environment.IYZICO_CALLBACK_MODE],
+    ] as const) {
+        if (
+            provider === "iyzico"
+            && value?.trim().toLowerCase() !== "sandbox"
+            && !missingEnvironment.includes(name)
+        ) {
+            missingEnvironment.push(name);
+        }
     }
     if (
         provider === "iyzico"

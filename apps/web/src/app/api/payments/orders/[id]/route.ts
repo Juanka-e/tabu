@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { PAYTR_IFRAME_URL_PREFIX } from "@hushle/platform-payments";
+import {
+    PAYTR_IFRAME_URL_PREFIX,
+    isAllowedIyzicoHostedUrl,
+} from "@hushle/platform-payments";
 import { prisma } from "@/lib/prisma";
+import { getIyzicoOwnerSurfaceReadiness } from "@/lib/payments/iyzico-owner-surface";
 import {
     buildRateLimitHeaders,
     consumeDistributedRequestRateLimit,
@@ -35,6 +39,7 @@ export async function GET(
             id: true,
             provider: true,
             providerSessionReference: true,
+            providerHostedUrl: true,
             status: true,
             productKind: true,
             productNameSnapshot: true,
@@ -51,8 +56,8 @@ export async function GET(
     if (!order) {
         return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
     }
-    const { providerSessionReference, provider, ...publicOrder } = order;
-    const paymentSession =
+    const { providerSessionReference, providerHostedUrl, provider, ...publicOrder } = order;
+    const paytrSession =
         provider === "paytr"
         && order.status === "awaiting_payment"
         && providerSessionReference
@@ -63,6 +68,19 @@ export async function GET(
                 iframeUrl: `${PAYTR_IFRAME_URL_PREFIX}${encodeURIComponent(providerSessionReference)}`,
             }
             : null;
+    const iyzicoSession =
+        provider === "iyzico"
+        && order.status === "awaiting_payment"
+        && providerHostedUrl
+        && isAllowedIyzicoHostedUrl(providerHostedUrl)
+        && getIyzicoOwnerSurfaceReadiness().callbackEnabled
+            ? {
+                provider: "iyzico" as const,
+                sandbox: true,
+                redirectUrl: providerHostedUrl,
+            }
+            : null;
+    const paymentSession = paytrSession ?? iyzicoSession;
 
     return NextResponse.json(
         { order: publicOrder, paymentSession },
