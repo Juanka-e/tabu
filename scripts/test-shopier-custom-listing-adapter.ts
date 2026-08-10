@@ -102,25 +102,27 @@ async function run(): Promise<void> {
         currency: "TRY",
     });
 
-    let listingRequest: { url: string; init?: RequestInit } | null = null;
+    let listingRequestUrl = "";
+    let listingRequestInit: RequestInit | undefined;
     const listings = await listShopierCustomListings({
         dateStart: new Date("2026-08-10T09:00:00Z"),
         dateEnd: new Date("2026-08-10T11:00:00Z"),
         credentials: request.credentials,
         fetchImpl: async (input, init) => {
-            listingRequest = { url: String(input), init };
+            listingRequestUrl = String(input);
+            listingRequestInit = init;
             return new Response(JSON.stringify([providerProduct()]));
         },
     });
     assert.equal(listings.length, 1);
-    assert.ok(listingRequest);
-    const listingUrl = new URL(listingRequest.url);
+    assert.ok(listingRequestUrl);
+    const listingUrl = new URL(listingRequestUrl);
     assert.equal(`${listingUrl.origin}${listingUrl.pathname}`, `${SHOPIER_API_BASE_URL}${SHOPIER_PRODUCTS_PATH}`);
     assert.equal(listingUrl.searchParams.get("customListing"), "true");
     assert.equal(listingUrl.searchParams.get("dateStart"), "2026-08-10T09:00:00+0000");
     assert.equal(listingUrl.searchParams.get("limit"), "50");
-    assert.equal(new Headers(listingRequest.init?.headers).get("authorization"), `Bearer ${token}`);
-    assert.equal(listingRequest.init?.redirect, "error");
+    assert.equal(new Headers(listingRequestInit?.headers).get("authorization"), `Bearer ${token}`);
+    assert.equal(listingRequestInit?.redirect, "error");
 
     let orderRequestUrl = "";
     const orders = await listShopierPaidOrdersByProduct({
