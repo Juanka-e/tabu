@@ -74,7 +74,7 @@ assert.match(reconciliationService, /run-payment-job\.sh payment-reconciliation/
 assert.match(reconciliationTimer, /OnCalendar=\*-\*-\* \*:00\/15:00/);
 assert.match(reconciliationTimer, /Persistent=true/);
 
-assert.match(probe, /HEALTHCHECK_URL.*https:\/\//s);
+assert.match(probe, /HEALTHCHECK_URL[\s\S]*https:\/\//);
 assert.match(probe, /curl_config="\$\(mktemp\)"/);
 assert.match(probe, /header = "x-health-token:/);
 assert.match(probe, /all\(\.status == "healthy"\)/);
