@@ -34,6 +34,22 @@
 - Ortak `PAYMENT_RECONCILIATION_MAX_ATTEMPTS` sınırından sonra otomatik sorgu durur;
   operatör provider paneli ve kalıcı vaka kanıtıyla karar verir.
 
+## Shopier Uzlaştırma Sınırı
+
+- Checkout, signed webhook ve reconciliation modlarının üçü de `live` değilse
+  Shopier siparişleri job batch'ine girmez ve admin sorgusu fail-closed kapanır.
+- Product API idempotency anahtarı sağlamadığı için timeout sonrasında ikinci create
+  yapılmaz. Yalnız exact ve tekil custom listing iç siparişe bağlanır.
+- Order API ürün ID ile en fazla iki kayıt ister. Sıfır/çoklu sonuç, aktif refund,
+  ek line item, shipping/discount, tutar, para birimi, ürün veya alıcı e-posta
+  uyuşmazlığı otomatik teslimatı durdurur ve inceleme vakası oluşturur.
+- Alıcı e-postası log, audit veya snapshot'a yazılmaz; bellekte keyed HMAC ile hesap
+  e-postasına bağlanır.
+- Webhook ve Order API aynı exact-proof transaction'ını kullanır. Eşzamanlı job,
+  webhook ve admin sorgusunda tek verification, grant ve bildirim oluşur.
+- 200 istek/dakika provider kotası; bounded batch, Redis global lease, 15 dakikalık
+  schedule ve maksimum deneme sayısıyla korunur. 429 sonraki pencereye bırakılır.
+
 ## Vaka Çözümleme
 
 - Açık vaka `resolved` veya `ignored` kararı, zorunlu operatör notu ve admin kimliğiyle

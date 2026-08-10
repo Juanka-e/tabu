@@ -30,8 +30,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const order = await prisma.paymentOrder.findUnique({ where: { id: params.data.id } });
     if (!order) return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
     const supportedState = ["awaiting_payment", "paid", "fulfilled"].includes(order.status)
-        || (order.provider === "iyzico" && order.status === "pending_provider");
-    if (!(["paytr", "iyzico"] as string[]).includes(order.provider) || !supportedState) {
+        || (
+            (["iyzico", "shopier_v2"] as string[]).includes(order.provider)
+            && order.status === "pending_provider"
+        );
+    if (!(["paytr", "iyzico", "shopier_v2"] as string[]).includes(order.provider) || !supportedState) {
         return NextResponse.json({ error: "Sipariş uzlaştırmaya uygun değil." }, { status: 409 });
     }
     if (
@@ -42,6 +45,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         )
     ) {
         return NextResponse.json({ error: "iyzico uzlaştırma işlemi etkin değil." }, { status: 409 });
+    }
+    if (
+        order.provider === "shopier_v2"
+        && (
+            process.env.SHOPIER_CHECKOUT_MODE?.trim().toLowerCase() !== "live"
+            || process.env.SHOPIER_WEBHOOK_MODE?.trim().toLowerCase() !== "live"
+            || process.env.SHOPIER_RECONCILIATION_MODE?.trim().toLowerCase() !== "live"
+            || !/^[\x21-\x7e]{20,2048}$/.test(process.env.SHOPIER_PERSONAL_ACCESS_TOKEN ?? "")
+            || !/^[\x21-\x7e]{20,2048}$/.test(process.env.SHOPIER_WEBHOOK_TOKEN ?? "")
+        )
+    ) {
+        return NextResponse.json({ error: "Shopier uzlaştırma işlemi etkin değil." }, { status: 409 });
     }
     try {
         const outcome = await reconcilePaymentOrder({

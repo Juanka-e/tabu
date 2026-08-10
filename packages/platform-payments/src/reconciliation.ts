@@ -1,5 +1,17 @@
 import { Prisma, prisma, type PaymentOrder, type PaymentProvider } from "@hushle/platform-db";
+import { createHash } from "node:crypto";
 import type { IyzicoCredentials } from "./adapters/iyzico";
+import {
+    isAllowedShopierHostedUrl,
+    listShopierCustomListings,
+    listShopierPaidOrdersByProduct,
+    parseShopierMinorUnits,
+    ShopierAdapterError,
+    type ShopierCredentials,
+    type ShopierPaidOrder,
+    type ShopierProduct,
+} from "./adapters/shopier";
+import { buildShopierBuyerEmailHmac } from "./adapters/shopier-webhook";
 import {
     PaytrAdapterError,
     queryPaytrPaymentStatus,
@@ -16,6 +28,7 @@ import {
     createPaymentFulfillmentNotification,
     invalidatePaymentFulfillmentCaches,
 } from "./fulfillment-effects";
+import { applyShopierVerifiedPaymentProof, ShopierPaymentProofError } from "./shopier-proof";
 
 export interface PaymentReconciliationConfig {
     batchSize: number;
@@ -48,11 +61,27 @@ function iyzicoCredentialsFromEnvironment(
     };
 }
 
+function shopierCredentialsFromEnvironment(
+    environment: Readonly<Record<string, string | undefined>>
+): ShopierCredentials {
+    return { personalAccessToken: environment.SHOPIER_PERSONAL_ACCESS_TOKEN ?? "" };
+}
+
 function isIyzicoReconciliationEnabled(
     environment: Readonly<Record<string, string | undefined>>
 ): boolean {
     return environment.IYZICO_CHECKOUT_MODE?.trim().toLowerCase() === "sandbox"
         && environment.IYZICO_RECONCILIATION_MODE?.trim().toLowerCase() === "sandbox";
+}
+
+function isShopierReconciliationEnabled(
+    environment: Readonly<Record<string, string | undefined>>
+): boolean {
+    return environment.SHOPIER_CHECKOUT_MODE?.trim().toLowerCase() === "live"
+        && environment.SHOPIER_WEBHOOK_MODE?.trim().toLowerCase() === "live"
+        && environment.SHOPIER_RECONCILIATION_MODE?.trim().toLowerCase() === "live"
+        && /^[\x21-\x7e]{20,2048}$/.test(environment.SHOPIER_PERSONAL_ACCESS_TOKEN ?? "")
+        && /^[\x21-\x7e]{20,2048}$/.test(environment.SHOPIER_WEBHOOK_TOKEN ?? "");
 }
 
 async function upsertCase(input: {
@@ -144,28 +173,34 @@ async function markPaid(order: PaymentOrder, now: Date): Promise<boolean> {
 }
 
 async function resolveCase(orderId: string, now: Date, note: string): Promise<void> {
-    await prisma.paymentReconciliationCase.upsert({
-        where: { orderId },
-        create: {
-            orderId,
-            status: "resolved",
-            reasonCode: "provider_paid",
-            attemptCount: 1,
-            lastCheckedAt: now,
-            resolvedAt: now,
-            resolutionNote: note,
-        },
-        update: {
-            status: "resolved",
-            reasonCode: "provider_paid",
-            attemptCount: { increment: 1 },
-            lastErrorCode: null,
-            lastCheckedAt: now,
-            nextCheckAt: null,
-            resolvedAt: now,
-            resolutionNote: note,
-        },
-    });
+    await prisma.$transaction(async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+            SELECT id FROM payment_orders WHERE id = ${orderId} FOR UPDATE
+        `);
+        if (rows.length !== 1) return;
+        await tx.paymentReconciliationCase.upsert({
+            where: { orderId },
+            create: {
+                orderId,
+                status: "resolved",
+                reasonCode: "provider_paid",
+                attemptCount: 1,
+                lastCheckedAt: now,
+                resolvedAt: now,
+                resolutionNote: note,
+            },
+            update: {
+                status: "resolved",
+                reasonCode: "provider_paid",
+                attemptCount: { increment: 1 },
+                lastErrorCode: null,
+                lastCheckedAt: now,
+                nextCheckAt: null,
+                resolvedAt: now,
+                resolutionNote: note,
+            },
+        });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
 
 async function finishVerifiedOrder(
@@ -406,11 +441,278 @@ export async function reconcileIyzicoOrder(input: {
     return "unchanged";
 }
 
+export type ShopierProductLookup = (input: {
+    dateStart: Date;
+    dateEnd: Date;
+    credentials: ShopierCredentials;
+}) => Promise<ShopierProduct[]>;
+
+export type ShopierOrderLookup = (input: {
+    productId: string;
+    credentials: ShopierCredentials;
+}) => Promise<ShopierPaidOrder[]>;
+
+function shopierProductMatches(order: PaymentOrder, product: ShopierProduct): boolean {
+    return product.title === `${order.productNameSnapshot} [${order.id.slice(0, 8)}]`
+        && product.type === "digital"
+        && product.customListing === true
+        && product.shippingPayer === "sellerPays"
+        && product.priceData.currency === order.currency.toUpperCase()
+        && parseShopierMinorUnits(product.priceData.price) === order.totalAmountMinor
+        && (product.stockQuantity === 0 || product.stockQuantity === 1)
+        && isAllowedShopierHostedUrl(product.url, product.id);
+}
+
+async function recoverShopierListing(input: {
+    order: PaymentOrder;
+    credentials: ShopierCredentials;
+    lookup?: ShopierProductLookup;
+    now: Date;
+    retryDelayMinutes: number;
+}): Promise<PaymentOrder | null> {
+    const latestAttempt = await prisma.paymentAttempt.findFirst({
+        where: { orderId: input.order.id },
+        orderBy: { attemptNumber: "desc" },
+        select: { createdAt: true },
+    });
+    const requestTime = latestAttempt?.createdAt ?? input.order.updatedAt;
+    let products: ShopierProduct[];
+    try {
+        products = await (input.lookup ?? listShopierCustomListings)({
+            dateStart: new Date(requestTime.getTime() - 5 * 60_000),
+            dateEnd: new Date(requestTime.getTime() + 5 * 60_000),
+            credentials: input.credentials,
+        });
+    } catch (error) {
+        await upsertCase({
+            orderId: input.order.id,
+            reasonCode: "provider_query_failed",
+            errorCode: error instanceof ShopierAdapterError ? error.code : "provider_unavailable",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return null;
+    }
+    const matches = products.filter((product) => shopierProductMatches(input.order, product));
+    if (matches.length !== 1) {
+        await upsertCase({
+            orderId: input.order.id,
+            reasonCode: matches.length === 0
+                ? "shopier_listing_not_confirmed"
+                : "shopier_listing_match_ambiguous",
+            errorCode: matches.length === 0 ? "provider_result_missing" : "manual_review_required",
+            snapshot: { schemaVersion: 1, matchingListingCount: matches.length },
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return null;
+    }
+    const product = matches[0];
+    try {
+        return await prisma.$transaction(async (tx) => {
+            const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+                SELECT id FROM payment_orders WHERE id = ${input.order.id} FOR UPDATE
+            `);
+            if (rows.length !== 1) return null;
+            const current = await tx.paymentOrder.findUniqueOrThrow({ where: { id: input.order.id } });
+            if (current.status === "awaiting_payment" && current.providerSessionReference) return current;
+            if (current.status !== "pending_provider" || current.providerSessionReference) return null;
+            assertPaymentOrderTransition("pending_provider", "awaiting_payment");
+            await tx.paymentAttempt.updateMany({
+                where: { orderId: current.id, status: { in: ["requested", "uncertain"] } },
+                data: {
+                    status: "succeeded",
+                    providerRequestId: `shopier-product-sha256:${createHash("sha256").update(product.id).digest("hex")}`,
+                    errorCode: null,
+                },
+            });
+            return tx.paymentOrder.update({
+                where: { id: current.id },
+                data: {
+                    status: "awaiting_payment",
+                    providerSessionReference: product.id,
+                    providerHostedUrl: product.url,
+                    version: { increment: 1 },
+                },
+            });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    } catch {
+        await upsertCase({
+            orderId: input.order.id,
+            reasonCode: "shopier_listing_persist_uncertain",
+            errorCode: "checkout_state_conflict",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return null;
+    }
+}
+
+function shopierOrderSnapshot(order: ShopierPaidOrder): Prisma.InputJsonValue {
+    return {
+        schemaVersion: 1,
+        providerOrderReference: order.id,
+        paymentStatus: order.paymentStatus,
+        currency: order.currency,
+        total: order.totals.total,
+        refundStatuses: order.refunds.map((refund) => refund.status),
+        productId: order.lineItems[0].productId,
+    };
+}
+
+async function hasExactShopierProof(order: PaymentOrder): Promise<boolean> {
+    const proof = await prisma.paymentCheckoutVerification.findUnique({ where: { orderId: order.id } });
+    return Boolean(
+        proof
+        && proof.provider === "shopier_v2"
+        && proof.providerPaymentReference === order.providerOrderReference
+        && proof.amountMinor === order.totalAmountMinor
+        && proof.paidAmountMinor === order.totalAmountMinor
+        && proof.currency.toUpperCase() === order.currency.toUpperCase()
+        && proof.providerPaymentStatus === "paid"
+    );
+}
+
+export async function reconcileShopierOrder(input: {
+    order: PaymentOrder;
+    credentials: ShopierCredentials;
+    webhookToken: string;
+    productLookup?: ShopierProductLookup;
+    orderLookup?: ShopierOrderLookup;
+    now: Date;
+    retryDelayMinutes: number;
+}): Promise<"fulfilled" | "review" | "unchanged"> {
+    if (input.order.provider !== "shopier_v2") return "unchanged";
+    if (input.order.status === "paid" || input.order.status === "fulfilled") {
+        if (!await hasExactShopierProof(input.order)) {
+            await upsertCase({
+                orderId: input.order.id,
+                reasonCode: "provider_proof_missing",
+                errorCode: "shopier_exact_proof_required",
+                now: input.now,
+                retryDelayMinutes: input.retryDelayMinutes,
+            });
+            return "review";
+        }
+        return finishVerifiedOrder(input.order, input.now, "shopier_v2");
+    }
+    let order = input.order;
+    if (order.status === "pending_provider" && !order.providerSessionReference) {
+        const recovered = await recoverShopierListing({
+            order,
+            credentials: input.credentials,
+            lookup: input.productLookup,
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        if (!recovered) return "review";
+        order = recovered;
+    }
+    if (order.status !== "awaiting_payment" || !order.providerSessionReference) return "unchanged";
+
+    let providerOrders: ShopierPaidOrder[];
+    try {
+        providerOrders = await (input.orderLookup ?? listShopierPaidOrdersByProduct)({
+            productId: order.providerSessionReference,
+            credentials: input.credentials,
+        });
+    } catch (error) {
+        await upsertCase({
+            orderId: order.id,
+            reasonCode: "provider_query_failed",
+            errorCode: error instanceof ShopierAdapterError ? error.code : "provider_unavailable",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return "review";
+    }
+    if (providerOrders.length !== 1) {
+        await upsertCase({
+            orderId: order.id,
+            reasonCode: providerOrders.length === 0
+                ? "provider_order_not_confirmed"
+                : "shopier_order_match_ambiguous",
+            errorCode: providerOrders.length === 0 ? "provider_result_missing" : "manual_review_required",
+            snapshot: { schemaVersion: 1, matchingOrderCount: providerOrders.length },
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return "review";
+    }
+    const providerOrder = providerOrders[0];
+    const line = providerOrder.lineItems[0];
+    const total = parseShopierMinorUnits(providerOrder.totals.total);
+    const exactAmounts = total !== null
+        && parseShopierMinorUnits(providerOrder.totals.subtotal) === total
+        && parseShopierMinorUnits(providerOrder.totals.shipping) === 0
+        && parseShopierMinorUnits(providerOrder.totals.discount) === 0
+        && parseShopierMinorUnits(line.price) === total
+        && parseShopierMinorUnits(line.total) === total;
+    const hasActiveRefund = providerOrder.refunds.some((refund) => refund.status !== "failed");
+    if (
+        !exactAmounts
+        || total !== order.totalAmountMinor
+        || providerOrder.currency !== order.currency.toUpperCase()
+        || line.productId !== order.providerSessionReference
+        || line.title !== `${order.productNameSnapshot} [${order.id.slice(0, 8)}]`
+        || hasActiveRefund
+    ) {
+        await upsertCase({
+            orderId: order.id,
+            reasonCode: hasActiveRefund ? "provider_return_detected" : "provider_payment_mismatch",
+            snapshot: shopierOrderSnapshot(providerOrder),
+            errorCode: "manual_review_required",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return "review";
+    }
+    const occurredAt = new Date(providerOrder.dateCreated);
+    if (!Number.isFinite(occurredAt.getTime())) {
+        await upsertCase({
+            orderId: order.id,
+            reasonCode: "provider_payment_mismatch",
+            snapshot: shopierOrderSnapshot(providerOrder),
+            errorCode: "invalid_provider_timestamp",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return "review";
+    }
+    try {
+        const result = await applyShopierVerifiedPaymentProof({
+            productId: line.productId,
+            productTitle: line.title,
+            buyerEmailHmac: buildShopierBuyerEmailHmac(providerOrder.shippingInfo.email, input.webhookToken),
+            providerOrderReference: providerOrder.id,
+            amountMinor: total,
+            currency: providerOrder.currency,
+            occurredAt,
+            webhookToken: input.webhookToken,
+            now: input.now,
+        });
+        if (result.action === "review") return "review";
+        return finishVerifiedOrder(result.order, input.now, "shopier_v2");
+    } catch (error) {
+        await upsertCase({
+            orderId: order.id,
+            reasonCode: "provider_payment_mismatch",
+            snapshot: shopierOrderSnapshot(providerOrder),
+            errorCode: error instanceof ShopierPaymentProofError ? error.code : "local_completion_failed",
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+        return "review";
+    }
+}
+
 export async function reconcilePaymentOrder(input: {
     order: PaymentOrder;
     environment?: Readonly<Record<string, string | undefined>>;
     paytrQuery?: PaytrStatusQuery;
     iyzicoVerify?: IyzicoCheckoutVerification;
+    shopierProductLookup?: ShopierProductLookup;
+    shopierOrderLookup?: ShopierOrderLookup;
     now: Date;
     retryDelayMinutes: number;
 }): Promise<"fulfilled" | "review" | "unchanged"> {
@@ -436,6 +738,20 @@ export async function reconcilePaymentOrder(input: {
             retryDelayMinutes: input.retryDelayMinutes,
         });
     }
+    if (input.order.provider === "shopier_v2") {
+        if (!isShopierReconciliationEnabled(environment)) {
+            throw new Error("shopier_reconciliation_not_configured");
+        }
+        return reconcileShopierOrder({
+            order: input.order,
+            credentials: shopierCredentialsFromEnvironment(environment),
+            webhookToken: environment.SHOPIER_WEBHOOK_TOKEN ?? "",
+            productLookup: input.shopierProductLookup,
+            orderLookup: input.shopierOrderLookup,
+            now: input.now,
+            retryDelayMinutes: input.retryDelayMinutes,
+        });
+    }
     return "unchanged";
 }
 
@@ -445,21 +761,23 @@ export async function runPaymentReconciliation(input: {
     environment?: Readonly<Record<string, string | undefined>>;
     query?: PaytrStatusQuery;
     iyzicoVerify?: IyzicoCheckoutVerification;
+    shopierProductLookup?: ShopierProductLookup;
+    shopierOrderLookup?: ShopierOrderLookup;
     now?: Date;
 }) {
     const now = input.now ?? new Date();
     const environment = input.environment ?? process.env;
     const cutoff = new Date(now.getTime() - input.config.minAgeMinutes * 60_000);
-    const enabledProviders: PaymentProvider[] = isIyzicoReconciliationEnabled(environment)
-        ? ["paytr", "iyzico"]
-        : ["paytr"];
+    const enabledProviders: PaymentProvider[] = ["paytr"];
+    if (isIyzicoReconciliationEnabled(environment)) enabledProviders.push("iyzico");
+    if (isShopierReconciliationEnabled(environment)) enabledProviders.push("shopier_v2");
     const orders = await prisma.paymentOrder.findMany({
         where: {
             provider: { in: enabledProviders },
             createdAt: { lte: cutoff },
             OR: [
                 {
-                    provider: "iyzico",
+                    provider: { in: ["iyzico", "shopier_v2"] },
                     status: "pending_provider",
                     reconciliationCase: {
                         status: "open",
@@ -490,6 +808,7 @@ export async function runPaymentReconciliation(input: {
     const candidatesByProvider = {
         paytr: orders.filter((order) => order.provider === "paytr").length,
         iyzico: orders.filter((order) => order.provider === "iyzico").length,
+        shopier: orders.filter((order) => order.provider === "shopier_v2").length,
     };
     if (input.dryRun) {
         return {
@@ -497,6 +816,7 @@ export async function runPaymentReconciliation(input: {
             candidateCount: orders.length,
             candidatesByProvider,
             iyzicoEnabled: enabledProviders.includes("iyzico"),
+            shopierEnabled: enabledProviders.includes("shopier_v2"),
         };
     }
 
@@ -510,6 +830,8 @@ export async function runPaymentReconciliation(input: {
                 environment,
                 paytrQuery: input.query,
                 iyzicoVerify: input.iyzicoVerify,
+                shopierProductLookup: input.shopierProductLookup,
+                shopierOrderLookup: input.shopierOrderLookup,
                 now,
                 retryDelayMinutes: input.config.retryDelayMinutes,
             });
@@ -532,6 +854,7 @@ export async function runPaymentReconciliation(input: {
         candidateCount: orders.length,
         candidatesByProvider,
         iyzicoEnabled: enabledProviders.includes("iyzico"),
+        shopierEnabled: enabledProviders.includes("shopier_v2"),
         fulfilled,
         review,
         unchanged,

@@ -2,10 +2,12 @@ import { z } from "zod";
 
 export const SHOPIER_API_BASE_URL = "https://api.shopier.com/v1";
 export const SHOPIER_PRODUCTS_PATH = "/products";
+export const SHOPIER_ORDERS_PATH = "/orders";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const currencySchema = z.enum(["TRY", "USD", "EUR"]);
+const moneySchema = z.string().regex(/^(?:0|[1-9]\d{0,9})(?:\.\d{1,2})?$/);
 const createListingSchema = z.object({
     orderId: z.string().uuid(),
     amountMinor: z.number().int().positive().max(2_147_483_647),
@@ -26,6 +28,30 @@ const productSchema = z.object({
     stockQuantity: z.number().int().min(0).optional(),
     shippingPayer: z.literal("sellerPays"),
     customListing: z.literal(true),
+}).passthrough();
+const paidOrderSchema = z.object({
+    id: z.string().trim().min(1).max(191),
+    paymentStatus: z.literal("paid"),
+    dateCreated: z.string().trim().min(1).max(64),
+    currency: currencySchema,
+    totals: z.object({
+        subtotal: moneySchema,
+        shipping: moneySchema,
+        discount: moneySchema,
+        total: moneySchema,
+    }),
+    shippingInfo: z.object({ email: z.string().trim().email().max(191) }).passthrough(),
+    lineItems: z.array(z.object({
+        productId: z.string().regex(/^\d{1,64}$/),
+        title: z.string().trim().min(1).max(240),
+        type: z.literal("digital"),
+        quantity: z.literal(1),
+        price: moneySchema,
+        total: moneySchema,
+    }).passthrough()).length(1),
+    refunds: z.array(z.object({
+        status: z.enum(["pending", "failed", "succeeded"]),
+    }).passthrough()).optional().default([]),
 }).passthrough();
 
 export interface ShopierCredentials {
@@ -86,15 +112,123 @@ function assertCredentials(credentials: ShopierCredentials): void {
     ) throw new ShopierAdapterError("invalid_request");
 }
 
-function formatMinorUnits(amountMinor: number): string {
+export function formatShopierMinorUnits(amountMinor: number): string {
     return `${Math.floor(amountMinor / 100)}.${String(amountMinor % 100).padStart(2, "0")}`;
 }
 
-function parseMinorUnits(value: string): number | null {
+export function parseShopierMinorUnits(value: string): number | null {
     const match = /^(0|[1-9]\d{0,9})(?:\.(\d{1,2}))?$/.exec(value);
     if (!match) return null;
     const amount = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
     return Number.isSafeInteger(amount) && amount <= 2_147_483_647 ? amount : null;
+}
+
+function formatShopierDate(value: Date): string {
+    if (!Number.isFinite(value.getTime())) throw new ShopierAdapterError("invalid_request");
+    return value.toISOString().replace(/\.\d{3}Z$/, "+0000");
+}
+
+async function shopierGet(input: {
+    path: string;
+    query: URLSearchParams;
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<unknown> {
+    assertCredentials(input.credentials);
+    const controller = new AbortController();
+    const timeoutMs = Math.max(1_000, Math.min(input.timeoutMs ?? DEFAULT_TIMEOUT_MS, 30_000));
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await (input.fetchImpl ?? fetch)(
+            `${SHOPIER_API_BASE_URL}${input.path}?${input.query.toString()}`,
+            {
+                method: "GET",
+                redirect: "error",
+                headers: {
+                    accept: "application/json",
+                    authorization: `Bearer ${input.credentials.personalAccessToken}`,
+                },
+                signal: controller.signal,
+            }
+        );
+        const responseText = await readBoundedResponse(response);
+        let raw: unknown;
+        try {
+            raw = JSON.parse(responseText);
+        } catch {
+            throw new ShopierAdapterError("invalid_provider_response");
+        }
+        if (!response.ok) {
+            if (response.status === 429) throw new ShopierAdapterError("provider_rate_limited");
+            if (response.status >= 400 && response.status < 500) {
+                throw new ShopierAdapterError("provider_rejected");
+            }
+            throw new ShopierAdapterError("provider_unavailable");
+        }
+        return raw;
+    } catch (error) {
+        if (error instanceof ShopierAdapterError) throw error;
+        if (error instanceof Error && error.name === "AbortError") {
+            throw new ShopierAdapterError("provider_timeout");
+        }
+        throw new ShopierAdapterError("provider_unavailable");
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+export type ShopierProduct = z.infer<typeof productSchema>;
+export type ShopierPaidOrder = z.infer<typeof paidOrderSchema>;
+
+export async function listShopierCustomListings(input: {
+    dateStart: Date;
+    dateEnd: Date;
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<ShopierProduct[]> {
+    const query = new URLSearchParams({
+        dateStart: formatShopierDate(input.dateStart),
+        dateEnd: formatShopierDate(input.dateEnd),
+        customListing: "true",
+        limit: "50",
+        page: "1",
+        sort: "dateDesc",
+    });
+    const parsed = z.array(productSchema).max(50).safeParse(await shopierGet({
+        path: SHOPIER_PRODUCTS_PATH,
+        query,
+        credentials: input.credentials,
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.timeoutMs,
+    }));
+    if (!parsed.success) throw new ShopierAdapterError("invalid_provider_response");
+    return parsed.data;
+}
+
+export async function listShopierPaidOrdersByProduct(input: {
+    productId: string;
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<ShopierPaidOrder[]> {
+    if (!/^\d{1,64}$/.test(input.productId)) throw new ShopierAdapterError("invalid_request");
+    const query = new URLSearchParams({
+        productId: input.productId,
+        limit: "2",
+        page: "1",
+        sort: "dateDesc",
+    });
+    const parsed = z.array(paidOrderSchema).max(2).safeParse(await shopierGet({
+        path: SHOPIER_ORDERS_PATH,
+        query,
+        credentials: input.credentials,
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.timeoutMs,
+    }));
+    if (!parsed.success) throw new ShopierAdapterError("invalid_provider_response");
+    return parsed.data;
 }
 
 async function readBoundedResponse(response: Response): Promise<string> {
@@ -158,7 +292,7 @@ export async function createShopierCustomListing(input: z.input<typeof createLis
                     media: [{ type: "image", url: parsed.data.mediaUrl, placement: 1 }],
                     priceData: {
                         currency: parsed.data.currency,
-                        price: formatMinorUnits(parsed.data.amountMinor),
+                        price: formatShopierMinorUnits(parsed.data.amountMinor),
                         discount: false,
                     },
                     stockQuantity: 1,
@@ -184,7 +318,7 @@ export async function createShopierCustomListing(input: z.input<typeof createLis
         }
         const product = productSchema.safeParse(raw);
         if (!product.success) throw new ShopierAdapterError("invalid_provider_response");
-        const amountMinor = parseMinorUnits(product.data.priceData.price);
+        const amountMinor = parseShopierMinorUnits(product.data.priceData.price);
         if (
             product.data.title !== title
             || product.data.priceData.currency !== parsed.data.currency

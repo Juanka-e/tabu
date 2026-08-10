@@ -33,6 +33,12 @@ iyzico session tokens stay in manual review and never trigger a blind initialize
 retry. Provider mismatches and detected returns open an admin review case; they
 never trigger a provider refund automatically.
 
+Shopier execution additionally requires `SHOPIER_CHECKOUT_MODE=live`,
+`SHOPIER_WEBHOOK_MODE=live`, and `SHOPIER_RECONCILIATION_MODE=live`. The jobs
+container needs the PAT and webhook token. An uncertain listing is recovered only
+from one exact Product API match; missing or ambiguous matches never trigger a
+second create request.
+
 The admin audit page has separate active and archive views. Production
 scheduling still remains an explicit operator decision after the retention
 window and archive view are accepted in the target environment.

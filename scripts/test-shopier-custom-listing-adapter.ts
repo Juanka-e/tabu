@@ -4,7 +4,10 @@ import {
     createShopierCustomListing,
     getPaymentProviderReadiness,
     isAllowedShopierHostedUrl,
+    listShopierCustomListings,
+    listShopierPaidOrdersByProduct,
     SHOPIER_API_BASE_URL,
+    SHOPIER_ORDERS_PATH,
     SHOPIER_PRODUCTS_PATH,
     ShopierAdapterError,
 } from "@hushle/platform-payments";
@@ -31,6 +34,27 @@ function providerProduct(overrides: Record<string, unknown> = {}): Record<string
         stockQuantity: 1,
         shippingPayer: "sellerPays",
         customListing: true,
+        ...overrides,
+    };
+}
+
+function providerOrder(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+        id: "990001",
+        paymentStatus: "paid",
+        dateCreated: "2026-08-10T10:00:00Z",
+        currency: "TRY",
+        totals: { subtotal: "11.97", shipping: "0.00", discount: "0.00", total: "11.97" },
+        shippingInfo: { email: "buyer@example.test" },
+        lineItems: [{
+            productId: "689793",
+            title: "120 Coin [11111111]",
+            type: "digital",
+            quantity: 1,
+            price: "11.97",
+            total: "11.97",
+        }],
+        refunds: [],
         ...overrides,
     };
 }
@@ -78,6 +102,53 @@ async function run(): Promise<void> {
         currency: "TRY",
     });
 
+    let listingRequestUrl = "";
+    let listingRequestInit: RequestInit | undefined;
+    const listings = await listShopierCustomListings({
+        dateStart: new Date("2026-08-10T09:00:00Z"),
+        dateEnd: new Date("2026-08-10T11:00:00Z"),
+        credentials: request.credentials,
+        fetchImpl: async (input, init) => {
+            listingRequestUrl = String(input);
+            listingRequestInit = init;
+            return new Response(JSON.stringify([providerProduct()]));
+        },
+    });
+    assert.equal(listings.length, 1);
+    assert.ok(listingRequestUrl);
+    const listingUrl = new URL(listingRequestUrl);
+    assert.equal(`${listingUrl.origin}${listingUrl.pathname}`, `${SHOPIER_API_BASE_URL}${SHOPIER_PRODUCTS_PATH}`);
+    assert.equal(listingUrl.searchParams.get("customListing"), "true");
+    assert.equal(listingUrl.searchParams.get("dateStart"), "2026-08-10T09:00:00+0000");
+    assert.equal(listingUrl.searchParams.get("limit"), "50");
+    assert.equal(new Headers(listingRequestInit?.headers).get("authorization"), `Bearer ${token}`);
+    assert.equal(listingRequestInit?.redirect, "error");
+
+    let orderRequestUrl = "";
+    const orders = await listShopierPaidOrdersByProduct({
+        productId: "689793",
+        credentials: request.credentials,
+        fetchImpl: async (input) => {
+            orderRequestUrl = String(input);
+            return new Response(JSON.stringify([providerOrder()]));
+        },
+    });
+    assert.equal(orders.length, 1);
+    const orderUrl = new URL(orderRequestUrl);
+    assert.equal(`${orderUrl.origin}${orderUrl.pathname}`, `${SHOPIER_API_BASE_URL}${SHOPIER_ORDERS_PATH}`);
+    assert.equal(orderUrl.searchParams.get("productId"), "689793");
+    assert.equal(orderUrl.searchParams.get("limit"), "2");
+    await expectCode(() => listShopierPaidOrdersByProduct({
+        productId: "../orders",
+        credentials: request.credentials,
+        fetchImpl: async () => new Response("[]"),
+    }), "invalid_request");
+    await expectCode(() => listShopierPaidOrdersByProduct({
+        productId: "689793",
+        credentials: request.credentials,
+        fetchImpl: async () => new Response(JSON.stringify([providerOrder({ paymentStatus: "unpaid" })])),
+    }), "invalid_provider_response");
+
     assert.equal(isAllowedShopierHostedUrl("https://www.shopier.com/689793", "689793"), true);
     for (const url of [
         "http://www.shopier.com/689793",
@@ -118,6 +189,7 @@ async function run(): Promise<void> {
         SHOPIER_PRODUCT_MEDIA_URL: request.mediaUrl,
         SHOPIER_CHECKOUT_MODE: "live",
         SHOPIER_WEBHOOK_MODE: "live",
+        SHOPIER_RECONCILIATION_MODE: "live",
         SHOPIER_WEBHOOK_TOKEN: "shopier-webhook-token-with-safe-length",
         SHOPIER_ACCOUNT_ID: "123456",
         SHOPIER_LIVE_ACCEPTANCE_RECORDED: "true",

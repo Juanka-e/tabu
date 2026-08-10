@@ -35,6 +35,7 @@ const providers = {
             "SHOPIER_PRODUCT_MEDIA_URL",
             "SHOPIER_CHECKOUT_MODE",
             "SHOPIER_WEBHOOK_MODE",
+            "SHOPIER_RECONCILIATION_MODE",
             "SHOPIER_WEBHOOK_TOKEN",
             "SHOPIER_ACCOUNT_ID",
             "SHOPIER_LIVE_ACCEPTANCE_RECORDED",
@@ -121,6 +122,11 @@ export function getPaymentProviderReadiness(
         && environment.SHOPIER_WEBHOOK_MODE?.trim().toLowerCase() !== "live"
         && !missingEnvironment.includes("SHOPIER_WEBHOOK_MODE")
     ) missingEnvironment.push("SHOPIER_WEBHOOK_MODE");
+    if (
+        provider === "shopier_v2"
+        && environment.SHOPIER_RECONCILIATION_MODE?.trim().toLowerCase() !== "live"
+        && !missingEnvironment.includes("SHOPIER_RECONCILIATION_MODE")
+    ) missingEnvironment.push("SHOPIER_RECONCILIATION_MODE");
     if (
         provider === "shopier_v2"
         && !/^[A-Za-z0-9._:-]{1,191}$/.test(environment.SHOPIER_ACCOUNT_ID?.trim() ?? "")
