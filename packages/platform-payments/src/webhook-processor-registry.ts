@@ -1,5 +1,6 @@
 import { processIyzicoPaymentWebhook } from "./iyzico-webhook-processor";
 import { processPaytrPaymentWebhook } from "./paytr-webhook-processor";
+import { processShopierPaymentWebhook } from "./shopier-webhook-processor";
 import {
     PaymentWebhookProcessingError,
     type PaymentWebhookProcessor,
@@ -11,6 +12,16 @@ export function getPaymentWebhookProcessor(
     environment: WebhookEnvironment = process.env
 ): PaymentWebhookProcessor {
     return async (event) => {
+        if (event.provider === "shopier_v2") {
+            if (
+                environment.SHOPIER_CHECKOUT_MODE?.trim().toLowerCase() !== "live"
+                || environment.SHOPIER_WEBHOOK_MODE?.trim().toLowerCase() !== "live"
+                || !/^[\x21-\x7e]{20,2048}$/.test(environment.SHOPIER_WEBHOOK_TOKEN ?? "")
+            ) throw new PaymentWebhookProcessingError("shopier_processor_not_configured", true);
+            return processShopierPaymentWebhook(event, {
+                webhookToken: environment.SHOPIER_WEBHOOK_TOKEN ?? "",
+            });
+        }
         if (event.provider === "paytr") return processPaytrPaymentWebhook(event);
         if (event.provider === "iyzico") {
             if (

@@ -133,6 +133,7 @@ jobs:
           npm run test:payment-iyzico-owner-surface
           npm run test:payment-stripe-adapter
           npm run test:payment-shopier-adapter
+          npm run test:payment-shopier-webhook
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance
           npm run test:payment-paytr-checkout-integration
@@ -147,10 +148,12 @@ jobs:
           npm run test:payment-paytr-webhook-integration
           npm run test:payment-iyzico-webhook-integration
           npm run test:payment-iyzico-owner-callback-integration
+          npm run test:payment-shopier-webhook-integration
         env:
           PAYTR_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
           IYZICO_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
           IYZICO_OWNER_CALLBACK_INTEGRATION_TEST: "true"
+          SHOPIER_WEBHOOK_PROCESSOR_INTEGRATION_TEST: "true"
 
       - name: Test payment reconciliation and reversal
         run: |

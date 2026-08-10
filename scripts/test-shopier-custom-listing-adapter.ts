@@ -117,6 +117,9 @@ async function run(): Promise<void> {
         SHOPIER_PERSONAL_ACCESS_TOKEN: token,
         SHOPIER_PRODUCT_MEDIA_URL: request.mediaUrl,
         SHOPIER_CHECKOUT_MODE: "live",
+        SHOPIER_WEBHOOK_MODE: "live",
+        SHOPIER_WEBHOOK_TOKEN: "shopier-webhook-token-with-safe-length",
+        SHOPIER_ACCOUNT_ID: "123456",
         SHOPIER_LIVE_ACCEPTANCE_RECORDED: "true",
         SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256: `sha256:${"a".repeat(64)}`,
     };
