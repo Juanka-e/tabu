@@ -75,6 +75,11 @@ bilgileri onaylandıktan sonra kullanılır.
 
 ## Kalan Aktivasyon Isleri
 
+Gerçek Iyzico sandbox kabulü için
+[`iyzico-sandbox-acceptance-runbook.md`](./iyzico-sandbox-acceptance-runbook.md)
+kullanılır. Harness initialize ve verify aşamalarını ayırır; token, hosted URL ve buyer
+verilerini kanıt çıktısına taşımaz ve kabul flag'ini otomatik açmaz.
+
 1. Merchant ve veri aktarim modelinin hukuki onayi.
 2. Gercek merchant sandbox initialize, callback, webhook ve reconciliation kabul testi.
 3. Alert, scheduler ve operasyon runbook kabul kaydi.
