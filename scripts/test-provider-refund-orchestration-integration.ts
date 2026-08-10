@@ -10,7 +10,7 @@ import {
     type PaymentRefundAdapter,
 } from "@hushle/platform-payments";
 
-async function createFulfilledCosmeticOrder(userId: number, suffix: string) {
+async function createFulfilledCosmeticOrder(userId: number, suffix: string, provider: "paytr" | "shopier_v2" = "paytr") {
     const shopItem = await prisma.shopItem.create({
         data: { code: `refund_${suffix}`, type: "avatar", name: `Refund ${suffix}`, priceCoin: 0, imageUrl: "/refund.png" },
     });
@@ -18,7 +18,7 @@ async function createFulfilledCosmeticOrder(userId: number, suffix: string) {
     const id = randomUUID();
     const order = await prisma.paymentOrder.create({
         data: {
-            id, userId, provider: "paytr", status: "fulfilled",
+            id, userId, provider, status: "fulfilled",
             idempotencyKey: `provider-refund:${suffix}`, requestFingerprint: "f".repeat(64),
             productKind: "cosmetic_item", productReference: `refund_${suffix}`, productVersion: 1,
             productNameSnapshot: `Refund ${suffix}`, quantity: 1, unitAmountMinor: 1_250,
@@ -53,7 +53,8 @@ async function run() {
         assert.match(successRequest.externalReference, /^RF[a-f0-9]{32}$/);
         const successfulAdapter: PaymentRefundAdapter = {
             provider: "paytr",
-            refund: async (request) => ({ provider: "paytr", merchantOrderId: request.merchantOrderId, referenceNo: request.referenceNo, amountMinor: request.amountMinor, currency: request.currency, testMode: true }),
+            refund: async (request) => ({ provider: "paytr", merchantOrderId: request.merchantOrderId, referenceNo: request.referenceNo, providerRefundReference: request.referenceNo, amountMinor: request.amountMinor, currency: request.currency, status: "succeeded", testMode: true }),
+            lookup: async () => null,
         };
         await assert.rejects(
             () => approveProviderApiRefundRequest({ requestId: successRequest.id, reviewedByUserId: requester.id, reviewNote: "self approval", adapter: successfulAdapter }),
@@ -65,10 +66,43 @@ async function run() {
         assert.equal(await prisma.inventoryItem.count({ where: { id: success.inventory.id } }), 0);
         assert.equal((await prisma.paymentProviderRefundAttempt.findUniqueOrThrow({ where: { reversalRequestId: successRequest.id } })).status, "succeeded");
 
+        const shopier = await createFulfilledCosmeticOrder(user.id, `${suffix}_shopier`, "shopier_v2");
+        shopItemIds.push(shopier.shopItem.id);
+        const shopierRequest = await requestProviderApiPaymentRefund({ orderId: shopier.order.id, reason: "Shopier pending refund", requestedByUserId: requester.id });
+        const shopierAdapter: PaymentRefundAdapter = {
+            provider: "shopier_v2",
+            refund: async (request) => ({
+                provider: "shopier_v2", merchantOrderId: request.merchantOrderId,
+                referenceNo: request.referenceNo, providerRefundReference: "shopier-refund-1001",
+                amountMinor: request.amountMinor, currency: request.currency, status: "pending", testMode: false,
+            }),
+            lookup: async (request) => ({
+                provider: "shopier_v2", merchantOrderId: request.merchantOrderId,
+                referenceNo: request.referenceNo, providerRefundReference: "shopier-refund-1001",
+                amountMinor: request.amountMinor, currency: request.currency, status: "succeeded", testMode: false,
+            }),
+        };
+        const shopierPending = await approveProviderApiRefundRequest({ requestId: shopierRequest.id, reviewedByUserId: reviewer.id, reviewNote: "Shopier pending expected", adapter: shopierAdapter });
+        assert.equal(shopierPending.outcome, "provider_review");
+        assert.equal(await prisma.inventoryItem.count({ where: { id: shopier.inventory.id } }), 1);
+        const shopierRecovered = await recoverProviderApiRefundRequest({ requestId: shopierRequest.id, checkedByUserId: reviewer.id, adapter: shopierAdapter });
+        assert.equal(shopierRecovered.outcome, "applied");
+        assert.equal(await prisma.inventoryItem.count({ where: { id: shopier.inventory.id } }), 0);
+        assert.equal((await prisma.paymentProviderRefundAttempt.findUniqueOrThrow({ where: { reversalRequestId: shopierRequest.id } })).providerRefundReference, "shopier-refund-1001");
+
         const uncertain = await createFulfilledCosmeticOrder(user.id, `${suffix}_uncertain`);
         shopItemIds.push(uncertain.shopItem.id);
         const uncertainRequest = await requestProviderApiPaymentRefund({ orderId: uncertain.order.id, reason: "timeout recovery", requestedByUserId: requester.id });
-        const timeoutAdapter: PaymentRefundAdapter = { provider: "paytr", refund: async () => { throw new PaytrAdapterError("provider_timeout"); } };
+        const timeoutAdapter: PaymentRefundAdapter = {
+            provider: "paytr",
+            refund: async () => { throw new PaytrAdapterError("provider_timeout"); },
+            lookup: async (request) => ({
+                provider: "paytr", merchantOrderId: request.merchantOrderId,
+                referenceNo: request.referenceNo, providerRefundReference: request.referenceNo,
+                amountMinor: request.amountMinor, currency: request.currency,
+                status: "succeeded", testMode: true,
+            }),
+        };
         const review = await approveProviderApiRefundRequest({ requestId: uncertainRequest.id, reviewedByUserId: reviewer.id, reviewNote: "timeout expected", adapter: timeoutAdapter });
         assert.equal(review.outcome, "provider_review");
         assert.equal((await prisma.paymentOrder.findUniqueOrThrow({ where: { id: uncertain.order.id } })).status, "fulfilled");
@@ -79,11 +113,7 @@ async function run() {
         const recovered = await recoverProviderApiRefundRequest({
             requestId: uncertainRequest.id,
             checkedByUserId: reviewer.id,
-            query: async () => ({
-                status: "success", paymentAmountMinor: 1_250, paymentTotalMinor: 1_250,
-                currency: "TRY", testMode: true, returnCount: 1,
-                refunds: [{ referenceNo: uncertainRequest.externalReference, amountMinor: 1_250, completed: true }],
-            }),
+            adapter: timeoutAdapter,
         });
         assert.equal(recovered.outcome, "applied");
         assert.equal((await prisma.paymentOrder.findUniqueOrThrow({ where: { id: uncertain.order.id } })).status, "refunded");
@@ -91,7 +121,11 @@ async function run() {
         const failed = await createFulfilledCosmeticOrder(user.id, `${suffix}_failed`);
         shopItemIds.push(failed.shopItem.id);
         const failedRequest = await requestProviderApiPaymentRefund({ orderId: failed.order.id, reason: "provider rejection", requestedByUserId: requester.id });
-        const rejectedAdapter: PaymentRefundAdapter = { provider: "paytr", refund: async () => { throw new PaytrAdapterError("provider_rejected"); } };
+        const rejectedAdapter: PaymentRefundAdapter = {
+            provider: "paytr",
+            refund: async () => { throw new PaytrAdapterError("provider_rejected"); },
+            lookup: async () => null,
+        };
         const rejected = await approveProviderApiRefundRequest({ requestId: failedRequest.id, reviewedByUserId: reviewer.id, reviewNote: "rejection expected", adapter: rejectedAdapter });
         assert.equal(rejected.outcome, "provider_failed");
         assert.equal((await prisma.paymentOrder.findUniqueOrThrow({ where: { id: failed.order.id } })).status, "fulfilled");

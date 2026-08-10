@@ -190,6 +190,7 @@ async function run(): Promise<void> {
         SHOPIER_CHECKOUT_MODE: "live",
         SHOPIER_WEBHOOK_MODE: "live",
         SHOPIER_RECONCILIATION_MODE: "live",
+        SHOPIER_REFUND_MODE: "live",
         SHOPIER_WEBHOOK_TOKEN: "shopier-webhook-token-with-safe-length",
         SHOPIER_ACCOUNT_ID: "123456",
         SHOPIER_LIVE_ACCEPTANCE_RECORDED: "true",
@@ -197,8 +198,8 @@ async function run(): Promise<void> {
     };
     const readiness = getPaymentProviderReadiness("shopier_v2", readinessEnvironment);
     assert.equal(readiness.credentialsConfigured, true);
-    assert.equal(readiness.adapterAvailable, false);
-    assert.equal(readiness.ready, false, "webhook and reconciliation are not connected yet");
+    assert.equal(readiness.adapterAvailable, true);
+    assert.equal(readiness.ready, true);
     assert.equal(getPaymentProviderReadiness("shopier_v2", {
         ...readinessEnvironment,
         SHOPIER_LIVE_ACCEPTANCE_RECORDED: "false",

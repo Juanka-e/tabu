@@ -20,8 +20,9 @@ güvenli biçimde eşlemeye yetmediği için reddedilmiştir.
 
 ## Güvenlik Sınırları
 
-- Yalnız sabit `https://api.shopier.com/v1/products` ve
-  `https://api.shopier.com/v1/orders` endpoint'leri çağrılır.
+- Yalnız sabit `https://api.shopier.com/v1/products`,
+  `https://api.shopier.com/v1/orders` ve `https://api.shopier.com/v1/refunds`
+  endpoint'leri çağrılır.
 - PAT yalnız `Authorization: Bearer` başlığında taşınır; body, DB, audit veya loga yazılmaz.
 - Provider redirect takip edilmez.
 - Request 10 saniye, response 64 KiB ile sınırlıdır.
@@ -48,6 +49,7 @@ SHOPIER_PRODUCT_MEDIA_URL=https://cdn.example.com/payments/hushle-product.png
 SHOPIER_CHECKOUT_MODE=disabled
 SHOPIER_WEBHOOK_MODE=disabled
 SHOPIER_RECONCILIATION_MODE=disabled
+SHOPIER_REFUND_MODE=disabled
 SHOPIER_WEBHOOK_TOKEN=
 SHOPIER_ACCOUNT_ID=
 SHOPIER_LIVE_ACCEPTANCE_RECORDED=false
@@ -55,7 +57,8 @@ SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_FILE=
 SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256=
 ```
 
-`adapterAvailable=false` kalır. Aşağıdakiler tamamlanmadan production checkout açılamaz:
+`adapterAvailable=true` olur ancak tüm modlar `live`, canlı kabul kaydı ve dosya
+özeti doğrulanmış kanıt olmadan runtime ve production preflight fail-closed kalır.
 
 Tamamlanan webhook katmanı:
 
@@ -71,6 +74,7 @@ Tamamlanan webhook katmanı:
 Tamamlanan reconciliation katmanı:
 
 - ayrı `SHOPIER_RECONCILIATION_MODE=live` aktivasyon kapısı
+- ayrı `SHOPIER_REFUND_MODE=live` aktivasyon kapısı; `pending` veya belirsiz sonuçta oyuncu hakkı değiştirilmez
 - timeout sonucu belirsiz ürün oluşturmayı exact ve tekil Product API eşleşmesiyle kurtarma
 - sıfır/çoklu ürün eşleşmesinde otomatik create retry veya tahmin yapmama
 - ürün ID ile Order API sorgusu; exact line item/totals ve keyed-HMAC alıcı e-postası
@@ -78,11 +82,24 @@ Tamamlanan reconciliation katmanı:
 - aktif refund görüldüğünde otomatik grant yerine inceleme vakası
 - webhook, job ve admin çağrılarında ortak satır kilidi ve exact-proof işlemcisi
 
-Kalan aktivasyon kapıları:
+Tamamlanan refund katmanı:
 
-1. `refund.requested` / `refund.updated` webhook ve Shopier refund API orkestrasyonu.
-2. Webhook subscription/scheduler health ve alarm görünümü.
-3. Gerçek düşük tutarlı ödeme+iade acceptance kanıtı.
+- farklı ikinci admin onayı ve yalnız tam tutarlı API iadesi
+- kalıcı provider refund attempt ile Shopier refund ID eşlemesi
+- `pending` ve timeout sonucunda entitlement değiştirmeden `provider_review`
+- kör POST tekrarı yerine refund ID ile GET; ID yoksa dar zaman aralığında exact ve
+  tekil order/tutar/currency eşleşmesi
+- imzalı `refund.requested` ve `refund.updated` olaylarının idempotent işlenmesi
+- sistem dışında veya kısmi başlatılmış iadelerde otomatik oyuncu cezası yerine
+  reconciliation vakası
+- `succeeded` kanıtı ile merkezi reversal; duplicate webhook/recovery yarışında tek uygulama
+- admin panelinde sağlayıcı iade ID'si ve sağlayıcı bazlı readiness görünümü
+
+Kalan canlı aktivasyon kapıları:
+
+1. Shopier panelinde webhook subscription ve worker/scheduler smoke doğrulaması.
+2. Gerçek düşük tutarlı ödeme, pending iade, succeeded iade ve duplicate teslim kabulü.
+3. `shopier-live-acceptance-v1` kanıt manifestinin güvenli dosyada kaydı ve SHA-256 eşleşmesi.
 4. Satıcı hesabı, vergi/fatura ve dijital ürün uygunluğunun hukuki/operasyonel onayı.
 
 ## Resmi Sözleşme

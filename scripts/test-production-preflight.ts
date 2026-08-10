@@ -7,6 +7,8 @@ import { parseEnvFile, validateProductionEnvironment } from "./lib/production-pr
 import {
     IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA,
     IYZICO_REQUIRED_ACCEPTANCE_CHECKS,
+    SHOPIER_ACCEPTANCE_EVIDENCE_SCHEMA,
+    SHOPIER_REQUIRED_ACCEPTANCE_CHECKS,
     PAYMENT_BUYER_DATA_POLICY_VERSION,
     PAYMENT_LEGAL_APPROVAL_SCHEMA,
     PAYMENT_LEGAL_REVIEW_SCOPES,
@@ -65,6 +67,21 @@ function attachIyzicoEvidence(environment: Record<string, string>): void {
     });
     environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_FILE = evidence.path;
     environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256 = evidence.digest;
+}
+
+function attachShopierEvidence(environment: Record<string, string>): void {
+    const checks = Object.fromEntries(SHOPIER_REQUIRED_ACCEPTANCE_CHECKS.map((name) => [name, true]));
+    const evidence = writeEvidence("shopier", {
+        schema: SHOPIER_ACCEPTANCE_EVIDENCE_SCHEMA,
+        phase: "verified", status: "passed", generatedAt: new Date().toISOString(),
+        provider: "shopier_v2", live: true, amountMinor: 100, currency: "TRY",
+        accountIdHash: sha256Digest(environment.SHOPIER_ACCOUNT_ID),
+        providerOrderReferenceHash: sha256Digest("shopier-order"),
+        providerRefundReferenceHash: sha256Digest("shopier-refund"),
+        checks, failedChecks: [],
+    });
+    environment.SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_FILE = evidence.path;
+    environment.SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256 = evidence.digest;
 }
 
 function validEnvironment(): Record<string, string> {
@@ -293,6 +310,22 @@ const iyzicoCheckoutWithAcceptance = {
 attachLegalEvidence(iyzicoCheckoutWithAcceptance);
 attachIyzicoEvidence(iyzicoCheckoutWithAcceptance);
 assert.deepEqual(validateProductionEnvironment(iyzicoCheckoutWithAcceptance).errors, []);
+
+const shopierCheckoutWithAcceptance = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_ACTIVE_PROVIDER: "shopier_v2",
+    SHOPIER_CHECKOUT_MODE: "live", SHOPIER_WEBHOOK_MODE: "live",
+    SHOPIER_RECONCILIATION_MODE: "live", SHOPIER_REFUND_MODE: "live",
+    SHOPIER_PERSONAL_ACCESS_TOKEN: "shopier-live-token-with-safe-length-123",
+    SHOPIER_PRODUCT_MEDIA_URL: "https://cdn.hushle.com/payment.png",
+    SHOPIER_WEBHOOK_TOKEN: "shopier-webhook-token-with-safe-length-123",
+    SHOPIER_ACCOUNT_ID: "123456", SHOPIER_LIVE_ACCEPTANCE_RECORDED: "true",
+};
+attachLegalEvidence(shopierCheckoutWithAcceptance);
+attachShopierEvidence(shopierCheckoutWithAcceptance);
+assert.deepEqual(validateProductionEnvironment(shopierCheckoutWithAcceptance).errors, []);
+const shopierWithoutRefundGate = { ...shopierCheckoutWithAcceptance, SHOPIER_REFUND_MODE: "disabled" };
+assert.ok(validateProductionEnvironment(shopierWithoutRefundGate).errors.some((error) => error.includes("SHOPIER_REFUND_MODE")));
 
 const iyzicoWithWrongMerchant = {
     ...iyzicoCheckoutWithAcceptance,

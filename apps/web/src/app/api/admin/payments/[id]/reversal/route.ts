@@ -5,6 +5,7 @@ import {
     requestProviderApiPaymentRefund,
     PaymentReversalError,
 } from "@hushle/platform-payments";
+import { prisma } from "@hushle/platform-db";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
@@ -34,8 +35,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     ) {
         return NextResponse.json({ error: "execution_mode_conflict" }, { status: 422 });
     }
-    if (body.data.executionMode === "provider_api" && !getPaymentRefundReadiness("paytr").ready) {
-        return NextResponse.json({ error: "provider_refund_unavailable" }, { status: 503 });
+    if (body.data.executionMode === "provider_api") {
+        const order = await prisma.paymentOrder.findUnique({
+            where: { id: params.data.id },
+            select: { provider: true },
+        });
+        if (!order || !getPaymentRefundReadiness(order.provider).ready) {
+            return NextResponse.json({ error: "provider_refund_unavailable" }, { status: 503 });
+        }
     }
     const rateLimit = consumeRequestRateLimit({
         bucket: "admin-payment-reversal",

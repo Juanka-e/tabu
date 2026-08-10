@@ -32,6 +32,7 @@ type ReversalRequest = {
         amountMinor: number;
         currency: string;
         referenceNo: string;
+        providerRefundReference: string | null;
         errorCode: string | null;
         startedAt: string;
         completedAt: string | null;
@@ -103,11 +104,9 @@ type PaymentResponse = {
         durationMs: number | null;
         maxAgeSeconds: number;
     }>;
-    refundExecution: {
-        provider: string;
-        mode: "disabled" | "sandbox" | "invalid";
-        ready: boolean;
-        issues: string[];
+    refundExecutionByProvider: {
+        paytr: RefundReadiness;
+        shopier_v2: RefundReadiness;
     };
     checkoutControl: {
         control: {
@@ -130,6 +129,13 @@ type PaymentResponse = {
     };
 };
 
+type RefundReadiness = {
+    provider: string;
+    mode: "disabled" | "sandbox" | "live" | "invalid";
+    ready: boolean;
+    issues: string[];
+};
+
 function schedulerStatusText(status: PaymentResponse["schedulerHealth"][number]["status"]): string {
     return {
         healthy: "Çalışıyor",
@@ -148,7 +154,10 @@ function refundReadinessMessage(issue: string): string {
     const messages: Record<string, string> = {
         refund_disabled: "Sandbox iade modu kapalı.",
         refund_mode_invalid: "İade modu geçersiz.",
-        refund_checkout_mode_mismatch: "Checkout ve iade modu aynı sandbox ortamında değil.",
+        refund_checkout_mode_mismatch: "İade ve checkout modları uyuşmuyor.",
+        shopier_personal_access_token_invalid: "Shopier erişim anahtarı eksik veya geçersiz.",
+        shopier_live_acceptance_missing: "Shopier canlı kabul kaydı bulunmuyor.",
+        shopier_live_acceptance_evidence_invalid: "Shopier canlı kabul kanıtı geçersiz.",
         paytr_merchant_id_missing: "PayTR mağaza numarası eksik.",
         paytr_merchant_id_invalid: "PayTR mağaza numarası geçersiz.",
         paytr_merchant_key_missing: "PayTR merchant key eksik.",
@@ -156,7 +165,7 @@ function refundReadinessMessage(issue: string): string {
         paytr_merchant_salt_missing: "PayTR merchant salt eksik.",
         paytr_merchant_salt_invalid: "PayTR merchant salt geçersiz.",
     };
-    return messages[issue] ?? "Sandbox iade yapılandırması tamamlanmamış.";
+    return messages[issue] ?? "İade yapılandırması tamamlanmamış.";
 }
 
 async function readError(response: Response, fallback: string): Promise<string> {
@@ -380,7 +389,7 @@ export default function AdminPaymentsPage() {
         <div className="space-y-6 p-4 md:p-6">
             <AdminPageHeader
                 title="Ödeme Operasyonları"
-                description="Harici işlemler yerel reversal ile kaydedilir. PayTR API iadesi yalnız hazır sandbox yapılandırmasında ve farklı bir adminin ikinci onayıyla çalışır."
+                description="Harici işlemler yerel reversal ile kaydedilir. Sağlayıcı API iadesi yalnız hazır yapılandırmada ve farklı bir adminin ikinci onayıyla çalışır."
                 meta={data ? `${data.counts.openCases} açık vaka · ${data.counts.pendingApprovals} onay bekliyor` : undefined}
                 icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
                 action={<Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Yenile</Button>}
@@ -496,16 +505,20 @@ export default function AdminPaymentsPage() {
             ) : null}
 
             {data ? (
-                <div className={`flex gap-3 rounded-2xl border p-4 ${data.refundExecution.ready ? "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"}`}>
-                    {data.refundExecution.ready ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />}
-                    <div>
-                        <strong>{data.refundExecution.ready ? "PayTR sandbox iade hazır" : "PayTR API iadesi kapalı"}</strong>
-                        <p className="mt-1 text-sm opacity-80">
-                            {data.refundExecution.ready
-                                ? "Tam iade ikinci admin onayıyla kullanılabilir. Bu durum production/live iadenin açık olduğu anlamına gelmez."
-                                : data.refundExecution.issues.map(refundReadinessMessage).join(" ")}
-                        </p>
-                    </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                    {(["paytr", "shopier_v2"] as const).map((provider) => {
+                        const readiness = data.refundExecutionByProvider[provider];
+                        const providerName = provider === "paytr" ? "PayTR sandbox" : "Shopier canlı";
+                        return <div key={provider} className={`flex gap-3 rounded-2xl border p-4 ${readiness.ready ? "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"}`}>
+                            {readiness.ready ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />}
+                            <div>
+                                <strong>{providerName} iade {readiness.ready ? "hazır" : "kapalı"}</strong>
+                                <p className="mt-1 text-sm opacity-80">{readiness.ready
+                                    ? "Tam iade, farklı bir adminin ikinci onayıyla çalışır; belirsiz sonuçta haklar değiştirilmez."
+                                    : readiness.issues.map(refundReadinessMessage).join(" ")}</p>
+                            </div>
+                        </div>;
+                    })}
                 </div>
             ) : null}
 
@@ -589,7 +602,7 @@ export default function AdminPaymentsPage() {
                                         <summary className="cursor-pointer font-semibold text-sky-950 dark:text-sky-100">{activeRequest.status === "pending" ? "İkinci admin onayı bekleniyor" : activeRequest.status === "provider_failed" ? "Sağlayıcı iade isteğini reddetti" : "Sağlayıcı iadesi doğrulama bekliyor"} · {activeRequest.outcome}</summary>
                                         <p className="mt-2">Talep eden: <strong>@{activeRequest.requestedBy.username}</strong> · {new Date(activeRequest.createdAt).toLocaleString("tr-TR")}</p>
                                         <p className="mt-1 text-muted-foreground">{activeRequest.reason} · Mod: {activeRequest.executionMode} · Referans: {activeRequest.externalReference}</p>
-                                        {activeRequest.providerRefundAttempt ? <p className="mt-2 text-xs text-muted-foreground">Deneme: {activeRequest.providerRefundAttempt.status} · {money(activeRequest.providerRefundAttempt.amountMinor, activeRequest.providerRefundAttempt.currency)} · Hata: {activeRequest.providerRefundAttempt.errorCode ?? "-"}</p> : null}
+                                        {activeRequest.providerRefundAttempt ? <p className="mt-2 text-xs text-muted-foreground">Deneme: {activeRequest.providerRefundAttempt.status} · {money(activeRequest.providerRefundAttempt.amountMinor, activeRequest.providerRefundAttempt.currency)} · Sağlayıcı iade ID: {activeRequest.providerRefundAttempt.providerRefundReference ?? "henüz yok"} · Hata: {activeRequest.providerRefundAttempt.errorCode ?? "-"}</p> : null}
                                         {activeRequest.status === "pending" ? <><p className="mt-2 text-xs text-muted-foreground">Talebi oluşturan admin kendi talebini onaylayamaz veya reddedemez.</p>
                                         <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void reviewReversal(event, activeRequest)}>
                                             <select name="action" className="h-10 rounded-md border bg-background px-3 text-sm" required><option value="approve">Onayla ve uygula</option><option value="reject">Reddet</option></select>
@@ -599,7 +612,7 @@ export default function AdminPaymentsPage() {
                                         </form></> : null}
                                         {["processing", "provider_review"].includes(activeRequest.status) ? <form className="mt-3 grid gap-3 md:grid-cols-2" onSubmit={(event) => void recoverProviderRefund(event, activeRequest)}>
                                             <Input name="confirmationRequestId" placeholder={`Doğrulama için talep ID: ${activeRequest.id}`} required />
-                                            <Button type="submit" variant="outline" disabled={busyId === activeRequest.id}><RefreshCw className="mr-2 h-4 w-4" />PayTR durumunu doğrula</Button>
+                                            <Button type="submit" variant="outline" disabled={busyId === activeRequest.id}><RefreshCw className="mr-2 h-4 w-4" />Sağlayıcı durumunu doğrula</Button>
                                         </form> : null}
                                     </details>
                                 ) : null}
@@ -640,13 +653,13 @@ export default function AdminPaymentsPage() {
                                     <details className="rounded-xl border p-3">
                                         <summary className="cursor-pointer font-semibold"><ShieldAlert className="mr-2 inline h-4 w-4 text-amber-600" />İade veya reversal talebi oluştur</summary>
                                         <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={(event) => void requestReversal(event, item)}>
-                                            <select name="executionMode" className="h-10 rounded-md border bg-background px-3 text-sm" defaultValue="externally_confirmed" required><option value="externally_confirmed">Harici işlem tamamlandı</option><option value="provider_api" disabled={!data?.refundExecution.ready}>PayTR API ile tam iade (sandbox)</option></select>
+                                            <select name="executionMode" className="h-10 rounded-md border bg-background px-3 text-sm" defaultValue="externally_confirmed" required><option value="externally_confirmed">Harici işlem tamamlandı</option><option value="provider_api" disabled={!data?.refundExecutionByProvider[item.provider as "paytr" | "shopier_v2"]?.ready}>{item.provider === "shopier_v2" ? "Shopier API ile tam iade (canlı)" : "PayTR API ile tam iade (sandbox)"}</option></select>
                                             <select name="outcome" className="h-10 rounded-md border bg-background px-3 text-sm" defaultValue={item.status === "refunded" ? "chargeback" : "refund"} required><option value="refund" disabled={item.status === "refunded"}>İade</option><option value="chargeback">Ters ibraz</option></select>
                                             <Input name="externalReference" placeholder="Harici işlem referansı (harici modda zorunlu)" minLength={3} maxLength={191} />
                                             <Input name="reason" placeholder="Operasyon gerekçesi" minLength={3} maxLength={500} required />
                                             <Input name="confirmationOrderId" placeholder="Onay için sipariş UUID'sini yazın" required />
                                             <Button type="submit" variant="destructive" disabled={busyId === item.id}>İkinci onaya gönder</Button>
-                                            <p className="text-xs text-muted-foreground md:col-span-2">PayTR API modu yalnız tam iadeyi destekler. Sonuç belirsizse coin veya envanter değişmez; tekrar denemek yerine sağlayıcı durumu doğrulanır.</p>
+                                            <p className="text-xs text-muted-foreground md:col-span-2">Sağlayıcı API modu yalnız tam iadeyi destekler. Sonuç belirsizse coin veya envanter değişmez; kör tekrar yerine sağlayıcı durumu doğrulanır.</p>
                                         </form>
                                     </details>
                                 ) : null}

@@ -5,7 +5,8 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { assertPaymentOrderTransition } from "./order-state-machine";
 import type { PaymentRefundAdapter } from "./refunds";
-import { PaytrAdapterError, type PaytrStatusQueryResult } from "./adapters/paytr";
+import { PaytrAdapterError } from "./adapters/paytr";
+import { ShopierAdapterError } from "./adapters/shopier";
 
 const requestSchema = z.object({
     orderId: z.string().uuid(),
@@ -175,12 +176,12 @@ export async function requestProviderApiPaymentRefund(
         });
         if (active > 0) throw new PaymentReversalError("pending_request_exists");
         if (
-            order.provider !== "paytr"
+            !(["paytr", "shopier_v2"] as string[]).includes(order.provider)
             || order.status !== "fulfilled"
             || order.fulfillment?.status !== "completed"
             || order.reversal
             || !order.providerOrderReference
-            || !/^[A-Za-z0-9]{1,64}$/.test(order.providerOrderReference)
+            || !/^[A-Za-z0-9._:-]{1,191}$/.test(order.providerOrderReference)
         ) {
             throw new PaymentReversalError("order_not_reversible");
         }
@@ -487,12 +488,175 @@ type ProviderRefundOutcome =
     | { outcome: "applied"; result: PaymentReversalResult }
     | { outcome: "provider_failed" | "provider_review"; requestId: string; attemptId: string };
 
+export async function observeProviderRefund(input: {
+    provider: "shopier_v2";
+    providerOrderReference: string;
+    providerRefundReference: string;
+    amountMinor: number;
+    currency: string;
+    status: "pending" | "failed" | "succeeded";
+    refundType: "full" | "partial";
+    refundCreatedAt: Date;
+    now?: Date;
+}): Promise<"applied" | "review" | "duplicate"> {
+    const now = input.now ?? new Date();
+    const initial = await prisma.paymentOrder.findFirst({
+        where: {
+            provider: input.provider,
+            providerOrderReference: input.providerOrderReference,
+        },
+        select: { id: true },
+    });
+    if (!initial) throw new PaymentReversalError("order_not_found");
+    const matched = await prisma.$transaction(async (tx) => {
+        await lockOrder(tx, initial.id);
+        const order = await tx.paymentOrder.findUniqueOrThrow({
+            where: { id: initial.id },
+            include: {
+                reversalRequests: {
+                    where: { executionMode: "provider_api" },
+                    orderBy: { createdAt: "desc" },
+                    include: { providerRefundAttempt: true },
+                },
+            },
+        });
+        const request = order.reversalRequests.find((candidate) => {
+            const attempt = candidate.providerRefundAttempt;
+            if (!attempt || attempt.provider !== input.provider) return false;
+            if (attempt.providerRefundReference === input.providerRefundReference) return true;
+            const createdNearAttempt = Math.abs(
+                input.refundCreatedAt.getTime() - attempt.startedAt.getTime()
+            ) <= 5 * 60_000;
+            return attempt.providerRefundReference === null
+                && input.refundType === "full"
+                && createdNearAttempt
+                && ["processing", "provider_review"].includes(candidate.status)
+                && ["processing", "uncertain"].includes(attempt.status);
+        });
+        if (!request?.providerRefundAttempt) {
+            await tx.paymentReconciliationCase.upsert({
+                where: { orderId: order.id },
+                create: {
+                    orderId: order.id,
+                    reasonCode: "shopier_external_refund_detected",
+                    providerSnapshot: {
+                        schemaVersion: 1,
+                        providerRefundReference: input.providerRefundReference,
+                        status: input.status,
+                        amountMinor: input.amountMinor,
+                        currency: input.currency,
+                        refundType: input.refundType,
+                    },
+                    lastErrorCode: "manual_review_required",
+                    lastCheckedAt: now,
+                    nextCheckAt: null,
+                },
+                update: {
+                    status: "open",
+                    reasonCode: "shopier_external_refund_detected",
+                    providerSnapshot: {
+                        schemaVersion: 1,
+                        providerRefundReference: input.providerRefundReference,
+                        status: input.status,
+                        amountMinor: input.amountMinor,
+                        currency: input.currency,
+                        refundType: input.refundType,
+                    },
+                    lastErrorCode: "manual_review_required",
+                    lastCheckedAt: now,
+                    nextCheckAt: null,
+                    resolvedAt: null,
+                    resolvedByUserId: null,
+                    resolutionNote: null,
+                },
+            });
+            return { kind: "review" as const };
+        }
+        const attempt = request.providerRefundAttempt;
+        if (attempt.status === "succeeded" && order.status === "refunded") {
+            return { kind: "duplicate" as const };
+        }
+        const exact = input.refundType === "full"
+            && attempt.amountMinor === input.amountMinor
+            && attempt.currency === input.currency.toUpperCase()
+            && (!attempt.providerRefundReference
+                || attempt.providerRefundReference === input.providerRefundReference);
+        if (!exact || !request.reviewedByUserId) {
+            await tx.paymentReconciliationCase.upsert({
+                where: { orderId: order.id },
+                create: {
+                    orderId: order.id,
+                    reasonCode: "shopier_refund_proof_mismatch",
+                    providerSnapshot: {
+                        schemaVersion: 1,
+                        providerRefundReference: input.providerRefundReference,
+                        status: input.status,
+                        refundType: input.refundType,
+                    },
+                    lastErrorCode: "manual_review_required",
+                    lastCheckedAt: now,
+                    nextCheckAt: null,
+                },
+                update: {
+                    status: "open",
+                    reasonCode: "shopier_refund_proof_mismatch",
+                    providerSnapshot: {
+                        schemaVersion: 1,
+                        providerRefundReference: input.providerRefundReference,
+                        status: input.status,
+                        refundType: input.refundType,
+                    },
+                    lastErrorCode: "manual_review_required",
+                    lastCheckedAt: now,
+                    nextCheckAt: null,
+                    resolvedAt: null,
+                    resolvedByUserId: null,
+                    resolutionNote: null,
+                },
+            });
+            return { kind: "review" as const };
+        }
+        await tx.paymentProviderRefundAttempt.update({
+            where: { id: attempt.id },
+            data: { providerRefundReference: input.providerRefundReference, lastCheckedAt: now },
+        });
+        return {
+            kind: "matched" as const,
+            requestId: request.id,
+            attemptId: attempt.id,
+            actorUserId: request.reviewedByUserId,
+        };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    if (matched.kind === "review" || matched.kind === "duplicate") return matched.kind;
+    if (input.status !== "succeeded") {
+        await finishProviderAttemptWithoutReversal({
+            requestId: matched.requestId,
+            attemptId: matched.attemptId,
+            requestStatus: input.status === "failed" ? "provider_failed" : "provider_review",
+            attemptStatus: input.status === "failed" ? "failed" : "uncertain",
+            errorCode: input.status === "failed" ? "provider_refund_failed" : "provider_refund_pending",
+            providerRefundReference: input.providerRefundReference,
+            now,
+        });
+        return "review";
+    }
+    await applyVerifiedProviderRefund({
+        requestId: matched.requestId,
+        attemptId: matched.attemptId,
+        actorUserId: matched.actorUserId,
+        providerRefundReference: input.providerRefundReference,
+        now,
+    });
+    return "applied";
+}
+
 async function finishProviderAttemptWithoutReversal(input: {
     requestId: string;
     attemptId: string;
     requestStatus: "provider_failed" | "provider_review";
     attemptStatus: "failed" | "uncertain";
     errorCode: string;
+    providerRefundReference?: string;
     now: Date;
 }): Promise<ProviderRefundOutcome> {
     await prisma.$transaction(async (tx) => {
@@ -512,6 +676,7 @@ async function finishProviderAttemptWithoutReversal(input: {
             data: {
                 status: input.attemptStatus,
                 errorCode: input.errorCode,
+                providerRefundReference: input.providerRefundReference,
                 completedAt: input.attemptStatus === "failed" ? input.now : null,
                 lastCheckedAt: input.now,
             },
@@ -528,6 +693,7 @@ async function applyVerifiedProviderRefund(input: {
     requestId: string;
     attemptId: string;
     actorUserId: number;
+    providerRefundReference?: string;
     now: Date;
 }): Promise<ProviderRefundOutcome> {
     const applied = await prisma.$transaction(async (tx) => {
@@ -551,7 +717,13 @@ async function applyVerifiedProviderRefund(input: {
         const result = await applyApprovedReversal(tx, request, input.now);
         await tx.paymentProviderRefundAttempt.update({
             where: { id: attempt.id },
-            data: { status: "succeeded", errorCode: null, completedAt: input.now, lastCheckedAt: input.now },
+            data: {
+                status: "succeeded",
+                providerRefundReference: input.providerRefundReference,
+                errorCode: null,
+                completedAt: input.now,
+                lastCheckedAt: input.now,
+            },
         });
         await tx.paymentReversalRequest.update({
             where: { id: request.id },
@@ -578,9 +750,10 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
 }): Promise<ProviderRefundOutcome> {
     const parsed = reviewSchema.safeParse(input);
     if (!parsed.success) throw new PaymentReversalError("invalid_input");
-    if (!input.adapter || input.adapter.provider !== "paytr") {
+    if (!input.adapter) {
         throw new PaymentReversalError("provider_refund_unavailable");
     }
+    const adapter = input.adapter;
     const value = parsed.data;
     const now = value.now ?? new Date();
     const prepared = await prisma.$transaction(async (tx) => {
@@ -601,13 +774,17 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
             throw new PaymentReversalError("second_approver_required");
         }
         const order = await tx.paymentOrder.findUnique({ where: { id: request.orderId } });
-        if (!order?.providerOrderReference || order.provider !== "paytr" || order.status !== "fulfilled") {
+        if (
+            !order?.providerOrderReference
+            || order.provider !== adapter.provider
+            || order.status !== "fulfilled"
+        ) {
             throw new PaymentReversalError("order_not_reversible");
         }
         const attempt = await tx.paymentProviderRefundAttempt.create({
             data: {
                 reversalRequestId: request.id,
-                provider: "paytr",
+                provider: order.provider,
                 status: "processing",
                 amountMinor: order.totalAmountMinor,
                 currency: order.currency,
@@ -628,14 +805,15 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
     try {
-        const result = await input.adapter.refund({
+        const result = await adapter.refund({
             merchantOrderId: prepared.order.providerOrderReference!,
             amountMinor: prepared.order.totalAmountMinor,
             currency: prepared.order.currency,
             referenceNo: prepared.attempt.referenceNo,
         });
         if (
-            result.merchantOrderId !== prepared.order.providerOrderReference
+            result.provider !== prepared.order.provider
+            || result.merchantOrderId !== prepared.order.providerOrderReference
             || result.referenceNo !== prepared.attempt.referenceNo
             || result.amountMinor !== prepared.attempt.amountMinor
             || result.currency !== prepared.attempt.currency
@@ -646,16 +824,41 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
                 requestStatus: "provider_review",
                 attemptStatus: "uncertain",
                 errorCode: "provider_result_mismatch",
+                providerRefundReference: result.providerRefundReference,
                 now,
             });
         }
-        if (!result.testMode) {
+        const expectedTestMode = prepared.order.provider === "paytr";
+        if (result.testMode !== expectedTestMode) {
             return finishProviderAttemptWithoutReversal({
                 requestId: prepared.request.id,
                 attemptId: prepared.attempt.id,
                 requestStatus: "provider_review",
                 attemptStatus: "uncertain",
                 errorCode: "provider_mode_mismatch",
+                providerRefundReference: result.providerRefundReference,
+                now,
+            });
+        }
+        if (result.status === "pending") {
+            return finishProviderAttemptWithoutReversal({
+                requestId: prepared.request.id,
+                attemptId: prepared.attempt.id,
+                requestStatus: "provider_review",
+                attemptStatus: "uncertain",
+                errorCode: "provider_refund_pending",
+                providerRefundReference: result.providerRefundReference,
+                now,
+            });
+        }
+        if (result.status === "failed") {
+            return finishProviderAttemptWithoutReversal({
+                requestId: prepared.request.id,
+                attemptId: prepared.attempt.id,
+                requestStatus: "provider_failed",
+                attemptStatus: "failed",
+                errorCode: "provider_refund_failed",
+                providerRefundReference: result.providerRefundReference,
                 now,
             });
         }
@@ -663,23 +866,25 @@ export async function approveProviderApiRefundRequest(input: z.input<typeof revi
             requestId: prepared.request.id,
             attemptId: prepared.attempt.id,
             actorUserId: value.reviewedByUserId,
+            providerRefundReference: result.providerRefundReference,
             now,
         });
     } catch (error) {
-        const definitive = error instanceof PaytrAdapterError && error.code === "provider_rejected";
+        const adapterError = error instanceof PaytrAdapterError || error instanceof ShopierAdapterError;
+        const definitive = adapterError && error.code === "provider_rejected";
         return finishProviderAttemptWithoutReversal({
             requestId: prepared.request.id,
             attemptId: prepared.attempt.id,
             requestStatus: definitive ? "provider_failed" : "provider_review",
             attemptStatus: definitive ? "failed" : "uncertain",
-            errorCode: error instanceof PaytrAdapterError ? error.code : "provider_unknown_error",
+            errorCode: adapterError ? error.code : "provider_unknown_error",
             now,
         });
     }
 }
 
 export async function recoverProviderApiRefundRequest(input: z.input<typeof recoverySchema> & {
-    query: () => Promise<PaytrStatusQueryResult>;
+    adapter: PaymentRefundAdapter | null;
 }): Promise<ProviderRefundOutcome> {
     const parsed = recoverySchema.safeParse(input);
     if (!parsed.success) throw new PaymentReversalError("invalid_input");
@@ -698,9 +903,22 @@ export async function recoverProviderApiRefundRequest(input: z.input<typeof reco
     if (!attempt || !["processing", "uncertain"].includes(attempt.status)) {
         throw new PaymentReversalError("provider_refund_not_recoverable");
     }
-    let status: PaytrStatusQueryResult;
+    if (!input.adapter || input.adapter.provider !== attempt.provider) {
+        throw new PaymentReversalError("provider_refund_unavailable");
+    }
+    let refund: Awaited<ReturnType<PaymentRefundAdapter["lookup"]>>;
     try {
-        status = await input.query();
+        refund = await input.adapter.lookup({
+            merchantOrderId: (await prisma.paymentOrder.findUniqueOrThrow({
+                where: { id: current.orderId },
+                select: { providerOrderReference: true },
+            })).providerOrderReference ?? "",
+            amountMinor: attempt.amountMinor,
+            currency: attempt.currency,
+            referenceNo: attempt.referenceNo,
+            providerRefundReference: attempt.providerRefundReference,
+            startedAt: attempt.startedAt,
+        });
     } catch {
         return finishProviderAttemptWithoutReversal({
             requestId: current.id,
@@ -711,30 +929,42 @@ export async function recoverProviderApiRefundRequest(input: z.input<typeof reco
             now,
         });
     }
-    if (status.status !== "success" || !status.testMode) {
+    if (!refund) {
         return finishProviderAttemptWithoutReversal({
             requestId: current.id,
             attemptId: attempt.id,
             requestStatus: "provider_review",
             attemptStatus: "uncertain",
-            errorCode: status.status === "error" ? status.errorCode : "provider_mode_mismatch",
+            errorCode: "refund_not_observed",
             now,
         });
     }
-    const refund = (status.refunds ?? []).find((entry) => entry.referenceNo === attempt.referenceNo);
-    if (status.currency !== attempt.currency || !refund || refund.amountMinor !== attempt.amountMinor || !refund.completed) {
+    const expectedTestMode = attempt.provider === "paytr";
+    if (
+        refund.provider !== attempt.provider
+        || refund.referenceNo !== attempt.referenceNo
+        || refund.currency !== attempt.currency
+        || refund.amountMinor !== attempt.amountMinor
+        || refund.testMode !== expectedTestMode
+    ) {
         return finishProviderAttemptWithoutReversal({
             requestId: current.id,
             attemptId: attempt.id,
             requestStatus: "provider_review",
             attemptStatus: "uncertain",
-            errorCode: status.currency !== attempt.currency
-                ? "refund_currency_mismatch"
-                : !refund
-                    ? "refund_not_observed"
-                    : refund.amountMinor !== attempt.amountMinor
-                        ? "refund_amount_mismatch"
-                        : "refund_not_completed",
+            errorCode: "provider_result_mismatch",
+            providerRefundReference: refund.providerRefundReference,
+            now,
+        });
+    }
+    if (refund.status !== "succeeded") {
+        return finishProviderAttemptWithoutReversal({
+            requestId: current.id,
+            attemptId: attempt.id,
+            requestStatus: refund.status === "failed" ? "provider_failed" : "provider_review",
+            attemptStatus: refund.status === "failed" ? "failed" : "uncertain",
+            errorCode: refund.status === "failed" ? "provider_refund_failed" : "provider_refund_pending",
+            providerRefundReference: refund.providerRefundReference,
             now,
         });
     }
@@ -742,6 +972,7 @@ export async function recoverProviderApiRefundRequest(input: z.input<typeof reco
         requestId: current.id,
         attemptId: attempt.id,
         actorUserId: value.checkedByUserId,
+        providerRefundReference: refund.providerRefundReference,
         now,
     });
 }

@@ -4,6 +4,7 @@ import {
     validateEvidenceFile,
     validateIyzicoAcceptanceManifest,
     validateLegalApprovalManifest,
+    validateShopierAcceptanceManifest,
 } from "./payment-activation-evidence.mjs";
 
 export function parseEnvFile(path) {
@@ -289,8 +290,28 @@ export function validateProductionEnvironment(env) {
                 digestKey: "IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256",
                 validateManifest: validateIyzicoAcceptanceManifest,
             }));
+        } else if (activePaymentProvider === "shopier_v2") {
+            for (const key of [
+                "SHOPIER_CHECKOUT_MODE", "SHOPIER_WEBHOOK_MODE",
+                "SHOPIER_RECONCILIATION_MODE", "SHOPIER_REFUND_MODE",
+            ]) {
+                if (env[key]?.trim() !== "live") result.errors.push(`${key} must be live for Shopier activation.`);
+            }
+            for (const key of [
+                "SHOPIER_PERSONAL_ACCESS_TOKEN", "SHOPIER_PRODUCT_MEDIA_URL",
+                "SHOPIER_WEBHOOK_TOKEN", "SHOPIER_ACCOUNT_ID",
+            ]) requireConfiguredValue(env, key, result);
+            if (!isTrue(env.SHOPIER_LIVE_ACCEPTANCE_RECORDED)) {
+                result.errors.push("SHOPIER_LIVE_ACCEPTANCE_RECORDED must be true before Shopier checkout is enabled.");
+            }
+            result.errors.push(...validateEvidenceFile({
+                environment: env,
+                pathKey: "SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_FILE",
+                digestKey: "SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256",
+                validateManifest: validateShopierAcceptanceManifest,
+            }));
         } else {
-            result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr or iyzico while checkout is enabled.");
+            result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr, iyzico or shopier_v2 while checkout is enabled.");
         }
         if (!isTrue(env.JOBS_ENABLED)) {
             result.errors.push("JOBS_ENABLED must be true before checkout is enabled.");

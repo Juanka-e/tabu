@@ -3,6 +3,7 @@ import { z } from "zod";
 export const SHOPIER_API_BASE_URL = "https://api.shopier.com/v1";
 export const SHOPIER_PRODUCTS_PATH = "/products";
 export const SHOPIER_ORDERS_PATH = "/orders";
+export const SHOPIER_REFUNDS_PATH = "/refunds";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 64 * 1024;
@@ -53,6 +54,23 @@ const paidOrderSchema = z.object({
         status: z.enum(["pending", "failed", "succeeded"]),
     }).passthrough()).optional().default([]),
 }).passthrough();
+const refundSchema = z.object({
+    id: z.string().trim().regex(/^[A-Za-z0-9._:-]{1,191}$/),
+    type: z.enum(["full", "partial"]),
+    status: z.enum(["pending", "failed", "succeeded"]),
+    orderId: z.string().trim().regex(/^[A-Za-z0-9._:-]{1,191}$/),
+    dateCreated: z.string().trim().min(1).max(64),
+    dateRefunded: z.string().trim().min(1).max(64).optional(),
+    currency: currencySchema,
+    total: moneySchema,
+    note: z.string().max(1000).optional(),
+}).passthrough();
+const createRefundSchema = z.object({
+    orderId: z.string().trim().regex(/^[A-Za-z0-9._:-]{1,191}$/),
+    amountMinor: z.number().int().positive().max(2_147_483_647),
+    currency: currencySchema,
+    note: z.string().trim().min(3).max(500),
+});
 
 export interface ShopierCredentials {
     personalAccessToken: string;
@@ -128,9 +146,11 @@ function formatShopierDate(value: Date): string {
     return value.toISOString().replace(/\.\d{3}Z$/, "+0000");
 }
 
-async function shopierGet(input: {
+async function shopierRequest(input: {
     path: string;
-    query: URLSearchParams;
+    method: "GET" | "POST";
+    query?: URLSearchParams;
+    body?: string;
     credentials: ShopierCredentials;
     fetchImpl?: typeof fetch;
     timeoutMs?: number;
@@ -141,14 +161,16 @@ async function shopierGet(input: {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
         const response = await (input.fetchImpl ?? fetch)(
-            `${SHOPIER_API_BASE_URL}${input.path}?${input.query.toString()}`,
+            `${SHOPIER_API_BASE_URL}${input.path}${input.query ? `?${input.query.toString()}` : ""}`,
             {
-                method: "GET",
+                method: input.method,
                 redirect: "error",
                 headers: {
                     accept: "application/json",
                     authorization: `Bearer ${input.credentials.personalAccessToken}`,
+                    ...(input.body ? { "content-type": "application/json" } : {}),
                 },
+                body: input.body,
                 signal: controller.signal,
             }
         );
@@ -180,6 +202,7 @@ async function shopierGet(input: {
 
 export type ShopierProduct = z.infer<typeof productSchema>;
 export type ShopierPaidOrder = z.infer<typeof paidOrderSchema>;
+export type ShopierRefund = z.infer<typeof refundSchema>;
 
 export async function listShopierCustomListings(input: {
     dateStart: Date;
@@ -196,8 +219,9 @@ export async function listShopierCustomListings(input: {
         page: "1",
         sort: "dateDesc",
     });
-    const parsed = z.array(productSchema).max(50).safeParse(await shopierGet({
+    const parsed = z.array(productSchema).max(50).safeParse(await shopierRequest({
         path: SHOPIER_PRODUCTS_PATH,
+        method: "GET",
         query,
         credentials: input.credentials,
         fetchImpl: input.fetchImpl,
@@ -220,8 +244,93 @@ export async function listShopierPaidOrdersByProduct(input: {
         page: "1",
         sort: "dateDesc",
     });
-    const parsed = z.array(paidOrderSchema).max(2).safeParse(await shopierGet({
+    const parsed = z.array(paidOrderSchema).max(2).safeParse(await shopierRequest({
         path: SHOPIER_ORDERS_PATH,
+        method: "GET",
+        query,
+        credentials: input.credentials,
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.timeoutMs,
+    }));
+    if (!parsed.success) throw new ShopierAdapterError("invalid_provider_response");
+    return parsed.data;
+}
+
+export async function createShopierRefund(input: z.input<typeof createRefundSchema> & {
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<ShopierRefund> {
+    const request = createRefundSchema.safeParse(input);
+    if (!request.success) throw new ShopierAdapterError("invalid_request");
+    const raw = await shopierRequest({
+        path: SHOPIER_REFUNDS_PATH,
+        method: "POST",
+        body: JSON.stringify({
+            orderId: request.data.orderId,
+            amount: formatShopierMinorUnits(request.data.amountMinor),
+            note: request.data.note,
+        }),
+        credentials: input.credentials,
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.timeoutMs,
+    });
+    const parsed = refundSchema.safeParse(raw);
+    if (!parsed.success) throw new ShopierAdapterError("invalid_provider_response");
+    const refund = parsed.data;
+    if (
+        refund.orderId !== request.data.orderId
+        || refund.currency !== request.data.currency
+        || parseShopierMinorUnits(refund.total) !== request.data.amountMinor
+        || refund.type !== "full"
+    ) throw new ShopierAdapterError("invalid_provider_response");
+    return refund;
+}
+
+export async function getShopierRefund(input: {
+    refundId: string;
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<ShopierRefund> {
+    if (!/^[A-Za-z0-9._:-]{1,191}$/.test(input.refundId)) {
+        throw new ShopierAdapterError("invalid_request");
+    }
+    const parsed = refundSchema.safeParse(await shopierRequest({
+        path: `${SHOPIER_REFUNDS_PATH}/${input.refundId}`,
+        method: "GET",
+        credentials: input.credentials,
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.timeoutMs,
+    }));
+    if (!parsed.success || parsed.data.id !== input.refundId) {
+        throw new ShopierAdapterError("invalid_provider_response");
+    }
+    return parsed.data;
+}
+
+export async function listShopierRefundsByOrder(input: {
+    orderId: string;
+    dateStart: Date;
+    dateEnd: Date;
+    credentials: ShopierCredentials;
+    fetchImpl?: typeof fetch;
+    timeoutMs?: number;
+}): Promise<ShopierRefund[]> {
+    if (!/^[A-Za-z0-9._:-]{1,191}$/.test(input.orderId)) {
+        throw new ShopierAdapterError("invalid_request");
+    }
+    const query = new URLSearchParams({
+        orderId: input.orderId,
+        dateStart: formatShopierDate(input.dateStart),
+        dateEnd: formatShopierDate(input.dateEnd),
+        limit: "2",
+        page: "1",
+        sort: "dateDesc",
+    });
+    const parsed = z.array(refundSchema).max(2).safeParse(await shopierRequest({
+        path: SHOPIER_REFUNDS_PATH,
+        method: "GET",
         query,
         credentials: input.credentials,
         fetchImpl: input.fetchImpl,

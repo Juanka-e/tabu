@@ -54,14 +54,14 @@ function payload(order: Awaited<ReturnType<typeof createOrder>>, providerOrderId
     };
 }
 
-async function sendWebhook(body: object, webhookId: string, account = accountId): Promise<Response> {
+async function sendWebhook(body: object, webhookId: string, account = accountId, event = "order.created"): Promise<Response> {
     const raw = JSON.stringify(body);
     return POST(new Request("http://localhost/api/payments/webhooks/shopier_v2", {
         method: "POST",
         headers: {
             "content-type": "application/json",
             "shopier-account-id": account,
-            "shopier-event": "order.created",
+            "shopier-event": event,
             "shopier-webhook-id": webhookId,
             "shopier-timestamp": String(Math.floor(Date.now() / 1000)),
             "shopier-signature": createHmac("sha256", webhookToken).update(raw).digest("hex"),
@@ -130,6 +130,18 @@ async function run(): Promise<void> {
         assert.equal(fulfilled.status, "fulfilled");
         assert.equal(fulfilled.providerOrderReference, "990001");
         assert.equal(fulfilled.providerHostedUrl, null);
+        assert.equal((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).coinBalance, 120);
+
+        const externalRefundBody = {
+            id: `external-refund-${suffix}`, type: "partial", status: "succeeded",
+            orderId: "990001", dateCreated: new Date().toISOString(),
+            dateRefunded: new Date().toISOString(), currency: "TRY", total: "5.00",
+        };
+        providerEventIds.push(buildShopierWebhookEventId(Buffer.from(JSON.stringify(externalRefundBody))));
+        assert.equal((await sendWebhook(externalRefundBody, `shopier-hook-${suffix}-external-refund`, accountId, "refund.updated")).status, 200);
+        assert.equal((await processInbox()).processed, 1);
+        const externalRefundCase = await prisma.paymentReconciliationCase.findUniqueOrThrow({ where: { orderId: order.id } });
+        assert.equal(externalRefundCase.reasonCode, "shopier_external_refund_detected");
         assert.equal((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).coinBalance, 120);
         const proof = await prisma.paymentCheckoutVerification.findUniqueOrThrow({ where: { orderId: order.id } });
         assert.equal(proof.providerPaymentReference, "990001");

@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
                         providerRefundAttempt: {
                             select: {
                                 id: true, status: true, amountMinor: true, currency: true,
-                                referenceNo: true, errorCode: true, startedAt: true,
+                                referenceNo: true, providerRefundReference: true, errorCode: true, startedAt: true,
                                 completedAt: true, lastCheckedAt: true,
                             },
                         },
@@ -198,7 +198,10 @@ export async function GET(request: NextRequest) {
             oldestOpenCaseAt: oldestOpenCase?.createdAt.toISOString() ?? null,
         },
         schedulerHealth,
-        refundExecution: getPaymentRefundReadiness("paytr"),
+        refundExecutionByProvider: {
+            paytr: getPaymentRefundReadiness("paytr"),
+            shopier_v2: getPaymentRefundReadiness("shopier_v2"),
+        },
         checkoutControl,
         checkoutActivation,
     }, { headers: buildRateLimitHeaders(rateLimit) });

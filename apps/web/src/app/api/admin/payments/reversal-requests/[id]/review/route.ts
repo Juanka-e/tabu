@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     try {
         const reversalRequest = await prisma.paymentReversalRequest.findUnique({
             where: { id: params.data.id },
-            select: { executionMode: true },
+            select: { executionMode: true, order: { select: { provider: true } } },
         });
         if (!reversalRequest) throw new PaymentReversalError("request_not_found");
         const result = body.data.action === "approve"
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
                     requestId: params.data.id,
                     reviewedByUserId: admin.id,
                     reviewNote: body.data.reviewNote,
-                    adapter: createPaymentRefundAdapter({ provider: "paytr" }),
+                    adapter: createPaymentRefundAdapter({ provider: reversalRequest.order.provider }),
                 })
                 : await approvePaymentReversalRequest({
                 requestId: params.data.id,
