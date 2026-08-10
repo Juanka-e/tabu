@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Prisma, prisma } from "@hushle/platform-db";
+import { closeRedisClient } from "@hushle/platform-cache";
 import {
     getPaymentCheckoutControl,
     PaymentCheckoutControlConflictError,
@@ -99,7 +100,10 @@ async function run(): Promise<void> {
             await prisma.systemSetting.deleteMany({ where: { key: CONTROL_KEY } });
         }
         await prisma.user.delete({ where: { id: admin.id } });
-        await prisma.$disconnect();
+        await Promise.all([
+            prisma.$disconnect(),
+            closeRedisClient(),
+        ]);
     }
 }
 
