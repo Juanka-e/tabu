@@ -247,9 +247,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - Shopier güncel v1 API için siparişe özel, stok 1 `customListing` dijital ürün
   checkout foundation'ı tamamlandı. Exact server price, hosted URL allowlist,
   concurrent create lease ve belirsiz sonuçta kör retry yapmayan mutabakat kapısı var.
-  Signed webhook/fulfillment, Order API reconciliation, refund orkestrasyonu,
-  operasyon alarmları ve gerçek düşük tutarlı ödeme+iade kabul kanıtı tamamlanmadan
-  registry fail-closed kalacak
+  HS256 webhook, replay/account/dedupe, exact ödeme kanıtı, e-posta uyuşmazlığı
+  incelemesi ve idempotent fulfillment tamamlandı. Order API reconciliation, refund
+  orkestrasyonu, operasyon alarmları ve gerçek düşük tutarlı ödeme+iade kabul kanıtı
+  tamamlanmadan registry fail-closed kalacak
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider
   idempotency ve API version pin mevcut, ancak webhook/fulfillment bağlı değil
 - Stripe resmi merchant ülke listesinde Türkiye olmadığı için production aktivasyonu

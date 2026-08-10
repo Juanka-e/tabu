@@ -34,6 +34,9 @@ const providers = {
             "SHOPIER_PERSONAL_ACCESS_TOKEN",
             "SHOPIER_PRODUCT_MEDIA_URL",
             "SHOPIER_CHECKOUT_MODE",
+            "SHOPIER_WEBHOOK_MODE",
+            "SHOPIER_WEBHOOK_TOKEN",
+            "SHOPIER_ACCOUNT_ID",
             "SHOPIER_LIVE_ACCEPTANCE_RECORDED",
             "SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256",
         ],
@@ -113,6 +116,21 @@ export function getPaymentProviderReadiness(
     ) {
         missingEnvironment.push("SHOPIER_CHECKOUT_MODE");
     }
+    if (
+        provider === "shopier_v2"
+        && environment.SHOPIER_WEBHOOK_MODE?.trim().toLowerCase() !== "live"
+        && !missingEnvironment.includes("SHOPIER_WEBHOOK_MODE")
+    ) missingEnvironment.push("SHOPIER_WEBHOOK_MODE");
+    if (
+        provider === "shopier_v2"
+        && !/^[A-Za-z0-9._:-]{1,191}$/.test(environment.SHOPIER_ACCOUNT_ID?.trim() ?? "")
+        && !missingEnvironment.includes("SHOPIER_ACCOUNT_ID")
+    ) missingEnvironment.push("SHOPIER_ACCOUNT_ID");
+    if (
+        provider === "shopier_v2"
+        && !/^[\x21-\x7e]{20,2048}$/.test(environment.SHOPIER_WEBHOOK_TOKEN ?? "")
+        && !missingEnvironment.includes("SHOPIER_WEBHOOK_TOKEN")
+    ) missingEnvironment.push("SHOPIER_WEBHOOK_TOKEN");
     if (
         provider === "shopier_v2"
         && environment.SHOPIER_LIVE_ACCEPTANCE_RECORDED?.trim().toLowerCase() !== "true"

@@ -53,6 +53,8 @@
     "test:payment-stripe-adapter": "tsx scripts/test-stripe-checkout-adapter.ts",
     "test:payment-shopier-adapter": "tsx scripts/test-shopier-custom-listing-adapter.ts",
     "test:payment-shopier-checkout-integration": "tsx scripts/test-shopier-checkout-orchestration-integration.ts",
+    "test:payment-shopier-webhook": "tsx scripts/test-shopier-webhook-signature.ts",
+    "test:payment-shopier-webhook-integration": "tsx scripts/test-shopier-webhook-processor-integration.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",
     "payment:paytr-refund-sandbox-acceptance": "tsx scripts/run-paytr-refund-sandbox-acceptance.ts",

@@ -257,8 +257,9 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
    sandbox kabulu ve ayri live implementasyonu bitmeden production tahsilat acilmaz.
 6. `shopier_v2`: Güncel v1 API ile siparişe özel `customListing` dijital ürün checkout
    foundation'ı eklendi. Ortak katalog yerine stok 1 private link ve exact server price
-   kullanılır. Signed webhook, reconciliation, refund ve gerçek düşük tutarlı kabul
-   tamamlanana kadar registry fail-closed kalır.
+   kullanılır. HS256 `order.created`, replay/account/dedupe kontrolleri, exact proof,
+   e-posta uyuşmazlığında inceleme ve idempotent fulfillment tamamlandı. Reconciliation,
+   refund ve gerçek düşük tutarlı kabul bitene kadar registry fail-closed kalır.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,
    merchant ülke uygunluğu ve sandbox kabulü bitene kadar devre dışı. Türkiye mevcut
    resmi merchant ülke listesinde olmadığı için production önceliği değildir.

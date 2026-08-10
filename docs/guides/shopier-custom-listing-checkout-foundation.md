@@ -45,6 +45,9 @@ env sözleşmesi:
 SHOPIER_PERSONAL_ACCESS_TOKEN=
 SHOPIER_PRODUCT_MEDIA_URL=https://cdn.example.com/payments/hushle-product.png
 SHOPIER_CHECKOUT_MODE=disabled
+SHOPIER_WEBHOOK_MODE=disabled
+SHOPIER_WEBHOOK_TOKEN=
+SHOPIER_ACCOUNT_ID=
 SHOPIER_LIVE_ACCEPTANCE_RECORDED=false
 SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_FILE=
 SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256=
@@ -52,13 +55,24 @@ SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256=
 
 Bu branch'te `adapterAvailable=false` kalır. Aşağıdakiler tamamlanmadan `live` açılamaz:
 
-1. HS256 signed `order.created` ve `refund.updated` webhook doğrulaması.
-2. Account ID, timestamp replay window, webhook ID dedupe ve exact order doğrulaması.
-3. Order API reconciliation ve belirsiz create kurtarma.
-4. Shopier refund API ve ikinci admin onaylı durable attempt.
-5. Webhook subscription/scheduler health ve alarm görünümü.
-6. Gerçek düşük tutarlı ödeme+iade acceptance kanıtı.
-7. Satıcı hesabı, vergi/fatura ve dijital ürün uygunluğunun hukuki/operasyonel onayı.
+Tamamlanan webhook katmanı:
+
+- HS256 signed `order.created` doğrulaması
+- bağlı olmayan event türlerini inbox'a yazmadan reddeden fail-closed event kapısı
+- account ID, 5 dakikalık timestamp replay window ve raw-body digest dedupe
+- resmî webhook ID metadata korelasyonu; imzalanmayan ID/timestamp değişikliğine karşı
+  dedupe kimliği imzalı payload digest'inden türetilir
+- tek dijital ürün, adet 1, exact product/title/tutar/currency doğrulaması
+- keyed HMAC e-posta korelasyonu; uyuşmazlıkta teslimat yerine inceleme vakası
+- idempotent coin/kozmetik fulfillment ve notification
+
+Kalan aktivasyon kapıları:
+
+1. Order API reconciliation ve belirsiz create kurtarma.
+2. `refund.requested` / `refund.updated` webhook ve Shopier refund API orkestrasyonu.
+3. Webhook subscription/scheduler health ve alarm görünümü.
+4. Gerçek düşük tutarlı ödeme+iade acceptance kanıtı.
+5. Satıcı hesabı, vergi/fatura ve dijital ürün uygunluğunun hukuki/operasyonel onayı.
 
 ## Resmi Sözleşme
 

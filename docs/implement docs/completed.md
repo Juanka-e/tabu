@@ -428,6 +428,13 @@
 - bounded timeout/response, PAT gizliliği ve provider hata detayı minimizasyonu
 - webhook, reconciliation, refund ve gerçek kabul kanıtı bitene kadar fail-closed registry
 
+### 59. `feature/shopier-signed-webhook-fulfillment`
+- raw body HS256, account ID ve beş dakikalık timestamp replay doğrulaması
+- imzalı raw-body digest tabanlı durable dedupe, resmî webhook ID korelasyonu ve identity conflict koruması
+- tek dijital ürün/adet, exact product/title/tutar/currency ödeme kanıtı
+- ham e-posta saklamayan keyed HMAC korelasyonu ve uyuşmazlıkta inceleme vakası
+- idempotent coin/kozmetik fulfillment, notification ve MySQL duplicate testi
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
