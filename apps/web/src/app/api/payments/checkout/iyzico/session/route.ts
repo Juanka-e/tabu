@@ -18,6 +18,7 @@ import {
     getPublicPaymentOrigin,
 } from "@/lib/payments/iyzico-owner-surface";
 import { getPaymentLegalReadiness } from "@/lib/payments/legal";
+import { getPaymentCheckoutAccess } from "@/lib/payments/checkout-control";
 import {
     buildRateLimitHeaders,
     consumeDistributedRequestRateLimit,
@@ -98,6 +99,9 @@ export async function POST(request: Request) {
             { status: 403 }
         );
     }
+
+    const checkoutAccess = await getPaymentCheckoutAccess(sessionUser.id, { fresh: true });
+    if (!checkoutAccess.available) return unavailable();
 
     const surface = getIyzicoOwnerSurfaceReadiness();
     const legal = getPaymentLegalReadiness();

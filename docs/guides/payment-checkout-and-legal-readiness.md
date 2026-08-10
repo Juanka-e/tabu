@@ -38,6 +38,7 @@ PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED=true
 PAYMENT_LEGAL_APPROVED=true
 PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE=/srv/hushle/payment-evidence/payment-legal-approval.json
 PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256=sha256:<reviewed-file-digest>
+PAYMENT_ROLLOUT_SEED=<stable-random-value>
 PAYMENT_LEGAL_BUSINESS_NAME=...
 PAYMENT_LEGAL_BUSINESS_ADDRESS=...
 PAYMENT_LEGAL_CONTACT_EMAIL=...
@@ -95,3 +96,6 @@ tanımlıdır.
 
 Kanita bagli aktivasyon ve rotasyon adimlari
 [`payment-activation-evidence.md`](./payment-activation-evidence.md) icinde tanimlidir.
+Yeni checkout oturumlarini kademeli acma ve acil durdurma davranisi
+[`payment-rollout-and-emergency-pause.md`](./payment-rollout-and-emergency-pause.md)
+icinde tanimlidir.

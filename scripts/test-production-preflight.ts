@@ -213,9 +213,17 @@ Object.assign(checkoutWithLegalApproval, {
     PAYMENT_CHECKOUT_TERMS_VERSION: "terms-v1",
     PAYMENT_PRIVACY_NOTICE_VERSION: "privacy-v1",
     PAYMENT_DISTANCE_SALES_NOTICE_VERSION: "distance-v1",
+    PAYMENT_ROLLOUT_SEED: "production-rollout-seed-v1",
 });
 attachLegalEvidence(checkoutWithLegalApproval);
 assert.deepEqual(validateProductionEnvironment(checkoutWithLegalApproval).errors, []);
+
+const checkoutWithoutRolloutSeed = { ...checkoutWithLegalApproval, PAYMENT_ROLLOUT_SEED: "" };
+assert.ok(
+    validateProductionEnvironment(checkoutWithoutRolloutSeed).errors.some((error) =>
+        error.includes("PAYMENT_ROLLOUT_SEED")
+    )
+);
 
 const iyzicoCheckoutWithAcceptance = {
     ...checkoutWithLegalApproval,

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import bcryptjs from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { prisma } from "@hushle/platform-db";
+import { Prisma, prisma } from "@hushle/platform-db";
 
 test.describe("admin payment operations", () => {
     const enabled = process.env.PAYMENT_OPERATIONS_ADMIN_E2E === "true";
@@ -14,6 +14,7 @@ test.describe("admin payment operations", () => {
     let reversalId: string | null = null;
     let providerReviewOrderId: string | null = null;
     let providerReviewRequestId: string | null = null;
+    let originalCheckoutControl: { value: Prisma.JsonValue; updatedByUserId: number | null } | null = null;
 
     test.skip(!enabled, "PAYMENT_OPERATIONS_ADMIN_E2E=true is required");
     test.beforeAll(async () => {
@@ -21,6 +22,34 @@ test.describe("admin payment operations", () => {
             data: { username, password: await bcryptjs.hash(password, 10), role: "admin" },
         });
         adminId = admin.id;
+        originalCheckoutControl = await prisma.systemSetting.findUnique({
+            where: { key: "payment_checkout_control" },
+            select: { value: true, updatedByUserId: true },
+        });
+        await prisma.systemSetting.upsert({
+            where: { key: "payment_checkout_control" },
+            update: {
+                value: {
+                    schemaVersion: 1,
+                    paused: false,
+                    rolloutPercent: 100,
+                    revision: 0,
+                    lastChangeReason: "E2E checkout control fixture",
+                },
+                updatedByUserId: admin.id,
+            },
+            create: {
+                key: "payment_checkout_control",
+                value: {
+                    schemaVersion: 1,
+                    paused: false,
+                    rolloutPercent: 100,
+                    revision: 0,
+                    lastChangeReason: "E2E checkout control fixture",
+                },
+                updatedByUserId: admin.id,
+            },
+        });
         const target = await prisma.user.create({
             data: { username: `payment_target_${suffix}`, password: "e2e-test" },
         });
@@ -135,6 +164,17 @@ test.describe("admin payment operations", () => {
         }
         if (adminId !== null) {
             await prisma.auditLog.deleteMany({ where: { actorUserId: adminId } });
+            if (originalCheckoutControl) {
+                await prisma.systemSetting.update({
+                    where: { key: "payment_checkout_control" },
+                    data: {
+                        value: originalCheckoutControl.value as Prisma.InputJsonValue,
+                        updatedByUserId: originalCheckoutControl.updatedByUserId,
+                    },
+                });
+            } else {
+                await prisma.systemSetting.deleteMany({ where: { key: "payment_checkout_control" } });
+            }
             await prisma.user.deleteMany({ where: { id: adminId } });
         }
         if (targetUserId !== null) {
@@ -157,6 +197,11 @@ test.describe("admin payment operations", () => {
         expect(operationsPayload).not.toContain(`secret-session-${suffix}`);
         expect(operationsPayload).not.toContain(`secret-hosted-${suffix}`);
         await expect(page.getByRole("heading", { name: "Ödeme Operasyonları" })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Checkout yayın kontrolü" })).toBeVisible();
+        await expect(page.getByText("Açık · kullanıcıların %100'i")).toBeVisible();
+        await page.getByRole("button", { name: "Acil durdur" }).click();
+        await expect(page.getByText("Yeni checkout işlemleri durduruldu.")).toBeVisible();
+        await expect(page.getByText("Yeni checkout durduruldu")).toBeVisible();
         await expect(page.getByText(/PayTR API iadesi yalnız hazır sandbox yapılandırmasında/)).toBeVisible();
         await expect(page.getByText("PayTR API iadesi kapalı")).toBeVisible();
         await expect(page.getByText("Açık uzlaştırma")).toBeVisible();

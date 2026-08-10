@@ -48,6 +48,8 @@
     "test:payment-scheduler-deployment": "tsx scripts/test-payment-scheduler-deployment.ts",
     "test:payment-scheduler-deployment-shell": "bash scripts/test-payment-scheduler-deployment.sh",
     "test:payment-activation-evidence": "tsx scripts/test-payment-activation-evidence.ts",
+    "test:payment-checkout-rollout": "tsx scripts/test-payment-checkout-rollout.ts",
+    "test:payment-checkout-control-integration": "tsx scripts/test-payment-checkout-control-integration.ts",
     "test:payment-stripe-adapter": "tsx scripts/test-stripe-checkout-adapter.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",

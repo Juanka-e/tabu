@@ -14,6 +14,11 @@ export const APPLICATION_CACHE_KEYS = {
         "system-settings",
         "v1"
     ),
+    paymentCheckoutControl: getRedisKey(
+        "cache",
+        "payment-checkout-control",
+        "v1"
+    ),
     storeCatalogShared: getRedisKey(
         "cache",
         "store-catalog-shared",
@@ -44,6 +49,10 @@ export async function invalidateAdminDashboardStatsCache(): Promise<void> {
 
 export async function invalidateSystemSettingsCache(): Promise<void> {
     await invalidateJsonCache(APPLICATION_CACHE_KEYS.systemSettings);
+}
+
+export async function invalidatePaymentCheckoutControlCache(): Promise<void> {
+    await invalidateJsonCache(APPLICATION_CACHE_KEYS.paymentCheckoutControl);
 }
 
 export async function invalidateStoreCatalogCache(): Promise<void> {

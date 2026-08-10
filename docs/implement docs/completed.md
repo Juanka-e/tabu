@@ -407,6 +407,14 @@
 - regular/non-symlink, bounded, world-readable olmayan dosya ve exact digest production preflight kapısı
 - kanıtları uygulama image'ından ayıran salt-okunur deployment evidence mount'u
 
+### 56. `feature/payment-rollout-and-emergency-pause`
+- varsayılan paused/0% fail-closed checkout kontrolü
+- stable seed ve registered user ID tabanlı deterministik kademeli rollout
+- her checkout POST'unda cache dışı authoritative server-side enforcement
+- revision kontrollü, audit ile atomik admin güncellemesi ve tek aksiyonlu acil durdurma
+- callback, webhook ve reconciliation akışını kesmeyen rollback sınırı
+- health ve PII'siz merkezi observability görünürlüğü
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

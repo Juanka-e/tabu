@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, prisma } from "@hushle/platform-db";
-import { getPaymentRefundReadiness } from "@hushle/platform-payments";
+import {
+    getPaymentRefundReadiness,
+} from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
 import { getPaymentSchedulerHealth } from "@/lib/payments/scheduler-health";
+import {
+    getPaymentCheckoutActivationReadiness,
+    getPaymentCheckoutControl,
+} from "@/lib/payments/checkout-control";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
@@ -62,7 +68,7 @@ export async function GET(request: NextRequest) {
             ],
         } : {}),
     } satisfies Prisma.PaymentOrderWhereInput;
-    const [total, orders, openCases, deadLetters, pendingApprovals, openManualReviews, oldestOpenCase, schedulerHealth] = await Promise.all([
+    const [total, orders, openCases, deadLetters, pendingApprovals, openManualReviews, oldestOpenCase, schedulerHealth, checkoutControl] = await Promise.all([
         prisma.paymentOrder.count({ where }),
         prisma.paymentOrder.findMany({
             where,
@@ -139,9 +145,11 @@ export async function GET(request: NextRequest) {
             select: { createdAt: true },
         }),
         getPaymentSchedulerHealth(),
+        getPaymentCheckoutControl(),
     ]);
     const caseAlertThreshold = boundedThreshold(process.env.PAYMENT_OPEN_CASE_ALERT_THRESHOLD, 25);
     const deadLetterAlertThreshold = boundedThreshold(process.env.PAYMENT_DEAD_LETTER_ALERT_THRESHOLD, 10);
+    const checkoutActivation = getPaymentCheckoutActivationReadiness();
     return NextResponse.json({
         items: orders.map((order) => ({
             ...order,
@@ -191,5 +199,7 @@ export async function GET(request: NextRequest) {
         },
         schedulerHealth,
         refundExecution: getPaymentRefundReadiness("paytr"),
+        checkoutControl,
+        checkoutActivation,
     }, { headers: buildRateLimitHeaders(rateLimit) });
 }
