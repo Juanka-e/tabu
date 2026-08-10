@@ -168,7 +168,7 @@ test.describe("admin payment operations", () => {
                 await prisma.systemSetting.update({
                     where: { key: "payment_checkout_control" },
                     data: {
-                        value: originalCheckoutControl.value,
+                        value: originalCheckoutControl.value as Prisma.InputJsonValue,
                         updatedByUserId: originalCheckoutControl.updatedByUserId,
                     },
                 });

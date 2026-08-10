@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { prisma } from "@hushle/platform-db";
+import { Prisma, prisma } from "@hushle/platform-db";
 import {
     getPaymentCheckoutControl,
     PaymentCheckoutControlConflictError,
@@ -90,7 +90,10 @@ async function run(): Promise<void> {
         if (original) {
             await prisma.systemSetting.update({
                 where: { key: CONTROL_KEY },
-                data: { value: original.value, updatedByUserId: original.updatedByUserId },
+                data: {
+                    value: original.value as Prisma.InputJsonValue,
+                    updatedByUserId: original.updatedByUserId,
+                },
             });
         } else {
             await prisma.systemSetting.deleteMany({ where: { key: CONTROL_KEY } });
