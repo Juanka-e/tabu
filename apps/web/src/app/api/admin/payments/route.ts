@@ -3,6 +3,7 @@ import { Prisma, prisma } from "@hushle/platform-db";
 import { getPaymentRefundReadiness } from "@hushle/platform-payments";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/admin/require-admin";
+import { getPaymentSchedulerHealth } from "@/lib/payments/scheduler-health";
 import {
     buildRateLimitHeaders,
     consumeRequestRateLimit,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
             ],
         } : {}),
     } satisfies Prisma.PaymentOrderWhereInput;
-    const [total, orders, openCases, deadLetters, pendingApprovals, openManualReviews, oldestOpenCase] = await Promise.all([
+    const [total, orders, openCases, deadLetters, pendingApprovals, openManualReviews, oldestOpenCase, schedulerHealth] = await Promise.all([
         prisma.paymentOrder.count({ where }),
         prisma.paymentOrder.findMany({
             where,
@@ -137,6 +138,7 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: "asc" },
             select: { createdAt: true },
         }),
+        getPaymentSchedulerHealth(),
     ]);
     const caseAlertThreshold = boundedThreshold(process.env.PAYMENT_OPEN_CASE_ALERT_THRESHOLD, 25);
     const deadLetterAlertThreshold = boundedThreshold(process.env.PAYMENT_DEAD_LETTER_ALERT_THRESHOLD, 10);
@@ -187,6 +189,7 @@ export async function GET(request: NextRequest) {
             deadLetterThresholdExceeded: deadLetters >= deadLetterAlertThreshold,
             oldestOpenCaseAt: oldestOpenCase?.createdAt.toISOString() ?? null,
         },
+        schedulerHealth,
         refundExecution: getPaymentRefundReadiness("paytr"),
     }, { headers: buildRateLimitHeaders(rateLimit) });
 }

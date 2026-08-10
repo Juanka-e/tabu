@@ -142,6 +142,8 @@ Object.assign(checkoutWithLegalApproval, {
     JOBS_ENABLED: "true",
     PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED: "true",
     PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED: "true",
+    PAYMENT_WEBHOOK_SCHEDULE_MAX_AGE_SECONDS: "180",
+    PAYMENT_RECONCILIATION_SCHEDULE_MAX_AGE_SECONDS: "1800",
     PAYMENT_LEGAL_APPROVED: "true",
     PAYMENT_LEGAL_BUSINESS_NAME: "Hushle Teknoloji A.S.",
     PAYMENT_LEGAL_BUSINESS_ADDRESS: "Maslak Mahallesi, Istanbul",
@@ -222,6 +224,26 @@ const unreconciledPaytrCheckout = {
 assert.ok(
     validateProductionEnvironment(unreconciledPaytrCheckout).errors.some((error) =>
         error.includes("PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED")
+    )
+);
+
+const invalidWebhookFreshness = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_WEBHOOK_SCHEDULE_MAX_AGE_SECONDS: "59",
+};
+assert.ok(
+    validateProductionEnvironment(invalidWebhookFreshness).errors.some((error) =>
+        error.includes("PAYMENT_WEBHOOK_SCHEDULE_MAX_AGE_SECONDS")
+    )
+);
+
+const invalidReconciliationFreshness = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_RECONCILIATION_SCHEDULE_MAX_AGE_SECONDS: "1800oops",
+};
+assert.ok(
+    validateProductionEnvironment(invalidReconciliationFreshness).errors.some((error) =>
+        error.includes("PAYMENT_RECONCILIATION_SCHEDULE_MAX_AGE_SECONDS")
     )
 );
 

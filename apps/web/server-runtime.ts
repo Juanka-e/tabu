@@ -9,6 +9,7 @@ import {
     getRoomMetrics,
 } from "./src/lib/socket/game-socket";
 import { isHealthEndpointAllowed } from "./src/lib/security/health-check";
+import { getPaymentSchedulerHealth } from "./src/lib/payments/scheduler-health";
 import { closeRedisClient, getRedisHealth } from "@hushle/platform-cache";
 import {
     allowOriginlessSocketClients,
@@ -106,7 +107,10 @@ app.prepare().then(async () => {
         }
 
         const metrics = getRoomMetrics();
-        const redis = await getRedisHealth();
+        const [redis, paymentSchedulers] = await Promise.all([
+            getRedisHealth(),
+            getPaymentSchedulerHealth(),
+        ]);
         const socketRedisAdapterStatus =
             socketRedisAdapter?.getStatus() ?? {
                 enabled: socketRedisAdapterConfig.enabled,
@@ -155,10 +159,13 @@ app.prepare().then(async () => {
             roomRoutingStatus.remoteOwnerRequests > 0 ||
             roomRoutingStatus.localStateMissing > 0 ||
             roomRoutingStatus.ownershipMismatches > 0;
+        const paymentSchedulersDegraded =
+            process.env.PAYMENTS_ENABLED?.trim().toLowerCase() === "true"
+            && paymentSchedulers.some((scheduler) => scheduler.status !== "healthy");
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
             JSON.stringify({
-                status: realtimeDegraded ? "degraded" : "ok",
+                status: realtimeDegraded || paymentSchedulersDegraded ? "degraded" : "ok",
                 uptime: process.uptime(),
                 dependencies: {
                     redis,
@@ -176,6 +183,9 @@ app.prepare().then(async () => {
                     wordAnalytics: getWordAnalyticsStatus(),
                 },
                 observability: getObservabilityStatus(),
+                payments: {
+                    schedulers: paymentSchedulers,
+                },
                 ...metrics,
             })
         );

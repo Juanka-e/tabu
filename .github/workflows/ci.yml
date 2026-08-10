@@ -59,6 +59,8 @@ jobs:
       RATE_LIMIT_ENABLED: "true"
       ROOM_JOIN_MAX_ATTEMPTS: "5"
       ROOM_JOIN_WINDOW_SECONDS: "60"
+      REDIS_URL: "redis://localhost:6379"
+      REDIS_KEY_PREFIX: "hushle:ci"
 
     services:
       mysql:
@@ -70,6 +72,15 @@ jobs:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -153,6 +164,11 @@ jobs:
           npm run test:payment-coin-lot-integration
         env:
           PAYMENT_COIN_LOT_INTEGRATION_TEST: "true"
+
+      - name: Test payment scheduler observability
+        run: |
+          npm run test:payment-operations-readiness
+          npm run test:payment-operations-readiness-redis
 
       - name: Build Next.js
         run: npm run build

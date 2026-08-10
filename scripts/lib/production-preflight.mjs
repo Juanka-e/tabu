@@ -275,6 +275,14 @@ export function validateProductionEnvironment(env) {
         if (!isTrue(env.PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED)) {
             result.errors.push("PAYMENT_RECONCILIATION_SCHEDULE_CONFIGURED must confirm the provider status-query schedule before checkout is enabled.");
         }
+        const webhookMaxAge = env.PAYMENT_WEBHOOK_SCHEDULE_MAX_AGE_SECONDS?.trim() ?? "";
+        if (!/^\d+$/.test(webhookMaxAge) || Number(webhookMaxAge) < 60 || Number(webhookMaxAge) > 3_600) {
+            result.errors.push("PAYMENT_WEBHOOK_SCHEDULE_MAX_AGE_SECONDS must be an integer between 60 and 3600.");
+        }
+        const reconciliationMaxAge = env.PAYMENT_RECONCILIATION_SCHEDULE_MAX_AGE_SECONDS?.trim() ?? "";
+        if (!/^\d+$/.test(reconciliationMaxAge) || Number(reconciliationMaxAge) < 300 || Number(reconciliationMaxAge) > 86_400) {
+            result.errors.push("PAYMENT_RECONCILIATION_SCHEDULE_MAX_AGE_SECONDS must be an integer between 300 and 86400.");
+        }
         result.checks.push("payment legal and sandbox provider readiness");
     }
 

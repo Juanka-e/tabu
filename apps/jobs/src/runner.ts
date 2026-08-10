@@ -1,12 +1,14 @@
-import { closeRedisClient } from "@hushle/platform-cache";
+import { closeRedisClient, writeOperationalHeartbeat } from "@hushle/platform-cache";
 import { prisma } from "@hushle/platform-db";
 import {
     configureObservabilityFromEnvironment,
+    emitObservabilityEvent,
     flushObservabilityExporter,
     reportError,
 } from "@hushle/platform-observability";
 import { areJobsEnabled } from "./config";
 import { acquireJobLease } from "./lease";
+import { reportPaymentOperationalThresholds } from "./payment-operations";
 import {
     getJobDefinition,
     isJobName,
@@ -68,7 +70,23 @@ async function main(): Promise<void> {
     }
 
     try {
+        const startedAt = Date.now();
         const result = await definition.run({ dryRun });
+        const durationMs = Date.now() - startedAt;
+        if (!dryRun) {
+            await reportPaymentOperationalThresholds(args.job);
+            await writeOperationalHeartbeat({
+                name: args.job,
+                completedAt: new Date(),
+                durationMs,
+            });
+            await emitObservabilityEvent({
+                level: "info",
+                service: "hushle-jobs",
+                event: "job.run.completed",
+                context: { job: args.job, durationMs },
+            });
+        }
         console.log(JSON.stringify({ job: args.job, ...result }));
     } finally {
         await lease?.release();
