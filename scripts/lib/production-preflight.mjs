@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
 import { validateEdgeSecurityEnvironment } from "./edge-security-policy.mjs";
+import {
+    validateEvidenceFile,
+    validateIyzicoAcceptanceManifest,
+    validateLegalApprovalManifest,
+} from "./payment-activation-evidence.mjs";
 
 export function parseEnvFile(path) {
     const env = {};
@@ -228,6 +233,12 @@ export function validateProductionEnvironment(env) {
         ]) {
             requireConfiguredValue(env, key, result);
         }
+        result.errors.push(...validateEvidenceFile({
+            environment: env,
+            pathKey: "PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE",
+            digestKey: "PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256",
+            validateManifest: validateLegalApprovalManifest,
+        }));
         const activePaymentProvider = env.PAYMENT_ACTIVE_PROVIDER?.trim();
         if (activePaymentProvider === "paytr") {
             if (env.PAYTR_CHECKOUT_MODE?.trim() !== "sandbox") {
@@ -263,6 +274,12 @@ export function validateProductionEnvironment(env) {
             if (!isTrue(env.IYZICO_SANDBOX_ACCEPTANCE_RECORDED)) {
                 result.errors.push("IYZICO_SANDBOX_ACCEPTANCE_RECORDED must be true before iyzico checkout is enabled.");
             }
+            result.errors.push(...validateEvidenceFile({
+                environment: env,
+                pathKey: "IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_FILE",
+                digestKey: "IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256",
+                validateManifest: validateIyzicoAcceptanceManifest,
+            }));
         } else {
             result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr or iyzico while checkout is enabled.");
         }

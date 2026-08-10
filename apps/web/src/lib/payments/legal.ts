@@ -8,6 +8,10 @@ function configured(value: string | undefined): string | null {
     return normalized;
 }
 
+function evidenceDigestConfigured(value: string | undefined): boolean {
+    return /^sha256:[a-f0-9]{64}$/.test(value?.trim() ?? "");
+}
+
 export interface PaymentLegalReadiness {
     ready: boolean;
     businessName: string | null;
@@ -29,6 +33,9 @@ export function getPaymentLegalReadiness(
     const issues: string[] = [];
 
     if (!approved) issues.push("legal_documents_not_approved");
+    if (!evidenceDigestConfigured(environment.PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256)) {
+        issues.push("legal_approval_evidence_missing");
+    }
     if (!businessName) issues.push("business_name_missing");
     if (!businessAddress) issues.push("business_address_missing");
     if (!contactEmail) issues.push("contact_email_missing");

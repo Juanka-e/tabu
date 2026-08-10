@@ -98,7 +98,9 @@ Başarılı rapor şu kontrollerin tamamını `true` göstermelidir:
 - çözülmüş veya gerekmemiş reconciliation,
 - DB'den temizlenmiş geçici token/hosted URL.
 
-Kanıt raporunda provider payment reference yalnız SHA-256 olarak bulunur. Token,
+Kanıt raporu `iyzico-sandbox-acceptance-v2` şemasını, hashed merchant ID'yi ve kabul
+edilen legal belge sürümlerini içerir. Provider payment reference yalnız SHA-256
+olarak bulunur. Token,
 hosted URL, buyer alanları ve credential bulunmaz. Rapor başarısızsa acceptance flag
 açılmaz; eksik check operasyon kayıtları üzerinden incelenir.
 
@@ -107,5 +109,7 @@ açılmaz; eksik check operasyon kayıtları üzerinden incelenir.
 Başarılı rapor tek başına live ödeme onayı değildir. İncelenmiş sandbox kanıtı,
 webhook retry/dead-letter alarmı, reconciliation scheduler, hukuki onay ve rollback
 prosedürü tamamlandıktan sonra deployment secret manager'da
-`IYZICO_SANDBOX_ACCEPTANCE_RECORDED=true` yapılabilir. Live mode bu sürümde yine
-fail-closed kalır.
+`IYZICO_SANDBOX_ACCEPTANCE_RECORDED=true` ve doğrulanan dosyanın
+`IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256` değeri birlikte ayarlanabilir. Ayrıntılı
+dosya izinleri ve digest akışı `payment-activation-evidence.md` içindedir. Live mode
+bu sürümde yine fail-closed kalır.

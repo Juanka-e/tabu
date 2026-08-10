@@ -30,9 +30,26 @@ fi
 
 cd "$ROOT_DIR"
 
+preflight_mounts=(
+  -v "$ROOT_DIR:/app:ro"
+  -v "$ENV_FILE:/run/production.env:ro"
+)
+if grep -Eq '^PAYMENTS_ENABLED=[[:space:]]*true[[:space:]]*$' "$ENV_FILE"; then
+  evidence_dir="$(grep -E '^PAYMENT_EVIDENCE_DIR=' "$ENV_FILE" | tail -n 1 | cut -d= -f2- || true)"
+  evidence_dir="${evidence_dir%\"}"
+  evidence_dir="${evidence_dir#\"}"
+  evidence_dir="${evidence_dir%\'}"
+  evidence_dir="${evidence_dir#\'}"
+  if [[ "$evidence_dir" != /* || "$evidence_dir" == *:* || ! -d "$evidence_dir" ]]; then
+    echo "PAYMENT_EVIDENCE_DIR must be an existing absolute directory" >&2
+    exit 1
+  fi
+  evidence_dir="$(cd "$evidence_dir" && pwd -P)"
+  preflight_mounts+=(-v "$evidence_dir:$evidence_dir:ro")
+fi
+
 docker run --rm --network none \
-  -v "$ROOT_DIR:/app:ro" \
-  -v "$ENV_FILE:/run/production.env:ro" \
+  "${preflight_mounts[@]}" \
   -w /app \
   node:20-alpine \
   node scripts/production-preflight.mjs /run/production.env

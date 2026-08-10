@@ -108,6 +108,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
     `hushle-payment-reconciliation.timer` aktif ve son çalışmaları başarılı olmalı.
 17. Uygulama sunucusu dışındaki monitor
     `scripts/ops/check-payment-health.sh` ile iki scheduler'ı `healthy` görmeli.
+18. Ödeme açıksa legal ve provider acceptance evidence dosyalarının SHA-256 değerleri
+    production env ile eşleşmeli; preflight stale veya değiştirilmiş kanıtı reddetmeli.
 
 Web launch test katmanlari ve disposable DB siniri:
 `docs/guides/web-launch-readiness-guide.md`.

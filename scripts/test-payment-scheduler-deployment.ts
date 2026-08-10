@@ -57,6 +57,9 @@ assert.match(runner, /timeout --signal=TERM --kill-after=30s/);
 assert.match(runner, /acquire_schema_ops_shared_lock/);
 assert.doesNotMatch(runner, /source\s+.*ENV_FILE/);
 assert.match(deploy, /--profile jobs build jobs/);
+assert.match(deploy, /PAYMENT_EVIDENCE_DIR/);
+assert.match(deploy, /evidence_dir:\$evidence_dir:ro/);
+assert.match(deploy, /PAYMENTS_ENABLED=\[\[:space:\]\]\*true/);
 assert.match(schemaLock, /flock_args=\(-s/);
 assert.match(schemaLock, /acquire_schema_ops_shared_lock/);
 

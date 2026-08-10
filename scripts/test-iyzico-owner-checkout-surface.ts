@@ -23,6 +23,7 @@ const enabled = {
     IYZICO_WEBHOOK_MODE: "sandbox",
     IYZICO_RECONCILIATION_MODE: "sandbox",
     IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
+    IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256: `sha256:${"a".repeat(64)}`,
 };
 assert.deepEqual(getIyzicoOwnerSurfaceReadiness(enabled), {
     sessionEnabled: true,
@@ -35,6 +36,7 @@ assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, PAYMENTS_ENABLED: "fal
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_CALLBACK_MODE: "disabled" }).callbackEnabled, false);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "false" }).sessionEnabled, false);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "false" }).callbackEnabled, true);
+assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256: "" }).sessionEnabled, false);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_API_KEY: "live-api-key" }).callbackEnabled, false);
 assert.equal(getPublicPaymentOrigin({ NEXT_PUBLIC_SITE_URL: "https://play.example.test" }), "https://play.example.test");
 assert.equal(getPublicPaymentOrigin({ NEXT_PUBLIC_SITE_URL: "http://play.example.test" }), null);

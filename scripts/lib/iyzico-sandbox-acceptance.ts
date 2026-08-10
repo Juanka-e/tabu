@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 export const IYZICO_ACCEPTANCE_CONFIRMATION =
     "I_UNDERSTAND_THIS_CREATES_A_REAL_IYZICO_SANDBOX_CHECKOUT";
-export const IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA = "iyzico-sandbox-acceptance-v1";
+export const IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA = "iyzico-sandbox-acceptance-v2";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 

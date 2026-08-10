@@ -47,6 +47,7 @@ const providers = {
             "IYZICO_OWNER_CHECKOUT_MODE",
             "IYZICO_CALLBACK_MODE",
             "IYZICO_SANDBOX_ACCEPTANCE_RECORDED",
+            "IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256",
         ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: true,
@@ -152,6 +153,13 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_SANDBOX_ACCEPTANCE_RECORDED")
     ) {
         missingEnvironment.push("IYZICO_SANDBOX_ACCEPTANCE_RECORDED");
+    }
+    if (
+        provider === "iyzico"
+        && !/^sha256:[a-f0-9]{64}$/.test(environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256?.trim() ?? "")
+        && !missingEnvironment.includes("IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256")
+    ) {
+        missingEnvironment.push("IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256");
     }
     if (
         provider === "stripe"

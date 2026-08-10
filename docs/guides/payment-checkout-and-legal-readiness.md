@@ -36,6 +36,8 @@ PAYTR_CHECKOUT_MODE=sandbox
 JOBS_ENABLED=true
 PAYMENT_WEBHOOK_SCHEDULE_CONFIGURED=true
 PAYMENT_LEGAL_APPROVED=true
+PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE=/srv/hushle/payment-evidence/payment-legal-approval.json
+PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256=sha256:<reviewed-file-digest>
 PAYMENT_LEGAL_BUSINESS_NAME=...
 PAYMENT_LEGAL_BUSINESS_ADDRESS=...
 PAYMENT_LEGAL_CONTACT_EMAIL=...
@@ -50,6 +52,8 @@ iyzico sandbox secildiginde ek olarak `PAYMENT_ACTIVE_PROVIDER=iyzico` ve
 olmalidir. API key, secret, merchant ID, public HTTPS origin ve gercek merchant test
 kaniti sonrasi `IYZICO_SANDBOX_ACCEPTANCE_RECORDED=true` zorunludur. Varsayilan
 degerler `disabled/false` oldugu icin UI kodunun varligi tek basina checkout acmaz.
+Iyzico kabul kaniti dosya yolu ve SHA-256 digest'i de zorunludur; merchant veya legal
+surum degisirse eski kanit preflight'tan gecmez.
 
 Production preflight ödeme açıldığında PayTR sandbox mode, credential ve hukuk
 alanlarını birlikte doğrular. `PAYTR_CHECKOUT_MODE=live` bu sürümde blocker'dır.
@@ -88,3 +92,6 @@ tanımlıdır.
 2. Gercek merchant sandbox initialize, callback, webhook ve reconciliation kabul testi.
 3. Alert, scheduler ve operasyon runbook kabul kaydi.
 4. Ayrica incelenen live-mode implementasyonu; sandbox flag'lerini live kabul etmek yasaktir.
+
+Kanita bagli aktivasyon ve rotasyon adimlari
+[`payment-activation-evidence.md`](./payment-activation-evidence.md) icinde tanimlidir.

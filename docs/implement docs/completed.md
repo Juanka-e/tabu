@@ -401,6 +401,12 @@
 - jobs/app container'larında eksik Iyzico, webhook ve scheduler environment aktarımları
 - tokeni process argümanında göstermeyen HTTPS health probe ve dış monitor kabul kontratı
 
+### 55. `feature/payment-activation-evidence-gates`
+- legal onay boolean'ını provider, belge sürümleri ve veri aktarım kapsamına bağlı SHA-256 manifest ile güçlendirme
+- Iyzico acceptance v2 kanıtını hashed merchant ID ve exact legal sürümlerine bağlama
+- regular/non-symlink, bounded, world-readable olmayan dosya ve exact digest production preflight kapısı
+- kanıtları uygulama image'ından ayıran salt-okunur deployment evidence mount'u
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

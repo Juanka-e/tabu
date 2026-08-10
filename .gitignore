@@ -52,6 +52,7 @@ next-env.d.ts
 
 # Local database backups
 /backups/
+/.payment-evidence/
 
 # ─── OS / Editor ──────────────────────────────────────────────────
 .DS_Store
