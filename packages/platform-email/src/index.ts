@@ -15,6 +15,8 @@ import {
     prisma,
 } from "@hushle/platform-db";
 
+export * from "./ses-sns";
+
 export const EMAIL_VERIFICATION_MODES = [
     "off",
     "optional",

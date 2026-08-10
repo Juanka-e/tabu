@@ -114,6 +114,8 @@
     "test:account-recovery-integration": "tsx scripts/test-account-recovery-integration.ts",
     "test:email-delivery-operations-integration": "tsx scripts/test-email-delivery-operations-integration.ts",
     "test:email-delivery-operations": "tsx scripts/test-email-delivery-operations.ts",
+    "test:ses-feedback-webhook": "tsx scripts/test-ses-feedback-webhook.ts",
+    "test:ses-feedback-route": "tsx scripts/test-ses-feedback-route.ts",
     "test:email-delivery-admin-e2e": "playwright test tests/admin-email-delivery.spec.ts",
     "test:account-recovery": "tsx scripts/test-account-recovery.ts",
     "test:account-recovery-e2e": "playwright test tests/account-recovery.spec.ts",

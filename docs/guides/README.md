@@ -132,3 +132,7 @@ Bu klasor tekrar kullanilacak operasyonel rehberleri toplar.
 29. `paytr-refund-adapter.md`
 - PayTR iade HMAC/transport kontratını ve production fail-closed sınırını tanımlar
 - timeout retry, idempotency ve durable provider attempt gereksinimini açıklar
+
+30. `ses-feedback-webhook.md`
+- SES/SNS signature, topic ve source identity doğrulamasını tanımlar
+- permanent bounce/complaint suppression ile production kabul sınırını ayırır

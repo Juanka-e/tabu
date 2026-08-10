@@ -55,10 +55,13 @@ Ubuntu 24.04 üzerinde hedef sade model:
 21. `JOBS_ENABLED=true` ve email delivery/retention scheduler
 22. `PRODUCTION_CAPTCHA_POLICY=turnstile` veya yazili risk kabul karari
 23. `PRODUCTION_EMAIL_POLICY=smtp` veya yazili risk kabul karari
-24. `ADMIN_ACCESS_MODE`, fail-closed gateway header/identity allowlist'i
-25. `BACKUP_REMOTE_ENABLED=true` ve S3-compatible hedef bilgileri
-26. `STATE_CHANGE_ORIGIN_POLICY=strict` ve exact `TRUSTED_WEB_ORIGINS`
-27. `PRODUCTION_OAUTH_POLICY=google` ise `GOOGLE_OAUTH_ENABLED=true`,
+24. `PRODUCTION_EMAIL_FEEDBACK_POLICY=ses_sns` ise exact
+    `SES_SNS_TOPIC_ARNS`, `SES_ALLOWED_SOURCE_ARNS` ve aktif webhook; başka
+    provider ise yazılı risk kabulü
+25. `ADMIN_ACCESS_MODE`, fail-closed gateway header/identity allowlist'i
+26. `BACKUP_REMOTE_ENABLED=true` ve S3-compatible hedef bilgileri
+27. `STATE_CHANGE_ORIGIN_POLICY=strict` ve exact `TRUSTED_WEB_ORIGINS`
+28. `PRODUCTION_OAUTH_POLICY=google` ise `GOOGLE_OAUTH_ENABLED=true`,
     `AUTH_GOOGLE_ID` ve `AUTH_GOOGLE_SECRET`
 
 ## Deploy Öncesi
@@ -85,6 +88,8 @@ Ubuntu 24.04 üzerinde hedef sade model:
 14. `npm run test:account-recovery-e2e` ve local MySQL üzerinde
     `ACCOUNT_RECOVERY_INTEGRATION=true npm run test:account-recovery-integration`
     geçti mi kontrol et.
+15. SES kullanılıyorsa gerçek SNS subscription confirmed, permanent bounce ve
+    complaint simulator eventleri idempotent biçimde suppression oluşturuyor mu kontrol et.
 
 ## Deploy Sonrası
 

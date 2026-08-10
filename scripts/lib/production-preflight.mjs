@@ -420,10 +420,74 @@ export function validateProductionEnvironment(env) {
         }
         if (env.EMAIL_PROVIDER !== "smtp") result.errors.push("EMAIL_PROVIDER must be smtp.");
         if (!isTrue(env.JOBS_ENABLED)) result.errors.push("JOBS_ENABLED must be true for email delivery.");
+
+        const feedbackPolicy = env.PRODUCTION_EMAIL_FEEDBACK_POLICY;
+        if (feedbackPolicy === "ses_sns") {
+            if (!isTrue(env.SES_FEEDBACK_WEBHOOK_ENABLED)) {
+                result.errors.push("SES_FEEDBACK_WEBHOOK_ENABLED must be true for ses_sns feedback policy.");
+            }
+            const topics = (env.SES_SNS_TOPIC_ARNS ?? "")
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean);
+            const topicPattern = /^arn:(aws|aws-us-gov|aws-cn):sns:([a-z0-9-]{3,32}):\d{12}:[A-Za-z0-9_-]{1,256}$/;
+            if (topics.length === 0 || topics.some((topic) => !topicPattern.test(topic))) {
+                result.errors.push("SES_SNS_TOPIC_ARNS must contain valid exact SNS topic ARNs.");
+            }
+            const sources = (env.SES_ALLOWED_SOURCE_ARNS ?? "")
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean);
+            const sourcePattern = /^arn:(aws|aws-us-gov|aws-cn):ses:([a-z0-9-]{3,32}):\d{12}:identity\/[A-Za-z0-9._%+@=-]{1,191}$/;
+            if (sources.length === 0 || sources.some((source) => !sourcePattern.test(source))) {
+                result.errors.push("SES_ALLOWED_SOURCE_ARNS must contain valid exact SES identity ARNs.");
+            } else if (topics.every((topic) => topicPattern.test(topic))) {
+                const topicRegions = new Set(topics.map((topic) => {
+                    const match = topicPattern.exec(topic);
+                    return `${match[1]}:${match[2]}`;
+                }));
+                const sourceRegionMismatch = sources.some((source) => {
+                    const match = sourcePattern.exec(source);
+                    return !topicRegions.has(`${match[1]}:${match[2]}`);
+                });
+                if (sourceRegionMismatch) {
+                    result.errors.push("SES identities and SNS topics must share an AWS partition and region.");
+                }
+            }
+            if (!/^(true|false)$/.test(env.SES_SNS_AUTO_CONFIRM ?? "")) {
+                result.errors.push("SES_SNS_AUTO_CONFIRM must be true or false.");
+            }
+            if (
+                !/^\d+$/.test(env.SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE ?? "") ||
+                Number(env.SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE) < 60 ||
+                Number(env.SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE) > 10_000
+            ) {
+                result.errors.push("SES_FEEDBACK_WEBHOOK_RATE_LIMIT_PER_MINUTE must be between 60 and 10000.");
+            }
+        } else if (feedbackPolicy === "provider_managed_risk_accepted") {
+            if (isTrue(env.SES_FEEDBACK_WEBHOOK_ENABLED)) {
+                result.errors.push("SES feedback webhook must be disabled for provider-managed feedback policy.");
+            }
+            if (env.SES_SNS_TOPIC_ARNS?.trim() || env.SES_ALLOWED_SOURCE_ARNS?.trim()) {
+                result.errors.push("Provider-managed feedback policy must not retain SES allowlists.");
+            }
+            result.warnings.push("Email bounce/complaint feedback is delegated to the configured provider.");
+        } else {
+            result.errors.push("PRODUCTION_EMAIL_FEEDBACK_POLICY must be ses_sns or provider_managed_risk_accepted.");
+        }
     } else if (emailPolicy === "disabled_risk_accepted") {
         result.warnings.push("Transactional email is explicitly disabled for public launch.");
         if (env.EMAIL_PROVIDER !== "disabled") {
             result.errors.push("EMAIL_PROVIDER must be disabled when the accepted-risk policy is selected.");
+        }
+        if (
+            env.PRODUCTION_EMAIL_FEEDBACK_POLICY !== "disabled" ||
+            isTrue(env.SES_FEEDBACK_WEBHOOK_ENABLED) ||
+            isTrue(env.SES_SNS_AUTO_CONFIRM) ||
+            env.SES_SNS_TOPIC_ARNS?.trim() ||
+            env.SES_ALLOWED_SOURCE_ARNS?.trim()
+        ) {
+            result.errors.push("Email feedback webhook and policy must be disabled when email delivery is disabled.");
         }
     } else {
         result.errors.push("PRODUCTION_EMAIL_POLICY must be smtp or disabled_risk_accepted.");
