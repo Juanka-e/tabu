@@ -251,9 +251,10 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
 5. `iyzico` Checkout Form HMAC/transport, request-only buyer data, durable
-   initialize/retrieve, Signature V3 webhook, reconciliation ve owner-only
-   session/callback foundation tamamlandi. Just-in-time UI baglantisi, hukuki onay
-   ve gercek merchant sandbox kabulu bitene kadar adapter devre disi.
+   initialize/retrieve, Signature V3 webhook, reconciliation, owner-only
+   session/callback ve just-in-time UI tamamlandi. Registry adapter'i yalniz tum
+   explicit sandbox kapilari acikken route edilebilir; hukuki onay, gercek merchant
+   sandbox kabulu ve ayri live implementasyonu bitmeden production tahsilat acilmaz.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,

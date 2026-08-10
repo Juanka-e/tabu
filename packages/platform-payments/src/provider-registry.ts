@@ -46,9 +46,10 @@ const providers = {
             "IYZICO_RECONCILIATION_MODE",
             "IYZICO_OWNER_CHECKOUT_MODE",
             "IYZICO_CALLBACK_MODE",
+            "IYZICO_SANDBOX_ACCEPTANCE_RECORDED",
         ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
-        adapterAvailable: false,
+        adapterAvailable: true,
     },
     paytr: {
         id: "paytr",
@@ -144,6 +145,13 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_MERCHANT_ID")
     ) {
         missingEnvironment.push("IYZICO_MERCHANT_ID");
+    }
+    if (
+        provider === "iyzico"
+        && environment.IYZICO_SANDBOX_ACCEPTANCE_RECORDED?.trim().toLowerCase() !== "true"
+        && !missingEnvironment.includes("IYZICO_SANDBOX_ACCEPTANCE_RECORDED")
+    ) {
+        missingEnvironment.push("IYZICO_SANDBOX_ACCEPTANCE_RECORDED");
     }
     if (
         provider === "stripe"

@@ -22,6 +22,7 @@ const enabled = {
     IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
     IYZICO_WEBHOOK_MODE: "sandbox",
     IYZICO_RECONCILIATION_MODE: "sandbox",
+    IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
 };
 assert.deepEqual(getIyzicoOwnerSurfaceReadiness(enabled), {
     sessionEnabled: true,
@@ -32,6 +33,8 @@ assert.deepEqual(getIyzicoOwnerSurfaceReadiness(enabled), {
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_OWNER_CHECKOUT_MODE: "disabled" }).sessionEnabled, false);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, PAYMENTS_ENABLED: "false" }).callbackEnabled, true);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_CALLBACK_MODE: "disabled" }).callbackEnabled, false);
+assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "false" }).sessionEnabled, false);
+assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "false" }).callbackEnabled, true);
 assert.equal(getIyzicoOwnerSurfaceReadiness({ ...enabled, IYZICO_API_KEY: "live-api-key" }).callbackEnabled, false);
 assert.equal(getPublicPaymentOrigin({ NEXT_PUBLIC_SITE_URL: "https://play.example.test" }), "https://play.example.test");
 assert.equal(getPublicPaymentOrigin({ NEXT_PUBLIC_SITE_URL: "http://play.example.test" }), null);
@@ -77,6 +80,8 @@ const callbackRoute = readFileSync(
     "utf8"
 );
 const orderRoute = readFileSync("apps/web/src/app/api/payments/orders/[id]/route.ts", "utf8");
+const offersRoute = readFileSync("apps/web/src/app/api/payments/offers/route.ts", "utf8");
+const checkoutUi = readFileSync("apps/web/src/components/payments/checkout-content.tsx", "utf8");
 assert.match(sessionRoute, /getSessionUser/);
 assert.match(sessionRoute, /enforceAccountCapability/);
 assert.match(sessionRoute, /VERIFIED_EMAIL_REQUIRED/);
@@ -96,5 +101,11 @@ assert.doesNotMatch(callbackRoute, /getSessionUser|request\.json|console\./);
 assert.match(orderRoute, /isAllowedIyzicoHostedUrl/);
 assert.match(orderRoute, /redirectUrl: providerHostedUrl/);
 assert.doesNotMatch(orderRoute, /providerSessionReference[,}]\s*\)/);
+assert.match(offersRoute, /provider: runtime\.activeProvider/);
+assert.match(offersRoute, /getIyzicoOwnerSurfaceReadiness/);
+assert.match(checkoutUi, /\/api\/payments\/checkout\/iyzico\/session/);
+assert.match(checkoutUi, /buyerDataDisclosure/);
+assert.match(checkoutUi, /isAllowedIyzicoRedirect/);
+assert.doesNotMatch(checkoutUi, /localStorage|sessionStorage|sendBeacon|console\./);
 
 console.log("iyzico owner checkout and callback surface checks passed");

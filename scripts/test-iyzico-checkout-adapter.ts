@@ -223,10 +223,11 @@ async function run(): Promise<void> {
         IYZICO_RECONCILIATION_MODE: "sandbox",
         IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
         IYZICO_CALLBACK_MODE: "sandbox",
+        IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
     });
+    assert.equal(readiness.adapterAvailable, true);
     assert.equal(readiness.credentialsConfigured, true);
-    assert.equal(readiness.adapterAvailable, false);
-    assert.equal(readiness.ready, false);
+    assert.equal(readiness.ready, true);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
         IYZICO_SECRET_KEY: credentials.secretKey,
@@ -236,6 +237,7 @@ async function run(): Promise<void> {
         IYZICO_RECONCILIATION_MODE: "sandbox",
         IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
         IYZICO_CALLBACK_MODE: "sandbox",
+        IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
     }).credentialsConfigured, false);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -246,6 +248,7 @@ async function run(): Promise<void> {
         IYZICO_RECONCILIATION_MODE: "disabled",
         IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
         IYZICO_CALLBACK_MODE: "sandbox",
+        IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
     }).credentialsConfigured, false);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -256,6 +259,7 @@ async function run(): Promise<void> {
         IYZICO_RECONCILIATION_MODE: "sandbox",
         IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
         IYZICO_CALLBACK_MODE: "sandbox",
+        IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
     }).credentialsConfigured, false);
 
     const checkoutRoute = await readFile(

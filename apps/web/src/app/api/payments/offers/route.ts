@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+    getSafePaymentBuyerDataDiagnostics,
     getPaymentRuntimeReadiness,
     listActivePaymentOffers,
 } from "@hushle/platform-payments";
@@ -12,6 +13,10 @@ import {
     getPaymentLegalReadiness,
     getPublicPaymentLegalDocuments,
 } from "@/lib/payments/legal";
+import {
+    getIyzicoOwnerSurfaceReadiness,
+    getPublicPaymentOrigin,
+} from "@/lib/payments/iyzico-owner-surface";
 
 export async function GET() {
     const sessionUser = await getSessionUser();
@@ -37,15 +42,22 @@ export async function GET() {
         Promise.resolve(getPaymentRuntimeReadiness()),
         Promise.resolve(getPaymentLegalReadiness()),
     ]);
+    const providerSurfaceReady = runtime.activeProvider !== "iyzico"
+        || (getIyzicoOwnerSurfaceReadiness().sessionEnabled && Boolean(getPublicPaymentOrigin()));
+    const checkoutAvailable = runtime.ready && legal.ready && providerSurfaceReady;
     return NextResponse.json(
         {
             offers: allOffers,
             checkout: {
-                available: runtime.ready && legal.ready,
-                unavailableReason: runtime.ready && legal.ready
+                provider: runtime.activeProvider,
+                available: checkoutAvailable,
+                unavailableReason: checkoutAvailable
                     ? null
                     : "Ödeme altyapısı şu anda kullanıma hazır değil.",
                 legalDocuments: getPublicPaymentLegalDocuments(legal),
+                buyerDataPolicyVersion: runtime.activeProvider === "iyzico"
+                    ? getSafePaymentBuyerDataDiagnostics("iyzico").policyVersion
+                    : null,
             },
         },
         { headers: { ...buildRateLimitHeaders(rateLimit), "Cache-Control": "private, no-store" } }

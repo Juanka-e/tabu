@@ -2,12 +2,11 @@
 
 ## Current Status
 
-The iyzico Checkout Form transport, durable orchestration, and owner-bound route
-foundation are implemented but intentionally disabled. The owner session route
-is not connected to the checkout UI, and no production configuration is active.
-The callback, webhook, and reconciliation paths each remain behind explicit
-sandbox-only modes.
-`adapterAvailable=false` remains the activation boundary.
+The iyzico Checkout Form transport, durable orchestration, owner-bound routes,
+and just-in-time checkout UI are implemented. No production configuration is
+active. Checkout, callback, webhook, and reconciliation paths each remain behind
+explicit sandbox-only modes. `adapterAvailable=true` means the registry can route
+an explicitly configured sandbox checkout; it does not enable checkout by itself.
 
 ```env
 IYZICO_API_KEY=""
@@ -18,6 +17,7 @@ IYZICO_WEBHOOK_MODE=disabled
 IYZICO_RECONCILIATION_MODE=disabled
 IYZICO_OWNER_CHECKOUT_MODE=disabled
 IYZICO_CALLBACK_MODE=disabled
+IYZICO_SANDBOX_ACCEPTANCE_RECORDED=false
 ```
 
 Only `sandbox` credentials are accepted by the transport foundation. The API host
@@ -149,12 +149,12 @@ hashed locally. See `docs/guides/payment-buyer-data-policy.md`.
 
 iyzico Checkout Form requires buyer identity, phone, IP, and address fields. The
 application does not collect or persist new fields merely to activate an adapter.
-Before UI or live activation, the following still need explicit product/legal decisions:
+Before merchant sandbox or live activation, the following still need explicit decisions:
 
 1. Merchant-specific confirmation of every required field.
 2. Provider/subprocessor and domestic or cross-border transfer legal review.
-3. Just-in-time player UI and a new approved privacy notice version.
-4. Just-in-time UI validation and merchant-specific acceptance evidence.
+3. Final approved privacy notice and checkout-copy versions.
+4. Merchant-specific field and transfer acceptance evidence.
 5. Real merchant sandbox acceptance and reviewed session-data retention.
 
 Most iyzico API operations are not generally idempotent. A timeout after initialize
@@ -164,8 +164,8 @@ create a second provider session.
 ## Next Slices
 
 1. Merchant-specific legal/privacy and transfer approval.
-2. Just-in-time buyer-data UI wired to the existing owner-only route.
-3. Real merchant sandbox acceptance with exact amount/currency proof.
+2. Real merchant sandbox acceptance with exact amount/currency proof.
+3. Operations runbook and callback/webhook monitoring acceptance.
 4. Separate reviewed live-mode activation.
 
 Only Signature V3 is accepted. Deprecated signature formats are not an acceptable

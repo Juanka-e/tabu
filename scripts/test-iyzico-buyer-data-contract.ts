@@ -58,7 +58,7 @@ assert.equal(policy.version, PAYMENT_BUYER_DATA_POLICY_VERSION);
 assert.equal(policy.checkoutPayloadPersistence, "request_only");
 assert.equal(policy.localValueLogging, "forbidden");
 assert.equal(policy.localValueHashing, "forbidden");
-assert.equal(policy.activation, "blocked_pending_legal_and_orchestration");
+assert.equal(policy.activation, "sandbox_ui_ready_live_blocked");
 assert.ok(policy.categories.includes("government_identifier"));
 
 const diagnostics = JSON.stringify(getSafePaymentBuyerDataDiagnostics("iyzico"));

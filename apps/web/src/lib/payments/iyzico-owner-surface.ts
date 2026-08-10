@@ -35,6 +35,9 @@ export function getIyzicoOwnerSurfaceReadiness(
     if (environment.PAYMENT_ACTIVE_PROVIDER?.trim().toLowerCase() !== "iyzico") {
         sessionIssues.push("active_provider_not_iyzico");
     }
+    if (environment.IYZICO_SANDBOX_ACCEPTANCE_RECORDED?.trim().toLowerCase() !== "true") {
+        sessionIssues.push("iyzico_sandbox_acceptance_missing");
+    }
     for (const [name, issue] of [
         ["IYZICO_OWNER_CHECKOUT_MODE", "iyzico_owner_checkout_mode_disabled"],
         ["IYZICO_WEBHOOK_MODE", "iyzico_webhook_mode_disabled"],

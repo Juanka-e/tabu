@@ -17,11 +17,17 @@ it anonymous and would create a persistent correlation identifier.
 | Provider | Request-only categories | Current state |
 | --- | --- | --- |
 | PayTR | verified account email, full name, phone, address, request IP | Sandbox orchestration active |
-| iyzico | verified account email, given/family name, identity number, phone, billing address, request IP | Disabled pending legal and orchestration review |
+| iyzico | verified account email, given/family name, identity number, phone, billing address, request IP | Request-only sandbox UI ready; live blocked |
 
 For virtual goods, the iyzico adapter contract derives required billing and
 shipping objects from one address. The player is not asked for a second duplicate
 address.
+
+The checkout page renders these fields only when the server-selected active
+provider is iyzico. Values stay in component memory until session creation, are
+cleared before the hosted-page navigation, and are never placed in URL parameters,
+browser storage, analytics, or reusable profile fields. Provider selection is an
+operator configuration decision, not a player-controlled request field.
 
 ## Enforcement
 

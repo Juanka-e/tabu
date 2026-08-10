@@ -3,9 +3,10 @@
 ## Mevcut Durum
 
 Server-priced teklif kataloğu, owner-only sipariş durumu, immutable legal consent,
-atomik fulfillment ve PayTR sandbox iFrame orchestration hazırdır. Gerçek tahsilat
-kapalıdır. Sandbox callback processor hazırdır; refund/chargeback, reconciliation
-ve operasyon smoke testleri tamamlanmadan live moda geçilmez.
+atomik fulfillment, PayTR sandbox iFrame ve iyzico request-only hosted checkout UI
+hazirdir. Gercek tahsilat kapalidir. Provider secimi yalniz server config ile yapilir;
+oyuncu request icinden provider secemez. Gercek merchant sandbox kabul kaydi ve
+operasyon smoke testleri tamamlanmadan live moda gecilmez.
 
 ## Hukuki Yüzey Ayrımı
 
@@ -17,6 +18,10 @@ ve operasyon smoke testleri tamamlanmadan live moda geçilmez.
   tutulur. Ham IP veya kart verisi tutulmaz.
 - PayTR için geçici alınan ad-soyad, telefon ve adresin aktarım amacı ödeme
   aydınlatmasında açıkça belirtilir.
+- iyzico icin kimlik numarasi, telefon ve tek fatura adresi tam odeme aninda alinir;
+  profil, order, audit, URL, browser storage veya hash kaydina donusturulmez.
+- iyzico veri aktarimi bilgilendirmesi satis kosullari kabulunden ayri gosterilir.
+  Bu kutu pazarlama izni veya genel acik riza olarak kullanilmaz.
 
 Kod metinleri işletme bilgileri kesinleşene kadar taslaktır. Unvan/adres,
 vergi-MERSİS bilgileri, sağlayıcı ve yurt dışı aktarım modeli, iade-cayma politikası
@@ -38,6 +43,13 @@ PAYMENT_CHECKOUT_TERMS_VERSION=checkout-terms-v1
 PAYMENT_PRIVACY_NOTICE_VERSION=payment-privacy-v1
 PAYMENT_DISTANCE_SALES_NOTICE_VERSION=distance-sales-v1
 ```
+
+iyzico sandbox secildiginde ek olarak `PAYMENT_ACTIVE_PROVIDER=iyzico` ve
+`IYZICO_CHECKOUT_MODE`, `IYZICO_OWNER_CHECKOUT_MODE`, `IYZICO_CALLBACK_MODE`,
+`IYZICO_WEBHOOK_MODE`, `IYZICO_RECONCILIATION_MODE` degerlerinin tamami `sandbox`
+olmalidir. API key, secret, merchant ID, public HTTPS origin ve gercek merchant test
+kaniti sonrasi `IYZICO_SANDBOX_ACCEPTANCE_RECORDED=true` zorunludur. Varsayilan
+degerler `disabled/false` oldugu icin UI kodunun varligi tek basina checkout acmaz.
 
 Production preflight ödeme açıldığında PayTR sandbox mode, credential ve hukuk
 alanlarını birlikte doğrular. `PAYTR_CHECKOUT_MODE=live` bu sürümde blocker'dır.
@@ -61,8 +73,9 @@ bilgileri onaylandıktan sonra kullanılır.
 8. Redirect ödeme kanıtı değildir; yalnız imzalı webhook/reconciliation sonucu
    siparişi `paid` yapabilir.
 
-## Sonraki Branch
+## Kalan Aktivasyon Isleri
 
-`feature/payment-reconciliation-and-reversal-foundation` refund/chargeback state,
-ledger veya entitlement reversal, dead-letter inceleme/retry ve provider
-reconciliation sınırlarını tamamlayacaktır.
+1. Merchant ve veri aktarim modelinin hukuki onayi.
+2. Gercek merchant sandbox initialize, callback, webhook ve reconciliation kabul testi.
+3. Alert, scheduler ve operasyon runbook kabul kaydi.
+4. Ayrica incelenen live-mode implementasyonu; sandbox flag'lerini live kabul etmek yasaktir.

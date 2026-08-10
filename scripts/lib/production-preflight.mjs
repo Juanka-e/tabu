@@ -228,14 +228,43 @@ export function validateProductionEnvironment(env) {
         ]) {
             requireConfiguredValue(env, key, result);
         }
-        if (env.PAYMENT_ACTIVE_PROVIDER?.trim() !== "paytr") {
-            result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr while the PayTR sandbox checkout is the only available orchestration.");
-        }
-        if (env.PAYTR_CHECKOUT_MODE?.trim() !== "sandbox") {
-            result.errors.push("PAYTR_CHECKOUT_MODE must be sandbox; live checkout is not available yet.");
-        }
-        for (const key of ["PAYTR_MERCHANT_ID", "PAYTR_MERCHANT_KEY", "PAYTR_MERCHANT_SALT"]) {
-            requireConfiguredValue(env, key, result);
+        const activePaymentProvider = env.PAYMENT_ACTIVE_PROVIDER?.trim();
+        if (activePaymentProvider === "paytr") {
+            if (env.PAYTR_CHECKOUT_MODE?.trim() !== "sandbox") {
+                result.errors.push("PAYTR_CHECKOUT_MODE must be sandbox; live checkout is not available yet.");
+            }
+            for (const key of ["PAYTR_MERCHANT_ID", "PAYTR_MERCHANT_KEY", "PAYTR_MERCHANT_SALT"]) {
+                requireConfiguredValue(env, key, result);
+            }
+        } else if (activePaymentProvider === "iyzico") {
+            for (const key of [
+                "IYZICO_CHECKOUT_MODE",
+                "IYZICO_OWNER_CHECKOUT_MODE",
+                "IYZICO_CALLBACK_MODE",
+                "IYZICO_WEBHOOK_MODE",
+                "IYZICO_RECONCILIATION_MODE",
+            ]) {
+                if (env[key]?.trim() !== "sandbox") {
+                    result.errors.push(`${key} must be sandbox; live iyzico checkout is not available.`);
+                }
+            }
+            for (const key of ["IYZICO_API_KEY", "IYZICO_SECRET_KEY", "IYZICO_MERCHANT_ID"]) {
+                requireConfiguredValue(env, key, result);
+            }
+            if (!env.IYZICO_API_KEY?.trim().startsWith("sandbox-")) {
+                result.errors.push("IYZICO_API_KEY must be a sandbox credential.");
+            }
+            if (!env.IYZICO_SECRET_KEY?.trim().startsWith("sandbox-")) {
+                result.errors.push("IYZICO_SECRET_KEY must be a sandbox credential.");
+            }
+            if (!/^\d{1,19}$/.test(env.IYZICO_MERCHANT_ID?.trim() ?? "")) {
+                result.errors.push("IYZICO_MERCHANT_ID must be a numeric merchant identifier.");
+            }
+            if (!isTrue(env.IYZICO_SANDBOX_ACCEPTANCE_RECORDED)) {
+                result.errors.push("IYZICO_SANDBOX_ACCEPTANCE_RECORDED must be true before iyzico checkout is enabled.");
+            }
+        } else {
+            result.errors.push("PAYMENT_ACTIVE_PROVIDER must be paytr or iyzico while checkout is enabled.");
         }
         if (!isTrue(env.JOBS_ENABLED)) {
             result.errors.push("JOBS_ENABLED must be true before checkout is enabled.");

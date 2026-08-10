@@ -138,8 +138,10 @@ test.describe("payment checkout UI", () => {
                         currency: "TRY",
                     }],
                     checkout: {
+                        provider: "paytr",
                         available: true,
                         unavailableReason: null,
+                        buyerDataPolicyVersion: null,
                         legalDocuments: {
                             checkoutTerms: { version: "terms-v1", href: "/legal/checkout-terms" },
                             privacyNotice: { version: "privacy-v1", href: "/legal/payment-privacy-notice" },
@@ -200,6 +202,9 @@ test.describe("payment checkout UI", () => {
 
         await expect(page.getByText("SANDBOX TEST")).toBeVisible();
         await expect(page.frameLocator('iframe[title="PayTR güvenli ödeme"]').getByText("PayTR sandbox fixture")).toBeVisible();
+        await expect(page.getByLabel("Ad ve soyad")).toHaveValue("");
+        await expect(page.getByLabel("Telefon")).toHaveValue("");
+        await expect(page.getByLabel("Fatura/iletişim adresi")).toHaveValue("");
         expect(checkoutBody).toMatchObject({
             contact: {
                 fullName: "Test Oyuncu",
@@ -207,5 +212,156 @@ test.describe("payment checkout UI", () => {
                 address: "Test Mahallesi Istanbul",
             },
         });
+    });
+
+    test("submits request-only iyzico buyer data and follows an allowlisted redirect", async ({ page }) => {
+        await page.goto("/login");
+        await page.getByPlaceholder("Kullanıcı Adı").fill(username);
+        await page.getByPlaceholder("Parola").fill(password);
+        await page.getByRole("button", { name: "Giriş Yap" }).click();
+        await page.waitForURL(/\/dashboard/);
+
+        await page.route("**/api/payments/offers", async (route) => {
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    offers: [{
+                        code: offerCode,
+                        productKind: "cosmetic_item",
+                        productName: "Gece Mavisi Avatar",
+                        description: "iyzico request-only sandbox testi",
+                        unitAmountMinor: 14900,
+                        currency: "TRY",
+                    }],
+                    checkout: {
+                        provider: "iyzico",
+                        available: true,
+                        unavailableReason: null,
+                        buyerDataPolicyVersion: "buyer-data-v1",
+                        legalDocuments: {
+                            checkoutTerms: { version: "terms-v1", href: "/legal/checkout-terms" },
+                            privacyNotice: { version: "privacy-v1", href: "/legal/payment-privacy-notice" },
+                            distanceSalesNotice: { version: "distance-v1", href: "/legal/distance-sales-pre-information" },
+                        },
+                    },
+                }),
+            });
+        });
+        let checkoutBody: Record<string, unknown> | null = null;
+        const hostedUrl = "https://sandbox-cpp.iyzipay.com/?token=playwright-owner-token";
+        await page.route("**/api/payments/checkout/iyzico/session", async (route) => {
+            checkoutBody = route.request().postDataJSON() as Record<string, unknown>;
+            await route.fulfill({
+                status: 201,
+                contentType: "application/json",
+                body: JSON.stringify({ orderId: ownOrderId, redirectUrl: hostedUrl, sandbox: true }),
+            });
+        });
+        await page.route("https://sandbox-cpp.iyzipay.com/**", async (route) => {
+            await route.fulfill({
+                contentType: "text/html",
+                body: "<main><h1>iyzico sandbox fixture</h1></main>",
+            });
+        });
+
+        await page.goto("/checkout");
+        await page.getByLabel("Ad", { exact: true }).fill("Test");
+        await page.getByLabel("Soyad", { exact: true }).fill("Oyuncu");
+        await page.getByLabel("T.C. kimlik numarası").fill("11111111110");
+        await page.getByLabel("Telefon").fill("+90 555 111 22 33");
+        await page.getByLabel("Fatura adresi").fill("Test Mahallesi No 1");
+        await page.getByLabel("İl", { exact: true }).fill("Istanbul");
+        await page.getByLabel("Posta kodu (opsiyonel)").fill("34000");
+        const checkboxes = page.getByRole("checkbox");
+        await checkboxes.nth(0).check();
+        await checkboxes.nth(1).check();
+
+        const browserState = await page.evaluate(() => ({
+            local: Object.values(localStorage),
+            session: Object.values(sessionStorage),
+            url: window.location.href,
+        }));
+        expect(new URL(browserState.url).pathname).toBe("/checkout");
+        for (const sensitiveValue of ["11111111110", "+90 555 111 22 33", "Test Mahallesi No 1"]) {
+            expect(JSON.stringify(browserState)).not.toContain(sensitiveValue);
+        }
+
+        await page.getByRole("button", { name: "Ödeme yükümlülüğü doğuran siparişi ver" }).click();
+        await page.waitForURL("https://sandbox-cpp.iyzipay.com/**");
+        await expect(page.getByRole("heading", { name: "iyzico sandbox fixture" })).toBeVisible();
+        expect(checkoutBody).toMatchObject({
+            buyerDataDisclosure: { accepted: true, policyVersion: "buyer-data-v1" },
+            buyerData: {
+                givenName: "Test",
+                familyName: "Oyuncu",
+                identityNumber: "11111111110",
+                phone: "+90 555 111 22 33",
+                addressLine: "Test Mahallesi No 1",
+                city: "Istanbul",
+                country: "Türkiye",
+                zipCode: "34000",
+            },
+        });
+        expect(page.url()).not.toContain("11111111110");
+        await page.goBack();
+        await expect(page.getByLabel("T.C. kimlik numarası")).toHaveValue("");
+        await expect(page.getByLabel("Telefon")).toHaveValue("");
+    });
+
+    test("shows callback review without an automatic hosted-page redirect", async ({ page }) => {
+        await page.goto("/login");
+        await page.getByPlaceholder("Kullanıcı Adı").fill(username);
+        await page.getByPlaceholder("Parola").fill(password);
+        await page.getByRole("button", { name: "Giriş Yap" }).click();
+        await page.waitForURL(/\/dashboard/);
+
+        const hostedUrl = "https://sandbox-cpp.iyzipay.com/?token=playwright-resume-token";
+        await page.route("**/api/payments/offers", async (route) => {
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    offers: [],
+                    checkout: {
+                        provider: "iyzico",
+                        available: false,
+                        unavailableReason: "Sandbox session resume only",
+                        buyerDataPolicyVersion: "buyer-data-v1",
+                        legalDocuments: {
+                            checkoutTerms: { version: "terms-v1", href: "/legal/checkout-terms" },
+                            privacyNotice: { version: "privacy-v1", href: "/legal/payment-privacy-notice" },
+                            distanceSalesNotice: { version: "distance-v1", href: "/legal/distance-sales-pre-information" },
+                        },
+                    },
+                }),
+            });
+        });
+        await page.route(`**/api/payments/orders/${ownOrderId}`, async (route) => {
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    order: {
+                        id: ownOrderId,
+                        status: "awaiting_payment",
+                        productNameSnapshot: "Gece Mavisi Avatar",
+                        quantity: 1,
+                        totalAmountMinor: 14900,
+                        currency: "TRY",
+                        createdAt: new Date().toISOString(),
+                    },
+                    paymentSession: { provider: "iyzico", redirectUrl: hostedUrl },
+                }),
+            });
+        });
+        await page.route("https://sandbox-cpp.iyzipay.com/**", async (route) => {
+            await route.fulfill({ contentType: "text/html", body: "<h1>resumed iyzico fixture</h1>" });
+        });
+
+        await page.goto(`/checkout?order=${ownOrderId}&result=provider-review`);
+        await expect(page.getByText("Ödeme sonucu kesinleşmedi.")).toBeVisible();
+        await expect(page.getByRole("button", { name: "Ödemeye devam et" })).toBeVisible();
+        await page.waitForTimeout(300);
+        expect(new URL(page.url()).pathname).toBe("/checkout");
+        await page.getByRole("button", { name: "Ödemeye devam et" }).click();
+        await page.waitForURL("https://sandbox-cpp.iyzipay.com/**");
     });
 });

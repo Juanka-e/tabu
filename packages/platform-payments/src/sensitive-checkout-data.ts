@@ -41,7 +41,7 @@ export interface PaymentBuyerDataPolicy {
     checkoutPayloadPersistence: "request_only";
     localValueLogging: "forbidden";
     localValueHashing: "forbidden";
-    activation: "sandbox_active" | "blocked_pending_legal_and_orchestration";
+    activation: "sandbox_active" | "sandbox_ui_ready_live_blocked";
 }
 
 const policies = {
@@ -70,7 +70,7 @@ const policies = {
         checkoutPayloadPersistence: "request_only",
         localValueLogging: "forbidden",
         localValueHashing: "forbidden",
-        activation: "blocked_pending_legal_and_orchestration",
+        activation: "sandbox_ui_ready_live_blocked",
     },
 } as const satisfies Record<"paytr" | "iyzico", PaymentBuyerDataPolicy>;
 
