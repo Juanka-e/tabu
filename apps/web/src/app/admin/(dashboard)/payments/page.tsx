@@ -96,6 +96,13 @@ type PaymentResponse = {
         deadLetterAlertThreshold: number;
         oldestOpenCaseAt: string | null;
     };
+    schedulerHealth: Array<{
+        job: "payment-webhook" | "payment-reconciliation";
+        status: "healthy" | "stale" | "missing" | "not_configured" | "unavailable";
+        lastCompletedAt: string | null;
+        durationMs: number | null;
+        maxAgeSeconds: number;
+    }>;
     refundExecution: {
         provider: string;
         mode: "disabled" | "sandbox" | "invalid";
@@ -103,6 +110,16 @@ type PaymentResponse = {
         issues: string[];
     };
 };
+
+function schedulerStatusText(status: PaymentResponse["schedulerHealth"][number]["status"]): string {
+    return {
+        healthy: "Çalışıyor",
+        stale: "Gecikmiş",
+        missing: "Çalışma kanıtı yok",
+        not_configured: "Yapılandırılmadı",
+        unavailable: "Durum okunamadı",
+    }[status];
+}
 
 function money(minor: number, currency: string): string {
     return new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(minor / 100);
@@ -325,6 +342,27 @@ export default function AdminPaymentsPage() {
                 <div className="flex gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-rose-950 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100">
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     <div><strong>Operasyon eşiği aşıldı</strong><p className="mt-1 text-sm opacity-80">Açık vaka eşiği {data?.alerts.caseAlertThreshold}, dead-letter eşiği {data?.alerts.deadLetterAlertThreshold}. Otomatik ceza veya bakiye kesintisi uygulanmaz; operatör incelemesi gerekir.</p></div>
+                </div>
+            ) : null}
+
+            {data ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                    {data.schedulerHealth.map((scheduler) => {
+                        const healthy = scheduler.status === "healthy";
+                        return (
+                            <div key={scheduler.job} className={`flex gap-3 rounded-2xl border p-4 ${healthy ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20"}`}>
+                                {healthy ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />}
+                                <div>
+                                    <strong>{scheduler.job === "payment-webhook" ? "Webhook worker" : "Uzlaştırma worker"}: {schedulerStatusText(scheduler.status)}</strong>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {scheduler.lastCompletedAt
+                                            ? `Son başarılı çalışma: ${new Date(scheduler.lastCompletedAt).toLocaleString("tr-TR")} · ${scheduler.durationMs ?? 0} ms`
+                                            : "Henüz başarılı execute heartbeat kaydı bulunmuyor."}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             ) : null}
 

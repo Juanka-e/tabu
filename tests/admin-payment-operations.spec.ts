@@ -163,6 +163,8 @@ test.describe("admin payment operations", () => {
         await expect(page.getByText("İkinci onay bekliyor")).toBeVisible();
         await expect(page.getByText("Açık manuel inceleme", { exact: true })).toBeVisible();
         await expect(page.getByText("Dead-letter")).toBeVisible();
+        await expect(page.getByText(/Webhook worker:/)).toBeVisible();
+        await expect(page.getByText(/Uzlaştırma worker:/)).toBeVisible();
         await expect(page.getByText(/farklı bir adminin ikinci onayıyla çalışır/)).toBeVisible();
         await expect(page.getByText(/Sağlayıcı iadesi doğrulama bekliyor/)).toBeVisible();
         await expect(page.getByText(/Hata: provider_timeout/)).toBeVisible();

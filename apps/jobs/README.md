@@ -36,3 +36,9 @@ never trigger a provider refund automatically.
 The admin audit page has separate active and archive views. Production
 scheduling still remains an explicit operator decision after the retention
 window and archive view are accepted in the target environment.
+
+Successful execute runs write a PII-free Redis operational heartbeat and emit a
+bounded `job.run.completed` observability event. Dry-runs and lease-held invocations
+do not count as scheduler health. Payment dead-letter/open-case warnings use a
+15-minute Redis cooldown; Redis remains coordination/health state, while MySQL is
+the payment source of truth.

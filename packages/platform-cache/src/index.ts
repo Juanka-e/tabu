@@ -31,6 +31,18 @@ export interface RedisHealth {
     latencyMs: number | null;
 }
 
+export interface OperationalHeartbeat {
+    schemaVersion: 1;
+    name: string;
+    completedAt: string;
+    durationMs: number;
+}
+
+export interface OperationalHeartbeatReadResult {
+    available: boolean;
+    heartbeat: OperationalHeartbeat | null;
+}
+
 export interface DedicatedRedisConnectionPair {
     publisher: AppRedisClient;
     subscriber: AppRedisClient;
@@ -87,6 +99,67 @@ function getRedisUrl(): string | null {
 export function getRedisKey(...segments: Array<string | number>): string {
     const prefix = process.env.REDIS_KEY_PREFIX?.trim() || "hushle";
     return [prefix, ...segments].join(":");
+}
+
+function parseOperationalHeartbeat(value: string): OperationalHeartbeat | null {
+    try {
+        const parsed = JSON.parse(value) as Partial<OperationalHeartbeat>;
+        if (
+            parsed.schemaVersion !== 1
+            || typeof parsed.name !== "string"
+            || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(parsed.name)
+            || typeof parsed.completedAt !== "string"
+            || !Number.isFinite(Date.parse(parsed.completedAt))
+            || typeof parsed.durationMs !== "number"
+            || !Number.isFinite(parsed.durationMs)
+            || parsed.durationMs < 0
+        ) return null;
+        return parsed as OperationalHeartbeat;
+    } catch {
+        return null;
+    }
+}
+
+export async function writeOperationalHeartbeat(input: {
+    name: string;
+    completedAt: Date;
+    durationMs: number;
+    ttlMs?: number;
+}): Promise<void> {
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(input.name)) {
+        throw new Error("Invalid operational heartbeat name");
+    }
+    if (!Number.isFinite(input.durationMs) || input.durationMs < 0) {
+        throw new Error("Invalid operational heartbeat duration");
+    }
+    const client = await getRedisClient();
+    if (!client) throw new Error("Redis is required for operational heartbeat");
+    const heartbeat: OperationalHeartbeat = {
+        schemaVersion: 1,
+        name: input.name,
+        completedAt: input.completedAt.toISOString(),
+        durationMs: Math.round(input.durationMs),
+    };
+    await client.set(
+        getRedisKey("operational-heartbeat", input.name),
+        JSON.stringify(heartbeat),
+        { PX: input.ttlMs ?? 7 * 24 * 60 * 60_000 }
+    );
+}
+
+export async function readOperationalHeartbeat(name: string): Promise<OperationalHeartbeatReadResult> {
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) {
+        throw new Error("Invalid operational heartbeat name");
+    }
+    const client = await getRedisClient();
+    if (!client) return { available: false, heartbeat: null };
+    try {
+        const value = await client.get(getRedisKey("operational-heartbeat", name));
+        if (value === null) return { available: true, heartbeat: null };
+        return { available: true, heartbeat: parseOperationalHeartbeat(value) };
+    } catch {
+        return { available: false, heartbeat: null };
+    }
 }
 
 async function closeNativeRedisClient(client: AppRedisClient): Promise<void> {
