@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
+    buildIyzicoCfInitializeResponseSignature,
+    buildIyzicoCfRetrieveResponseSignature,
     buildIyzicoV2Authorization,
     getPaymentProviderReadiness,
     IYZICO_CF_INITIALIZE_PATH,
@@ -81,6 +83,11 @@ async function run(): Promise<void> {
                 conversationId,
                 token: "sandboxToken_123456",
                 paymentPageUrl: "https://sandbox-cpp.iyzipay.com/pay/sandboxToken_123456",
+                signature: buildIyzicoCfInitializeResponseSignature({
+                    secretKey: credentials.secretKey,
+                    conversationId,
+                    token: "sandboxToken_123456",
+                }),
                 checkoutFormContent: "must-not-escape",
             }));
         },
@@ -115,11 +122,23 @@ async function run(): Promise<void> {
                 conversationId,
                 token: initialized.token,
                 paymentId: "987654",
+                basketId: conversationId,
                 price: "11.97",
                 paidPrice: 11.97,
                 currency: "TRY",
                 fraudStatus: 1,
                 paymentStatus: "SUCCESS",
+                signature: buildIyzicoCfRetrieveResponseSignature({
+                    secretKey: credentials.secretKey,
+                    paymentStatus: "SUCCESS",
+                    paymentId: "987654",
+                    currency: "TRY",
+                    basketId: conversationId,
+                    conversationId,
+                    paidPrice: 11.97,
+                    price: "11.97",
+                    token: initialized.token,
+                }),
                 cardAssociation: "must-not-escape",
             }));
         },
@@ -139,6 +158,16 @@ async function run(): Promise<void> {
         ...request,
         fetchImpl: async () => new Response(JSON.stringify({ status: "failure", errorCode: "1001", errorMessage: "must-not-escape" })),
     }), "provider_rejected");
+    await expectCode(() => requestIyzicoCheckoutForm({
+        ...request,
+        fetchImpl: async () => new Response(JSON.stringify({
+            status: "success",
+            conversationId,
+            token: "token",
+            paymentPageUrl: "https://sandbox-cpp.iyzipay.com/pay/token",
+            signature: "0".repeat(64),
+        })),
+    }), "invalid_provider_response");
     await expectCode(() => requestIyzicoCheckoutForm({
         ...request,
         fetchImpl: async () => new Response(JSON.stringify({
@@ -165,6 +194,25 @@ async function run(): Promise<void> {
             price: "11.97", paidPrice: "11.97", currency: "TRY", fraudStatus: 1, paymentStatus: "SUCCESS",
         })),
     }), "invalid_provider_response");
+    await expectCode(() => retrieveIyzicoCheckoutForm({
+        conversationId,
+        token: initialized.token,
+        credentials,
+        randomKey,
+        fetchImpl: async () => new Response(JSON.stringify({
+            status: "success",
+            conversationId,
+            token: initialized.token,
+            paymentId: "987654",
+            basketId: conversationId,
+            price: "11.970",
+            paidPrice: "11.9700",
+            currency: "TRY",
+            fraudStatus: 1,
+            paymentStatus: "SUCCESS",
+            signature: "0".repeat(64),
+        })),
+    }), "invalid_provider_response");
 
     const readiness = getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -173,6 +221,8 @@ async function run(): Promise<void> {
         IYZICO_CHECKOUT_MODE: "sandbox",
         IYZICO_WEBHOOK_MODE: "sandbox",
         IYZICO_RECONCILIATION_MODE: "sandbox",
+        IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
+        IYZICO_CALLBACK_MODE: "sandbox",
     });
     assert.equal(readiness.credentialsConfigured, true);
     assert.equal(readiness.adapterAvailable, false);
@@ -184,6 +234,8 @@ async function run(): Promise<void> {
         IYZICO_CHECKOUT_MODE: "live",
         IYZICO_WEBHOOK_MODE: "sandbox",
         IYZICO_RECONCILIATION_MODE: "sandbox",
+        IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
+        IYZICO_CALLBACK_MODE: "sandbox",
     }).credentialsConfigured, false);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -192,6 +244,8 @@ async function run(): Promise<void> {
         IYZICO_CHECKOUT_MODE: "sandbox",
         IYZICO_WEBHOOK_MODE: "sandbox",
         IYZICO_RECONCILIATION_MODE: "disabled",
+        IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
+        IYZICO_CALLBACK_MODE: "sandbox",
     }).credentialsConfigured, false);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -200,6 +254,8 @@ async function run(): Promise<void> {
         IYZICO_CHECKOUT_MODE: "sandbox",
         IYZICO_WEBHOOK_MODE: "sandbox",
         IYZICO_RECONCILIATION_MODE: "sandbox",
+        IYZICO_OWNER_CHECKOUT_MODE: "sandbox",
+        IYZICO_CALLBACK_MODE: "sandbox",
     }).credentialsConfigured, false);
 
     const checkoutRoute = await readFile(

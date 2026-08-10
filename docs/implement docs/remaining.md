@@ -237,8 +237,9 @@ Bilincli olarak bu branch'te yapmiyoruz:
   veri sözleşmesi tamamlandı; kimlik, telefon ve adres değerleri profile/order/audit'e
   veya hash biçiminde yazılmıyor
 - iyzico durable initialize/retrieve orchestration, Signature V3 webhook processor ve
-  provider-specific reconciliation tamamlandı; sıradaki dilimler merchant/aktarım
-  hukuki onayı, owner-only route/UI ve gerçek merchant sandbox kabulü
+  provider-specific reconciliation tamamlandı; owner-only session/callback foundation da
+  tamamlandi. Siradaki dilimler merchant/aktarim hukuki onayi, just-in-time buyer-data UI
+  baglantisi ve gercek merchant sandbox kabulu
 - Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
   server-priced katalogla uyumluluk kararı bekliyor
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider

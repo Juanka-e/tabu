@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@hushle/platform-db";
 import {
+    buildIyzicoCfInitializeResponseSignature,
+    buildIyzicoCfRetrieveResponseSignature,
     IyzicoCheckoutError,
     createIyzicoSandboxCheckoutSession,
     createPaymentCheckoutOrderRecord,
@@ -22,6 +24,51 @@ const buyerData = {
     country: "Turkiye",
     zipCode: "34000",
 };
+
+function initializeResponse(orderId: string, token: string, paymentPageUrl: string): Response {
+    return new Response(JSON.stringify({
+        status: "success",
+        conversationId: orderId,
+        token,
+        paymentPageUrl,
+        signature: buildIyzicoCfInitializeResponseSignature({
+            secretKey: credentials.secretKey,
+            conversationId: orderId,
+            token,
+        }),
+    }));
+}
+
+function retrieveResponse(input: {
+    orderId: string;
+    token: string;
+    paymentId: string;
+    amount: string;
+}): Response {
+    return new Response(JSON.stringify({
+        status: "success",
+        conversationId: input.orderId,
+        token: input.token,
+        paymentId: input.paymentId,
+        basketId: input.orderId,
+        price: input.amount,
+        paidPrice: input.amount,
+        currency: "TRY",
+        fraudStatus: 1,
+        paymentStatus: "SUCCESS",
+        signature: buildIyzicoCfRetrieveResponseSignature({
+            secretKey: credentials.secretKey,
+            paymentStatus: "SUCCESS",
+            paymentId: input.paymentId,
+            currency: "TRY",
+            basketId: input.orderId,
+            conversationId: input.orderId,
+            paidPrice: input.amount,
+            price: input.amount,
+            token: input.token,
+        }),
+    }));
+}
 
 async function createOrder(userId: number, suffix: string, shopItemId: number) {
     return (await createPaymentCheckoutOrderRecord({
@@ -75,6 +122,15 @@ async function run(): Promise<void> {
             emailVerifiedAt: new Date(),
         },
     });
+    const otherUser = await prisma.user.create({
+        data: {
+            username: `iyzico_other_${suffix}`,
+            password: "integration-test-only",
+            email: `iyzico_other_${suffix}@example.test`,
+            normalizedEmail: `iyzico_other_${suffix}@example.test`,
+            emailVerifiedAt: new Date(),
+        },
+    });
     const item = await prisma.shopItem.create({
         data: {
             code: `iyzico_avatar_${suffix}`,
@@ -98,12 +154,7 @@ async function run(): Promise<void> {
             initializeCalls += 1;
             initializeBody = String(init?.body);
             await new Promise((resolve) => setTimeout(resolve, 75));
-            return new Response(JSON.stringify({
-                status: "success",
-                conversationId: order.id,
-                token,
-                paymentPageUrl,
-            }));
+            return initializeResponse(order.id, token, paymentPageUrl);
         };
         const checkoutInput = {
             orderId: order.id,
@@ -114,6 +165,11 @@ async function run(): Promise<void> {
             credentials,
             fetchImpl: initializeFetch,
         };
+        await assert.rejects(
+            () => createIyzicoSandboxCheckoutSession({ ...checkoutInput, userId: otherUser.id }),
+            (error: unknown) => error instanceof IyzicoCheckoutError && error.code === "order_not_eligible"
+        );
+        assert.equal(initializeCalls, 0, "cross-owner checkout must be rejected before provider access");
         const concurrent = await Promise.allSettled([
             createIyzicoSandboxCheckoutSession(checkoutInput),
             createIyzicoSandboxCheckoutSession(checkoutInput),
@@ -137,17 +193,12 @@ async function run(): Promise<void> {
         let retrieveCalls = 0;
         const retrieveFetch: typeof fetch = async () => {
             retrieveCalls += 1;
-            return new Response(JSON.stringify({
-                status: "success",
-                conversationId: order.id,
+            return retrieveResponse({
+                orderId: order.id,
                 token,
                 paymentId: `payment-${suffix}`,
-                price: "149.00",
-                paidPrice: "149.00",
-                currency: "TRY",
-                fraudStatus: 1,
-                paymentStatus: "SUCCESS",
-            }));
+                amount: "149.00",
+            });
         };
         const verification = await verifyIyzicoSandboxCheckoutResult({
             orderId: order.id,
@@ -195,29 +246,23 @@ async function run(): Promise<void> {
         await createIyzicoSandboxCheckoutSession({
             ...checkoutInput,
             orderId: mismatchOrder.id,
-            fetchImpl: async () => new Response(JSON.stringify({
-                status: "success",
-                conversationId: mismatchOrder.id,
-                token: mismatchToken,
-                paymentPageUrl: `https://sandbox-cpp.iyzipay.com/?token=${mismatchToken}`,
-            })),
+            fetchImpl: async () => initializeResponse(
+                mismatchOrder.id,
+                mismatchToken,
+                `https://sandbox-cpp.iyzipay.com/?token=${mismatchToken}`
+            ),
         });
         await assert.rejects(
             () => verifyIyzicoSandboxCheckoutResult({
                 orderId: mismatchOrder.id,
                 token: mismatchToken,
                 credentials,
-                fetchImpl: async () => new Response(JSON.stringify({
-                    status: "success",
-                    conversationId: mismatchOrder.id,
+                fetchImpl: async () => retrieveResponse({
+                    orderId: mismatchOrder.id,
                     token: mismatchToken,
                     paymentId: `mismatch-payment-${suffix}`,
-                    price: "148.00",
-                    paidPrice: "148.00",
-                    currency: "TRY",
-                    fraudStatus: 1,
-                    paymentStatus: "SUCCESS",
-                })),
+                    amount: "148.00",
+                }),
             }),
             (error: unknown) => error instanceof IyzicoCheckoutError && error.code === "invalid_provider_response"
         );
@@ -280,6 +325,7 @@ async function run(): Promise<void> {
         await prisma.paymentCheckoutConsent.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentAttempt.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentOrder.deleteMany({ where: { userId: user.id } });
+        await prisma.user.delete({ where: { id: otherUser.id } });
         await prisma.user.delete({ where: { id: user.id } });
         await prisma.shopItem.delete({ where: { id: item.id } });
         await prisma.$disconnect();

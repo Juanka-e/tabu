@@ -196,8 +196,16 @@ iyzico initialize özelinde provider genel idempotency garantisi vermediği içi
 timeout'u normal retry sayılmaz. Attempt `uncertain` olur, reconciliation vakası
 açılır ve operator/provider doğrulaması olmadan ikinci initialize yapılmaz.
 Server-side retrieve sonucu minimize edilmiş `PaymentCheckoutVerification` kaydına
-yazılır; route/webhook aktivasyonu tamamlanana kadar tek başına paid/fulfillment
-geçişi üretmez.
+yazılır; owner callback dahil hicbir browser donusu tek basina paid/fulfillment
+gecisi uretmez.
+
+iyzico owner session route'u browser session, verified email, capability, current
+legal consent ve user/IP limiter ister. Provider'in cross-site form callback'i ise
+browser cookie'sine dayanmaz: opaque order UUID + server-owned token korelasyonu,
+constant-time compare ve signed exact retrieve ister. Callback raw token'i redirect
+ve loglara tasimaz; webhook/reconciliation yetkisini devralmaz. New-sale mode ile
+callback mode ayri tutulur, boylece yeni satis durdurulurken outstanding siparisler
+guvenle sonuclanabilir.
 
 ## Webhook Güvenliği
 
@@ -242,11 +250,10 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 3. `feature/payment-checkout-ui`: tamamlandı; kayıtlı kullanıcı checkout/order status UI, legal versioning ve mobile contract notları.
 4. `paytr` iFrame kriptografik/transport adapter temeli: tamamlandı; aktivasyon,
    processor ve fulfillment ayrı güvenlik diliminde tamamlanacak.
-5. `iyzico` Checkout Form HMAC/transport, request-only buyer data ve durable
-   initialize/retrieve orchestration sözleşmesi tamamlandı; hukuki aktarım
-   incelemesi ve Signature V3 webhook processor tamamlandı; owner-only route/UI,
-   reconciliation tamamlandı; owner-only route/UI, hukuki onay ve gerçek merchant
-   sandbox kabulü bitene kadar devre dışı.
+5. `iyzico` Checkout Form HMAC/transport, request-only buyer data, durable
+   initialize/retrieve, Signature V3 webhook, reconciliation ve owner-only
+   session/callback foundation tamamlandi. Just-in-time UI baglantisi, hukuki onay
+   ve gercek merchant sandbox kabulu bitene kadar adapter devre disi.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,

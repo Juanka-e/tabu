@@ -10,6 +10,7 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const currencySchema = z.enum(["TRY", "USD", "EUR", "GBP", "NOK", "CHF"]);
 const safeText = (min: number, max: number) => z.string().trim().min(min).max(max);
 const tokenSchema = safeText(1, 512).regex(/^[A-Za-z0-9._~+/=-]+$/);
+const signatureSchema = z.string().regex(/^[a-fA-F0-9]{64}$/);
 const addressSchema = z.object({
     address: safeText(5, 400),
     contactName: safeText(2, 100),
@@ -89,6 +90,62 @@ function minorToDecimal(amountMinor: number): string {
     return `${Math.floor(amountMinor / 100)}.${String(amountMinor % 100).padStart(2, "0")}`;
 }
 
+function normalizeSignatureDecimal(value: string | number): string {
+    const normalized = String(value).trim();
+    if (!/^\d+(?:\.\d+)?$/.test(normalized)) {
+        throw new IyzicoAdapterError("invalid_provider_response");
+    }
+    if (!normalized.includes(".")) return normalized;
+    return normalized.replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function buildResponseSignature(secretKey: string, values: readonly string[]): string {
+    if (!secretKey.startsWith("sandbox-") || secretKey.length > 512) {
+        throw new IyzicoAdapterError("invalid_request");
+    }
+    return createHmac("sha256", secretKey).update(values.join(":"), "utf8").digest("hex");
+}
+
+function signatureMatches(submitted: string, expected: string): boolean {
+    const parsed = signatureSchema.safeParse(submitted);
+    if (!parsed.success) return false;
+    const submittedBytes = Buffer.from(parsed.data.toLowerCase(), "hex");
+    const expectedBytes = Buffer.from(expected, "hex");
+    return submittedBytes.length === expectedBytes.length
+        && timingSafeEqual(submittedBytes, expectedBytes);
+}
+
+export function buildIyzicoCfInitializeResponseSignature(input: {
+    secretKey: string;
+    conversationId: string;
+    token: string;
+}): string {
+    return buildResponseSignature(input.secretKey, [input.conversationId, input.token]);
+}
+
+export function buildIyzicoCfRetrieveResponseSignature(input: {
+    secretKey: string;
+    paymentStatus: string;
+    paymentId: string;
+    currency: string;
+    basketId: string;
+    conversationId: string;
+    paidPrice: string | number;
+    price: string | number;
+    token: string;
+}): string {
+    return buildResponseSignature(input.secretKey, [
+        input.paymentStatus,
+        input.paymentId,
+        input.currency,
+        input.basketId,
+        input.conversationId,
+        normalizeSignatureDecimal(input.paidPrice),
+        normalizeSignatureDecimal(input.price),
+        input.token,
+    ]);
+}
+
 export function buildIyzicoV2Authorization(input: {
     apiKey: string;
     secretKey: string;
@@ -109,7 +166,7 @@ export function buildIyzicoV2Authorization(input: {
     return `IYZWSv2 ${authorization}`;
 }
 
-function isIyzicoHostedUrl(value: string): boolean {
+export function isAllowedIyzicoHostedUrl(value: string): boolean {
     try {
         const url = new URL(value);
         return url.protocol === "https:"
@@ -245,11 +302,17 @@ export async function requestIyzicoCheckoutForm(input: z.input<typeof initialize
     const response = providerBaseSchema.extend({
         token: tokenSchema,
         paymentPageUrl: z.string().url(),
+        signature: signatureSchema,
     }).safeParse(raw);
     if (!response.success) throw new IyzicoAdapterError("invalid_provider_response");
     if (
         response.data.conversationId !== parsed.data.conversationId
-        || !isIyzicoHostedUrl(response.data.paymentPageUrl)
+        || !isAllowedIyzicoHostedUrl(response.data.paymentPageUrl)
+        || !signatureMatches(response.data.signature, buildIyzicoCfInitializeResponseSignature({
+            secretKey: input.credentials.secretKey,
+            conversationId: parsed.data.conversationId,
+            token: response.data.token,
+        }))
     ) throw new IyzicoAdapterError("invalid_provider_response");
     return {
         conversationId: parsed.data.conversationId,
@@ -289,16 +352,30 @@ export async function retrieveIyzicoCheckoutForm(input: z.input<typeof retrieveS
     const response = providerBaseSchema.extend({
         token: safeText(1, 512),
         paymentId: z.union([z.string(), z.number()]).transform(String),
+        basketId: safeText(1, 191),
         price: z.union([z.string(), z.number()]),
         paidPrice: z.union([z.string(), z.number()]),
         currency: currencySchema,
         fraudStatus: z.number().int(),
         paymentStatus: safeText(1, 80),
+        signature: signatureSchema,
     }).safeParse(raw);
     if (!response.success) throw new IyzicoAdapterError("invalid_provider_response");
     if (
         response.data.conversationId !== parsed.data.conversationId
         || !safeEqual(response.data.token, parsed.data.token)
+        || response.data.basketId !== parsed.data.conversationId
+        || !signatureMatches(response.data.signature, buildIyzicoCfRetrieveResponseSignature({
+            secretKey: input.credentials.secretKey,
+            paymentStatus: response.data.paymentStatus,
+            paymentId: response.data.paymentId,
+            currency: response.data.currency,
+            basketId: response.data.basketId,
+            conversationId: parsed.data.conversationId,
+            paidPrice: response.data.paidPrice,
+            price: response.data.price,
+            token: response.data.token,
+        }))
     ) throw new IyzicoAdapterError("invalid_provider_response");
     return {
         conversationId: parsed.data.conversationId,
