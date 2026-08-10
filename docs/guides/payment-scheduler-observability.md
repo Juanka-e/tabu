@@ -51,3 +51,6 @@ kayıtları MySQL/admin ekranında korunur; cooldown yalnız bildirim tekrarın�
 
 Bu kabul tamamlanmadan yalnız schedule flag'lerinin `true` olması operasyonel kanıt
 sayılmaz.
+
+Production systemd timer, fail-closed job wrapper ve dış monitor probe kurulumu için
+[`payment-scheduler-deployment.md`](../deploy/payment-scheduler-deployment.md) izlenir.

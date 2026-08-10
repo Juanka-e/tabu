@@ -238,9 +238,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
   veya hash biçiminde yazılmıyor
 - iyzico durable initialize/retrieve orchestration, Signature V3 webhook processor ve
   provider-specific reconciliation tamamlandı; owner-only session/callback foundation da
-  tamamlandi. Request-only just-in-time buyer-data UI da baglandi. Siradaki dilimler
-  merchant/aktarim hukuki onayi, gercek merchant sandbox kabulu, operasyon runbook'u
-  ve ayri incelenecek live-mode implementasyonu
+  tamamlandi. Request-only just-in-time buyer-data UI, sandbox kabul araci, scheduler
+  heartbeat/alarmlari ve systemd deployment sablonlari da baglandi. Siradaki dilimler
+  merchant/aktarim hukuki onayi, gercek merchant sandbox kabulu ve ayri incelenecek
+  live-mode implementasyonu
 - Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
   server-priced katalogla uyumluluk kararı bekliyor
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider

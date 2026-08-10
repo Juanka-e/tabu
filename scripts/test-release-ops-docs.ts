@@ -43,6 +43,7 @@ assert.equal((compose.match(/^\s+OBSERVABILITY_EXPORT_TOKEN:/gm) ?? []).length, 
 assert.doesNotMatch(`${workflow}\n${deployScript}`, /prisma\s+db\s+push/);
 assert.match(deployScript, /--profile migration/);
 assert.match(deployScript, /run --rm migrate/);
+assert.match(deployScript, /--profile jobs build jobs/);
 assert.match(deployScript, /acquire_schema_ops_lock/);
 assert.match(deployScript, /production-preflight\.mjs/);
 assert.match(deployScript, /--network none/);
@@ -52,7 +53,8 @@ assert.match(preflight, /PRODUCTION_OBSERVABILITY_POLICY/);
 assert.match(preflight, /OBSERVABILITY_EXPORT_URL must be an HTTPS URL/);
 assert.match(backupScript, /acquire_schema_ops_lock/);
 assert.match(restoreScript, /acquire_schema_ops_lock/);
-assert.match(schemaOpsLock, /flock -w/);
+assert.match(schemaOpsLock, /flock_args=\(-w/);
+assert.match(schemaOpsLock, /acquire_schema_ops_shared_lock/);
 assert.match(restoreScript, /In-place restore to the active database is disabled/);
 assert.match(restoreScript, /Refusing to restore over the active database/);
 

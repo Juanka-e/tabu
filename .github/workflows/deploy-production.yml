@@ -59,6 +59,11 @@ jobs:
           sha256sum -c hushle-release.tgz.sha256
           tar -xzf hushle-release.tgz
           rm -f hushle-release.tgz hushle-release.tgz.sha256
-          chmod +x scripts/ops/deploy.sh scripts/ops/mysql-backup.sh scripts/ops/mysql-restore.sh
+          chmod +x \
+            scripts/ops/deploy.sh \
+            scripts/ops/mysql-backup.sh \
+            scripts/ops/mysql-restore.sh \
+            scripts/ops/run-payment-job.sh \
+            scripts/ops/install-payment-schedulers.sh
           ./scripts/ops/deploy.sh
           EOF

@@ -104,6 +104,10 @@ Ubuntu 24.04 üzerinde hedef sade model:
 14. Email delivery job sonucunda retry/dead-letter artışını izle.
 15. `npm run db:migrate:status` ile bekleyen veya hatalı migration olmadığını
     doğrula.
+16. Ödeme açıksa `hushle-payment-webhook.timer` ve
+    `hushle-payment-reconciliation.timer` aktif ve son çalışmaları başarılı olmalı.
+17. Uygulama sunucusu dışındaki monitor
+    `scripts/ops/check-payment-health.sh` ile iki scheduler'ı `healthy` görmeli.
 
 Web launch test katmanlari ve disposable DB siniri:
 `docs/guides/web-launch-readiness-guide.md`.
