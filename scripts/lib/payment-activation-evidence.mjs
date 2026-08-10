@@ -4,6 +4,7 @@ import { isAbsolute } from "node:path";
 
 export const PAYMENT_LEGAL_APPROVAL_SCHEMA = "payment-legal-approval-v1";
 export const IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA = "iyzico-sandbox-acceptance-v2";
+export const SHOPIER_ACCEPTANCE_EVIDENCE_SCHEMA = "shopier-live-acceptance-v1";
 export const PAYMENT_BUYER_DATA_POLICY_VERSION = "buyer-data-v1";
 export const PAYMENT_LEGAL_REVIEW_SCOPES = [
     "checkout_terms",
@@ -22,6 +23,15 @@ export const IYZICO_REQUIRED_ACCEPTANCE_CHECKS = [
     "reconciliationSettled",
     "signedWebhookProcessed",
     "transientSessionCleared",
+];
+export const SHOPIER_REQUIRED_ACCEPTANCE_CHECKS = [
+    "checkoutPaid",
+    "duplicateRefundIdempotent",
+    "entitlementReversed",
+    "reconciliationSettled",
+    "refundPendingObserved",
+    "refundSucceededObserved",
+    "signedWebhookProcessed",
 ];
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -124,6 +134,39 @@ export function validateIyzicoAcceptanceManifest(manifest, environment) {
     }
     if (!/^[A-Z]{3}$/.test(manifest.currency ?? "")) {
         errors.push("iyzico acceptance evidence currency is invalid");
+    }
+    return errors;
+}
+
+export function validateShopierAcceptanceManifest(manifest, environment) {
+    const errors = [];
+    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+        return ["shopier acceptance evidence must be a JSON object"];
+    }
+    if (manifest.schema !== SHOPIER_ACCEPTANCE_EVIDENCE_SCHEMA) errors.push("shopier acceptance evidence schema mismatch");
+    if (manifest.phase !== "verified" || manifest.status !== "passed") {
+        errors.push("shopier acceptance evidence must be a passed verification");
+    }
+    if (manifest.provider !== "shopier_v2" || manifest.live !== true) {
+        errors.push("shopier acceptance evidence must describe the live provider");
+    }
+    if (!validTimestamp(manifest.generatedAt)) errors.push("shopier acceptance evidence generatedAt is invalid");
+    if (manifest.accountIdHash !== sha256Digest(environment.SHOPIER_ACCOUNT_ID?.trim() ?? "")) {
+        errors.push("shopier acceptance evidence account does not match");
+    }
+    if (!digestPattern.test(manifest.providerOrderReferenceHash ?? "")
+        || !digestPattern.test(manifest.providerRefundReferenceHash ?? "")) {
+        errors.push("shopier acceptance provider references are invalid");
+    }
+    const checks = manifest.checks;
+    if (!checks || typeof checks !== "object"
+        || JSON.stringify(Object.keys(checks).sort()) !== JSON.stringify(SHOPIER_REQUIRED_ACCEPTANCE_CHECKS)
+        || Object.values(checks).some((value) => value !== true)
+        || !Array.isArray(manifest.failedChecks) || manifest.failedChecks.length !== 0) {
+        errors.push("shopier acceptance evidence contains failed or incomplete checks");
+    }
+    if (!Number.isSafeInteger(manifest.amountMinor) || manifest.amountMinor <= 0 || !/^[A-Z]{3}$/.test(manifest.currency ?? "")) {
+        errors.push("shopier acceptance payment amount is invalid");
     }
     return errors;
 }

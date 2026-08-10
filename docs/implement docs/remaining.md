@@ -248,8 +248,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
   checkout foundation'ı tamamlandı. Exact server price, hosted URL allowlist,
   concurrent create lease ve belirsiz sonuçta kör retry yapmayan mutabakat kapısı var.
   HS256 webhook, replay/account/dedupe, exact ödeme kanıtı, e-posta uyuşmazlığı
-  incelemesi ve idempotent fulfillment tamamlandı. Order API reconciliation, refund
-  orkestrasyonu, operasyon alarmları ve gerçek düşük tutarlı ödeme+iade kabul kanıtı
+  incelemesi, idempotent fulfillment, Order API reconciliation ve refund orkestrasyonu
+  tamamlandı. Operasyon alarmları ve gerçek düşük tutarlı ödeme+iade kabul kanıtı
   tamamlanmadan registry fail-closed kalacak
 - Stripe Checkout Session bounded sandbox transport temeli tamamlandı; provider
   idempotency ve API version pin mevcut, ancak webhook/fulfillment bağlı değil

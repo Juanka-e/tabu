@@ -471,6 +471,7 @@ model PaymentProviderRefundAttempt {
   amountMinor       Int                                @map("amount_minor")
   currency          String                             @db.Char(3)
   referenceNo       String                             @map("reference_no") @db.VarChar(64)
+  providerRefundReference String?                      @map("provider_refund_reference") @db.VarChar(191)
   errorCode         String?                            @map("error_code") @db.VarChar(80)
   startedAt         DateTime                           @default(now()) @map("started_at")
   completedAt       DateTime?                          @map("completed_at")
@@ -481,6 +482,7 @@ model PaymentProviderRefundAttempt {
   reversalRequest PaymentReversalRequest @relation(fields: [reversalRequestId], references: [id], onDelete: Restrict)
 
   @@unique([provider, referenceNo])
+  @@unique([provider, providerRefundReference], map: "payment_provider_refund_attempts_provider_ref_key")
   @@index([status, startedAt])
   @@index([provider, status, createdAt])
   @@map("payment_provider_refund_attempts")

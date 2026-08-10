@@ -36,13 +36,14 @@ const providers = {
             "SHOPIER_CHECKOUT_MODE",
             "SHOPIER_WEBHOOK_MODE",
             "SHOPIER_RECONCILIATION_MODE",
+            "SHOPIER_REFUND_MODE",
             "SHOPIER_WEBHOOK_TOKEN",
             "SHOPIER_ACCOUNT_ID",
             "SHOPIER_LIVE_ACCEPTANCE_RECORDED",
             "SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256",
         ],
         supportedCurrencies: ["TRY", "USD", "EUR"],
-        adapterAvailable: false,
+        adapterAvailable: true,
     },
     iyzico: {
         id: "iyzico",
@@ -127,6 +128,11 @@ export function getPaymentProviderReadiness(
         && environment.SHOPIER_RECONCILIATION_MODE?.trim().toLowerCase() !== "live"
         && !missingEnvironment.includes("SHOPIER_RECONCILIATION_MODE")
     ) missingEnvironment.push("SHOPIER_RECONCILIATION_MODE");
+    if (
+        provider === "shopier_v2"
+        && environment.SHOPIER_REFUND_MODE?.trim().toLowerCase() !== "live"
+        && !missingEnvironment.includes("SHOPIER_REFUND_MODE")
+    ) missingEnvironment.push("SHOPIER_REFUND_MODE");
     if (
         provider === "shopier_v2"
         && !/^[A-Za-z0-9._:-]{1,191}$/.test(environment.SHOPIER_ACCOUNT_ID?.trim() ?? "")

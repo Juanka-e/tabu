@@ -60,6 +60,7 @@ await assert.rejects(
 const reversal = readFileSync("packages/platform-payments/src/reversal.ts", "utf8");
 const caseResolution = readFileSync("packages/platform-payments/src/case-resolution.ts", "utf8");
 const reconciliation = readFileSync("packages/platform-payments/src/reconciliation.ts", "utf8");
+const refunds = readFileSync("packages/platform-payments/src/refunds.ts", "utf8");
 const migration = readFileSync("prisma/migrations/20260809020000_payment_reconciliation_reversal/migration.sql", "utf8");
 const approvalMigration = readFileSync("prisma/migrations/20260809040000_payment_case_resolution_dual_approval/migration.sql", "utf8");
 const coinLotMigration = readFileSync("prisma/migrations/20260809060000_payment_coin_lot_provenance/migration.sql", "utf8");
@@ -84,6 +85,7 @@ assert.match(reconciliation, /iyzico_initialize_uncertain_manual_review/);
 assert.match(reconciliation, /iyzico_exact_proof_required/);
 assert.match(reconciliation, /IYZICO_RECONCILIATION_MODE/);
 assert.match(reconciliation, /SHOPIER_RECONCILIATION_MODE/);
+assert.match(refunds, /SHOPIER_REFUND_MODE/);
 assert.match(reconciliation, /shopier_listing_match_ambiguous/);
 assert.match(reconciliation, /listShopierPaidOrdersByProduct/);
 assert.match(reconciliation, /SELECT id FROM payment_orders WHERE id = \$\{input\.orderId\} FOR UPDATE/);

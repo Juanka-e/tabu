@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@hushle/platform-db";
 import {
+    createPaymentRefundAdapter,
     PaymentReversalError,
-    queryPaytrPaymentStatus,
     recoverProviderApiRefundRequest,
 } from "@hushle/platform-payments";
 import { z } from "zod";
@@ -34,20 +34,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     try {
         const reversalRequest = await prisma.paymentReversalRequest.findUnique({
             where: { id: params.data.id },
-            select: { order: { select: { providerOrderReference: true } } },
+            select: { order: { select: { providerOrderReference: true, provider: true } } },
         });
         if (!reversalRequest?.order.providerOrderReference) throw new PaymentReversalError("request_not_found");
         const result = await recoverProviderApiRefundRequest({
             requestId: params.data.id,
             checkedByUserId: admin.id,
-            query: () => queryPaytrPaymentStatus({
-                merchantOrderId: reversalRequest.order.providerOrderReference!,
-                credentials: {
-                    merchantId: process.env.PAYTR_MERCHANT_ID ?? "",
-                    merchantKey: process.env.PAYTR_MERCHANT_KEY ?? "",
-                    merchantSalt: process.env.PAYTR_MERCHANT_SALT ?? "",
-                },
-            }),
+            adapter: createPaymentRefundAdapter({ provider: reversalRequest.order.provider }),
         });
         await writeAuditLog({
             actor: admin,

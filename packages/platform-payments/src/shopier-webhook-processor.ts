@@ -2,6 +2,7 @@ import type { PaymentWebhookEvent } from "@hushle/platform-db";
 import { fulfillPaidPaymentOrder, PaymentFulfillmentError } from "./fulfillment";
 import { createPaymentFulfillmentNotification, invalidatePaymentFulfillmentCaches } from "./fulfillment-effects";
 import { applyShopierVerifiedPaymentProof, ShopierPaymentProofError } from "./shopier-proof";
+import { observeProviderRefund, PaymentReversalError } from "./reversal";
 import { PaymentWebhookProcessingError } from "./webhook-inbox";
 
 type Metadata = { productId: string; productTitle: string; buyerEmailHmac: string };
@@ -62,6 +63,45 @@ export async function processShopierPaymentWebhook(
 ): Promise<"processed" | "ignored"> {
     if (event.outcome === "ignored") return "ignored";
     const now = input.now ?? new Date();
+    if (event.outcome === "refund") {
+        const metadata = event.metadata;
+        const refundStatus = metadata && typeof metadata === "object" && !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>).refundStatus
+            : null;
+        const refundType = metadata && typeof metadata === "object" && !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>).refundType
+            : null;
+        const refundCreatedAtEpochMs = metadata && typeof metadata === "object" && !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>).refundCreatedAtEpochMs
+            : null;
+        if (
+            !event.providerOrderReference
+            || !event.providerPaymentReference
+            || event.amountMinor === null
+            || !event.currency
+            || !["pending", "failed", "succeeded"].includes(String(refundStatus))
+            || !["full", "partial"].includes(String(refundType))
+            || typeof refundCreatedAtEpochMs !== "number"
+            || !Number.isFinite(refundCreatedAtEpochMs)
+        ) throw failure("shopier_refund_metadata_invalid");
+        try {
+            await observeProviderRefund({
+                provider: "shopier_v2",
+                providerOrderReference: event.providerOrderReference,
+                providerRefundReference: event.providerPaymentReference,
+                amountMinor: event.amountMinor,
+                currency: event.currency,
+                status: refundStatus as "pending" | "failed" | "succeeded",
+                refundType: refundType as "full" | "partial",
+                refundCreatedAt: new Date(refundCreatedAtEpochMs),
+                now,
+            });
+            return "processed";
+        } catch (error) {
+            if (error instanceof PaymentReversalError) throw failure(`shopier_refund_${error.code}`);
+            throw error;
+        }
+    }
     const result = await applyOutcome(event, input.webhookToken, now);
     if (result.action === "review") return "ignored";
     try {

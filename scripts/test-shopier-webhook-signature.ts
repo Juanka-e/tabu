@@ -100,6 +100,35 @@ async function run(): Promise<void> {
     };
     assert.equal(getPaymentWebhookVerifier("shopier_v2", environment)?.provider, "shopier_v2");
     assert.equal(getPaymentWebhookVerifier("shopier_v2", { ...environment, SHOPIER_WEBHOOK_MODE: "disabled" }), null);
+
+    const refundPayload = {
+        id: "refund-1001", type: "full", status: "pending", orderId: payload.id,
+        dateCreated: now.toISOString(), currency: "TRY", total: "11.97",
+    };
+    const refundBody = Buffer.from(JSON.stringify(refundPayload));
+    const requested = await verifier.verify({
+        rawBody: refundBody,
+        headers: signedHeaders(refundBody, { "shopier-event": "refund.requested" }),
+    });
+    assert.equal(requested.outcome, "refund");
+    assert.equal(requested.providerOrderReference, payload.id);
+    assert.equal(requested.providerPaymentReference, refundPayload.id);
+    assert.equal(requested.metadata?.refundStatus, "pending");
+    assert.equal(requested.metadata?.refundType, "full");
+    assert.equal(requested.metadata?.refundCreatedAtEpochMs, now.getTime());
+
+    const partialUpdatedBody = Buffer.from(JSON.stringify({
+        ...refundPayload, type: "partial", status: "succeeded", dateRefunded: now.toISOString(),
+    }));
+    const partialUpdated = await verifier.verify({
+        rawBody: partialUpdatedBody,
+        headers: signedHeaders(partialUpdatedBody, { "shopier-event": "refund.updated" }),
+    });
+    assert.equal(partialUpdated.metadata?.refundType, "partial");
+    await expectInvalid(() => verifier.verify({
+        rawBody: refundBody,
+        headers: signedHeaders(refundBody, { "shopier-event": "refund.updated" }),
+    }));
     console.log("Shopier signed webhook checks passed");
 }
 

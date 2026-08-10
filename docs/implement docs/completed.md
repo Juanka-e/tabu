@@ -316,6 +316,7 @@
 
 - kalıcı `processing`, `succeeded`, `failed`, `uncertain` provider attempt modeli
 - tam tutarı siparişten alan ve farklı ikinci admin isteyen PayTR sandbox refund akışı
+
 - timeout/transport belirsizliğinde entitlement değiştirmeyen `provider_review`
 - kör retry yerine exact reference, tutar, currency ve tamamlanma kanıtlı recovery
 - admin durum görünümü, MySQL entegrasyon testi ve Playwright doğrulaması
@@ -434,6 +435,18 @@
 - tek dijital ürün/adet, exact product/title/tutar/currency ödeme kanıtı
 - ham e-posta saklamayan keyed HMAC korelasyonu ve uyuşmazlıkta inceleme vakası
 - idempotent coin/kozmetik fulfillment, notification ve MySQL duplicate testi
+
+### 60. `feature/shopier-order-reconciliation`
+- Shopier Product/Order API üzerinden timeout recovery ve ödeme uzlaştırması
+- exact ürün, tutar, para birimi ve alıcı korelasyonu olmadan teslimat yapmayan fail-closed akış
+- webhook, job ve admin kontrollerinde ortak idempotent ödeme kanıtı uygulaması
+
+### 61. `feature/shopier-refund-orchestration`
+- Shopier Refund API create/get/list adapter'ı ve ayrı canlı aktivasyon kapısı
+- kalıcı Shopier refund ID, pending/failed/succeeded durumları ve belirsiz sonuç recovery
+- imzalı refund webhook'ları, exact tam iade eşlemesi ve idempotent merkezi reversal
+- harici veya kısmi iadede otomatik ceza yerine operatör reconciliation vakası
+- sağlayıcı bazlı admin readiness görünümü ve canlı kabul kanıtı production preflight'ı
 
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`

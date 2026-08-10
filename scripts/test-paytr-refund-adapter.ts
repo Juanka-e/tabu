@@ -120,6 +120,8 @@ async function main(): Promise<void> {
         provider: "paytr",
         currency: "TRY",
         ...request,
+        providerRefundReference: request.referenceNo,
+        status: "succeeded",
         testMode: true,
     });
     assert.equal(createPaymentRefundAdapter({ provider: "stripe", environment }), null);
