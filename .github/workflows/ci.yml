@@ -59,8 +59,6 @@ jobs:
       RATE_LIMIT_ENABLED: "true"
       ROOM_JOIN_MAX_ATTEMPTS: "5"
       ROOM_JOIN_WINDOW_SECONDS: "60"
-      REDIS_URL: "redis://localhost:6379"
-      REDIS_KEY_PREFIX: "hushle:ci"
 
     services:
       mysql:
@@ -169,6 +167,9 @@ jobs:
         run: |
           npm run test:payment-operations-readiness
           npm run test:payment-operations-readiness-redis
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          REDIS_KEY_PREFIX: "hushle:ci"
 
       - name: Build Next.js
         run: npm run build
