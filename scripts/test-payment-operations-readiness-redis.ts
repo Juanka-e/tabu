@@ -10,7 +10,9 @@ import {
 async function run(): Promise<void> {
     const originalRedisUrl = process.env.REDIS_URL;
     const originalPrefix = process.env.REDIS_KEY_PREFIX;
-    process.env.REDIS_URL = process.env.REDIS_TEST_URL?.trim() || "redis://127.0.0.1:6381";
+    process.env.REDIS_URL = process.env.REDIS_TEST_URL?.trim()
+        || process.env.REDIS_URL?.trim()
+        || "redis://127.0.0.1:6381";
     process.env.REDIS_KEY_PREFIX = `hushle:test:payment-operations:${process.pid}`;
     const name = "payment-webhook";
     try {
