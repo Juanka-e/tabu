@@ -83,6 +83,9 @@ assert.match(reconciliation, /returnCount > 0/);
 assert.match(reconciliation, /iyzico_initialize_uncertain_manual_review/);
 assert.match(reconciliation, /iyzico_exact_proof_required/);
 assert.match(reconciliation, /IYZICO_RECONCILIATION_MODE/);
+assert.match(reconciliation, /SHOPIER_RECONCILIATION_MODE/);
+assert.match(reconciliation, /shopier_listing_match_ambiguous/);
+assert.match(reconciliation, /listShopierPaidOrdersByProduct/);
 assert.match(reconciliation, /SELECT id FROM payment_orders WHERE id = \$\{input\.orderId\} FOR UPDATE/);
 assert.match(migration, /UNIQUE INDEX `payment_reversals_order_id_key`/);
 assert.match(migration, /payment_reconciliation_cases/);
@@ -103,6 +106,7 @@ assert.match(caseRoute, /confirmationCaseId/);
 assert.match(reconciliationRoute, /confirmationOrderId/);
 assert.match(reconciliationRoute, /reconcilePaymentOrder/);
 assert.match(reconciliationRoute, /IYZICO_RECONCILIATION_MODE/);
+assert.match(reconciliationRoute, /SHOPIER_RECONCILIATION_MODE/);
 assert.match(retryRoute, /confirmationEventId/);
 
 console.log("Payment reconciliation and reversal checks passed");

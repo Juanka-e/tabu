@@ -158,11 +158,13 @@ jobs:
       - name: Test payment reconciliation and reversal
         run: |
           npm run test:payment-iyzico-reconciliation-integration
+          npm run test:payment-shopier-reconciliation-integration
           npm run test:payment-reconciliation-reversal
           npm run test:payment-reconciliation-reversal-integration
           npm run test:payment-provider-refund-integration
         env:
           IYZICO_RECONCILIATION_INTEGRATION_TEST: "true"
+          SHOPIER_RECONCILIATION_INTEGRATION_TEST: "true"
           PAYMENT_REVERSAL_INTEGRATION_TEST: "true"
           PAYMENT_PROVIDER_REFUND_INTEGRATION_TEST: "true"
 

@@ -18,6 +18,7 @@ export * from "./paytr-checkout";
 export * from "./iyzico-checkout";
 export * from "./shopier-checkout";
 export * from "./shopier-webhook-processor";
+export * from "./shopier-proof";
 export * from "./paytr-webhook-processor";
 export * from "./iyzico-webhook-processor";
 export * from "./webhook-processor-registry";

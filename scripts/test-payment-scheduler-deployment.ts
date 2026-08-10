@@ -20,6 +20,8 @@ const jobsEnvironment = compose.match(/\n  jobs:[\s\S]*?\n  migrate:/)?.[0] ?? "
 const appEnvironment = compose.match(/\n  app:[\s\S]*?\n  mysql:/)?.[0] ?? "";
 for (const key of [
     "PAYTR_CHECKOUT_MODE",
+    "SHOPIER_PERSONAL_ACCESS_TOKEN",
+    "SHOPIER_RECONCILIATION_MODE",
     "IYZICO_API_KEY",
     "IYZICO_SECRET_KEY",
     "IYZICO_CHECKOUT_MODE",
@@ -33,6 +35,7 @@ for (const key of [
     assert.match(jobsEnvironment, new RegExp(`${key}:`), `jobs env missing ${key}`);
 }
 for (const key of [
+    "SHOPIER_RECONCILIATION_MODE",
     "IYZICO_API_KEY",
     "IYZICO_SECRET_KEY",
     "IYZICO_MERCHANT_ID",
