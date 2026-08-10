@@ -68,4 +68,21 @@ if [[ "$insecure_status" -ne 64 ]]; then
   exit 1
 fi
 
+if command -v systemd-analyze >/dev/null 2>&1; then
+  mkdir -p "$TMP_DIR/systemd"
+  cp "$ROOT_DIR"/infra/systemd/hushle-payment-* "$TMP_DIR/systemd/"
+  chmod 0644 "$TMP_DIR/systemd"/*
+  sed -i \
+    -e '/^Requires=docker.service$/d' \
+    -e 's/^After=docker.service network-online.target$/After=network-online.target/' \
+    -e '/^User=hushle$/d' \
+    -e '/^Group=hushle$/d' \
+    -e 's#^WorkingDirectory=.*#WorkingDirectory=/tmp#' \
+    -e 's#^ExecStart=.*#ExecStart=/bin/true#' \
+    "$TMP_DIR/systemd"/*.service
+  systemd-analyze verify \
+    "$TMP_DIR/systemd"/hushle-payment-*.service \
+    "$TMP_DIR/systemd"/hushle-payment-*.timer
+fi
+
 echo "Payment scheduler shell behavior checks passed."

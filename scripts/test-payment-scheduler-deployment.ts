@@ -14,6 +14,7 @@ const webhookTimer = read("infra/systemd/hushle-payment-webhook.timer");
 const reconciliationService = read("infra/systemd/hushle-payment-reconciliation.service");
 const reconciliationTimer = read("infra/systemd/hushle-payment-reconciliation.timer");
 const guide = read("docs/deploy/payment-scheduler-deployment.md");
+const shellBehaviorTest = read("scripts/test-payment-scheduler-deployment.sh");
 
 const jobsEnvironment = compose.match(/\n  jobs:[\s\S]*?\n  migrate:/)?.[0] ?? "";
 const appEnvironment = compose.match(/\n  app:[\s\S]*?\n  mysql:/)?.[0] ?? "";
@@ -81,5 +82,6 @@ assert.match(probe, /all\(\.status == "healthy"\)/);
 assert.doesNotMatch(probe, /curl[^\n]*HEALTHCHECK_TOKEN/);
 assert.match(guide, /outside the\s+application host/);
 assert.match(guide, /Never\s+blindly repeat an uncertain provider initialize operation/i);
+assert.match(shellBehaviorTest, /systemd-analyze verify/);
 
 console.log("Payment scheduler deployment contract checks passed.");

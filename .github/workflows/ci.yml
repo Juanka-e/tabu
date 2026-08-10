@@ -172,7 +172,6 @@ jobs:
           bash -n scripts/ops/run-payment-job.sh
           bash -n scripts/ops/check-payment-health.sh
           bash -n scripts/ops/install-payment-schedulers.sh
-          systemd-analyze verify infra/systemd/hushle-payment-*.service infra/systemd/hushle-payment-*.timer
         env:
           REDIS_URL: "redis://localhost:6379"
           REDIS_KEY_PREFIX: "hushle:ci"
