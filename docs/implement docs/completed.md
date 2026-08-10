@@ -360,6 +360,14 @@
 - success event için server-side retrieve/exact verification olmadan fulfillment yapmayan processor
 - failure, duplicate, token mismatch ve amount mismatch MySQL/route testleri
 
+### 49. `feature/iyzico-reconciliation`
+
+- PayTR davranışını koruyan provider-neutral reconciliation dispatch
+- explicit sandbox reconciliation modu ve provider kırılımlı bounded job aday seçimi
+- token bulunan eski iyzico siparişlerinde exact retrieve proof ile idempotent fulfillment recovery
+- token bulunmayan initialize belirsizliğinde kör retry yapmayan kalıcı manuel inceleme vakası
+- job, admin reconcile, eşzamanlı worker ve proofsuz paid sipariş güvenlik testleri
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

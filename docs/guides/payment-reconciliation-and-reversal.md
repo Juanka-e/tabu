@@ -16,6 +16,24 @@
 - Açık vaka ve dead-letter sayıları yapılandırılabilir eşikleri geçtiğinde yalnız
   admin ekranında uyarı oluşur. Oyuncuya otomatik ceza veya bakiye işlemi uygulanmaz.
 
+## iyzico Uzlaştırma Sınırı
+
+- iyzico sorguları yalnız `IYZICO_CHECKOUT_MODE=sandbox` ve
+  `IYZICO_RECONCILIATION_MODE=sandbox` birlikte açıkken job/admin tarafından çalışır.
+- Sunucuda saklanan Checkout Form tokenı varsa provider retrieve çağrısı yapılır. Tutar,
+  ödenen tutar, para birimi, conversation/token bağı, ödeme durumu ve fraud durumu exact
+  doğrulanmadan sipariş `paid` veya `fulfilled` yapılmaz.
+- Webhook kaybolsa bile exact retrieve kanıtı aynı idempotent fulfillment yolunu
+  çalıştırabilir. Eşzamanlı webhook, job ve admin çağrıları sipariş/fulfillment satır
+  kilitleriyle tek grant ve tek bildirim üretir.
+- Initialize timeout sonrasında token yoksa provider retrieve teknik olarak mümkün
+  değildir. Vaka `iyzico_initialize_uncertain_manual_review` olarak korunur; otomatik
+  initialize retry, ödeme tahmini, ceza veya entitlement değişikliği yapılmaz.
+- `paid` görünen fakat exact `PaymentCheckoutVerification` kanıtı bulunmayan iyzico
+  siparişi tamamlanmaz ve manuel incelemeye alınır.
+- Ortak `PAYMENT_RECONCILIATION_MAX_ATTEMPTS` sınırından sonra otomatik sorgu durur;
+  operatör provider paneli ve kalıcı vaka kanıtıyla karar verir.
+
 ## Vaka Çözümleme
 
 - Açık vaka `resolved` veya `ignored` kararı, zorunlu operatör notu ve admin kimliğiyle

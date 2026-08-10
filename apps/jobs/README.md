@@ -26,9 +26,12 @@ npm run jobs:run -- payment-reconciliation dry-run
 JOBS_ENABLED=true npm run jobs:run -- payment-reconciliation execute
 ```
 
-It queries only old `awaiting_payment` PayTR orders, stores a minimal provider
-snapshot, and uses a Redis global lease. Provider mismatches and detected returns
-open an admin review case; they never trigger a provider refund automatically.
+It queries bounded old PayTR and explicitly enabled iyzico candidates, stores a
+minimal provider snapshot, and uses a Redis global lease. iyzico execution requires
+`IYZICO_CHECKOUT_MODE=sandbox` and `IYZICO_RECONCILIATION_MODE=sandbox`. Missing
+iyzico session tokens stay in manual review and never trigger a blind initialize
+retry. Provider mismatches and detected returns open an admin review case; they
+never trigger a provider refund automatically.
 
 The admin audit page has separate active and archive views. Production
 scheduling still remains an explicit operator decision after the retention

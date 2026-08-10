@@ -14,6 +14,7 @@ IYZICO_SECRET_KEY=""
 IYZICO_MERCHANT_ID=""
 IYZICO_CHECKOUT_MODE=disabled
 IYZICO_WEBHOOK_MODE=disabled
+IYZICO_RECONCILIATION_MODE=disabled
 ```
 
 Only `sandbox` credentials are accepted by the transport foundation. The API host
@@ -37,9 +38,9 @@ The browser callback and its `token` are not payment proof. The orchestration
 retrieves the Checkout Form result server-side and verifies the order/conversation
 reference, token, exact price, paid price, and currency. It stores a minimized
 verification record containing provider payment reference, payment/risk status,
-amount, currency, and verification time. Retrieve alone does not mark the order
-paid or run fulfillment; only the verified webhook processor can consume that
-proof.
+amount, currency, and verification time. A browser callback or unsigned retrieve
+request cannot mark the order paid. The verified webhook processor or the bounded
+reconciliation worker may consume the exact server-side proof.
 
 ## Durable Orchestration
 
@@ -82,6 +83,29 @@ The endpoint remains off unless both checkout and webhook modes are explicitly
 set to `sandbox`. Enabling `IYZICO_WEBHOOK_MODE` also requires the merchant account
 Signature V3 feature and HTTPS notification URL to be configured at iyzico.
 
+## Reconciliation
+
+- The shared `payment-reconciliation` job supports both PayTR and iyzico while
+  preserving one global Redis lease and a bounded database batch.
+- iyzico queries remain disabled unless `IYZICO_CHECKOUT_MODE=sandbox` and
+  `IYZICO_RECONCILIATION_MODE=sandbox` are both explicit.
+- An old `awaiting_payment` order with a server-owned token is retrieved from
+  iyzico. Exact price, paid price, currency, payment status, fraud status, token,
+  and conversation identity are required before paid/fulfilled transitions.
+- A signed webhook is not required for recovery when the same exact retrieve
+  proof is available. Fulfillment and notification remain idempotent under
+  concurrent webhook, job, and admin reconciliation.
+- An uncertain initialize without a token cannot be retrieved. It is retained as
+  `iyzico_initialize_uncertain_manual_review`; the worker never retries initialize
+  and never guesses that payment succeeded.
+- Successful-looking injected/provider results still require the durable
+  `PaymentCheckoutVerification` record. A boolean result alone cannot grant an
+  item or coin.
+- `paid` or `fulfilled` iyzico orders without exact proof are held for review;
+  reconciliation does not manufacture missing evidence.
+- Cases stop automatic checks at the shared maximum-attempt limit and remain in
+  the admin review surface.
+
 ## Buyer Data Contract
 
 The request-only buyer data schema and `buyer-data-v1` consent snapshot are now
@@ -108,9 +132,8 @@ create a second provider session.
 
 1. Merchant-specific legal/privacy and transfer approval.
 2. Owner-only checkout/callback routes and just-in-time buyer-data UI.
-3. Provider-specific reconciliation for uncertain initialize and webhook cases.
-4. Real merchant sandbox acceptance with exact amount/currency proof.
-5. Separate reviewed live-mode activation.
+3. Real merchant sandbox acceptance with exact amount/currency proof.
+4. Separate reviewed live-mode activation.
 
 Only Signature V3 is accepted. Deprecated signature formats are not an acceptable
 compatibility fallback.

@@ -35,6 +35,7 @@
     "test:payment-iyzico-checkout-integration": "tsx scripts/test-iyzico-checkout-orchestration-integration.ts",
     "test:payment-iyzico-webhook": "tsx scripts/test-iyzico-webhook-signature-v3.ts",
     "test:payment-iyzico-webhook-integration": "tsx scripts/test-iyzico-webhook-processor-integration.ts",
+    "test:payment-iyzico-reconciliation-integration": "tsx scripts/test-iyzico-reconciliation-integration.ts",
     "test:payment-stripe-adapter": "tsx scripts/test-stripe-checkout-adapter.ts",
     "test:payment-paytr-refund": "tsx scripts/test-paytr-refund-adapter.ts",
     "test:payment-provider-refund-integration": "tsx scripts/test-provider-refund-orchestration-integration.ts",

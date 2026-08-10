@@ -172,6 +172,7 @@ async function run(): Promise<void> {
         IYZICO_MERCHANT_ID: "3404590",
         IYZICO_CHECKOUT_MODE: "sandbox",
         IYZICO_WEBHOOK_MODE: "sandbox",
+        IYZICO_RECONCILIATION_MODE: "sandbox",
     });
     assert.equal(readiness.credentialsConfigured, true);
     assert.equal(readiness.adapterAvailable, false);
@@ -182,6 +183,15 @@ async function run(): Promise<void> {
         IYZICO_MERCHANT_ID: "3404590",
         IYZICO_CHECKOUT_MODE: "live",
         IYZICO_WEBHOOK_MODE: "sandbox",
+        IYZICO_RECONCILIATION_MODE: "sandbox",
+    }).credentialsConfigured, false);
+    assert.equal(getPaymentProviderReadiness("iyzico", {
+        IYZICO_API_KEY: credentials.apiKey,
+        IYZICO_SECRET_KEY: credentials.secretKey,
+        IYZICO_MERCHANT_ID: "3404590",
+        IYZICO_CHECKOUT_MODE: "sandbox",
+        IYZICO_WEBHOOK_MODE: "sandbox",
+        IYZICO_RECONCILIATION_MODE: "disabled",
     }).credentialsConfigured, false);
     assert.equal(getPaymentProviderReadiness("iyzico", {
         IYZICO_API_KEY: credentials.apiKey,
@@ -189,6 +199,7 @@ async function run(): Promise<void> {
         IYZICO_MERCHANT_ID: "invalid",
         IYZICO_CHECKOUT_MODE: "sandbox",
         IYZICO_WEBHOOK_MODE: "sandbox",
+        IYZICO_RECONCILIATION_MODE: "sandbox",
     }).credentialsConfigured, false);
 
     const checkoutRoute = await readFile(

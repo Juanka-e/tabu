@@ -43,6 +43,7 @@ const providers = {
             "IYZICO_MERCHANT_ID",
             "IYZICO_CHECKOUT_MODE",
             "IYZICO_WEBHOOK_MODE",
+            "IYZICO_RECONCILIATION_MODE",
         ],
         supportedCurrencies: ["TRY", "USD", "EUR", "GBP"],
         adapterAvailable: false,
@@ -115,6 +116,13 @@ export function getPaymentProviderReadiness(
         && !missingEnvironment.includes("IYZICO_WEBHOOK_MODE")
     ) {
         missingEnvironment.push("IYZICO_WEBHOOK_MODE");
+    }
+    if (
+        provider === "iyzico"
+        && environment.IYZICO_RECONCILIATION_MODE?.trim().toLowerCase() !== "sandbox"
+        && !missingEnvironment.includes("IYZICO_RECONCILIATION_MODE")
+    ) {
+        missingEnvironment.push("IYZICO_RECONCILIATION_MODE");
     }
     if (
         provider === "iyzico"

@@ -245,7 +245,8 @@ Rate limit hiçbir zaman geçerli webhook tekrarını kalıcı olarak kaybettirm
 5. `iyzico` Checkout Form HMAC/transport, request-only buyer data ve durable
    initialize/retrieve orchestration sözleşmesi tamamlandı; hukuki aktarım
    incelemesi ve Signature V3 webhook processor tamamlandı; owner-only route/UI,
-   reconciliation ve gerçek merchant sandbox kabulü bitene kadar devre dışı.
+   reconciliation tamamlandı; owner-only route/UI, hukuki onay ve gerçek merchant
+   sandbox kabulü bitene kadar devre dışı.
 6. `shopier_v2`: V2 API uygulama tarafından oluşturulan checkout session sunmadığı için
    mevcut server-priced katalog modeliyle uyumluluk kararı bekliyor; zorla bağlanmayacak.
 7. `stripe` Checkout Session sandbox transport temeli: tamamlandı; webhook processor,
