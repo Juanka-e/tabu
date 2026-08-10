@@ -204,6 +204,13 @@ async function verify(): Promise<void> {
         ownerUserId: order.userId,
         amountMinor: order.totalAmountMinor,
         currency: order.currency,
+        merchantIdHash: hashProviderReference(required("IYZICO_MERCHANT_ID")),
+        legalVersions: {
+            checkoutTermsVersion: order.checkoutConsent?.checkoutTermsVersion ?? null,
+            privacyNoticeVersion: order.checkoutConsent?.privacyNoticeVersion ?? null,
+            distanceSalesNoticeVersion: order.checkoutConsent?.distanceSalesNoticeVersion ?? null,
+            buyerDataPolicyVersion: order.checkoutConsent?.buyerDataPolicyVersion ?? null,
+        },
         providerPaymentReferenceHash: proof?.providerPaymentReference
             ? hashProviderReference(proof.providerPaymentReference)
             : null,

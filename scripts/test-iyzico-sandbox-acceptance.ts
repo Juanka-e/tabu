@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+    IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA,
     IYZICO_ACCEPTANCE_CONFIRMATION,
     assertIyzicoAcceptanceEnvironment,
     assertSafeAcceptanceEvidence,
@@ -65,7 +66,7 @@ assert.equal(
 assert.match(hashProviderReference("payment-reference"), /^sha256:[a-f0-9]{64}$/);
 
 assert.doesNotThrow(() => assertSafeAcceptanceEvidence({
-    schema: "iyzico-sandbox-acceptance-v1",
+    schema: IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA,
     orderId: "safe-order-id",
     providerPaymentReferenceHash: hashProviderReference("payment-reference"),
 }));

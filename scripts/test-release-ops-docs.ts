@@ -49,6 +49,8 @@ assert.match(deployScript, /production-preflight\.mjs/);
 assert.match(deployScript, /--network none/);
 assert.match(preflight, /Secret values were not printed|validateProductionEnvironment/);
 assert.match(preflight, /STATE_CHANGE_ORIGIN_POLICY must be strict/);
+assert.match(preflight, /PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE/);
+assert.match(preflight, /IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_FILE/);
 assert.match(preflight, /PRODUCTION_OBSERVABILITY_POLICY/);
 assert.match(preflight, /OBSERVABILITY_EXPORT_URL must be an HTTPS URL/);
 assert.match(backupScript, /acquire_schema_ops_lock/);

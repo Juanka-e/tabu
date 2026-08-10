@@ -6,6 +6,7 @@ const missing = getPaymentLegalReadiness({});
 assert.equal(missing.ready, false);
 assert.deepEqual(missing.issues, [
     "legal_documents_not_approved",
+    "legal_approval_evidence_missing",
     "business_name_missing",
     "business_address_missing",
     "contact_email_missing",
@@ -19,6 +20,7 @@ const ready = getPaymentLegalReadiness({
     PAYMENT_CHECKOUT_TERMS_VERSION: "terms-v4",
     PAYMENT_PRIVACY_NOTICE_VERSION: "privacy-v3",
     PAYMENT_DISTANCE_SALES_NOTICE_VERSION: "distance-v5",
+    PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256: `sha256:${"a".repeat(64)}`,
 });
 assert.equal(ready.ready, true);
 assert.equal(ready.checkoutTermsVersion, "terms-v4");

@@ -1,9 +1,71 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseEnvFile, validateProductionEnvironment } from "./lib/production-preflight.mjs";
+import {
+    IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA,
+    IYZICO_REQUIRED_ACCEPTANCE_CHECKS,
+    PAYMENT_BUYER_DATA_POLICY_VERSION,
+    PAYMENT_LEGAL_APPROVAL_SCHEMA,
+    PAYMENT_LEGAL_REVIEW_SCOPES,
+    legalConfigurationDigest,
+    sha256Digest,
+} from "./lib/payment-activation-evidence.mjs";
+
+const paymentEvidenceDir = mkdtempSync(join(tmpdir(), "hushle-payment-evidence-"));
+let evidenceSequence = 0;
+
+function writeEvidence(name: string, manifest: unknown): { path: string; digest: string } {
+    const path = join(paymentEvidenceDir, `${evidenceSequence += 1}-${name}.json`);
+    const content = `${JSON.stringify(manifest, null, 2)}\n`;
+    writeFileSync(path, content, "utf8");
+    chmodSync(path, 0o600);
+    return { path, digest: sha256Digest(content) };
+}
+
+function attachLegalEvidence(environment: Record<string, string>): void {
+    const evidence = writeEvidence("legal", {
+        schema: PAYMENT_LEGAL_APPROVAL_SCHEMA,
+        status: "approved",
+        approvedAt: new Date().toISOString(),
+        activeProvider: environment.PAYMENT_ACTIVE_PROVIDER,
+        approvalReference: "LEGAL-2026-001",
+        reviewedScopes: PAYMENT_LEGAL_REVIEW_SCOPES,
+        configurationDigest: legalConfigurationDigest(environment),
+    });
+    environment.PAYMENT_LEGAL_APPROVAL_EVIDENCE_FILE = evidence.path;
+    environment.PAYMENT_LEGAL_APPROVAL_EVIDENCE_SHA256 = evidence.digest;
+}
+
+function attachIyzicoEvidence(environment: Record<string, string>): void {
+    const checks = Object.fromEntries(IYZICO_REQUIRED_ACCEPTANCE_CHECKS.map((name) => [name, true]));
+    const evidence = writeEvidence("iyzico", {
+        schema: IYZICO_ACCEPTANCE_EVIDENCE_SCHEMA,
+        phase: "verified",
+        status: "passed",
+        generatedAt: new Date().toISOString(),
+        provider: "iyzico",
+        sandbox: true,
+        orderId: "acceptance-order-id",
+        ownerUserId: 42,
+        amountMinor: 100,
+        currency: "TRY",
+        merchantIdHash: sha256Digest(environment.IYZICO_MERCHANT_ID),
+        legalVersions: {
+            checkoutTermsVersion: environment.PAYMENT_CHECKOUT_TERMS_VERSION,
+            privacyNoticeVersion: environment.PAYMENT_PRIVACY_NOTICE_VERSION,
+            distanceSalesNoticeVersion: environment.PAYMENT_DISTANCE_SALES_NOTICE_VERSION,
+            buyerDataPolicyVersion: PAYMENT_BUYER_DATA_POLICY_VERSION,
+        },
+        providerPaymentReferenceHash: sha256Digest("provider-payment-reference"),
+        checks,
+        failedChecks: [],
+    });
+    environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_FILE = evidence.path;
+    environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256 = evidence.digest;
+}
 
 function validEnvironment(): Record<string, string> {
     return {
@@ -152,6 +214,7 @@ Object.assign(checkoutWithLegalApproval, {
     PAYMENT_PRIVACY_NOTICE_VERSION: "privacy-v1",
     PAYMENT_DISTANCE_SALES_NOTICE_VERSION: "distance-v1",
 });
+attachLegalEvidence(checkoutWithLegalApproval);
 assert.deepEqual(validateProductionEnvironment(checkoutWithLegalApproval).errors, []);
 
 const iyzicoCheckoutWithAcceptance = {
@@ -167,7 +230,39 @@ const iyzicoCheckoutWithAcceptance = {
     IYZICO_RECONCILIATION_MODE: "sandbox",
     IYZICO_SANDBOX_ACCEPTANCE_RECORDED: "true",
 };
+attachLegalEvidence(iyzicoCheckoutWithAcceptance);
+attachIyzicoEvidence(iyzicoCheckoutWithAcceptance);
 assert.deepEqual(validateProductionEnvironment(iyzicoCheckoutWithAcceptance).errors, []);
+
+const iyzicoWithWrongMerchant = {
+    ...iyzicoCheckoutWithAcceptance,
+    IYZICO_MERCHANT_ID: "9999999",
+};
+assert.ok(
+    validateProductionEnvironment(iyzicoWithWrongMerchant).errors.some((error) =>
+        error.includes("merchant does not match")
+    )
+);
+
+const staleLegalEvidence = {
+    ...checkoutWithLegalApproval,
+    PAYMENT_PRIVACY_NOTICE_VERSION: "privacy-v2",
+};
+assert.ok(
+    validateProductionEnvironment(staleLegalEvidence).errors.some((error) =>
+        error.includes("current legal configuration")
+    )
+);
+
+const tamperedIyzicoEvidence = {
+    ...iyzicoCheckoutWithAcceptance,
+    IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256: `sha256:${"0".repeat(64)}`,
+};
+assert.ok(
+    validateProductionEnvironment(tamperedIyzicoEvidence).errors.some((error) =>
+        error.includes("does not match the evidence file")
+    )
+);
 
 const iyzicoWithoutAcceptance = {
     ...iyzicoCheckoutWithAcceptance,
@@ -300,6 +395,7 @@ try {
     assert.equal(`${failedCli.stdout}${failedCli.stderr}`.includes(cliSecret), false);
 } finally {
     rmSync(fixtureDir, { recursive: true, force: true });
+    rmSync(paymentEvidenceDir, { recursive: true, force: true });
 }
 
 console.log("Production config preflight checks passed.");

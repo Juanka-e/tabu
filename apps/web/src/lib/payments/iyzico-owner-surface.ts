@@ -38,6 +38,9 @@ export function getIyzicoOwnerSurfaceReadiness(
     if (environment.IYZICO_SANDBOX_ACCEPTANCE_RECORDED?.trim().toLowerCase() !== "true") {
         sessionIssues.push("iyzico_sandbox_acceptance_missing");
     }
+    if (!/^sha256:[a-f0-9]{64}$/.test(environment.IYZICO_SANDBOX_ACCEPTANCE_EVIDENCE_SHA256?.trim() ?? "")) {
+        sessionIssues.push("iyzico_sandbox_acceptance_evidence_missing");
+    }
     for (const [name, issue] of [
         ["IYZICO_OWNER_CHECKOUT_MODE", "iyzico_owner_checkout_mode_disabled"],
         ["IYZICO_WEBHOOK_MODE", "iyzico_webhook_mode_disabled"],

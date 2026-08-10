@@ -239,7 +239,8 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - iyzico durable initialize/retrieve orchestration, Signature V3 webhook processor ve
   provider-specific reconciliation tamamlandı; owner-only session/callback foundation da
   tamamlandi. Request-only just-in-time buyer-data UI, sandbox kabul araci, scheduler
-  heartbeat/alarmlari ve systemd deployment sablonlari da baglandi. Siradaki dilimler
+  heartbeat/alarmlari, systemd deployment sablonlari ve kanita bagli aktivasyon
+  manifestleri de baglandi. Siradaki dilimler manifestleri uretecek gercek
   merchant/aktarim hukuki onayi, gercek merchant sandbox kabulu ve ayri incelenecek
   live-mode implementasyonu
 - Shopier V2, uygulama tarafından oluşturulan checkout session modeli sunmadığı için
