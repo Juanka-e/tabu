@@ -1,4 +1,5 @@
 export * from "./contracts";
+export * from "./grant-contract";
 export * from "./order-state-machine";
 export * from "./orders";
 export * from "./offers";

@@ -40,7 +40,13 @@ test.describe("payment checkout UI", () => {
             quantity: 1,
             unitAmountMinor: 14_900,
             currency: "TRY",
-            grantSnapshot: { shopItemCode: `avatar-${suffix}` },
+            grantSnapshot: {
+                schemaVersion: 2,
+                plan: { schemaVersion: 1, effects: [{
+                    effectId: "avatar", type: "inventory_entitlement",
+                    catalog: "shop_item", itemReference: "1", renderSnapshot: {},
+                }] },
+            },
         };
         ownOrderId = (await createPaymentOrderRecord({
             userId: user.id,
@@ -66,7 +72,7 @@ test.describe("payment checkout UI", () => {
                 description: "Checkout responsive görünüm testi",
                 unitAmountMinor: 14_900,
                 currency: "TRY",
-                grantSnapshot: { shopItemCode: `avatar-${suffix}` },
+                grantSnapshot: quote.grantSnapshot,
                 isActive: true,
             },
         });

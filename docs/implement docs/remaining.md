@@ -217,6 +217,17 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ## Yakin Sonraki Branch'ler
 
+### `feature/shopier-live-acceptance-harness`
+- gerçek düşük tutarlı payment/refund kabul adımlarını operatör kontrollü çalıştırma
+- pending/succeeded/duplicate kanıtlarını `shopier-live-acceptance-v1` manifestine yazma
+- canlı credential olmadan tahsilat veya iade çağrısı yapmayan dry-run ve doğrulama modu
+
+### Gelecek ekonomi genişlemeleri - ihtiyaç oluşunca
+- ikinci asset onaylandığında asset definition + asset-code ledger migration/dual-write
+- mixed bundle gerektiğinde yeni product kind ve effect-bazlı fulfillment/reversal result v2
+- loot/container için immutable table version, CSPRNG open receipt, pity ve provenance
+- oran/hukuk/refund politikası onaylanmadan loot runtime veya admin aktivasyon yüzeyi açılmayacak
+
 ### Ilk payment provider adapter'i
 - PayTR iFrame kriptografik ve transport adapter temeli tamamlandi
 - provider-neutral atomik coin/kozmetik fulfillment temeli tamamlandi

@@ -20,6 +20,11 @@ Create two private npm workspace packages:
 - `@hushle/platform-db`
 - `@hushle/platform-cache`
 
+Domain sözleşmeleri concrete infrastructure paketlerinden ayrılır. Sürümlü ekonomik
+grant/effect şeması `@hushle/domain-economy` altında saf kalır; Prisma, Redis, payment
+provider veya Next.js import etmez. `platform-payments` bu sözleşmeyi kullanır ve
+mevcut wallet/inventory executor'larına adapte eder.
+
 Payment fulfillment çalışması ortak wallet transaction primitive'ini de
 `@hushle/platform-wallet` paketine taşır. Web'deki eski wallet service yolu
 compatibility re-export olarak kalır; yeni payment/jobs kodu web runtime'a

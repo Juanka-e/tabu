@@ -448,6 +448,13 @@
 - harici veya kısmi iadede otomatik ceza yerine operatör reconciliation vakası
 - sağlayıcı bazlı admin readiness görünümü ve canlı kabul kanıtı production preflight'ı
 
+### 62. `feature/versioned-entitlement-grant-contract`
+- provider ve kaynak bağımsız, strict ve boyut sınırlandırılmış economy grant planı
+- mevcut payment grant v1 kayıtlarını koruyan payment snapshot v2 adaptasyonu
+- yalnız `COIN` ve `shop_item` açan fail-closed runtime capability registry
+- geçersiz grant taşıyan yeni teklifleri checkout yüzeyinden gizleme
+- multi-currency migration ve loot/container açılışını payment RNG'sinden ayıran ADR
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi

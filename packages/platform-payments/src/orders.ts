@@ -10,6 +10,7 @@ import {
     type PaymentOrderQuote,
     paymentCheckoutLegalAcceptanceSchema,
 } from "./contracts";
+import { normalizePaymentGrantContract } from "./grant-contract";
 
 const createOrderInputSchema = z.object({
     userId: z.number().int().positive(),
@@ -64,6 +65,11 @@ export function normalizePaymentOrderQuote(input: PaymentOrderQuote): PaymentOrd
     if (!Number.isSafeInteger(totalAmountMinor) || totalAmountMinor > 2_147_483_647) {
         throw new RangeError("Payment total exceeds the supported minor-unit range");
     }
+    normalizePaymentGrantContract({
+        productKind: quote.productKind,
+        quantity: quote.quantity,
+        grantSnapshot: quote.grantSnapshot,
+    });
 
     return {
         ...quote,
