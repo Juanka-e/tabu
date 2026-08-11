@@ -40,7 +40,7 @@ async function run(): Promise<void> {
             quantity: 1,
             unitAmountMinor: 9_900,
             currency: "try",
-            grantSnapshot: { shopItemId: 1 },
+            grantSnapshot: { schemaVersion: 1, items: [{ shopItemId: 1, renderSnapshot: {} }] },
         },
     };
 

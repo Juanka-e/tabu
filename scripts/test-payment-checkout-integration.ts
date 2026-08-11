@@ -4,6 +4,7 @@ import { prisma } from "@hushle/platform-db";
 import {
     PaymentOrderConflictError,
     createPaymentCheckoutOrderRecord,
+    getActivePaymentOffer,
     listActivePaymentOffers,
 } from "@hushle/platform-payments";
 
@@ -16,6 +17,7 @@ async function run(): Promise<void> {
         data: { username: `checkout_${suffix}`, password: "integration-test-only" },
     });
     const offerCode = `checkout_offer_${suffix}`;
+    const unsupportedOfferCode = `checkout_future_asset_${suffix}`;
     await prisma.paymentOffer.create({
         data: {
             code: offerCode,
@@ -26,7 +28,31 @@ async function run(): Promise<void> {
             description: "Integration test offer",
             unitAmountMinor: 12_900,
             currency: "TRY",
-            grantSnapshot: { shopItemCode: `avatar_${suffix}` },
+            grantSnapshot: {
+                schemaVersion: 2,
+                plan: { schemaVersion: 1, effects: [{
+                    effectId: "avatar", type: "inventory_entitlement",
+                    catalog: "shop_item", itemReference: "1", renderSnapshot: {},
+                }] },
+            },
+            isActive: true,
+        },
+    });
+    await prisma.paymentOffer.create({
+        data: {
+            code: unsupportedOfferCode,
+            productKind: "coin_pack",
+            productReference: `future_asset_${suffix}`,
+            productVersion: 1,
+            productName: "Unavailable Future Asset",
+            unitAmountMinor: 100,
+            currency: "TRY",
+            grantSnapshot: {
+                schemaVersion: 2,
+                plan: { schemaVersion: 1, effects: [{
+                    effectId: "gem", type: "balance_credit", assetCode: "GEM", amount: 5,
+                }] },
+            },
             isActive: true,
         },
     });
@@ -45,7 +71,13 @@ async function run(): Promise<void> {
             quantity: 1,
             unitAmountMinor: 12_900,
             currency: "TRY",
-            grantSnapshot: { shopItemCode: `avatar_${suffix}` },
+            grantSnapshot: {
+                schemaVersion: 2,
+                plan: { schemaVersion: 1, effects: [{
+                    effectId: "avatar", type: "inventory_entitlement",
+                    catalog: "shop_item", itemReference: "1", renderSnapshot: {},
+                }] },
+            },
         },
         legalAcceptance: {
             checkoutTermsVersion: "terms-v1",
@@ -61,6 +93,8 @@ async function run(): Promise<void> {
     try {
         const offerViews = await listActivePaymentOffers();
         assert.equal(offerViews.some((offer) => offer.code === offerCode), true);
+        assert.equal(offerViews.some((offer) => offer.code === unsupportedOfferCode), false);
+        assert.equal(await getActivePaymentOffer(unsupportedOfferCode), null);
 
         const [first, duplicate] = await Promise.all([
             createPaymentCheckoutOrderRecord(input),
@@ -95,7 +129,7 @@ async function run(): Promise<void> {
     } finally {
         await prisma.paymentCheckoutConsent.deleteMany({ where: { order: { userId: user.id } } });
         await prisma.paymentOrder.deleteMany({ where: { userId: user.id } });
-        await prisma.paymentOffer.deleteMany({ where: { code: offerCode } });
+        await prisma.paymentOffer.deleteMany({ where: { code: { in: [offerCode, unsupportedOfferCode] } } });
         await prisma.user.delete({ where: { id: user.id } });
         await prisma.$disconnect();
     }

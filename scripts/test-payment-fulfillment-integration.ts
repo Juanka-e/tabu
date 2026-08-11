@@ -97,7 +97,13 @@ async function run(): Promise<void> {
             suffix: `${suffix}:coin`,
             productKind: "coin_pack",
             quantity: 2,
-            grantSnapshot: { schemaVersion: 1, coinAmount: 250 },
+            grantSnapshot: {
+                schemaVersion: 2,
+                plan: { schemaVersion: 1, effects: [{
+                    effectId: "paid-coin", type: "balance_credit",
+                    assetCode: "COIN", amount: 250,
+                }] },
+            },
         });
         const concurrent = await Promise.all([
             fulfillPaidPaymentOrder({ orderId: coinOrder.id }),

@@ -2,39 +2,11 @@ import { Prisma, prisma, type PaymentOrder } from "@hushle/platform-db";
 import { grantPaymentCoinLot } from "@hushle/platform-wallet";
 import { z } from "zod";
 import { assertPaymentOrderTransition } from "./order-state-machine";
-
-const MAX_COIN_GRANT = 10_000_000;
-const MAX_RENDER_SNAPSHOT_BYTES = 16_384;
-
-const renderSnapshotSchema = z.record(z.string().min(1).max(80), z.unknown())
-    .refine((value) => {
-        try {
-            return Buffer.byteLength(JSON.stringify(value), "utf8") <= MAX_RENDER_SNAPSHOT_BYTES;
-        } catch {
-            return false;
-        }
-    });
-
-const cosmeticGrantItemSchema = z.object({
-    shopItemId: z.number().int().positive(),
-    renderSnapshot: renderSnapshotSchema,
-});
-
-const cosmeticItemGrantSchema = z.object({
-    schemaVersion: z.literal(1),
-    items: z.array(cosmeticGrantItemSchema).length(1),
-});
-
-const cosmeticBundleGrantSchema = z.object({
-    schemaVersion: z.literal(1),
-    items: z.array(cosmeticGrantItemSchema).min(1).max(100)
-        .refine((items) => new Set(items.map((item) => item.shopItemId)).size === items.length),
-});
-
-const coinPackGrantSchema = z.object({
-    schemaVersion: z.literal(1),
-    coinAmount: z.number().int().min(1).max(MAX_COIN_GRANT),
-});
+import {
+    normalizePaymentGrantContract,
+    PaymentGrantContractError,
+    type NormalizedPaymentGrant,
+} from "./grant-contract";
 
 export type PaymentFulfillmentGrantResult =
     | {
@@ -100,31 +72,15 @@ export function normalizePaymentGrantSnapshot(input: {
     productKind: PaymentOrder["productKind"];
     quantity: number;
     grantSnapshot: Prisma.JsonValue;
-}):
-    | { kind: "coin_pack"; coinAmount: number }
-    | {
-        kind: "cosmetic_item" | "cosmetic_bundle";
-        items: z.infer<typeof cosmeticGrantItemSchema>[];
-    } {
-    if (input.productKind === "coin_pack") {
-        const parsed = coinPackGrantSchema.safeParse(input.grantSnapshot);
-        if (!parsed.success) throw new PaymentFulfillmentError("invalid_grant_snapshot");
-        const coinAmount = parsed.data.coinAmount * input.quantity;
-        if (!Number.isSafeInteger(coinAmount) || coinAmount > 2_147_483_647) {
+}): NormalizedPaymentGrant {
+    try {
+        return normalizePaymentGrantContract(input);
+    } catch (error) {
+        if (error instanceof PaymentGrantContractError && error.code === "grant_balance_overflow") {
             throw new PaymentFulfillmentError("grant_balance_overflow");
         }
-        return { kind: "coin_pack", coinAmount };
-    }
-
-    if (input.quantity !== 1) {
         throw new PaymentFulfillmentError("invalid_grant_snapshot");
     }
-    const schema = input.productKind === "cosmetic_item"
-        ? cosmeticItemGrantSchema
-        : cosmeticBundleGrantSchema;
-    const parsed = schema.safeParse(input.grantSnapshot);
-    if (!parsed.success) throw new PaymentFulfillmentError("invalid_grant_snapshot");
-    return { kind: input.productKind, items: parsed.data.items };
 }
 
 function parseGrantSnapshot(order: PaymentOrder) {

@@ -1,5 +1,5 @@
 {
-  "name": "@hushle/platform-payments",
+  "name": "@hushle/domain-economy",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,10 +10,6 @@
     }
   },
   "dependencies": {
-    "@hushle/domain-economy": "0.1.0",
-    "@hushle/platform-cache": "0.1.0",
-    "@hushle/platform-db": "0.1.0",
-    "@hushle/platform-wallet": "0.1.0",
     "zod": "^4.3.6"
   },
   "engines": {

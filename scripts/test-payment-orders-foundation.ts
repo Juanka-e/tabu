@@ -14,17 +14,14 @@ import {
 } from "@hushle/platform-payments";
 
 const quote = {
-    productKind: "cosmetic_item" as const,
-    productReference: "avatar_launch_01",
+    productKind: "coin_pack" as const,
+    productReference: "coin_launch_01",
     productVersion: 3,
     productName: "Launch Avatar",
     quantity: 2,
     unitAmountMinor: 12_500,
     currency: "try",
-    grantSnapshot: {
-        shopItemId: 42,
-        renderSpecVersion: 3,
-    },
+    grantSnapshot: { schemaVersion: 1 as const, coinAmount: 42 },
 };
 
 assert.deepEqual(normalizePaymentOrderQuote(quote), {
@@ -44,8 +41,8 @@ const reorderedFingerprint = fingerprintPaymentOrderRequest({
     quote: {
         ...quote,
         grantSnapshot: {
-            renderSpecVersion: 3,
-            shopItemId: 42,
+            coinAmount: 42,
+            schemaVersion: 1 as const,
         },
     },
 });

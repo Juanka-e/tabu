@@ -1,4 +1,5 @@
 import { prisma } from "@hushle/platform-db";
+import { isPaymentGrantSnapshotSupported } from "./grant-contract";
 
 export interface PaymentOfferView {
     code: string;
@@ -26,14 +27,29 @@ export async function listActivePaymentOffers(now = new Date()): Promise<Payment
             description: true,
             unitAmountMinor: true,
             currency: true,
+            grantSnapshot: true,
         },
     });
 
-    return offers;
+    return offers.flatMap((offer) => {
+        if (!isPaymentGrantSnapshotSupported({
+            productKind: offer.productKind,
+            quantity: 1,
+            grantSnapshot: offer.grantSnapshot,
+        })) return [];
+        return [{
+            code: offer.code,
+            productKind: offer.productKind,
+            productName: offer.productName,
+            description: offer.description,
+            unitAmountMinor: offer.unitAmountMinor,
+            currency: offer.currency,
+        }];
+    });
 }
 
 export async function getActivePaymentOffer(code: string, now = new Date()) {
-    return prisma.paymentOffer.findFirst({
+    const offer = await prisma.paymentOffer.findFirst({
         where: {
             code,
             isActive: true,
@@ -43,4 +59,10 @@ export async function getActivePaymentOffer(code: string, now = new Date()) {
             ],
         },
     });
+    if (!offer || !isPaymentGrantSnapshotSupported({
+        productKind: offer.productKind,
+        quantity: 1,
+        grantSnapshot: offer.grantSnapshot,
+    })) return null;
+    return offer;
 }

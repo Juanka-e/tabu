@@ -7,6 +7,7 @@ COPY apps/jobs/package.json ./apps/jobs/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/api-contracts/package.json ./packages/api-contracts/package.json
 COPY packages/auth-policy/package.json ./packages/auth-policy/package.json
+COPY packages/domain-economy/package.json ./packages/domain-economy/package.json
 COPY packages/domain-game/package.json ./packages/domain-game/package.json
 COPY packages/platform-auth/package.json ./packages/platform-auth/package.json
 COPY packages/platform-cache/package.json ./packages/platform-cache/package.json

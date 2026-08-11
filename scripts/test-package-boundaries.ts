@@ -47,6 +47,7 @@ assert.match(dockerfile, /apps\/api\/package\.json/);
 assert.match(dockerfile, /apps\/jobs\/package\.json/);
 assert.match(dockerfile, /packages\/api-contracts\/package\.json/);
 assert.match(dockerfile, /packages\/auth-policy\/package\.json/);
+assert.match(dockerfile, /packages\/domain-economy\/package\.json/);
 assert.match(dockerfile, /packages\/domain-game\/package\.json/);
 assert.match(dockerfile, /packages\/platform-auth\/package\.json/);
 assert.match(dockerfile, /packages\/platform-cache\/package\.json/);
@@ -82,6 +83,10 @@ assert.match(
 assert.match(
     readFileSync(join(root, "apps/web/package.json"), "utf8"),
     /"@hushle\/platform-payments": "0\.1\.0"/
+);
+assert.match(
+    readFileSync(join(root, "packages/platform-payments/package.json"), "utf8"),
+    /"@hushle\/domain-economy": "0\.1\.0"/
 );
 assert.match(
     readFileSync(join(root, "apps/web/package.json"), "utf8"),

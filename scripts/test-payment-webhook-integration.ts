@@ -32,7 +32,7 @@ async function run(): Promise<void> {
             quantity: 1,
             unitAmountMinor: 12_500,
             currency: "TRY",
-            grantSnapshot: { shopItemId: 1 },
+            grantSnapshot: { schemaVersion: 1, items: [{ shopItemId: 1, renderSnapshot: {} }] },
         },
     })).order;
 

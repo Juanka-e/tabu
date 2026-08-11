@@ -179,6 +179,12 @@ UI, domain ve provider adapter'ı birbirinden ayrılır. Web ve ileride mobile a
 - order ID unique
 - wallet ledger transaction veya entitlement grant reference
 - aynı transaction ikinci kez coin/kozmetik yazamaz
+- payment snapshot v1 geriye uyumludur; yeni v2 snapshot ortak sürümlü economy grant
+  planını taşır ve runtime capability dışında kalan asset/catalog effect'lerini fail-closed reddeder
+
+Ekonomi grant sözleşmesi, multi-currency geçişi ve loot box sınırı için
+`adr-004-versioned-economy-grants-and-loot-boundary.md` geçerlidir. Provider adapter'ları
+RNG çalıştırmaz ve ödül içeriğini browser/provider payload'ından almaz.
 
 ## Checkout Güvenliği
 
