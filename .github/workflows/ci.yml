@@ -136,6 +136,7 @@ jobs:
           npm run test:payment-stripe-adapter
           npm run test:payment-shopier-adapter
           npm run test:payment-shopier-refund
+          npm run test:payment-shopier-live-acceptance
           npm run test:payment-shopier-webhook
           npm run test:payment-paytr-refund
           npm run test:payment-paytr-refund-acceptance

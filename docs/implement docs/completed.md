@@ -455,6 +455,13 @@
 - geçersiz grant taşıyan yeni teklifleri checkout yüzeyinden gizleme
 - multi-currency migration ve loot/container açılışını payment RNG'sinden ayıran ADR
 
+### 63. `feature/shopier-live-acceptance-harness`
+- public checkout kapalıyken çalışan, kesin onaylı ve düşük tutar sınırlı canlı kabul CLI'ı
+- provider/DB mutation yapmayan dry-run; initialize, checkpoint, tek refund POST ve verify fazları
+- immutable checkpoint, secret-safe manifest ve production evidence digest üretimi
+- provider pending/succeeded, exact reversal ve duplicate refund idempotency doğrulaması
+- kabul kanıtı oluşmadan normal checkout/refund registry'sini açmayan fail-closed sınır
+
 ## Tamamlanan Docs-Only Branch'ler
 - `docs/cleanup-roadmap-and-encoding`
   - stale roadmap ve tarihsel planning copleri temizlendi
