@@ -102,6 +102,61 @@ Kalan canlı aktivasyon kapıları:
 3. `shopier-live-acceptance-v1` kanıt manifestinin güvenli dosyada kaydı ve SHA-256 eşleşmesi.
 4. Satıcı hesabı, vergi/fatura ve dijital ürün uygunluğunun hukuki/operasyonel onayı.
 
+## Canlı Kabul Harness'i
+
+Shopier sandbox yayımlamadığı için kabul, gerçek fakat düşük tutarlı tek bir siparişle
+yapılır. Harness normal registry'yi açmaz ve `SHOPIER_LIVE_ACCEPTANCE_RECORDED` değerini
+kendisi değiştirmez. Kabul boyunca:
+
+- `PAYMENTS_ENABLED=false` kalır; oyuncular checkout açamaz,
+- ödeme webhook'unu ve mutabakatı gözlemek için checkout/webhook/reconciliation modları
+  `live` olur,
+- `SHOPIER_REFUND_MODE=disabled` kalır; yalnız acceptance CLI iade POST'u atabilir,
+- işlem limiti varsayılan 5.000 minor unit (50 TRY), değiştirilemez hard ceiling ise
+  10.000 minor unit'tir (100 TRY),
+- PAT, webhook token ve e-posta hiçbir çıktıya; ham provider referansları checkpoint ve
+  final manifeste yazılmaz. `initialize` çıktısındaki tek kullanımlık checkout URL'si
+  ödemeyi tamamlayacak operatöre gösterilir.
+
+Gerekli kesin onay:
+
+```env
+SHOPIER_ACCEPTANCE_CONFIRM=I_CONFIRM_A_REAL_LOW_VALUE_SHOPIER_TRANSACTION
+```
+
+Akış:
+
+1. `dry-run`: kullanıcı, offer, tutar sınırı, TRY para birimi ve media URL'sini doğrular;
+   provider çağrısı ve DB yazımı yapmaz, PAT veya canlı işlem onayı gerektirmez.
+2. `initialize`: doğrulanmış acceptance kullanıcısı ve aktif düşük tutarlı offer için iç
+   sipariş ve stok 1 custom listing oluşturur. Bu faz Shopier'da ürün oluşturur, karttan
+   para çekmez. Dönen URL'de operatör gerçek ödemeyi tamamlar.
+3. `capture-payment`: imzalı webhook, exact ödeme kanıtı, fulfillment ve kapanmış
+   reconciliation durumunu doğrular; immutable payment checkpoint yazar.
+4. Admin ödeme ekranında birinci admin `provider_api` tam iade talebi oluşturur.
+   `refund` fazı farklı ikinci admin ID'sini doğrular, durable local processing kaydından
+   sonra tek canlı refund POST'u gönderir ve immutable refund checkpoint yazar.
+5. `verify`: pending/processing niyetinin kaydını, provider `succeeded` sonucunu,
+   entitlement reversal'ı ve duplicate refund olayının ikinci kez hak düşürmediğini
+   doğrular. Provider'a yalnız bounded iki GET yapar ve final manifesti exclusive yazar.
+
+Komutlar:
+
+```bash
+npm run payment:shopier-live-acceptance -- dry-run
+npm run payment:shopier-live-acceptance -- initialize
+npm run payment:shopier-live-acceptance -- capture-payment
+npm run payment:shopier-live-acceptance -- refund
+npm run payment:shopier-live-acceptance -- verify
+```
+
+Her checkpoint ve final output mutlak path olmalı; mevcut dosyanın üzerine yazılmaz.
+`verify` çıktısındaki digest, production env'de
+`SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_SHA256` olur. Dosyanın mutlak path'i
+`SHOPIER_LIVE_ACCEPTANCE_EVIDENCE_FILE` olarak salt-okunur mount edilir. Ancak ayrı
+hukuki/operasyon onayı tamamlandıktan sonra `SHOPIER_LIVE_ACCEPTANCE_RECORDED=true` ve
+runtime modları production deploy'da açılır.
+
 ## Resmi Sözleşme
 
 - API base/version: `https://api.shopier.com/v1/`

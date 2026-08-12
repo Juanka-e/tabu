@@ -217,10 +217,12 @@ Bilincli olarak bu branch'te yapmiyoruz:
 
 ## Yakin Sonraki Branch'ler
 
-### `feature/shopier-live-acceptance-harness`
-- gerçek düşük tutarlı payment/refund kabul adımlarını operatör kontrollü çalıştırma
-- pending/succeeded/duplicate kanıtlarını `shopier-live-acceptance-v1` manifestine yazma
-- canlı credential olmadan tahsilat veya iade çağrısı yapmayan dry-run ve doğrulama modu
+### `manual/shopier-live-acceptance`
+- acceptance CLI tamamlandı; gerçek credential ve operatör ödemesi otomasyonla üretilemez
+- Shopier panelinde webhook subscription ve worker/scheduler heartbeat doğrulanacak
+- düşük tutarlı initialize -> payment checkpoint -> iki adminli refund -> verify akışı çalıştırılacak
+- final manifest off-image evidence dizinine alınıp production preflight ile doğrulanacak
+- hukuki/operasyon onayı olmadan `SHOPIER_LIVE_ACCEPTANCE_RECORDED=true` yapılmayacak
 
 ### Gelecek ekonomi genişlemeleri - ihtiyaç oluşunca
 - ikinci asset onaylandığında asset definition + asset-code ledger migration/dual-write
