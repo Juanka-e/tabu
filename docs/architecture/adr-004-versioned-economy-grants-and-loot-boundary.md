@@ -96,6 +96,46 @@ onayı olmadan özellik aktif edilemez.
 - Oyuncuya otomatik büyük ceza, negatif bilinmeyen bakiye veya başka kaynaktan kazanılmış
   varlık kesintisi uygulanmaz.
 
+### 6. LiveOps kampanya sınırı
+
+Yeni oyuncu serisi, geri dönüş serisi, görev, etkinlik, gece marketi ve sezon gibi
+özellikler kendi coin yazma kodunu oluşturmaz. İhtiyaç oluştuğunda ortak akış şu olur:
+
+`CampaignDefinition -> EligibilityPolicy -> Progress -> Claim -> GrantPlan -> Ledger/Inventory`
+
+- Kampanya tanımı immutable ve sürümlüdür; yayındaki sürüm yerinde değiştirilmez.
+- Eligibility, ilerleme ve ödül teslimatı ayrı katmanlardır. Bir oyuncunun kampanyayı
+  görmesi ödüle hak kazandığı anlamına gelmez.
+- Her claim kullanıcı + kampanya dönemi + ödül adımı bazında idempotent olur.
+- Gameplay, mission, event, comeback, promotion, payment ve admin kaynakları ayrı
+  provenance taşır; bir kaynağın cap veya abuse politikası diğerine uygulanmaz.
+- MySQL claim, ledger, inventory ve yayınlanmış kampanya gerçeğinin kaynağıdır. Redis
+  kısa süreli ilerleme, sayaç, cooldown ve cache için kullanılabilir; kayıp Redis verisi
+  sahiplik veya teslim edilmiş ödülü geri alamaz.
+- İstemci yalnız ilerleme/claim talebi gönderir. Zaman, uygunluk, market fiyatı, loot
+  sonucu ve teslim edilecek grant sunucuda doğrulanır.
+
+Bu ortak akış bugün runtime olarak kurulmayacaktır. İlk gerçek feature seçildiğinde yalnız
+o feature'ın ihtiyaç duyduğu minimum campaign/progress/claim parçaları ayrı branch'lerde
+eklenir; kullanılmayan generic tablolar önceden oluşturulmaz.
+
+### 7. Koleksiyon, market ve seri ürün sınırları
+
+- Rarity (`common`, `rare`, `epic`, `legendary`) katalog metadata'sıdır; tek başına
+  güç, fiyat veya loot oranı belirlemez.
+- Kart havuzu büyüdüğünde season/set ayrımı yapılır; bütün geçmiş kartlar tek ve giderek
+  seyreltilen loot havuzuna konmaz.
+- Night market kullanıcıya yayın anında immutable bir teklif snapshot'ı verir. Sahiplik,
+  fiyat, süre ve satın alma uygunluğu checkout sırasında yeniden doğrulanır.
+- Yeni oyuncu ve comeback serileri farklı campaign türleridir. Kaçırılan tek günün bütün
+  ilerlemeyi silmesi varsayılan davranış olmaz; salt login yerine server-verified anlamlı
+  aktivite tercih edilir.
+- Ücretli rastgele kutu ilk uygulama değildir. Önce ücretsiz/oynanarak kazanılan kozmetik
+  container, açık oran, pity, duplicate compensation, yaş/bölge ve refund politikası
+  onaylanmalıdır.
+- Kozmetik duplicate sonucu gerekiyorsa yalnız sürümlü bir shard/crafting varlığına
+  dönüşür; dönüşüm oranı loot table ile birlikte immutable kaydedilir.
+
 ## Alternatives Considered
 
 | Seçenek | Artı | Eksi | Karar |
@@ -118,4 +158,6 @@ onayı olmadan özellik aktif edilemez.
 - İkinci harcanabilir asset için onaylanmış ürün kuralları oluşması.
 - Mixed bundle (`COIN + cosmetic`) satışı planlanması.
 - İlk container/loot table ürününün oran, pity, duplicate ve refund politikalarının onayı.
+- İlk campaign tabanlı özelliğin ölçülebilir ihtiyaç ve başarı metriğiyle seçilmesi.
+- Katalog büyüklüğünün set/season, duplicate veya discovery sorununu gerçek veride göstermesi.
 - Grant effect sayısı veya fulfillment throughput'un mevcut transaction sınırlarını aşması.

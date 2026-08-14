@@ -217,6 +217,95 @@ Ek urun karari:
 - night market backlog'da kalir
 - store davranisi ve satin alma hizi gozlendikten sonra tekrar degerlendirilir
 
+## Gelecek LiveOps Ve Koleksiyon Yol Haritasi
+
+Bu bolum fikir havuzudur; launch kapsami veya implementasyon taahhudu degildir. Her
+ozellik ancak gercek oyuncu verisinde cozecegi problem goruldugunde ayri branch olarak
+ele alinir.
+
+Ortak teknik akis:
+
+`campaign -> eligibility -> progress -> claim -> versioned grant -> ledger/inventory`
+
+Bu ayrim sayesinde gorev, etkinlik, seri, market ve kutu odulleri ayni teslimat
+kontratini kullanirken kendi hedef kitle, sure, cap ve abuse kurallarini korur.
+
+### Yeni Oyuncu Serisi
+
+- Kayittan sonra baslayan 7 gunluk onboarding campaign'i olabilir.
+- Gunler mutlak takvim yerine kullaniciya ait campaign adimlari olarak tutulabilir.
+- Bir gun kacirmak tum seriyi sifirlamaz.
+- Salt login yerine ilk oyun, ilk tamamlanmis mac, ilk kozmetik secimi gibi
+  server-verified onboarding adimlari kullanilir.
+- Son odul coin yerine profil rozeti veya baslangic kozmetigi olabilir.
+
+### Geri Donus Serisi
+
+- Yalniz gercek bir inaktivite penceresinden sonra ve belirli cooldown ile acilir.
+- Oyuncunun bilerek oyundan uzak kalmasini daha karli hale getirmemelidir.
+- Kucuk coin, deneme kozmetigi, etkinlik ilerlemesi veya profil odulu kullanilabilir.
+- Yeni oyuncu serisiyle ayni anda stack edilmesi explicit eligibility kurali ister.
+
+### Etkinlik Ve Gorevler
+
+- Gunluk zorunluluk yerine haftada farkli gunlerde oynama gibi esnek hedefler tercih edilir.
+- Kategori kullanma, takim hedefi, topluluk hedefi, pas kullanmadan tamamlama ve sezonluk
+  koleksiyon gibi cesitler veri tabanli tanimlanabilir.
+- Ekranda baslangic/bitis, claim grace period, saat dilimi, kural, ilerleme ve odul net olur.
+- Oyuncuya alternatif gorev veya sinirli yenileme hakki verilebilir.
+- Her gorev coin vermek zorunda degildir; XP, badge, banner, kozmetik veya event token
+  dengesi kullanilir.
+
+### Night Market
+
+- Kullaniciya 4-6 sahip olunmayan urunden sureli teklif snapshot'i verilebilir.
+- Teklif acildiktan sonra urun, fiyat, indirim ve bitis zamani degismez.
+- Satin alma aninda snapshot sahipligi, sure ve server fiyati yeniden dogrulanir.
+- Ayni urunun surekli gelmesini engelleyen rotasyon ve rarity/indirim tavanlari gerekir.
+- Harcama davranisini somuren kisiye ozel fiyatlandirma kullanilmaz.
+
+### Koleksiyon, Set Ve Crafting
+
+- Kart sayisi buyudugunde season ve set kataloglari discovery sorununu azaltir.
+- Koleksiyon albumu, tamamlama rozeti, profil vitrini ve yalniz gorsel set prestiji
+  eklenebilir.
+- Duplicate kozmetik gerekiyorsa surumlu shard/crafting kuraliyla donusturulebilir.
+- Set tamamlama rekabet avantajina veya coin uretim carpanina donusmemelidir.
+
+### Kutu Ve Paket Acilisi
+
+- Ilk aday parayla satilan rastgele kutu degil, oyun/etkinlikle kazanilan kozmetik
+  container olmalidir.
+- Rarity metadata'si ile loot olasiligi ayri kavramlardir.
+- Immutable loot table version, acik oranlar, server-side CSPRNG, idempotent open request,
+  open receipt, pity ve duplicate compensation zorunludur.
+- Tum kartlar tek havuza doldurulmaz; set/season bazli kontrollu havuzlar kullanilir.
+- Ucretli rastgele icerik ancak yas/bolge, olasilik gosterimi, refund, tuketici hukuku ve
+  platform politikalari ayrica onaylanirsa degerlendirilir.
+
+### Diger Adaylar
+
+- sezon yolu ve ucretsiz odul seridi
+- topluluk hedefleri
+- profil unvani, rozet ve vitrin
+- kozmetik wishlist veya secili set pity'si
+- etkinlik magazasi ve sureli event token
+- ucretsiz kozmetik deneme bileti
+- oyun sonu takim basari kartlari
+
+## Implementasyon Acma Kriterleri
+
+Yeni bir feature branch acilmadan once su sorular cevaplanir:
+
+1. Hangi gercek oyuncu problemini cozuyor?
+2. Basari metrigi nedir: retention, discovery, conversion veya koleksiyon tamamlama mi?
+3. Yeni coin muslugu ya da zorunlu gunluk davranis uretiyor mu?
+4. Eligibility, claim idempotency, provenance, refund ve abuse siniri tanimli mi?
+5. Admin yayinlama/geri alma ve oyuncu bilgilendirme UX'i tanimli mi?
+6. Ozellik kapatildiginda sahiplik ve devam eden claim'ler nasil korunacak?
+
+Bu cevaplar ve yeterli saha verisi yoksa ozellik backlog'da kalir.
+
 ## Bu Branch Sonunda Hedeflenen Karar Ciktilari
 
 1. coin source aileleri net tanimli
@@ -231,6 +320,9 @@ Ek urun karari:
 2. gorev sistemi retention icin gerekli mi
 3. event claim UX'i oyuncu akisina nasil oturacak
 4. night market gercekten deger uretecek mi
+5. yeni oyuncu/comeback serisi hangi davranis problemini cozuyor
+6. katalog buyuklugu set, crafting veya loot gerektiriyor mu
+7. ucretsiz container modeli oyuncu guveni ve ekonomi pacing'iyle uyumlu mu
 
 ## Gelecekte Eklenebilecek Ayarlar
 
