@@ -1,6 +1,6 @@
 # Kalan Isler
 
-> Son guncelleme: 31 July 2026
+> Son guncelleme: 14 August 2026
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
@@ -9,7 +9,11 @@
 3. `feature/post-launch-economy-observability-review`
 4. `feature/post-launch-xp-level-foundation`
 5. `feature/post-launch-missions-foundation`
-6. `feature/post-launch-night-market-foundation`
+6. `feature/post-launch-new-player-and-comeback-campaigns`
+7. `feature/post-launch-events-foundation`
+8. `feature/post-launch-night-market-foundation`
+9. `feature/post-launch-collections-and-sets`
+10. `feature/post-launch-free-cosmetic-containers`
 
 `post-launch` branch'leri oyun acilip gercek saha verisi olusmadan
 implementasyona alinmaz.
@@ -229,6 +233,26 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - mixed bundle gerektiğinde yeni product kind ve effect-bazlı fulfillment/reversal result v2
 - loot/container için immutable table version, CSPRNG open receipt, pity ve provenance
 - oran/hukuk/refund politikası onaylanmadan loot runtime veya admin aktivasyon yüzeyi açılmayacak
+- campaign -> eligibility -> progress -> claim -> versioned grant ortak akışı ilk gerçek
+  liveops ihtiyacında minimum kapsamla kurulacak; kullanılmayan generic tablolar önceden açılmayacak
+- yeni oyuncu serisi, comeback serisi, görev, etkinlik ve sezon kaynakları ayrı provenance,
+  eligibility, cooldown ve cap politikaları taşıyacak
+- seriler tek gün kaçırınca varsayılan olarak sıfırlanmayacak; salt login yerine
+  server-verified anlamlı aktivite tercih edilecek
+- night market immutable kullanıcı teklif snapshot'ı, sahip olunmayan ürün filtresi,
+  süre/fiyat doğrulaması ve rotasyon sınırlarıyla ele alınacak
+- katalog büyüdüğünde season/set, koleksiyon albümü, profil vitrini ve gerekirse
+  sürümlü shard/crafting dönüşümü değerlendirilecek
+- ilk kutu adayı ücretli rastgele ürün değil, oyun veya etkinlikle kazanılan ücretsiz
+  kozmetik container olacak
+- tüm kartlar tek loot havuzuna konmayacak; set/season havuzu, açık oran, pity,
+  duplicate compensation ve immutable open receipt birlikte tasarlanacak
+- ücretli rastgele içerik yaş/bölge, tüketici hukuku, oran gösterimi ve refund politikası
+  ayrıca onaylanmadan backlog'dan implementasyona alınmayacak
+- aday ek özellikler: ücretsiz sezon yolu, topluluk hedefi, alternatif görev/yenileme,
+  etkinlik mağazası/token, kozmetik deneme bileti, profil unvanı ve takım başarı kartı
+- her branch öncesi çözülen problem, başarı metriği, admin yayın/geri alma UX'i,
+  kapatma davranışı ve abuse/refund sınırı yazılı olarak onaylanacak
 
 ### Ilk payment provider adapter'i
 - PayTR iFrame kriptografik ve transport adapter temeli tamamlandi
