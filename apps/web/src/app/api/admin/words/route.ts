@@ -10,6 +10,11 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { getWordAnalyticsSummaries } from "@/lib/analytics/word-analytics";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    GAME_CONTENT_LOCALES,
+    normalizeGameContentLocale,
+} from "@hushle/domain-game";
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +55,9 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get("difficulty");
     const categoryId = searchParams.get("categoryId");
     const analyticsDays = searchParams.get("analyticsDays") === "30" ? 30 : 7;
-    const locale = searchParams.get("locale");
+    const locale = normalizeGameContentLocale(searchParams.get("locale"));
 
-    const where: Record<string, unknown> = {};
-    if (locale === "tr" || locale === "en") where.locale = locale;
+    const where: Record<string, unknown> = { locale };
 
     if (search) {
         where.wordText = { contains: search };
@@ -108,7 +112,7 @@ const createWordSchema = z.object({
     difficulty: z.number().min(1).max(3),
     tabooWords: z.array(z.string().min(1).max(255)).min(1).max(10),
     categoryIds: z.array(z.number()).optional(),
-    locale: z.enum(["tr", "en"]).default("tr"),
+    locale: z.enum(GAME_CONTENT_LOCALES).default(DEFAULT_GAME_CONTENT_LOCALE),
 });
 
 export async function POST(request: NextRequest) {

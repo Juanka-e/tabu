@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    getGameContentLocaleDefinition,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 export type BulkUploadMode = "fixed_categories" | "csv_categories";
 
@@ -15,8 +20,13 @@ interface CategoryRecord {
     parentId: number | null;
 }
 
-export function normalizeLabel(value: string, locale: "tr" | "en" = "tr"): string {
-    return value.trim().toLocaleLowerCase(locale === "en" ? "en-US" : "tr-TR");
+export function normalizeLabel(
+    value: string,
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
+): string {
+    return value
+        .trim()
+        .toLocaleLowerCase(getGameContentLocaleDefinition(locale).intlLocale);
 }
 
 export function parsePositiveInteger(value: string): number | null {
@@ -31,7 +41,7 @@ export function parseRow(line: string): string[] {
 export async function resolveFixedCategoryIds(
     categoryIdValue: string,
     subcategoryIdValue: string,
-    locale: "tr" | "en" = "tr"
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
 ): Promise<number[] | { error: string }> {
     const selectedCategoryIds = [categoryIdValue, subcategoryIdValue]
         .map(parsePositiveInteger)
@@ -66,7 +76,10 @@ export async function resolveFixedCategoryIds(
     return categoryIdValue ? [parsePositiveInteger(categoryIdValue)!] : [];
 }
 
-export function buildCategoryIndex(categories: CategoryRecord[], locale: "tr" | "en" = "tr") {
+export function buildCategoryIndex(
+    categories: CategoryRecord[],
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
+) {
     const byRootName = new Map<string, CategoryRecord>();
     const byParentAndChildName = new Map<string, CategoryRecord>();
 
@@ -94,7 +107,7 @@ export function extractCsvCategoryIds(
     rowIndex: number,
     cols: string[],
     categoryIndex: ReturnType<typeof buildCategoryIndex>,
-    locale: "tr" | "en" = "tr"
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
 ): { categoryIds: number[]; tabooOffset: number } | { error: string } {
     const categoryName = cols[2] ?? "";
     const subcategoryName = cols[3] ?? "";
@@ -129,9 +142,15 @@ export async function processBulkWordUpload(options: {
     mode: BulkUploadMode;
     categoryIdValue?: string;
     subcategoryIdValue?: string;
-    locale?: "tr" | "en";
+    locale?: GameContentLocale;
 }) {
-    const { text, mode, categoryIdValue = "", subcategoryIdValue = "", locale = "tr" } = options;
+    const {
+        text,
+        mode,
+        categoryIdValue = "",
+        subcategoryIdValue = "",
+        locale = DEFAULT_GAME_CONTENT_LOCALE,
+    } = options;
 
     const lines = text.split("\n").filter((line) => line.trim());
     if (lines.length === 0) {

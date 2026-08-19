@@ -12,6 +12,10 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import {
+    GAME_CONTENT_LOCALES,
+    normalizeGameContentLocale,
+} from "@hushle/domain-game";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +25,7 @@ const updateCategorySchema = z.object({
     color: z.string().max(7).nullable().optional(),
     sortOrder: z.number().optional(),
     isVisible: z.boolean().optional(),
-    locale: z.enum(["tr", "en"]).optional(),
+    locale: z.enum(GAME_CONTENT_LOCALES).optional(),
 });
 
 export async function PUT(
@@ -69,7 +73,7 @@ export async function PUT(
             {
                 ...parsed,
                 parentId: parsed.parentId === undefined ? currentCategory.parentId : parsed.parentId,
-                locale: parsed.locale ?? (currentCategory.locale === "en" ? "en" : "tr"),
+                locale: parsed.locale ?? normalizeGameContentLocale(currentCategory.locale),
             },
             categoryId
         );

@@ -11,6 +11,10 @@ import {
     type BulkUploadMode,
 } from "@/lib/admin-words-bulk-upload/service";
 import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    isGameContentLocale,
+} from "@hushle/domain-game";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +43,16 @@ export async function POST(request: NextRequest) {
         const mode = String(formData.get("mode") || "fixed_categories").trim() as BulkUploadMode;
         const categoryIdValue = String(formData.get("categoryId") || "").trim();
         const subcategoryIdValue = String(formData.get("subcategoryId") || "").trim();
-        const localeValue = String(formData.get("locale") || "tr").trim();
-        const locale = localeValue === "en" ? "en" : "tr";
+        const localeValue = String(
+            formData.get("locale") || DEFAULT_GAME_CONTENT_LOCALE
+        ).trim();
+        if (!isGameContentLocale(localeValue)) {
+            return NextResponse.json(
+                { error: "Gecersiz kelime paketi dili." },
+                { status: 422, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+        const locale = localeValue;
 
         if (!(file instanceof File)) {
             return NextResponse.json(

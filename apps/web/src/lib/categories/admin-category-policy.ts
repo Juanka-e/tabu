@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { GameContentLocale } from "@hushle/domain-game";
 
 export interface NormalizedCategoryInput {
     name?: string;
@@ -6,7 +7,7 @@ export interface NormalizedCategoryInput {
     color?: string | null;
     sortOrder?: number;
     isVisible?: boolean;
-    locale?: "tr" | "en";
+    locale?: GameContentLocale;
 }
 
 export async function validateAdminCategoryInput(

@@ -32,6 +32,12 @@ import {
     describeBulkCategoryAssignment,
     resolveWordCategoryToggle,
 } from "@/lib/words/category-selection-ui";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    GAME_CONTENT_LOCALES,
+    GAME_CONTENT_LOCALE_DEFINITIONS,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 interface TabooWord {
     id: number;
@@ -46,7 +52,7 @@ interface Word {
     id: number;
     wordText: string;
     difficulty: number;
-    locale: "tr" | "en";
+    locale: GameContentLocale;
     tabooWords: TabooWord[];
     wordCategories: WordCategoryJoin[];
 }
@@ -138,7 +144,9 @@ function WordPerformance({
 
 export default function AdminWordsPage() {
     const [words, setWords] = useState<Word[]>([]);
-    const [selectedLocale, setSelectedLocale] = useState<"tr" | "en">("tr");
+    const [selectedLocale, setSelectedLocale] = useState<GameContentLocale>(
+        DEFAULT_GAME_CONTENT_LOCALE
+    );
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
@@ -499,7 +507,7 @@ export default function AdminWordsPage() {
                         <select
                             value={selectedLocale}
                             onChange={(event) => {
-                                setSelectedLocale(event.target.value as "tr" | "en");
+                                setSelectedLocale(event.target.value as GameContentLocale);
                                 setPage(1);
                                 setFilterCategoryId("");
                                 setFormCategoryIds([]);
@@ -507,8 +515,11 @@ export default function AdminWordsPage() {
                             className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-bold"
                             aria-label="Kelime paketi dili"
                         >
-                            <option value="tr">Türkçe paket</option>
-                            <option value="en">English pack</option>
+                            {GAME_CONTENT_LOCALES.map((locale) => (
+                                <option key={locale} value={locale}>
+                                    {GAME_CONTENT_LOCALE_DEFINITIONS[locale].adminLabel}
+                                </option>
+                            ))}
                         </select>
                         <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
                             <FileUp size={16} />

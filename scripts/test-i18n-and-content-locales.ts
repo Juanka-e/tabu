@@ -6,6 +6,11 @@ import {
     announcementTranslationsSchema,
     normalizeRequestedAnnouncementLocale,
 } from "../apps/web/src/lib/announcements/localization";
+import {
+    GAME_CONTENT_LOCALES,
+    GAME_CONTENT_LOCALE_DEFINITIONS,
+    normalizeGameContentLocale,
+} from "@hushle/domain-game";
 
 function leafKeys(value: unknown, prefix = ""): string[] {
     if (!value || typeof value !== "object") return [];
@@ -21,6 +26,10 @@ assert.equal(normalizeAppLocale("de"), "tr");
 assert.equal(normalizeRequestedAnnouncementLocale("en"), "en");
 assert.equal(normalizeRequestedAnnouncementLocale("fr"), "tr");
 assert.equal(translate("en", "game.round", { current: 2, total: 5 }), "Round 2/5");
+assert.deepEqual(GAME_CONTENT_LOCALES, ["tr", "en"]);
+assert.equal(GAME_CONTENT_LOCALE_DEFINITIONS.en.intlLocale, "en-US");
+assert.equal(normalizeGameContentLocale("en"), "en");
+assert.equal(normalizeGameContentLocale("de"), "tr");
 
 const translation = announcementTranslationsSchema.parse({
     tr: {

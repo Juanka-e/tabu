@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { GameContentLocale } from "@hushle/domain-game";
 
 export interface CategorySelectionValidationResult {
     normalizedCategoryIds: number[];
@@ -6,7 +7,7 @@ export interface CategorySelectionValidationResult {
 
 export async function validateWordCategorySelection(
     categoryIds: number[],
-    locale?: "tr" | "en"
+    locale?: GameContentLocale
 ): Promise<CategorySelectionValidationResult> {
     const normalizedCategoryIds = Array.from(
         new Set(

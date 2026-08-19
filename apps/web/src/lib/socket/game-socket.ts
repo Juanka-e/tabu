@@ -5,6 +5,7 @@ import { getToken } from "next-auth/jwt";
 import {
     TABU_DEFAULT_SETTINGS,
     TABU_MODE_ID,
+    GAME_CONTENT_LOCALES,
     createInitialTabuState,
     normalizeTabuRoomSettings,
     resolveTabuFinish,
@@ -353,7 +354,7 @@ const OdaIstegiSchema = z.object({
 const KategoriAyarlariSchema = z.object({
     seciliKategoriler: z.array(z.number().int().positive()).max(100),
     seciliZorluklar: z.array(z.number().int().min(1).max(3)).max(3),
-    wordLocale: z.enum(["tr", "en"]).optional(),
+    wordLocale: z.enum(GAME_CONTENT_LOCALES).optional(),
 });
 
 const DisplayNameUpdateSchema = z.object({
@@ -371,7 +372,7 @@ const StartGameSchema = z.object({
         sure: z.union([z.string(), z.number()]),
         mod: z.enum(["tur", "skor"]),
         deger: z.union([z.string(), z.number()]),
-        wordLocale: z.enum(["tr", "en"]).optional(),
+        wordLocale: z.enum(GAME_CONTENT_LOCALES).optional(),
     }),
 });
 

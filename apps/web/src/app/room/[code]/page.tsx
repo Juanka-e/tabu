@@ -36,6 +36,10 @@ import type {
     CategoryItem,
     PendingAdminHandoffState,
 } from "@/types/game";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 // Sub-components
 import { TransitionScreen } from "./_components/transition-screen";
@@ -112,7 +116,7 @@ export default function RoomPage() {
         sure: 60,
         mod: "tur" as "tur" | "skor",
         deger: 2,
-        wordLocale: "tr" as "tr" | "en",
+        wordLocale: DEFAULT_GAME_CONTENT_LOCALE as GameContentLocale,
     });
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [selectedDifficulties, setSelectedDifficulties] = useState<number[]>([]);
@@ -455,7 +459,7 @@ export default function RoomPage() {
                 socket.on("kategoriAyarlariGuncellendi", (data: {
                     seciliKategoriler: number[];
                     seciliZorluklar: number[];
-                    wordLocale?: "tr" | "en";
+                    wordLocale?: GameContentLocale;
                 }) => {
                     setSelectedCategories(data.seciliKategoriler);
                     setSelectedDifficulties(data.seciliZorluklar);

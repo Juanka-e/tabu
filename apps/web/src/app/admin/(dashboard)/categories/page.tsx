@@ -35,6 +35,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    GAME_CONTENT_LOCALES,
+    GAME_CONTENT_LOCALE_DEFINITIONS,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 interface Category {
     id: number;
@@ -43,7 +49,7 @@ interface Category {
     color: string | null;
     sortOrder: number;
     isVisible: boolean;
-    locale: "tr" | "en";
+    locale: GameContentLocale;
     children: Category[];
     _count?: { wordCategories: number };
 }
@@ -282,7 +288,9 @@ function SortableCategory({
 
 export default function AdminCategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
-    const [selectedLocale, setSelectedLocale] = useState<"tr" | "en">("tr");
+    const [selectedLocale, setSelectedLocale] = useState<GameContentLocale>(
+        DEFAULT_GAME_CONTENT_LOCALE
+    );
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState("");
@@ -677,12 +685,15 @@ export default function AdminCategoriesPage() {
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <select
                         value={selectedLocale}
-                        onChange={(event) => setSelectedLocale(event.target.value as "tr" | "en")}
+                        onChange={(event) => setSelectedLocale(event.target.value as GameContentLocale)}
                         className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold"
                         aria-label="Kelime paketi dili"
                     >
-                        <option value="tr">Türkçe paket</option>
-                        <option value="en">English pack</option>
+                        {GAME_CONTENT_LOCALES.map((locale) => (
+                            <option key={locale} value={locale}>
+                                {GAME_CONTENT_LOCALE_DEFINITIONS[locale].adminLabel}
+                            </option>
+                        ))}
                     </select>
                     <button
                         onClick={() => openCreate(null)}

@@ -7,7 +7,52 @@ export type MatchFormat = "tur" | "skor";
 export type Score = Record<TeamId, number>;
 export type MatchWinner = TeamId | "Berabere";
 export type WordAction = "dogru" | "tabu" | "pas";
-export type GameContentLocale = "tr" | "en";
+
+export const GAME_CONTENT_LOCALES = ["tr", "en"] as const;
+export type GameContentLocale = (typeof GAME_CONTENT_LOCALES)[number];
+
+export interface GameContentLocaleDefinition {
+    code: GameContentLocale;
+    nativeName: string;
+    adminLabel: string;
+    intlLocale: string;
+}
+
+export const GAME_CONTENT_LOCALE_DEFINITIONS: Readonly<
+    Record<GameContentLocale, GameContentLocaleDefinition>
+> = Object.freeze({
+    tr: Object.freeze({
+        code: "tr",
+        nativeName: "Türkçe",
+        adminLabel: "Türkçe paket",
+        intlLocale: "tr-TR",
+    }),
+    en: Object.freeze({
+        code: "en",
+        nativeName: "English",
+        adminLabel: "English pack",
+        intlLocale: "en-US",
+    }),
+});
+
+export const DEFAULT_GAME_CONTENT_LOCALE: GameContentLocale = "tr";
+
+export function isGameContentLocale(value: unknown): value is GameContentLocale {
+    return (
+        typeof value === "string" &&
+        GAME_CONTENT_LOCALES.includes(value as GameContentLocale)
+    );
+}
+
+export function normalizeGameContentLocale(value: unknown): GameContentLocale {
+    return isGameContentLocale(value) ? value : DEFAULT_GAME_CONTENT_LOCALE;
+}
+
+export function getGameContentLocaleDefinition(
+    locale: GameContentLocale
+): GameContentLocaleDefinition {
+    return GAME_CONTENT_LOCALE_DEFINITIONS[locale];
+}
 
 export interface TabuRoomSettings {
     sure: number;
@@ -49,7 +94,7 @@ export const TABU_DEFAULT_SETTINGS: Readonly<TabuRoomSettings> = Object.freeze({
     sure: 60,
     mod: "tur",
     deger: 2,
-    wordLocale: "tr",
+    wordLocale: DEFAULT_GAME_CONTENT_LOCALE,
 });
 
 export const TABU_PASS_LIMIT = 3;
@@ -73,7 +118,7 @@ export function normalizeTabuRoomSettings(input: unknown): TabuRoomSettings {
             ? Math.min(100, Math.max(10, rawValue || 10))
             : Math.min(30, Math.max(2, rawValue || 2));
 
-    const wordLocale: GameContentLocale = value.wordLocale === "en" ? "en" : "tr";
+    const wordLocale = normalizeGameContentLocale(value.wordLocale);
 
     return { sure, mod, deger, wordLocale };
 }

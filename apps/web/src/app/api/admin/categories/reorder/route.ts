@@ -13,11 +13,12 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import { z } from "zod";
+import { GAME_CONTENT_LOCALES } from "@hushle/domain-game";
 
 export const dynamic = "force-dynamic";
 
 const reorderRequestSchema = z.object({
-    locale: z.enum(["tr", "en"]),
+    locale: z.enum(GAME_CONTENT_LOCALES),
     updates: z.array(z.object({
         id: z.number().int().positive(),
         sortOrder: z.number().int().nonnegative(),

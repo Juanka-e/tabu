@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+    DEFAULT_GAME_CONTENT_LOCALE,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 // ─── Types ─────────────────────────────────────────────────────
 // Matches the CardData interface in @/types/game.ts
@@ -36,7 +40,7 @@ export async function primeWordPool(
     roomCode: string,
     categoryIds: number[],
     difficulties: number[],
-    locale: "tr" | "en" = "tr"
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
 ): Promise<void> {
     // If already priming, wait for it to finish
     if (primingLocks.has(roomCode)) {
@@ -91,7 +95,7 @@ export async function getNextWord(
     roomCode: string,
     categoryIds: number[],
     difficulties: number[],
-    locale: "tr" | "en" = "tr"
+    locale: GameContentLocale = DEFAULT_GAME_CONTENT_LOCALE
 ): Promise<WordDrawResult | null> {
     // Rate limiter logic is better placed in the caller (socket), but we can protect cache stampede here
     let pool = wordPools.get(roomCode);

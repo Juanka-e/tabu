@@ -26,10 +26,15 @@ import type {
     RoomStartReadiness,
 } from "@/types/game";
 import { useI18n } from "@/components/providers/i18n-provider";
+import {
+    GAME_CONTENT_LOCALES,
+    GAME_CONTENT_LOCALE_DEFINITIONS,
+    type GameContentLocale,
+} from "@hushle/domain-game";
 
 interface LobbyProps {
     roomCode: string;
-    settings: { sure: number; mod: "tur" | "skor"; deger: number; wordLocale: "tr" | "en" };
+    settings: { sure: number; mod: "tur" | "skor"; deger: number; wordLocale: GameContentLocale };
     selectedCategories: number[];
     selectedDifficulties: number[];
     categories: CategoryItem[];
@@ -40,7 +45,7 @@ interface LobbyProps {
         sure: number;
         mod: "tur" | "skor";
         deger: number;
-        wordLocale: "tr" | "en";
+        wordLocale: GameContentLocale;
     }) => void;
     onUpdateCategories: (ids: number[]) => void;
     onUpdateDifficulties: (ids: number[]) => void;
@@ -446,14 +451,17 @@ export function Lobby({
                                 onChange={(event) =>
                                     onUpdateSettings({
                                         ...settings,
-                                        wordLocale: event.target.value as "tr" | "en",
+                                        wordLocale: event.target.value as GameContentLocale,
                                     })
                                 }
                                 disabled={!isHost}
                                 className="mt-2 w-full rounded-lg border border-sky-200 bg-white p-2.5 text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-sky-900 dark:bg-slate-900 dark:text-white"
                             >
-                                <option value="tr">{t("room.turkishWords")}</option>
-                                <option value="en">{t("room.englishWords")}</option>
+                                {GAME_CONTENT_LOCALES.map((locale) => (
+                                    <option key={locale} value={locale}>
+                                        {GAME_CONTENT_LOCALE_DEFINITIONS[locale].nativeName}
+                                    </option>
+                                ))}
                             </select>
                             <p className="mt-2 text-xs text-sky-700 dark:text-sky-300">
                                 {t("room.wordLanguageHelp")}

@@ -57,6 +57,58 @@ geçmelidir.
 global değil `(locale, wordText)` bazındadır; aynı yazım farklı paketlerde
 bulunabilir.
 
+Türkçe ve İngilizce için ayrı fiziksel tablolar oluşturulmaz. Bütün diller tek
+`words`, `taboo_words`, `categories` ve `word_categories` modelini paylaşır;
+paket ayrımı indeksli `locale` alanıyla yapılır. Bu sayede onuncu dil de yeni bir
+tablo veya kolon migration'ı gerektirmez. Dil başına ayrı tablo kullanmak CRUD,
+istatistik, audit, import ve socket sorgularını her dilde çoğaltacağı için
+yasaktır.
+
+Desteklenen oyun içeriği dilleri `@hushle/domain-game` paketindeki
+`GAME_CONTENT_LOCALES` ve `GAME_CONTENT_LOCALE_DEFINITIONS` kayıtlarından gelir.
+Arayüz dili kayıt listesiyle aynı olmak zorunda değildir. Örneğin oyuncu İngilizce
+arayüz kullanırken odada Türkçe kelime paketi seçebilir.
+
+### Admin paket iş akışı
+
+- kategori ve kelime ekranlarında önce aktif paket seçilir;
+- listeleme, arama, düzenleme, silme ve sıralama yalnız seçilen `locale` içinde
+  çalışır;
+- her dilin kategori ağacı ve `sortOrder` değerleri bağımsızdır;
+- tekli kelime ekleme/düzenleme seçilen paketin kategorilerini kullanır;
+- sabit kategori ve CSV-kategori toplu yükleme modları seçilen `locale` değerini
+  API'ye taşır;
+- geçersiz locale sunucuda reddedilir; bilinmeyen değer sessizce Türkçe pakete
+  yazılmaz;
+- aynı kelime farklı dillerde bulunabilir, fakat aynı dilde ikinci kez eklenemez;
+- bir kelimenin ana metni, yasaklı kelimeleri, zorluğu ve kategorileri diğer
+  dillerden bağımsızdır. Birebir çeviri zorunlu değildir.
+
+Lobide yönetici kelime dilini değiştirdiğinde önce eski kategori seçimi ve oda
+kelime havuzu temizlenir. Sunucu yeni locale'in görünür kategorilerini
+`sortOrder` ile getirir ve sonraki kelime SQL sorgularına oda `wordLocale`
+filtresini zorunlu olarak ekler. Böylece eski kategori ID'leri veya başka dildeki
+kelimeler istemci manipülasyonuyla oyuna taşınamaz.
+
+### On dile büyüme
+
+Üçüncü dil eklenirken merkezi oyun içeriği locale kayıtlarına kod, yerel ad,
+admin etiketi ve `Intl` locale değeri eklenir. Admin seçicileri, lobi seçicisi,
+Zod doğrulamaları ve locale'e duyarlı metin normalizasyonu aynı kayıttan beslenir.
+
+İçerik operasyonu büyüdüğünde aşağıdakiler ayrı bir migration ile eklenebilir:
+
+- paket bazında `draft`, `review`, `published`, `disabled` yayın durumu;
+- minimum yayınlanabilir kategori/kelime sayısı ve paket hazırlık raporu;
+- CSV/JSON dışa aktarma, dry-run import ve satır bazlı hata raporu;
+- isteğe bağlı `conceptGroupId` ile diller arası karşılıkları editörde yan yana
+  gösterme;
+- çevirmen/reviewer rolü ve içerik revizyon geçmişi.
+
+`conceptGroupId` yalnız editör yardımı ve raporlama içindir. Bir kelimenin başka
+bir dilde birebir karşılığı olmayabilir; bu nedenle eksik karşılık oyunu veya
+paket yayınını otomatik olarak engellemez.
+
 Sunucu kontrolleri:
 
 - kelime yalnız aynı locale kategorilerine bağlanabilir;
@@ -72,9 +124,10 @@ ve kategori olmadan oyun başlatılamaz; Türkçe kelimeler sessizce karıştır
 
 ## Yeni Dil Ekleme
 
-1. `SUPPORTED_LOCALES` ve iki sözlükteki tüm anahtar kontratını genişlet.
-2. Prisma/API locale şemalarını merkezi locale tipinden üretilecek hale getir.
-3. Admin duyuru çeviri sekmesini ekle ve fallback sırasını açıkça belirle.
+1. Kelime paketi için `GAME_CONTENT_LOCALES` ve locale tanım kaydını genişlet.
+2. Arayüz de bu dili destekleyecekse ayrıca `SUPPORTED_LOCALES` ve sözlükteki tüm
+   anahtar kontratını genişlet; kelime paketi eklemek bunu zorunlu kılmaz.
+3. Duyurular bu dile çevrilecekse admin çeviri sekmesini ve fallback sırasını ekle.
 4. Kelime/kategori import, reorder, taşıma ve socket testlerini yeni locale ile çalıştır.
 5. Web ve gelecekteki mobile API locale sözleşmesini aynı sürümde yayınla.
 

@@ -10,6 +10,10 @@ import {
     consumeRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
+import {
+    GAME_CONTENT_LOCALES,
+    normalizeGameContentLocale,
+} from "@hushle/domain-game";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +62,7 @@ const updateWordSchema = z.object({
     difficulty: z.number().min(1).max(3).optional(),
     tabooWords: z.array(z.string().min(1).max(255)).optional(),
     categoryIds: z.array(z.number()).optional(),
-    locale: z.enum(["tr", "en"]).optional(),
+    locale: z.enum(GAME_CONTENT_LOCALES).optional(),
 });
 
 export async function PUT(
@@ -95,7 +99,7 @@ export async function PUT(
         if (!currentWord) {
             return NextResponse.json({ error: "Kelime bulunamadı." }, { status: 404 });
         }
-        const nextLocale = data.locale ?? (currentWord.locale === "en" ? "en" : "tr");
+        const nextLocale = data.locale ?? normalizeGameContentLocale(currentWord.locale);
         if (data.locale && data.locale !== currentWord.locale && data.categoryIds === undefined) {
             return NextResponse.json(
                 { error: "Kelime dilini değiştirirken kategorileri yeniden seçmelisiniz." },
