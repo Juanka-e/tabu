@@ -9,7 +9,6 @@ import {
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import {
-    announcementBlocksSchema,
     announcementBlocksToHtml,
     announcementBlocksToPreview,
     normalizeAnnouncementBlocks,
@@ -19,13 +18,16 @@ import {
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
+import {
+    announcementTranslationsSchema,
+    announcementTypeSchema,
+} from "@/lib/announcements/localization";
 
 export const dynamic = "force-dynamic";
 
 const createAnnouncementSchema = z.object({
-    title: z.string().trim().min(1).max(255),
-    contentBlocks: announcementBlocksSchema,
-    type: z.enum(["guncelleme", "duyuru"]).default("guncelleme"),
+    translations: announcementTranslationsSchema,
+    type: announcementTypeSchema.default("guncelleme"),
     isVisible: z.boolean().default(true),
     isPinned: z.boolean().default(false),
     version: z.string().trim().max(50).nullable().optional(),
@@ -59,6 +61,7 @@ export async function GET(request: NextRequest) {
 
     const announcements = await prisma.announcement.findMany({
         orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        include: { translations: true },
     });
 
     return NextResponse.json(
@@ -71,9 +74,34 @@ export async function GET(request: NextRequest) {
                 announcement.contentBlocks,
                 announcement.content
             );
+            const translations = Object.fromEntries(
+                announcement.translations.map((translation) => {
+                    const blocks = normalizeAnnouncementBlocks(
+                        translation.contentBlocks,
+                        translation.content
+                    );
+                    return [
+                        translation.locale,
+                        {
+                            title: translation.title,
+                            contentBlocks: blocks,
+                            contentPreview: announcementBlocksToPreview(blocks),
+                        },
+                    ];
+                })
+            );
+
+            if (!translations.tr) {
+                translations.tr = {
+                    title: announcement.title,
+                    contentBlocks,
+                    contentPreview: announcementBlocksToPreview(contentBlocks),
+                };
+            }
 
             return {
                 ...announcement,
+                translations,
                 contentBlocks,
                 contentPreview: announcementBlocksToPreview(contentBlocks),
                 mediaUrl: sanitizedMedia.mediaUrl,
@@ -106,17 +134,19 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const data = createAnnouncementSchema.parse(body);
+        const turkish = data.translations.tr;
+        const english = data.translations.en;
         const sanitizedMedia = sanitizeAnnouncementMedia(
             data.mediaUrl,
             toAnnouncementMediaType(data.mediaType)
         );
-        const htmlContent = announcementBlocksToHtml(data.contentBlocks);
+        const htmlContent = announcementBlocksToHtml(turkish.contentBlocks);
 
         const announcement = await prisma.announcement.create({
             data: {
-                title: data.title,
+                title: turkish.title,
                 content: htmlContent,
-                contentBlocks: toAnnouncementInputJson(data.contentBlocks),
+                contentBlocks: toAnnouncementInputJson(turkish.contentBlocks),
                 type: data.type,
                 isVisible: data.isVisible,
                 isPinned: data.isPinned,
@@ -124,7 +154,26 @@ export async function POST(request: NextRequest) {
                 tags: data.tags || null,
                 mediaUrl: sanitizedMedia.mediaUrl,
                 mediaType: sanitizedMedia.mediaType,
+                translations: {
+                    create: [
+                        {
+                            locale: "tr",
+                            title: turkish.title,
+                            content: htmlContent,
+                            contentBlocks: toAnnouncementInputJson(turkish.contentBlocks),
+                        },
+                        ...(english
+                            ? [{
+                                  locale: "en",
+                                  title: english.title,
+                                  content: announcementBlocksToHtml(english.contentBlocks),
+                                  contentBlocks: toAnnouncementInputJson(english.contentBlocks),
+                              }]
+                            : []),
+                    ],
+                },
             },
+            include: { translations: true },
         });
 
         await writeAuditLog({

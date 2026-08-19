@@ -5,7 +5,8 @@ export interface CategorySelectionValidationResult {
 }
 
 export async function validateWordCategorySelection(
-    categoryIds: number[]
+    categoryIds: number[],
+    locale?: "tr" | "en"
 ): Promise<CategorySelectionValidationResult> {
     const normalizedCategoryIds = Array.from(
         new Set(
@@ -25,11 +26,16 @@ export async function validateWordCategorySelection(
             id: true,
             name: true,
             parentId: true,
+            locale: true,
         },
     });
 
     if (categories.length !== normalizedCategoryIds.length) {
         throw new Error("Secilen kategorilerden biri bulunamadi.");
+    }
+
+    if (locale && categories.some((category) => category.locale !== locale)) {
+        throw new Error("Kelime yalnızca kendi dilindeki kategorilere bağlanabilir.");
     }
 
     const categoriesById = new Map(categories.map((category) => [category.id, category]));

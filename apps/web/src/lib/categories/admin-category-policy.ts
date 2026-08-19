@@ -6,6 +6,7 @@ export interface NormalizedCategoryInput {
     color?: string | null;
     sortOrder?: number;
     isVisible?: boolean;
+    locale?: "tr" | "en";
 }
 
 export async function validateAdminCategoryInput(
@@ -30,6 +31,7 @@ export async function validateAdminCategoryInput(
             select: {
                 id: true,
                 parentId: true,
+                locale: true,
             },
         });
 
@@ -39,6 +41,10 @@ export async function validateAdminCategoryInput(
 
         if (parentCategory.parentId !== null) {
             throw new Error("Alt kategorinin altina tekrar kategori eklenemez. Su an yalnizca tek seviye destekleniyor.");
+        }
+
+        if (input.locale && parentCategory.locale !== input.locale) {
+            throw new Error("Alt kategori ile üst kategori aynı kelime dilinde olmalıdır.");
         }
     }
 

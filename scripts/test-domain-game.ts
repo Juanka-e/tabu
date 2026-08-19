@@ -15,11 +15,14 @@ assert.deepEqual(normalizeTabuRoomSettings({ sure: 10, mod: "tur", deger: 1 }), 
     sure: 30,
     mod: "tur",
     deger: 2,
+    wordLocale: "tr",
 });
 assert.deepEqual(
     normalizeTabuRoomSettings({ sure: 999, mod: "skor", deger: 999 }),
-    { sure: 120, mod: "skor", deger: 100 }
+    { sure: 120, mod: "skor", deger: 100, wordLocale: "tr" }
 );
+assert.equal(normalizeTabuRoomSettings({ wordLocale: "en" }).wordLocale, "en");
+assert.equal(normalizeTabuRoomSettings({ wordLocale: "de" }).wordLocale, "tr");
 
 const initialState = createInitialTabuState(TABU_DEFAULT_SETTINGS);
 assert.equal(initialState.kalanZaman, 60);

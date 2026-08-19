@@ -54,6 +54,7 @@ export interface RoomSettings {
     sure: number;
     mod: "tur" | "skor";
     deger: number;
+    wordLocale: "tr" | "en";
 }
 
 export interface RoomData {

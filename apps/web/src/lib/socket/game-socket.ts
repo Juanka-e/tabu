@@ -353,6 +353,7 @@ const OdaIstegiSchema = z.object({
 const KategoriAyarlariSchema = z.object({
     seciliKategoriler: z.array(z.number().int().positive()).max(100),
     seciliZorluklar: z.array(z.number().int().min(1).max(3)).max(3),
+    wordLocale: z.enum(["tr", "en"]).optional(),
 });
 
 const DisplayNameUpdateSchema = z.object({
@@ -370,6 +371,7 @@ const StartGameSchema = z.object({
         sure: z.union([z.string(), z.number()]),
         mod: z.enum(["tur", "skor"]),
         deger: z.union([z.string(), z.number()]),
+        wordLocale: z.enum(["tr", "en"]).optional(),
     }),
 });
 
@@ -584,7 +586,8 @@ export function setupGameSocket(
 
     async function sendVisibleCategories(socket: Socket): Promise<void> {
         try {
-            const categories = await getVisibleCategories();
+            const room = getRoomBySocketId(socket.id);
+            const categories = await getVisibleCategories(room?.ayarlar.wordLocale ?? "tr");
             if (Array.isArray(categories) && categories.length > 0) {
                 socket.emit("kategoriListesiGonder", categories);
             }
@@ -786,7 +789,8 @@ export function setupGameSocket(
             const draw = await getNextWord(
                 currentRoom.odaKodu,
                 currentRoom.gecerliKategoriIdleri,
-                currentRoom.gecerliZorlukSeviyeleri
+                currentRoom.gecerliZorlukSeviyeleri,
+                currentRoom.ayarlar.wordLocale
             );
 
             const card = draw?.card ?? null;
@@ -1018,7 +1022,8 @@ export function setupGameSocket(
             const draw = await getNextWord(
                 room.odaKodu,
                 room.gecerliKategoriIdleri,
-                room.gecerliZorlukSeviyeleri
+                room.gecerliZorlukSeviyeleri,
+                room.ayarlar.wordLocale
             );
 
             const card = draw?.card ?? null;
@@ -1779,8 +1784,9 @@ export function setupGameSocket(
                         return;
                     }
 
+                    room.ayarlar = normalizeTabuRoomSettings(ayarlar);
                     const visibleCategoryIds = collectVisibleCategoryIds(
-                        await getVisibleCategories()
+                        await getVisibleCategories(room.ayarlar.wordLocale)
                     );
                     const allowedCategoryIds = [
                         ...new Set(seciliKategoriler),
@@ -1788,7 +1794,6 @@ export function setupGameSocket(
                         visibleCategoryIds.has(categoryId)
                     );
 
-                    room.ayarlar = normalizeTabuRoomSettings(ayarlar);
                     room.gecerliKategoriIdleri = allowedCategoryIds;
                     room.gecerliZorlukSeviyeleri = seciliZorluklar;
 
@@ -2058,7 +2063,7 @@ export function setupGameSocket(
                     socket.emit("hata", "Geçersiz kategori verisi.");
                     return;
                 }
-                const { seciliKategoriler, seciliZorluklar } = parsed.data;
+                const { seciliKategoriler, seciliZorluklar, wordLocale } = parsed.data;
                 const room = getRoomBySocketId(socket.id);
                 if (!room) return;
                 const player = room.oyuncular.find((p) => p.id === socket.id);
@@ -2073,15 +2078,26 @@ export function setupGameSocket(
                         if (room.oyunDurumu.oyunAktifMi) {
                             return;
                         }
-                        const visibleCategoryIds = collectVisibleCategoryIds(
-                            await getVisibleCategories()
-                        );
+                        const previousLocale = room.ayarlar.wordLocale;
+                        if (wordLocale) {
+                            room.ayarlar = normalizeTabuRoomSettings({
+                                ...room.ayarlar,
+                                wordLocale,
+                            });
+                        }
+                        const visibleCategories = await getVisibleCategories(room.ayarlar.wordLocale);
+                        const visibleCategoryIds = collectVisibleCategoryIds(visibleCategories);
                         room.seciliKategoriler = [
                             ...new Set(seciliKategoriler),
                         ].filter((categoryId) =>
                             visibleCategoryIds.has(categoryId)
                         );
                         room.seciliZorluklar = seciliZorluklar;
+                        if (previousLocale !== room.ayarlar.wordLocale) {
+                            clearWordPool(room.odaKodu);
+                            room.seciliKategoriler = [];
+                            io.to(room.odaKodu).emit("kategoriListesiGonder", visibleCategories);
+                        }
                         persistRoom(room);
 
                         io.to(room.odaKodu).emit(
@@ -2089,6 +2105,7 @@ export function setupGameSocket(
                             {
                                 seciliKategoriler: room.seciliKategoriler,
                                 seciliZorluklar: room.seciliZorluklar,
+                                wordLocale: room.ayarlar.wordLocale,
                             }
                         );
                     }

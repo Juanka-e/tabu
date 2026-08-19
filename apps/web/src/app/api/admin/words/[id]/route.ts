@@ -58,6 +58,7 @@ const updateWordSchema = z.object({
     difficulty: z.number().min(1).max(3).optional(),
     tabooWords: z.array(z.string().min(1).max(255)).optional(),
     categoryIds: z.array(z.number()).optional(),
+    locale: z.enum(["tr", "en"]).optional(),
 });
 
 export async function PUT(
@@ -87,8 +88,38 @@ export async function PUT(
         const wordId = parseInt(id);
         const body = await request.json();
         const data = updateWordSchema.parse(body);
+        const currentWord = await prisma.word.findUnique({
+            where: { id: wordId },
+            select: { locale: true, wordText: true },
+        });
+        if (!currentWord) {
+            return NextResponse.json({ error: "Kelime bulunamadı." }, { status: 404 });
+        }
+        const nextLocale = data.locale ?? (currentWord.locale === "en" ? "en" : "tr");
+        if (data.locale && data.locale !== currentWord.locale && data.categoryIds === undefined) {
+            return NextResponse.json(
+                { error: "Kelime dilini değiştirirken kategorileri yeniden seçmelisiniz." },
+                { status: 400, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
+        const nextWordText = data.wordText?.trim() ?? currentWord.wordText;
+        const duplicateWord = await prisma.word.findFirst({
+            where: {
+                id: { not: wordId },
+                locale: nextLocale,
+                wordText: nextWordText,
+            },
+            select: { id: true },
+        });
+        if (duplicateWord) {
+            return NextResponse.json(
+                { error: "Bu kelime seçilen dil paketinde zaten mevcut." },
+                { status: 409, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
         const normalizedCategoryIds = data.categoryIds
-            ? (await validateWordCategorySelection(data.categoryIds)).normalizedCategoryIds
+            ? (await validateWordCategorySelection(data.categoryIds, nextLocale)).normalizedCategoryIds
             : undefined;
 
         // Update word and related data in a transaction
@@ -99,6 +130,7 @@ export async function PUT(
                 data: {
                     wordText: data.wordText,
                     difficulty: data.difficulty,
+                    locale: data.locale,
                 },
             });
 

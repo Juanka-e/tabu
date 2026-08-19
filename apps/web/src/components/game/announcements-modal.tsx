@@ -11,13 +11,14 @@ import {
 import type { AnnouncementBlocks } from "@/lib/announcements/content";
 import { AnnouncementBlocksView } from "@/components/game/announcement-blocks-view";
 import { AnnouncementPreviewCard } from "@/components/game/announcement-preview-card";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface Announcement {
     id: number;
     title: string;
     contentBlocks: AnnouncementBlocks;
     preview: string;
-    type: "guncelleme" | "duyuru";
+    type: "guncelleme" | "duyuru" | "sss";
     created_at: string;
     isPinned: boolean;
     version?: string | null;
@@ -33,19 +34,24 @@ interface AnnouncementsModalProps {
 }
 
 export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps) {
+    const { locale, t } = useI18n();
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<"updates" | "announcements">("updates");
+    const [loadedLocale, setLoadedLocale] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<"updates" | "announcements" | "faq">("updates");
 
     useEffect(() => {
         if (!isOpen) {
             return;
         }
 
+        const controller = new AbortController();
         const recentThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-        fetch("/api/announcements/visible", { cache: "no-store" })
+        fetch(`/api/announcements/visible?locale=${locale}`, {
+            cache: "no-store",
+            signal: controller.signal,
+        })
             .then(async (response) => {
                 if (!response.ok) {
                     throw new Error("request_failed");
@@ -60,13 +66,18 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                     }))
                 );
             })
-            .catch(() => {
-                setAnnouncements([]);
+            .catch((error: unknown) => {
+                if (!(error instanceof DOMException && error.name === "AbortError")) {
+                    setAnnouncements([]);
+                }
             })
             .finally(() => {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoadedLocale(locale);
+                }
             });
-    }, [isOpen]);
+        return () => controller.abort();
+    }, [isOpen, locale]);
 
     const updates = useMemo(
         () => announcements.filter((announcement) => announcement.type === "guncelleme"),
@@ -76,7 +87,12 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
         () => announcements.filter((announcement) => announcement.type === "duyuru"),
         [announcements]
     );
-    const activeItems = activeTab === "updates" ? updates : notices;
+    const faq = useMemo(
+        () => announcements.filter((announcement) => announcement.type === "sss"),
+        [announcements]
+    );
+    const activeItems = activeTab === "updates" ? updates : activeTab === "announcements" ? notices : faq;
+    const loading = loadedLocale !== locale;
 
     if (!isOpen) {
         return null;
@@ -93,17 +109,21 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                             ) : (
                                 <Megaphone size={18} className="text-orange-500" />
                             )}
-                            {activeTab === "updates" ? "Yenilikler" : "Duyurular"}
+                            {activeTab === "updates"
+                                ? t("announcements.titleUpdates")
+                                : activeTab === "announcements"
+                                  ? t("announcements.titleNotices")
+                                  : t("announcements.titleFaq")}
                         </h2>
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Son gelismeler ve yayinlanan duyurular.
+                            {t("announcements.subtitle")}
                         </p>
                     </div>
                     <button
                         onClick={onClose}
                         className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-slate-800"
-                        aria-label="Duyurulari kapat"
-                        title="Kapat"
+                        aria-label={t("common.close")}
+                        title={t("common.close")}
                     >
                         <X size={20} />
                     </button>
@@ -121,7 +141,7 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                                 : "border border-gray-200 bg-white text-gray-500 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
                         }`}
                     >
-                        Guncellemeler
+                        {t("announcements.updates")}
                     </button>
                     <button
                         onClick={() => {
@@ -134,7 +154,20 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                                 : "border border-gray-200 bg-white text-gray-500 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
                         }`}
                     >
-                        Duyurular
+                        {t("announcements.notices")}
+                    </button>
+                    <button
+                        onClick={() => {
+                            setActiveTab("faq");
+                            setExpandedId(null);
+                        }}
+                        className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition-all ${
+                            activeTab === "faq"
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                                : "border border-gray-200 bg-white text-gray-500 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                        }`}
+                    >
+                        {t("announcements.faq")}
                     </button>
                 </div>
 
@@ -146,7 +179,7 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                     ) : activeItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400 dark:text-slate-600">
                             {activeTab === "updates" ? <Rocket size={34} /> : <Megaphone size={34} />}
-                            <p className="mt-3 text-sm font-medium">Bu kategoride henuz icerik yok.</p>
+                            <p className="mt-3 text-sm font-medium">{t("announcements.empty")}</p>
                         </div>
                     ) : (
                         <div className="space-y-4">

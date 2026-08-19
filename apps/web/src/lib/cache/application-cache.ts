@@ -41,6 +41,10 @@ export const APPLICATION_CACHE_KEYS = {
     ),
 } as const;
 
+export function getVisibleCategoriesCacheKey(locale: "tr" | "en"): string {
+    return getRedisKey("cache", "visible-categories", "v2", locale);
+}
+
 export async function invalidateAdminDashboardStatsCache(): Promise<void> {
     await invalidateJsonCache(
         APPLICATION_CACHE_KEYS.adminDashboardStaticStats
@@ -101,5 +105,9 @@ export async function invalidateUserDashboardMatchSummaryCache(
 }
 
 export async function invalidateVisibleCategoriesCache(): Promise<void> {
-    await invalidateJsonCache(APPLICATION_CACHE_KEYS.visibleCategories);
+    await Promise.all([
+        invalidateJsonCache(APPLICATION_CACHE_KEYS.visibleCategories),
+        invalidateJsonCache(getVisibleCategoriesCacheKey("tr")),
+        invalidateJsonCache(getVisibleCategoriesCacheKey("en")),
+    ]);
 }

@@ -7,11 +7,13 @@ export type MatchFormat = "tur" | "skor";
 export type Score = Record<TeamId, number>;
 export type MatchWinner = TeamId | "Berabere";
 export type WordAction = "dogru" | "tabu" | "pas";
+export type GameContentLocale = "tr" | "en";
 
 export interface TabuRoomSettings {
     sure: number;
     mod: MatchFormat;
     deger: number;
+    wordLocale: GameContentLocale;
 }
 
 export interface TabuInitialState {
@@ -47,6 +49,7 @@ export const TABU_DEFAULT_SETTINGS: Readonly<TabuRoomSettings> = Object.freeze({
     sure: 60,
     mod: "tur",
     deger: 2,
+    wordLocale: "tr",
 });
 
 export const TABU_PASS_LIMIT = 3;
@@ -70,7 +73,9 @@ export function normalizeTabuRoomSettings(input: unknown): TabuRoomSettings {
             ? Math.min(100, Math.max(10, rawValue || 10))
             : Math.min(30, Math.max(2, rawValue || 2));
 
-    return { sure, mod, deger };
+    const wordLocale: GameContentLocale = value.wordLocale === "en" ? "en" : "tr";
+
+    return { sure, mod, deger, wordLocale };
 }
 
 export function createInitialTabuState(

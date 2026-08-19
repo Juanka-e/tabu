@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    const locale = request.nextUrl.searchParams.get("locale");
     const categories = await prisma.category.findMany({
         orderBy: { sortOrder: "asc" },
         include: {
@@ -46,7 +47,10 @@ export async function GET(request: NextRequest) {
             },
             _count: { select: { wordCategories: true } },
         },
-        where: { parentId: null },
+        where: {
+            parentId: null,
+            ...(locale === "tr" || locale === "en" ? { locale } : {}),
+        },
     });
 
     return NextResponse.json(categories, {
@@ -60,6 +64,7 @@ const createCategorySchema = z.object({
     color: z.string().max(7).nullable().optional(),
     sortOrder: z.number().optional(),
     isVisible: z.boolean().optional(),
+    locale: z.enum(["tr", "en"]).default("tr"),
 });
 
 export async function POST(request: NextRequest) {
@@ -93,6 +98,7 @@ export async function POST(request: NextRequest) {
                 color: data.color ?? null,
                 sortOrder: data.sortOrder ?? 0,
                 isVisible: data.isVisible ?? true,
+                locale: data.locale ?? "tr",
             },
         });
 

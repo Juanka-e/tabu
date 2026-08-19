@@ -50,8 +50,10 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get("difficulty");
     const categoryId = searchParams.get("categoryId");
     const analyticsDays = searchParams.get("analyticsDays") === "30" ? 30 : 7;
+    const locale = searchParams.get("locale");
 
     const where: Record<string, unknown> = {};
+    if (locale === "tr" || locale === "en") where.locale = locale;
 
     if (search) {
         where.wordText = { contains: search };
@@ -106,6 +108,7 @@ const createWordSchema = z.object({
     difficulty: z.number().min(1).max(3),
     tabooWords: z.array(z.string().min(1).max(255)).min(1).max(10),
     categoryIds: z.array(z.number()).optional(),
+    locale: z.enum(["tr", "en"]).default("tr"),
 });
 
 export async function POST(request: NextRequest) {
@@ -130,11 +133,11 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const data = createWordSchema.parse(body);
-        const { normalizedCategoryIds } = await validateWordCategorySelection(data.categoryIds ?? []);
+        const { normalizedCategoryIds } = await validateWordCategorySelection(data.categoryIds ?? [], data.locale);
 
         // Check for duplicate
         const existing = await prisma.word.findUnique({
-            where: { wordText: data.wordText },
+            where: { locale_wordText: { locale: data.locale, wordText: data.wordText } },
         });
         if (existing) {
             return NextResponse.json(
@@ -147,6 +150,7 @@ export async function POST(request: NextRequest) {
             data: {
                 wordText: data.wordText,
                 difficulty: data.difficulty,
+                locale: data.locale,
                 tabooWords: {
                     create: data.tabooWords.map((tw) => ({ tabooWordText: tw })),
                 },

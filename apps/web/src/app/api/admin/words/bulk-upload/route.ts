@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         const mode = String(formData.get("mode") || "fixed_categories").trim() as BulkUploadMode;
         const categoryIdValue = String(formData.get("categoryId") || "").trim();
         const subcategoryIdValue = String(formData.get("subcategoryId") || "").trim();
+        const localeValue = String(formData.get("locale") || "tr").trim();
+        const locale = localeValue === "en" ? "en" : "tr";
 
         if (!(file instanceof File)) {
             return NextResponse.json(
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
             mode,
             categoryIdValue,
             subcategoryIdValue,
+            locale,
         });
         if ("error" in processed) {
             return NextResponse.json(
@@ -81,6 +84,7 @@ export async function POST(request: NextRequest) {
                 skippedCount: results.skipped,
                 errorCount: results.errors.length,
                 fixedCategoryIds,
+                locale,
             },
             request,
         });

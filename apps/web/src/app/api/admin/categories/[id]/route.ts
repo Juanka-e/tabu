@@ -21,6 +21,7 @@ const updateCategorySchema = z.object({
     color: z.string().max(7).nullable().optional(),
     sortOrder: z.number().optional(),
     isVisible: z.boolean().optional(),
+    locale: z.enum(["tr", "en"]).optional(),
 });
 
 export async function PUT(
@@ -50,7 +51,28 @@ export async function PUT(
         const categoryId = parseInt(id, 10);
         const body = await request.json();
         const parsed = updateCategorySchema.parse(body);
-        const data = await validateAdminCategoryInput(parsed, categoryId);
+        const currentCategory = await prisma.category.findUnique({
+            where: { id: categoryId },
+            select: { locale: true, parentId: true },
+        });
+        if (!currentCategory) {
+            return NextResponse.json({ error: "Kategori bulunamadı." }, { status: 404 });
+        }
+        if (parsed.locale && parsed.locale !== currentCategory.locale) {
+            const relationCount = await prisma.wordCategory.count({ where: { categoryId } });
+            const childCount = await prisma.category.count({ where: { parentId: categoryId } });
+            if (relationCount > 0 || childCount > 0) {
+                throw new Error("Bağlı kelimesi veya alt kategorisi olan kategorinin dili değiştirilemez.");
+            }
+        }
+        const data = await validateAdminCategoryInput(
+            {
+                ...parsed,
+                parentId: parsed.parentId === undefined ? currentCategory.parentId : parsed.parentId,
+                locale: parsed.locale ?? (currentCategory.locale === "en" ? "en" : "tr"),
+            },
+            categoryId
+        );
 
         const category = await prisma.category.update({
             where: { id: categoryId },
