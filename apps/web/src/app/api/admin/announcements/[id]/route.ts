@@ -5,7 +5,7 @@ import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import {
@@ -13,6 +13,7 @@ import {
     toAnnouncementInputJson,
 } from "@/lib/announcements/content";
 import {
+    ANNOUNCEMENT_MEDIA_URL_MAX_LENGTH,
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
@@ -30,7 +31,7 @@ const updateAnnouncementSchema = z.object({
     isPinned: z.boolean().optional(),
     version: z.string().trim().max(50).nullable().optional(),
     tags: z.string().trim().max(500).nullable().optional(),
-    mediaUrl: z.string().trim().nullable().optional(),
+    mediaUrl: z.string().trim().max(ANNOUNCEMENT_MEDIA_URL_MAX_LENGTH).nullable().optional(),
     mediaType: z.enum(["image", "youtube"]).nullable().optional(),
 });
 
@@ -43,7 +44,7 @@ export async function PUT(
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-announcement-update",
         key: `admin:${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,
@@ -180,7 +181,7 @@ export async function DELETE(
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-announcement-delete",
         key: `admin:${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,

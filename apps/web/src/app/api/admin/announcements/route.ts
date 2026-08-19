@@ -5,7 +5,7 @@ import { requireAdminSession } from "@/lib/admin/require-admin";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import {
@@ -15,6 +15,7 @@ import {
     toAnnouncementInputJson,
 } from "@/lib/announcements/content";
 import {
+    ANNOUNCEMENT_MEDIA_URL_MAX_LENGTH,
     sanitizeAnnouncementMedia,
     toAnnouncementMediaType,
 } from "@/lib/security/announcements";
@@ -32,7 +33,7 @@ const createAnnouncementSchema = z.object({
     isPinned: z.boolean().default(false),
     version: z.string().trim().max(50).nullable().optional(),
     tags: z.string().trim().max(500).nullable().optional(),
-    mediaUrl: z.string().trim().nullable().optional(),
+    mediaUrl: z.string().trim().max(ANNOUNCEMENT_MEDIA_URL_MAX_LENGTH).nullable().optional(),
     mediaType: z.enum(["image", "youtube"]).nullable().optional(),
 });
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-announcements-read",
         key: `${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
         return adminSession;
     }
 
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "admin-announcements-write",
         key: `${adminSession.id}:${getRequestIp(request)}`,
         windowMs: 60_000,

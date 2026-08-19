@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
     buildRateLimitHeaders,
-    consumeRequestRateLimit,
+    consumeDistributedRequestRateLimit,
     getRequestIp,
 } from "@/lib/security/request-rate-limit";
 import {
@@ -21,7 +21,7 @@ import { LOCALE_COOKIE_NAME } from "@/lib/i18n/config";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-    const rateLimit = consumeRequestRateLimit({
+    const rateLimit = await consumeDistributedRequestRateLimit({
         bucket: "announcements-visible-read",
         key: getRequestIp(request),
         windowMs: 60_000,

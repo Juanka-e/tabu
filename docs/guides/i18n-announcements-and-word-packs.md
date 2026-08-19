@@ -37,6 +37,10 @@ ortadan kaldırır.
   gibi doğrulanan bloklar kullanılır.
 - Medya mevcut URL allowlist/sanitizer, admin oturumu, rate limit ve audit
   sınırlarını korur.
+- Duyuru okuma ve admin yazma limitleri Redis varsa instance'lar arasında ortak,
+  Redis yoksa process-local güvenli fallback ile çalışır.
+- Medya URL'si 2048 karakterle sınırlıdır; YouTube adresi doğrulanmış tek video
+  kimliğine normalize edilir ve serbest embed path/query parametreleri korunmaz.
 - Oyuncu modalı ve admin önizlemesi ayrı tema state'i tutmaz. Kök
   `next-themes` provider'ının `dark` sınıfını izler; açık/koyu tema düğmesi
   duyuru yüzeyini de aynı render döngüsünde günceller.
@@ -78,6 +82,8 @@ arayüz kullanırken odada Türkçe kelime paketi seçebilir.
 - tekli kelime ekleme/düzenleme seçilen paketin kategorilerini kullanır;
 - sabit kategori ve CSV-kategori toplu yükleme modları seçilen `locale` değerini
   API'ye taşır;
+- tek import en fazla 2 MB ve 1000 veri satırıdır; kelime/yasaklı kelime alanları
+  veritabanı uzunluklarıyla uyumlu biçimde sunucuda doğrulanır;
 - geçersiz locale sunucuda reddedilir; bilinmeyen değer sessizce Türkçe pakete
   yazılmaz;
 - aynı kelime farklı dillerde bulunabilir, fakat aynı dilde ikinci kez eklenemez;

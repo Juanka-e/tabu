@@ -6,6 +6,10 @@ import {
 } from "@hushle/domain-game";
 
 export type BulkUploadMode = "fixed_categories" | "csv_categories";
+export const MAX_BULK_WORD_UPLOAD_FILE_BYTES = 2 * 1024 * 1024;
+export const MAX_BULK_WORD_UPLOAD_ROWS = 1_000;
+export const MAX_BULK_TABOO_WORDS_PER_ROW = 12;
+const MAX_WORD_FIELD_LENGTH = 255;
 
 export interface BulkUploadResults {
     success: number;
@@ -157,6 +161,18 @@ export async function processBulkWordUpload(options: {
         return { error: "CSV dosyasi bos." } as const;
     }
 
+    const firstLine = lines[0].toLocaleLowerCase(
+        getGameContentLocaleDefinition(locale).intlLocale
+    ).trim();
+    const startIndex = firstLine.startsWith("word") || firstLine.startsWith("kelime")
+        ? 1
+        : 0;
+    if (lines.length - startIndex > MAX_BULK_WORD_UPLOAD_ROWS) {
+        return {
+            error: `CSV en fazla ${MAX_BULK_WORD_UPLOAD_ROWS} veri satiri icerebilir.`,
+        } as const;
+    }
+
     let fixedCategoryIds: number[] = [];
     if (mode === "fixed_categories") {
         const resolved = await resolveFixedCategoryIds(categoryIdValue, subcategoryIdValue, locale);
@@ -173,12 +189,6 @@ export async function processBulkWordUpload(options: {
             select: { id: true, name: true, parentId: true },
         });
         categoryIndex = buildCategoryIndex(categories, locale);
-    }
-
-    let startIndex = 0;
-    const firstLine = lines[0].toLocaleLowerCase("tr-TR").trim();
-    if (firstLine.startsWith("word") || firstLine.startsWith("kelime")) {
-        startIndex = 1;
     }
 
     const results: BulkUploadResults = {
@@ -225,6 +235,11 @@ export async function processBulkWordUpload(options: {
             continue;
         }
 
+        if (wordText.length > MAX_WORD_FIELD_LENGTH) {
+            results.errors.push(`Satir ${rowNumber}: Kelime en fazla ${MAX_WORD_FIELD_LENGTH} karakter olabilir.`);
+            continue;
+        }
+
         if (Number.isNaN(difficulty) || difficulty < 1 || difficulty > 3) {
             results.errors.push(`Satir ${rowNumber}: Zorluk 1-3 arasinda olmali.`);
             continue;
@@ -232,6 +247,16 @@ export async function processBulkWordUpload(options: {
 
         if (tabooWords.length === 0) {
             results.errors.push(`Satir ${rowNumber}: En az 1 yasakli kelime gerekli.`);
+            continue;
+        }
+
+        if (tabooWords.length > MAX_BULK_TABOO_WORDS_PER_ROW) {
+            results.errors.push(`Satir ${rowNumber}: En fazla ${MAX_BULK_TABOO_WORDS_PER_ROW} yasakli kelime eklenebilir.`);
+            continue;
+        }
+
+        if (tabooWords.some((tabooWord) => tabooWord.length > MAX_WORD_FIELD_LENGTH)) {
+            results.errors.push(`Satir ${rowNumber}: Yasakli kelimeler en fazla ${MAX_WORD_FIELD_LENGTH} karakter olabilir.`);
             continue;
         }
 

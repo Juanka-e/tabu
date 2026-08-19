@@ -8,6 +8,7 @@ import {
 import { writeAuditLog } from "@/lib/security/audit-log";
 import {
     processBulkWordUpload,
+    MAX_BULK_WORD_UPLOAD_FILE_BYTES,
     type BulkUploadMode,
 } from "@/lib/admin-words-bulk-upload/service";
 import { invalidateAdminDashboardStatsCache } from "@/lib/cache/application-cache";
@@ -58,6 +59,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 { error: "Dosya bulunamadi." },
                 { status: 400, headers: buildRateLimitHeaders(rateLimit) }
+            );
+        }
+
+        if (file.size > MAX_BULK_WORD_UPLOAD_FILE_BYTES) {
+            return NextResponse.json(
+                { error: "CSV dosyasi en fazla 2 MB olabilir." },
+                { status: 413, headers: buildRateLimitHeaders(rateLimit) }
             );
         }
 
