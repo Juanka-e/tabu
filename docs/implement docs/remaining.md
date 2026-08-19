@@ -367,10 +367,10 @@ Bilincli olarak bu branch'te yapmiyoruz:
 - economy guard tetiklerinin saha verisiyle yeniden tuning edilmesi
 
 ## Uzun Vadeli Notlar
-- Web i18n temeli ve ana oyun/auth/lobi yüzeyleri `tr|en` çalışır. Dashboard
-  mağaza, envanter, hesap ayarları, bildirim/destek, checkout/legal metinleri ve
-  socket/API hata kodlarının locale çözümü ayrı, küçük dilimlerle sözlüğe
-  taşınmalıdır. Eksik yüzey varken yeni bir üçüncü dil açılmamalıdır.
+- Web i18n temeli ile ana oyun/auth/lobi, dashboard, mağaza, envanter, hesap
+  ayarları, bildirim/destek, hesap kurtarma ve checkout/legal yüzeyleri `tr|en`
+  çalışır. Kalan borç, eski socket/API serbest hata metinlerini endpoint bazında
+  kararlı hata kodlarına dönüştürmektir. Bu tamamlanmadan üçüncü dil açılmamalıdır.
 - mevcut modularizasyon fazi tamamlandi: web runtime `apps/web`, paylasilan DB/cache
   katmani `packages/platform-*`, one-shot isler `apps/jobs` altinda calisiyor.
 - `apps/api` runtime ve mobile auth temeli tamamlandi; production deploy explicit

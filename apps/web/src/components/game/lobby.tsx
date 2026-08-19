@@ -280,9 +280,9 @@ export function Lobby({
     const getSelectedText = () => {
         if (selectedCategories.length === 0) return t("room.noneSelected");
         if (flatCategories.length > 0 && selectedCategories.length === flatCategories.length) return t("room.allCategories");
-        const firstLabel = categoryPathLabelById.get(selectedCategories[0]) || "1 kategori";
+        const firstLabel = categoryPathLabelById.get(selectedCategories[0]) || t("room.categoryFallback");
         if (selectedCategories.length === 1) return firstLabel;
-        return `${firstLabel} +${selectedCategories.length - 1} diğer`;
+        return t("room.moreCategories", { label: firstLabel, count: selectedCategories.length - 1 });
     };
 
     return (
@@ -417,13 +417,13 @@ export function Lobby({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
-                                        Yonetici Devri Bekleniyor
+                                        {t("room.handoffPending")}
                                     </div>
                                     <div className="mt-1 text-sm font-semibold">
-                                        Mevcut yonetici geri donmezse otomatik devir {handoffRemainingSeconds} saniye icinde tamamlanacak.
+                                        {t("room.handoffCountdown", { seconds: handoffRemainingSeconds })}
                                     </div>
                                     <div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
-                                        Bu sure dolarsa sistem odadaki bir sonraki cevrimici oyuncuyu yonetici yapar.
+                                        {t("room.handoffHelp")}
                                     </div>
                                 </div>
                             </div>
@@ -823,16 +823,10 @@ export function Lobby({
                                                             {mainCat.name}
                                                         </span>
                                                         <span className="text-xs text-gray-400">
-                                                            {
-                                                                allItems.filter(
-                                                                    (c) =>
-                                                                        tempSelectedCategories.includes(
-                                                                            c.id
-                                                                        )
-                                                                ).length
-                                                            }{" "}
-                                                            / {allItems.length}{" "}
-                                                            seçili
+                                                            {t("room.selectedCount", {
+                                                                selected: allItems.filter((c) => tempSelectedCategories.includes(c.id)).length,
+                                                                total: allItems.length,
+                                                            })}
                                                         </span>
                                                     </div>
                                                     <div

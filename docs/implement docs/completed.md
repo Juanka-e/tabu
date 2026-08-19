@@ -481,3 +481,10 @@
 ## Not
 Bu dosya sadece kalici olarak degerli tamamlanmis dilimleri tutar.
 Eski gunluk debug notlari ve artik tekrar bakilmayan checklist'ler burada tutulmaz.
+# Bilingual Theme And Player Surface Completion
+
+- Duyuru modalı ve önizlemeleri ortak açık/koyu tema provider'ına bağlandı.
+- Dashboard, envanter, mağaza, ayarlar, bildirim, destek, hesap kurtarma,
+  checkout ve ödeme hukuki belge yüzeyleri TR/EN kapsamına alındı.
+- Duyuru editöründeki ASCII Türkçe kalıntıları UTF-8 metinlerle değiştirildi ve
+  repository mojibake taraması temizlendi.

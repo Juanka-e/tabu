@@ -242,15 +242,15 @@ export function AuthenticatedDashboardHome({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
-                  Aktif Odan Var
+                  {t("home.activeRoomTitle")}
                 </div>
                 <div className="mt-1 text-sm font-semibold">
-                  {activeRoomContext.roomCode} odasina geri donebilirsin.
+                  {t("home.activeRoomReturn", { code: activeRoomContext.roomCode })}
                 </div>
                 <div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
                   {activeRoomContext.requiresHostReturn
-                    ? "Bu odada yonetici geri donusu bekleniyor. Giris yapman devir riskini azaltir."
-                    : "Yeni oda acmadan once mevcut odana geri donmen bekleniyor."}
+                    ? t("home.activeRoomHostHelp")
+                    : t("home.activeRoomHelp")}
                 </div>
                 <Button
                   type="button"

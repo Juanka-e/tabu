@@ -47,7 +47,7 @@ export function AnnouncementPreviewCard({
     return (
         <div
             className={cx(
-                "overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800",
+                "overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 text-slate-900 shadow-sm transition-colors dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
                 className
             )}
         >

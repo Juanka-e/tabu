@@ -99,8 +99,8 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
     }
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 p-3 backdrop-blur-md">
-            <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/55 p-3 backdrop-blur-md transition-colors dark:bg-black/80">
+            <div data-testid="announcements-panel" className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white text-slate-900 shadow-2xl transition-colors dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                 <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-slate-800">
                     <div>
                         <h2 className="flex items-center gap-2 text-xl font-black text-slate-800 dark:text-white">
@@ -171,7 +171,7 @@ export function AnnouncementsModal({ isOpen, onClose }: AnnouncementsModalProps)
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto bg-gray-50/30 p-4 dark:bg-slate-900">
+                <div className="flex-1 overflow-y-auto bg-slate-50/80 p-4 transition-colors dark:bg-slate-950">
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
                             <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />

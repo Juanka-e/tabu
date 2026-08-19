@@ -25,3 +25,21 @@ test("announcement navigation exposes updates, announcements and FAQ in English"
     await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("heading", { name: "What's New" })).toBeHidden();
 });
+
+test("announcement panel follows the global light and dark theme", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Dil").selectOption("en");
+
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await page.getByRole("button", { name: "Open announcements" }).click();
+    const panel = page.getByTestId("announcements-panel");
+    const darkBackground = await panel.evaluate((element) => getComputedStyle(element).backgroundColor);
+    await page.getByRole("button", { name: "Close" }).click();
+
+    await page.getByRole("button", { name: "Change theme" }).click();
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
+    await page.getByRole("button", { name: "Open announcements" }).click();
+    const lightBackground = await panel.evaluate((element) => getComputedStyle(element).backgroundColor);
+
+    expect(lightBackground).not.toBe(darkBackground);
+});

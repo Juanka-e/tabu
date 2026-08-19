@@ -914,7 +914,7 @@ export default function RoomPage() {
                         <LoaderCircle className="h-6 w-6 animate-spin" />
                     </div>
                     <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
-                        Aktif Oda Kontrolu
+                        {t("room.activeRoomCheck")}
                     </div>
                     <div className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                         Hangi odaya devam etmen gerektigini dogruluyoruz.
@@ -934,19 +934,18 @@ export default function RoomPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">
-                                Aktif Oda Bulundu
+                                {t("room.activeRoomFound")}
                             </div>
                             <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
-                                {activeRoomGuard.roomCode} odasina geri donmelisin.
+                                {t("room.mustReturnRoom", { code: activeRoomGuard.roomCode })}
                             </div>
                             <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                                Acmaya calistigin sayfa <span className="font-bold">{normalizedRoomCode}</span>. Hesabin ise su an{" "}
-                                <span className="font-bold">{activeRoomGuard.roomCode}</span> odasina bagli gorunuyor.
+                                {t("room.roomConflictDetail", { requested: normalizedRoomCode, active: activeRoomGuard.roomCode })}
                             </div>
                             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                 {activeRoomGuard.requiresHostReturn
-                                    ? "Bu odada yonetici geri donusu bekleniyor. Once kendi odana donup devir riskini kapatman gerekir."
-                                    : "Yanlis room URL'i veya eski sekme acik kalmis olabilir. Once mevcut odana don, sonra gerekirse yeni oda ac."}
+                                    ? t("room.roomConflictHostHelp")
+                                    : t("room.roomConflictHelp")}
                             </div>
                             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                                 <button
@@ -955,14 +954,14 @@ export default function RoomPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-400"
                                 >
                                     <ArrowRight className="h-4 w-4" />
-                                    Aktif Odaya Don
+                                    {t("room.returnActiveRoom")}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => router.replace("/dashboard")}
                                     className="rounded-2xl border border-gray-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                                 >
-                                    Dashboard&apos;a Git
+                                    {t("room.goDashboard")}
                                 </button>
                             </div>
                         </div>

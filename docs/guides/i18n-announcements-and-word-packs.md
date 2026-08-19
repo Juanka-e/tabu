@@ -7,6 +7,12 @@ bir dil, sözlük anahtarları tamamlanmadan desteklenen locale listesine eklenm
 Admin operasyon ekranlarının dili Türkçe kalabilir; oyuncuya açık ana akışlar
 aynı sözlük kontratını kullanır.
 
+Oyuncuya açık dashboard, envanter, mağaza, hesap ayarları, bildirim, destek,
+hesap kurtarma ve checkout yüzeyleri de `tr|en` sözlüğünü kullanır. API/socket
+katmanındaki serbest metin hataları yeni geliştirmelerde çoğaltılmamalı; istemci
+tarafından locale'e çevrilen kararlı hata kodlarına geçiş geriye uyumlu ve
+endpoint bazlı yapılmalıdır.
+
 Arayüz dili ve oyun içeriği dili birbirinden ayrıdır:
 
 - arayüz tercihi `hushle_locale` cookie/localStorage değeriyle saklanır;
@@ -31,11 +37,19 @@ ortadan kaldırır.
   gibi doğrulanan bloklar kullanılır.
 - Medya mevcut URL allowlist/sanitizer, admin oturumu, rate limit ve audit
   sınırlarını korur.
+- Oyuncu modalı ve admin önizlemesi ayrı tema state'i tutmaz. Kök
+  `next-themes` provider'ının `dark` sınıfını izler; açık/koyu tema düğmesi
+  duyuru yüzeyini de aynı render döngüsünde günceller.
 
 Kopyalanan referans sistemdeki TipTap/raw HTML ve process-local rate limit
 doğrudan alınmadı. Mevcut yapılandırılmış blok editörü daha dar XSS yüzeyi ve
 daha öngörülebilir mobil render sağladığı için korundu. Referans sistemden üç
 sekme yaklaşımı, FAQ akışı ve çift dil editör deneyimi alındı.
+
+Ödeme hukuki belgelerinin TR/EN gövdeleri aynı readiness ve sürüm kapısını
+kullanır. Hukuki anlamı değiştiren çeviri revizyonunda ilgili belge sürümü
+artırılmalı ve production ödeme açılmadan önce iki dil de hukuk kontrolünden
+geçmelidir.
 
 ## Kelime Paketleri
 
