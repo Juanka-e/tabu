@@ -46,6 +46,18 @@ export function TransitionScreen({
                     </div>
                 </div>
 
+                {transition.ilkGecis && (
+                    <div className="mt-5 flex items-center gap-4 rounded-xl border border-border bg-muted/50 p-3" role="status">
+                        <div className="starting-team-token relative h-14 w-14 shrink-0 text-2xl font-black text-foreground"
+                            style={{ animationPlayState: transition.oyunDurduruldu ? "paused" : "running" }}
+                            data-reveal={transition.kalanSure >= 8} aria-hidden="true">
+                            <span className="starting-team-face absolute inset-0 grid place-items-center rounded-full border-2 border-current bg-background">{transition.anlatici.takim}</span>
+                            <span className="starting-team-face starting-team-reverse absolute inset-0 grid place-items-center rounded-full border-2 border-current bg-background">{transition.anlatici.takim === "A" ? "B" : "A"}</span>
+                        </div>
+                        <div><p className="text-xs text-muted-foreground">{t("transition.firstTeam")}</p>
+                            <p className="font-bold text-foreground">{narratorTeamLabel}</p></div>
+                    </div>
+                )}
                 <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <section className="rounded-[1.6rem] border border-slate-200/75 bg-slate-50/85 p-5 dark:border-slate-800/80 dark:bg-slate-900/72">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">

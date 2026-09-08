@@ -148,10 +148,11 @@ export function shouldFinishTabuBeforeRound(input: {
     settings: TabuRoomSettings;
     currentRound: number;
     speakingTeam: TeamId;
+    startingTeam?: TeamId;
     goldenScoreActive: boolean;
 }): boolean {
     return (
-        input.speakingTeam === "A" &&
+        input.speakingTeam === (input.startingTeam ?? "A") &&
         !input.goldenScoreActive &&
         input.settings.mod === "tur" &&
         input.currentRound > input.settings.deger

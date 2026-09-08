@@ -27,6 +27,7 @@ interface SidebarProps {
     isOpen: boolean;
     onToggle: () => void;
     isMobile: boolean;
+    onMoveNarrator?: (playerId: string, direction: "up" | "down") => void;
     onSwitchTeam?: () => void;
     onKickPlayer?: (playerId: string) => void;
     onTransferHost?: (playerId: string) => void;
@@ -69,6 +70,7 @@ export function Sidebar({
     isOpen,
     onToggle,
     isMobile,
+    onMoveNarrator,
     onSwitchTeam,
     onKickPlayer,
     onTransferHost,
@@ -207,7 +209,7 @@ export function Sidebar({
                     </button>
                 )}
 
-                {teamPlayers.map((player) => {
+                {teamPlayers.map((player, playerIndex) => {
                     const isCreator = player.playerId === creatorPlayerId;
                     const isMe = player.playerId === currentPlayerId;
                     const canManage = isHost && !isMe && !isCreator;
@@ -339,6 +341,20 @@ export function Sidebar({
                                 </div>
                             )}
 
+                            {(isOpen || isMobile) && isHost && onMoveNarrator && (
+                                <div className="flex shrink-0 flex-col">
+                                    {(["up", "down"] as const).map(direction => (
+                                        <button key={direction} type="button"
+                                            aria-label={t(direction === "up" ? "room.orderUp" : "room.orderDown") + ": " + player.ad}
+                                            title={t(direction === "up" ? "room.orderUp" : "room.orderDown")}
+                                            disabled={direction === "up" ? playerIndex === 0 : playerIndex === teamPlayers.length - 1}
+                                            onClick={() => onMoveNarrator(player.playerId, direction)}
+                                            className="min-h-8 min-w-8 rounded-md text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-25">
+                                            {direction === "up" ? "↑" : "↓"}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             {/* Admin Actions */}
                             {(isOpen || isMobile) && canManage && (
                                 <DropdownMenu>

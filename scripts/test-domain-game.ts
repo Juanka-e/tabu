@@ -66,3 +66,17 @@ assert.deepEqual(
 );
 
 console.log("domain game smoke test passed");
+
+// Either starting team must receive exactly the configured number of turns.
+for (const startingTeam of ["A", "B"] as const) {
+    for (const rounds of [2, 5, 30]) {
+        const settings = { sure: 60, mod: "tur" as const, deger: rounds };
+        for (let round = 1; round <= rounds; round++) {
+            for (const speakingTeam of [startingTeam, startingTeam === "A" ? "B" : "A"] as const) {
+                assert.equal(shouldFinishTabuBeforeRound({ settings, currentRound: round, speakingTeam, startingTeam, goldenScoreActive: false }), false);
+            }
+        }
+        assert.equal(shouldFinishTabuBeforeRound({ settings, currentRound: rounds + 1, speakingTeam: startingTeam, startingTeam, goldenScoreActive: false }), true);
+        assert.equal(shouldFinishTabuBeforeRound({ settings, currentRound: rounds + 1, speakingTeam: startingTeam, startingTeam, goldenScoreActive: true }), false);
+    }
+}

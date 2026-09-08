@@ -1031,6 +1031,7 @@ export default function RoomPage() {
                             ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
+                    onMoveNarrator={isHost && view === GameView.LOBBY ? (playerId, direction) => emit("narrator_order", { playerId, direction }) : undefined}
                     onKickPlayer={isHost ? (playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId }) : undefined}
                     onTransferHost={isHost ? (playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId }) : undefined}
                 />
@@ -1317,6 +1318,7 @@ export default function RoomPage() {
                             ? () => emit(ROOM_SWITCH_TEAM_EVENT)
                             : undefined
                     }
+                    onMoveNarrator={isHost && view === GameView.LOBBY ? (playerId, direction) => emit("narrator_order", { playerId, direction }) : undefined}
                     onKickPlayer={isHost ? (playerId) => emit("oyuncuyuAt", { targetPlayerId: playerId }) : undefined}
                     onTransferHost={isHost ? (playerId) => emit("yoneticiligiDevret", { targetPlayerId: playerId }) : undefined}
                 />

@@ -1,4 +1,5 @@
 ﻿import { Server, Socket } from "socket.io";
+import { randomInt } from "node:crypto";
 import { z } from "zod";
 import { isEmailVerificationRestrictionActive } from "@hushle/platform-auth";
 import { getToken } from "next-auth/jwt";
@@ -107,6 +108,7 @@ interface NarratorInfo {
 }
 
 interface GameStateData {
+    startingTeam?: "A" | "B";
     oyunAktifMi: boolean;
     oyunDurduruldu: boolean;
     gecisEkraninda: boolean;
@@ -614,7 +616,7 @@ export function setupGameSocket(
         }
 
         if (
-            room.oyunDurumu.anlatacakTakim === "A" &&
+            room.oyunDurumu.anlatacakTakim === (room.oyunDurumu.startingTeam ?? "A") &&
             !room.oyunDurumu.altinSkorAktif
         ) {
             room.oyunDurumu.mevcutTur += 1;
@@ -622,6 +624,7 @@ export function setupGameSocket(
                 settings: room.ayarlar,
                 currentRound: room.oyunDurumu.mevcutTur,
                 speakingTeam: room.oyunDurumu.anlatacakTakim,
+                startingTeam: room.oyunDurumu.startingTeam,
                 goldenScoreActive: room.oyunDurumu.altinSkorAktif,
             })) {
                 finishGame(roomCode);
@@ -644,7 +647,7 @@ export function setupGameSocket(
             room.oyunDurumu.anlatacakTakim =
                 anlatacakTakim === "A" ? "B" : "A";
             if (
-                room.oyunDurumu.anlatacakTakim === "A" &&
+                room.oyunDurumu.anlatacakTakim === (room.oyunDurumu.startingTeam ?? "A") &&
                 !room.oyunDurumu.altinSkorAktif
             ) {
                 room.oyunDurumu.mevcutTur -= 1;
@@ -1568,6 +1571,30 @@ export function setupGameSocket(
         );
 
         // ── Team Shuffle ──
+        socket.on("narrator_order", (payload: unknown) => {
+            const parsed = z.object({ playerId: z.string().min(1).max(128), direction: z.enum(["up", "down"]) }).strict().safeParse(payload);
+            if (!parsed.success) return;
+            const room = getRoomBySocketId(socket.id);
+            if (!room || room.oyunDurumu.oyunAktifMi) return;
+            const actor = room.oyuncular.find(p => p.id === socket.id);
+            if (!actor || actor.playerId !== room.creatorPlayerId) return;
+            const target = room.oyuncular.find(p => p.playerId === parsed.data.playerId);
+            if (!target || !target.takim) return;
+            const now = Date.now();
+            if (now - (socket.data.lastNarratorOrderAt ?? 0) < 200) return;
+            socket.data.lastNarratorOrderAt = now;
+            const team = room.oyuncular.filter(p => p.takim === target.takim);
+            const index = team.indexOf(target);
+            const neighbour = team[index + (parsed.data.direction === "up" ? -1 : 1)];
+            if (!neighbour) return;
+            const a = room.oyuncular.indexOf(target);
+            const b = room.oyuncular.indexOf(neighbour);
+            // Synchronous swap preserves membership and cannot interleave with match start.
+            [room.oyuncular[a], room.oyuncular[b]] = [room.oyuncular[b], room.oyuncular[a]];
+            persistRoom(room);
+            broadcastLobby(room);
+        });
+
         socket.on("takimlariKaristir", async () => {
             const room = getRoomBySocketId(socket.id);
             if (!room) return;
@@ -1835,13 +1862,15 @@ export function setupGameSocket(
                         }));
                     room.activeWordAnalytics = null;
 
+                    const startingTeam = randomInt(2) === 0 ? "A" : "B";
                     room.oyunDurumu = {
                         ...room.oyunDurumu,
                         oyunAktifMi: true,
                         skor: { A: 0, B: 0 },
                         mevcutTur: 0,
                         toplamTur,
-                        anlatacakTakim: "A",
+                        anlatacakTakim: startingTeam,
+                        startingTeam,
                         takimA_anlaticiIndex: -1,
                         takimB_anlaticiIndex: -1,
                         altinSkorAktif: false,

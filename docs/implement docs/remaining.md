@@ -4,6 +4,19 @@
 > Durum: aktif uygulanabilir backlog
 
 ## Su Anki Oncelik Sirasi
+
+2026-09-07 planlama notu: dahili sesli sohbet ertelendi. IP gizliligi,
+P2P/TURN/SFU maliyetleri ve yeniden degerlendirme kosullari; ilk takim flip'i,
+anlatici sirasi ve sade lobi icin henuz onaylanmamis branch onerileri:
+[`voice-and-lobby-experience-roadmap.md`](../architecture/voice-and-lobby-experience-roadmap.md).
+Bu not implementasyon veya mevcut kapasite ayari degisikligi degildir.
+
+2026-09-08: ses disi lobi kapsami onaylandi. Ilk takim secimi/flip, yonetici
+anlatici siralama, kompakt kelime dili ve kapali oyun ayarlari uygulandi.
+Yeni kapasite varsayilani 10/5; kayitli admin degerleri degistirilmedi.
+Yerel test kanitlari ve kalan cok istemcili mac/gercek cihaz kabul adimlari
+yukaridaki yol haritasinin Implementation status bolumunde tutulur.
+
 1. `manual/web-real-device-smoke`
 2. `feature/web-launch-blocker-fixes` - yalniz dogrulamada bulunan gercek hatalar
 3. `feature/post-launch-economy-observability-review`

@@ -442,32 +442,22 @@ export function Lobby({
                             <h3 className="font-semibold">{t("room.gameSettings")}</h3>
                         </div>
 
-                        <div className="mb-4 rounded-xl border border-sky-200/70 bg-sky-50/70 p-3 dark:border-sky-900/60 dark:bg-sky-950/20">
-                            <label className="block text-xs font-bold uppercase tracking-wide text-sky-800 dark:text-sky-200">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                            <label htmlFor="room-word-language" className="text-sm font-medium text-muted-foreground" title={t("room.wordLanguageHelp")}>
                                 {t("room.wordLanguage")}
                             </label>
-                            <select
-                                value={settings.wordLocale}
-                                onChange={(event) =>
-                                    onUpdateSettings({
-                                        ...settings,
-                                        wordLocale: event.target.value as GameContentLocale,
-                                    })
-                                }
+                            <select id="room-word-language" value={settings.wordLocale}
+                                onChange={event => onUpdateSettings({ ...settings, wordLocale: event.target.value as GameContentLocale })}
                                 disabled={!isHost}
-                                className="mt-2 w-full rounded-lg border border-sky-200 bg-white p-2.5 text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-sky-900 dark:bg-slate-900 dark:text-white"
-                            >
-                                {GAME_CONTENT_LOCALES.map((locale) => (
-                                    <option key={locale} value={locale}>
-                                        {GAME_CONTENT_LOCALE_DEFINITIONS[locale].nativeName}
-                                    </option>
+                                className="min-h-11 max-w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70">
+                                {GAME_CONTENT_LOCALES.map(locale => (
+                                    <option key={locale} value={locale}>{GAME_CONTENT_LOCALE_DEFINITIONS[locale].nativeName}</option>
                                 ))}
                             </select>
-                            <p className="mt-2 text-xs text-sky-700 dark:text-sky-300">
-                                {t("room.wordLanguageHelp")}
-                            </p>
                         </div>
-
+                        <details className="group/settings mb-4">
+                            <summary className="cursor-pointer py-2 text-sm font-semibold text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("room.advancedSettings")}</summary>
+                            <div className="pt-3">
                         {/* Game Mode Selection */}
                         <div className="mb-4">
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
@@ -605,6 +595,8 @@ export function Lobby({
                                 )}
                             </div>
                         </div>
+                            </div>
+                        </details>
                     </div>
 
                     {/* Start Action */}
